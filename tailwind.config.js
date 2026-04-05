@@ -9,23 +9,40 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'monospace'],
       },
       colors: {
-        brand: {
-          amber: '#f59e0b',
-          amberDim: 'rgba(245,158,11,0.15)',
-          amberBorder: 'rgba(245,158,11,0.3)',
-          bg: '#0f1923',
-          card: '#1a2535',
-          cardHover: '#1f2e42',
-          border: '#2a3f5f',
-          borderHover: '#3a5070',
-          muted: 'rgba(255,255,255,0.45)',
-          subtle: 'rgba(255,255,255,0.2)',
+        sidebar: {
+          DEFAULT: '#1B3A6B',
+          hover: '#243f72',
+          active: '#2d4f8a',
+          border: '#243f72',
+        },
+        amber: {
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
         },
       },
       animation: {
-        'spin-slow': 'spin 2s linear infinite',
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'slide-up': 'slideUp 0.25s ease-out',
+        'pulse-highlight': 'pulseHighlight 0.8s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        slideUp: {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseHighlight: {
+          '0%': { backgroundColor: 'rgba(245,158,11,0.2)' },
+          '100%': { backgroundColor: 'transparent' },
+        },
       },
     },
   },

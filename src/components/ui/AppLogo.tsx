@@ -15,9 +15,9 @@ interface AppLogoProps {
 const AppLogo = memo(function AppLogo({
   src = '/assets/images/app_logo.png',
   iconName = 'SparklesIcon',
-  size = 64,
+  size = 50,
   className = '',
-  onClick,
+  onClick
 }: AppLogoProps) {
   // Memoize className calculation
   const containerClassName = useMemo(() => {
@@ -30,21 +30,21 @@ const AppLogo = memo(function AppLogo({
   return (
     <div className={containerClassName} onClick={onClick}>
       {/* Show image if src provided, otherwise show icon */}
-      {src ? (
-        <AppImage
-          src={src}
-          alt="Logo" 
-          width={size}
-          height={size}
-          className="flex-shrink-0"
-          priority={true}
-          unoptimized={src.endsWith('.svg')}
-        />
-      ) : (
-        <AppIcon name={iconName} size={size} className="flex-shrink-0" />
-      )}
-    </div>
-  );
+      {src ?
+      <AppImage
+        src="/assets/images/WhatsApp_Image_2026-03-20_at_11.44.04_AM-1774033922335.jpeg"
+        alt="Logo"
+        width={size}
+        height={size}
+        className="flex-shrink-0"
+        priority={true}
+        unoptimized={src.endsWith('.svg')} /> :
+
+
+      <AppIcon name={iconName} size={size} className="flex-shrink-0" />
+      }
+    </div>);
+
 });
 
 export default AppLogo;

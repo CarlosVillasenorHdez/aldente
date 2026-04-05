@@ -1,5 +1,5 @@
 {
-  "name": "aldente",
+  "name": "sistemarestaurante",
   "version": "0.1.0",
   "private": true,
   "rocketCritical": {
@@ -9,7 +9,12 @@
       "react-dom",
       "@dhiwise/component-tagger",
       "@tailwindcss/typography",
-      "recharts"
+      "recharts",
+      "lucide-react",
+      "sonner",
+      "@supabase/supabase-js",
+      "react-hook-form",
+      "@heroicons/react"
     ],
     "devDependencies": [
       "typescript",
@@ -49,16 +54,23 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@dhiwise/component-tagger": "^1.0.15",
+    "@dhiwise/component-tagger": "^1.0.14",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@heroicons/react": "^2.2.0",
+    "@supabase/ssr": "0.6.1",
+    "@supabase/supabase-js": "^2.100.1",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
-    "lucide-react": "^1.7.0",
+    "date-fns": "4.1.0",
+    "lucide-react": "^0.577.0",
     "next": "15.1.11",
     "react": "19.0.3",
     "react-dom": "19.0.3",
+    "react-hook-form": "^7.71.2",
     "recharts": "^2.15.2",
-    "sonner": "^1.7.1"
+    "resend": "6.9.4",
+    "sonner": "^1.7.1",
+    "stripe": "^14.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
