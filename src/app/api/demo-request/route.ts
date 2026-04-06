@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       await supabase.functions.invoke('send-email', {
         body: {
           type: 'demo_request',
-          to: 'onboarding@resend.dev', // Replace with your admin email
+          to: process.env.ADMIN_NOTIFICATION_EMAIL ?? 'cvillasenorhdez@gmail.com',
           data: {
             restaurantName: body.restaurantName,
             contactName: body.contactName,

@@ -29,13 +29,21 @@ export default function TenantDetailPage() {
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [draft, setDraft] = useState<Partial<TenantDetail>>({});
 
+  const [usageStats, setUsageStats] = useState<{ ordersThisMonth: number; totalOrders: number } | null>(null);
+
   useEffect(() => {
+    const monthStart = new Date();
+    monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+
     Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
       supabase.from('app_users').select('id, full_name, app_role, is_active').eq('tenant_id', id).order('app_role'),
-    ]).then(([{ data: t }, { data: u }]) => {
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id).gte('created_at', monthStart.toISOString()),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id),
+    ]).then(([{ data: t }, { data: u }, { count: monthly }, { count: total }]) => {
       if (t) { setTenant(t as TenantDetail); setDraft(t as TenantDetail); }
       setUsers((u ?? []) as AppUser[]);
+      setUsageStats({ ordersThisMonth: monthly ?? 0, totalOrders: total ?? 0 });
       setLoading(false);
     });
   }, [id]);

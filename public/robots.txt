@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /pos-punto-de-venta
+Disallow: /cocina
+Disallow: /api/
+
+Sitemap: https://aldente1579.builtwithrocket.new/sitemap.xml
