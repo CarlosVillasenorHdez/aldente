@@ -31,9 +31,9 @@ export default function AdminLoginPage() {
       return;
     }
     const { data: adminRow } = await supabase
-      .from('admin_users')
+      .from('app_users')
       .select('app_role')
-      .eq('supabase_uid', data.user.id)
+      .eq('auth_user_id', data.user.id)
       .single();
     if (!adminRow || adminRow.app_role !== 'superadmin') {
       await supabase.auth.signOut();
