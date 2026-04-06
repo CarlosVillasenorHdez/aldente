@@ -118,9 +118,9 @@ export default function RegistroPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             <div style={{ padding: '12px 16px', borderRadius: '10px', backgroundColor: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', textAlign: 'left' }}>
-              <p style={{ margin: '0 0 2px', fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Accede al sistema en:</p>
+              <p style={{ margin: '0 0 2px', fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Link de acceso para empleados:</p>
               <p style={{ margin: 0, fontSize: '13px', color: '#34d399', fontFamily: 'monospace' }}>
-                {typeof window !== 'undefined' ? window.location.origin + '/login' : '/login'}
+                {typeof window !== 'undefined' ? `${window.location.origin}/r/${slugify(form.restaurantName)}` : '/login'}
               </p>
             </div>
           </div>
