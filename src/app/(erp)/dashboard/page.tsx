@@ -7,6 +7,7 @@ import DashboardQuickActions from './components/DashboardQuickActions';
 import AlertsPanel from './components/AlertsPanel';
 import LiveOperations from './components/LiveOperations';
 import RecentActivity from './components/RecentActivity';
+import UpgradeGate from '@/components/UpgradeGate';
 
 export default function DashboardPage() {
   return (
@@ -15,27 +16,40 @@ export default function DashboardPage() {
       subtitle="Resumen operativo del día"
     >
       <div className="flex flex-col gap-6">
-        {/* Quick actions */}
+
+        {/* Quick actions — always visible */}
         <DashboardQuickActions />
 
-        {/* Live operations */}
+        {/* Live operations — always visible (POS is in all plans) */}
         <LiveOperations />
 
-        {/* KPI Bento Grid */}
+        {/* KPI Bento Grid — always visible, but inventory KPI is gated inside */}
         <DashboardKPIs />
 
         {/* Charts + Alerts row */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2">
+            {/* Sales chart — always visible */}
             <SalesChart />
           </div>
           <div className="xl:col-span-1 flex flex-col gap-6">
-            <AlertsPanel />
+            {/* Alerts panel — gated: stock alerts need inventario */}
+            <UpgradeGate
+              feature="inventario"
+              requiredPlan="estandar"
+              title="Alertas de inventario"
+              description="Recibe avisos cuando un ingrediente esté por agotarse antes de que afecte tu servicio."
+              blurAmount={5}
+            >
+              <AlertsPanel />
+            </UpgradeGate>
+
+            {/* Recent activity — always visible */}
             <RecentActivity />
           </div>
         </div>
 
-        {/* Recent orders */}
+        {/* Recent orders — always visible */}
         <RecentOrders />
       </div>
     </AppLayout>

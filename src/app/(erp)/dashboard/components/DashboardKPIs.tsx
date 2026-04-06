@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useFeatures } from '@/hooks/useFeatures';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -106,6 +107,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
 }
 
 export default function DashboardKPIs() {
+  const { features } = useFeatures();
   const supabase = createClient();
   const [kpis, setKpis] = useState({
     ventasHoy: 0,
@@ -256,7 +258,17 @@ export default function DashboardKPIs() {
         loading={loading}
       />
 
-      {kpis.alertasInventario.length > 0 && (
+      {/* Inventory alert — gated for Estándar plan */}
+      {!features.inventario ? (
+        <div className="col-span-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Alertas de inventario</div>
+            <div style={{ fontSize: '13px', color: '#b45309' }}>Disponible en el plan Estándar — activa el inventario para recibir alertas de stock bajo antes de que afecten tu servicio.</div>
+          </div>
+          <a href="/configuracion" style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#d97706', color: '#fff', fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Ver plan →</a>
+        </div>
+      ) : kpis.alertasInventario.length > 0 && (
         <div className="col-span-2">
           <KPICard
             title={`Alerta de Inventario (${kpis.alertasInventario.length})`}
