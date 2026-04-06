@@ -12,8 +12,12 @@ export const PLAN_MODULES = {
     pages: [
       'dashboard', 'pos', 'orders', 'menu', 'personal', 'corte_caja',
       'inventario', 'lealtad', 'reservaciones', 'reportes', 'mesero', 'cocina',
+      'alarmas',
     ],
-    features: { inventario: true, lealtad: true, reservaciones: true, cocina: true },
+    features: {
+      inventario: true, lealtad: true, reservaciones: true, cocina: true,
+      meseroMovil: true, alarmas: true,
+    },
   },
   premium: {
     label: 'Premium',
@@ -21,12 +25,13 @@ export const PLAN_MODULES = {
     pages: [
       'dashboard', 'pos', 'orders', 'menu', 'personal', 'corte_caja',
       'inventario', 'lealtad', 'reservaciones', 'reportes', 'mesero', 'cocina',
-      'delivery', 'recursos_humanos', 'gastos', 'sucursales', 'alarmas', 'configuracion',
+      'alarmas', 'delivery', 'recursos_humanos', 'gastos', 'sucursales', 'configuracion',
     ],
     features: {
       inventario: true, lealtad: true, reservaciones: true, cocina: true,
+      meseroMovil: true, alarmas: true,
       delivery: true, recursosHumanos: true, gastos: true,
-      multiSucursal: true, alarmas: true, meseroMovil: true,
+      multiSucursal: true,
     },
   },
 } as const;

@@ -645,9 +645,9 @@ export default function LandingPage() {
               {key:'basico', tier:'Básico', price:'$800', period:'MXN / mes', desc:'Para restaurantes que quieren digitalizar la operación esencial.', featured:false,
                 features:['POS con mapa de mesas drag & drop','Menú digital con categorías','Gestión de personal y roles','Corte de caja con denominaciones','Dashboard operativo en tiempo real','Tu URL de acceso única','Impresora térmica USB/BT']},
               {key:'estandar', tier:'Estándar', price:'$1,500', period:'MXN / mes', desc:'Para restaurantes que quieren control total de toda su operación.', featured:true,
-                features:['Todo lo del plan Básico','Cocina digital KDS con semáforo','Mesero móvil instalable (PWA)','Inventario y recetas con costeo real','Reservaciones online','Programa de lealtad con puntos','Reportes P&L, COGS y Market Basket']},
-              {key:'premium', tier:'Premium', price:'$2,500', period:'MXN / mes', desc:'Para operaciones grandes que necesitan control de todo.', featured:false,
-                features:['Todo lo del plan Estándar','Delivery (Uber Eats, Rappi, Didi)','Multi-sucursal centralizado','Módulo de recursos humanos','Control de gastos y depreciaciones','Alarmas inteligentes por umbral']},
+                features:['Todo lo del plan Básico','Cocina digital KDS con semáforo','Mesero móvil instalable (PWA)','Inventario y recetas con costeo real','Reservaciones online','Programa de lealtad con puntos','Reportes P&L y COGS','Alarmas inteligentes de stock y servicio']},
+              {key:'premium', tier:'Premium', price:'$2,500', period:'MXN / mes', desc:'Para operaciones complejas que necesitan visibilidad total.', featured:false,
+                features:['Todo lo del plan Estándar','Delivery integrado (Uber, Rappi, Didi)','Multi-sucursal centralizado','Recursos humanos y nómina','Control de gastos y depreciaciones','Análisis de desperdicios']},
             ].map(p => (
               <div key={p.key} className={`plan ${p.featured ? 'featured' : ''}`} style={{position:'relative'}}>
                 {p.featured && <div className="plan-popular">Más popular</div>}

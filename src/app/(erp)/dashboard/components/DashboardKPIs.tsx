@@ -259,7 +259,8 @@ export default function DashboardKPIs() {
       />
 
       {/* Inventory alert — gated for Estándar plan */}
-      {!features.inventario ? (
+      {/* Gate: basico has no alarmas/inventario features */}
+      {(!features.inventario && !features.alarmas) ? (
         <div className="col-span-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
           <div style={{ flex: 1 }}>
