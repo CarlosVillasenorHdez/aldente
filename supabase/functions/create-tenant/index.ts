@@ -65,6 +65,7 @@ serve(async (req) => {
 
     // ── Step 3: Seed system_config ───────────────────────────────────────────
     await supabaseAdmin.from('system_config').insert([
+      { config_key: 'initialized',               config_value: 'false', tenant_id: tenantId },
       { config_key: 'feature_mesero_movil',     config_value: 'false', tenant_id: tenantId },
       { config_key: 'feature_lealtad',          config_value: 'false', tenant_id: tenantId },
       { config_key: 'feature_reservaciones',    config_value: 'false', tenant_id: tenantId },

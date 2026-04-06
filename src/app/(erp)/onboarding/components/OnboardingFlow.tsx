@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, ChevronRight, ChevronLeft, UtensilsCrossed, LayoutGrid, Users, Rocket, Plus, Trash2 } from 'lucide-react';
@@ -27,6 +28,7 @@ const DISH_CATEGORIES = ['Entradas', 'Platos Fuertes', 'Postres', 'Bebidas', 'Ex
 const EMPLOYEE_ROLES = ['Gerente', 'Cajero', 'Mesero', 'Cocinero', 'Ayudante de Cocina', 'Repartidor'];
 
 export default function OnboardingFlow() {
+  const { appUser } = useAuth();
   const supabase = createClient();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -125,6 +127,13 @@ export default function OnboardingFlow() {
           }))
         );
       }
+
+      // Mark tenant as initialized — prevents AppLayout from redirecting back to onboarding
+      await supabase.from('system_config')
+        .upsert(
+          { config_key: 'initialized', config_value: 'true', tenant_id: appUser?.tenantId },
+          { onConflict: 'config_key,tenant_id' }
+        );
 
       setCurrentStep(5);
       toast.success('¡Configuración completada!');

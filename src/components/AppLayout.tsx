@@ -29,26 +29,24 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
     }
   }, [appUser, authLoading, router]);
 
-  // Redirect to onboarding for new tenants (admin only, first time)
+  // Redirect to onboarding for new tenants (admin only, not yet initialized)
   useEffect(() => {
     if (authLoading || !appUser) return;
     if (appUser.appRole !== 'admin') return;
     if (typeof window === 'undefined') return;
     if (window.location.pathname.includes('/onboarding')) return;
 
-    const key = `aldente_onboarded_${appUser.tenantId}`;
-    const done = sessionStorage.getItem(key);
-    if (done) return;
-
-    // Mark as seen immediately to avoid redirect loop
-    sessionStorage.setItem(key, '1');
-
-    // Check if this tenant has any orders — if not, it's new
+    // Use system_config 'initialized' flag — reliable, not affected by empty order history
     const supabase = createClient();
-    supabase.from('orders').select('id', { count: 'exact', head: true })
+    supabase
+      .from('system_config')
+      .select('config_value')
       .eq('tenant_id', appUser.tenantId)
-      .then(({ count }: { count: number | null }) => {
-        if ((count ?? 0) === 0) {
+      .eq('config_key', 'initialized')
+      .single()
+      .then(({ data }) => {
+        // Only redirect if explicitly 'false' — missing key or 'true' means skip
+        if (data?.config_value === 'false') {
           router.replace('/onboarding');
         }
       });
