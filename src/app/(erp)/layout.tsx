@@ -29,6 +29,7 @@ export default function ErpGroupLayout({ children }: { children: React.ReactNode
     if (authLoading) return;
     if (!appUser?.tenantId) { setChecking(false); return; }
     if (appUser.appRole === 'superadmin') { setChecking(false); return; }
+
     const supabase = createClient();
     supabase
       .from('tenants')
@@ -42,9 +43,19 @@ export default function ErpGroupLayout({ children }: { children: React.ReactNode
   }, [appUser, authLoading]);
 
   if (authLoading || checking) return <>{children}</>;
+
   if (status) {
     const reason = getWallReason(status);
-    if (reason) return <SubscriptionWall reason={reason} plan={status.plan} />;
+    if (reason) {
+      return (
+        <SubscriptionWall
+          reason={reason}
+          plan={status.plan}
+          tenantId={appUser?.tenantId ?? undefined}
+        />
+      );
+    }
   }
+
   return <>{children}</>;
 }

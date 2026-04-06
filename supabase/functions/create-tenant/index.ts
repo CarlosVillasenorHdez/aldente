@@ -26,75 +26,114 @@ serve(async (req) => {
       });
     }
 
-    // ── Step 1: Create tenant ─────────────────────────────────────────────────
+    // ── Step 1: Create tenant ────────────────────────────────────────────────
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 14);
 
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
-      .insert({
-        name: restaurantName,
-        slug,
-        plan: 'basico',
-        is_active: true,
-        trial_ends_at: trialEnd.toISOString(),
-      })
+      .insert({ name: restaurantName, slug, plan: 'basico', is_active: true, trial_ends_at: trialEnd.toISOString() })
       .select('id')
       .single();
 
     if (tenantError || !tenant) {
       const isDuplicate = tenantError?.message?.includes('unique');
       return new Response(JSON.stringify({
-        error: isDuplicate
-          ? 'Ya existe un restaurante con ese nombre. Elige otro.'
-          : 'Error al crear el restaurante: ' + tenantError?.message,
+        error: isDuplicate ? 'Ya existe un restaurante con ese nombre. Elige otro.' : 'Error al crear el restaurante: ' + tenantError?.message,
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const tenantId = tenant.id;
 
-    // ── Step 2: Create app_user (admin) ──────────────────────────────────────
-    const username = slug + '-admin';
-
-    const { error: userError } = await supabaseAdmin
-      .from('app_users')
-      .insert({
-        username,
-        full_name: adminName,
-        app_role: 'admin',
-        pin: pinHash,
-        tenant_id: tenantId,
-        is_active: true,
-        ...(phone ? { phone } : {}),
-      });
+    // ── Step 2: Create admin user ────────────────────────────────────────────
+    const { error: userError } = await supabaseAdmin.from('app_users').insert({
+      username: slug + '-admin',
+      full_name: adminName,
+      app_role: 'admin',
+      pin: pinHash,
+      tenant_id: tenantId,
+      is_active: true,
+      ...(phone ? { phone } : {}),
+    });
 
     if (userError) {
-      // Rollback: delete tenant
       await supabaseAdmin.from('tenants').delete().eq('id', tenantId);
       return new Response(JSON.stringify({ error: 'Error al crear usuario: ' + userError.message }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // ── Step 3: Seed system_config with basico features ───────────────────────
-    const basicoFeatures = [
-      { config_key: 'feature_mesero_movil',   config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_lealtad',        config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_reservaciones',  config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_delivery',       config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_inventario',     config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_gastos',         config_value: 'false', tenant_id: tenantId },
+    // ── Step 3: Seed system_config ───────────────────────────────────────────
+    await supabaseAdmin.from('system_config').insert([
+      { config_key: 'feature_mesero_movil',     config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_lealtad',          config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_reservaciones',    config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_delivery',         config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_inventario',       config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_gastos',           config_value: 'false', tenant_id: tenantId },
       { config_key: 'feature_recursos_humanos', config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_reportes',       config_value: 'false', tenant_id: tenantId },
-      { config_key: 'feature_alarmas',        config_value: 'false', tenant_id: tenantId },
-      { config_key: 'iva_percent',            config_value: '16', tenant_id: tenantId },
-      { config_key: 'currency_symbol',        config_value: '$', tenant_id: tenantId },
-      { config_key: 'currency_code',          config_value: 'MXN', tenant_id: tenantId },
-      { config_key: 'currency_locale',        config_value: 'es-MX', tenant_id: tenantId },
+      { config_key: 'feature_reportes',         config_value: 'false', tenant_id: tenantId },
+      { config_key: 'feature_alarmas',          config_value: 'false', tenant_id: tenantId },
+      { config_key: 'iva_percent',              config_value: '16',    tenant_id: tenantId },
+      { config_key: 'currency_symbol',          config_value: '$',     tenant_id: tenantId },
+      { config_key: 'currency_code',            config_value: 'MXN',   tenant_id: tenantId },
+      { config_key: 'currency_locale',          config_value: 'es-MX', tenant_id: tenantId },
+      { config_key: 'branch_name',              config_value: restaurantName, tenant_id: tenantId },
+      { config_key: 'restaurant_name',          config_value: restaurantName, tenant_id: tenantId },
+    ]);
+
+    // ── Step 4: Seed demo menu ───────────────────────────────────────────────
+    const demoCategories = ['Entradas', 'Platos Fuertes', 'Bebidas', 'Postres'];
+    const { data: cats } = await supabaseAdmin.from('categories')
+      .insert(demoCategories.map((name, i) => ({ name, tenant_id: tenantId, sort_order: i })))
+      .select('id, name');
+
+    const catMap: Record<string, string> = {};
+    (cats ?? []).forEach((c: { id: string; name: string }) => { catMap[c.name] = c.id; });
+
+    const demoDishes = [
+      { name: 'Ensalada César',      price: 95,  category: 'Entradas',      description: 'Lechuga romana, crutones y aderezo César' },
+      { name: 'Sopa del día',        price: 75,  category: 'Entradas',      description: 'Sopa casera según temporada' },
+      { name: 'Filete a la plancha', price: 210, category: 'Platos Fuertes',description: 'Filete de res con guarnición' },
+      { name: 'Pollo en salsa',      price: 165, category: 'Platos Fuertes',description: 'Pechuga de pollo con salsa de la casa' },
+      { name: 'Pasta Alfredo',       price: 145, category: 'Platos Fuertes',description: 'Fetuccini con salsa Alfredo' },
+      { name: 'Hamburguesa clásica', price: 135, category: 'Platos Fuertes',description: 'Con papas fritas' },
+      { name: 'Agua fresca',         price: 35,  category: 'Bebidas',       description: 'Jamaica, horchata o limón' },
+      { name: 'Refresco',            price: 30,  category: 'Bebidas',       description: 'Lata 355ml' },
+      { name: 'Café americano',      price: 40,  category: 'Bebidas',       description: 'Café de olla o americano' },
+      { name: 'Flan napolitano',     price: 65,  category: 'Postres',       description: 'Con cajeta y crema' },
+      { name: 'Pay de queso',        price: 70,  category: 'Postres',       description: 'Con frutos rojos' },
     ];
 
-    // Insert system_config — ignore errors (non-critical)
-    await supabaseAdmin.from('system_config').insert(basicoFeatures);
+    await supabaseAdmin.from('dishes').insert(
+      demoDishes.filter(d => catMap[d.category]).map(d => ({
+        name: d.name,
+        price: d.price,
+        description: d.description,
+        category_id: catMap[d.category],
+        tenant_id: tenantId,
+        is_available: true,
+      }))
+    );
+
+    // ── Step 5: Seed demo tables ─────────────────────────────────────────────
+    const tables = Array.from({ length: 10 }, (_, i) => ({
+      name: `Mesa ${i + 1}`,
+      capacity: i < 6 ? 4 : 6,
+      tenant_id: tenantId,
+      status: 'libre',
+    }));
+    await supabaseAdmin.from('tables').insert(tables);
+
+    // ── Step 6: Seed a demo waiter so login works immediately ────────────────
+    await supabaseAdmin.from('app_users').insert({
+      username: slug + '-mesero',
+      full_name: 'Mesero Demo',
+      app_role: 'mesero',
+      pin: pinHash,
+      tenant_id: tenantId,
+      is_active: true,
+    });
 
     return new Response(JSON.stringify({ ok: true, tenantId }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

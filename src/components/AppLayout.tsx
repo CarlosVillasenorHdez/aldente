@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDevice } from '@/hooks/useDevice';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import OfflineIndicator from './OfflineIndicator';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -46,6 +47,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      <OfflineIndicator />
       {/* Mobile overlay */}
       {mobileSidebarOpen && (
         <div
