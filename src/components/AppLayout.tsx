@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 import { useDevice } from '@/hooks/useDevice';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
@@ -27,6 +28,32 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
       router.replace('/login');
     }
   }, [appUser, authLoading, router]);
+
+  // Redirect to onboarding for new tenants (admin only, first time)
+  useEffect(() => {
+    if (authLoading || !appUser) return;
+    if (appUser.appRole !== 'admin') return;
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname.includes('/onboarding')) return;
+
+    const key = `aldente_onboarded_${appUser.tenantId}`;
+    const done = sessionStorage.getItem(key);
+    if (done) return;
+
+    // Mark as seen immediately to avoid redirect loop
+    sessionStorage.setItem(key, '1');
+
+    // Check if this tenant has any orders — if not, it's new
+    const supabase = createClient();
+    supabase.from('orders').select('id', { count: 'exact', head: true })
+      .eq('tenant_id', appUser.tenantId)
+      .then(({ count }: { count: number | null }) => {
+        if ((count ?? 0) === 0) {
+          router.replace('/onboarding');
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appUser, authLoading]);
 
   // Auto-collapse sidebar on tablet/mobile
   useEffect(() => {
