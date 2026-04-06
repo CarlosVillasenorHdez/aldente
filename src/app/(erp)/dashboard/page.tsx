@@ -35,10 +35,10 @@ export default function DashboardPage() {
           <div className="xl:col-span-1 flex flex-col gap-6">
             {/* Alerts panel — gated: stock alerts need inventario */}
             <UpgradeGate
-              feature="inventario"
+              feature="alarmas"
               requiredPlan="estandar"
-              title="Alertas de inventario"
-              description="Recibe avisos cuando un ingrediente esté por agotarse antes de que afecte tu servicio."
+              title="Alertas inteligentes"
+              description="Stock bajo, órdenes demoradas, mesas sin atender. Recibe avisos en tiempo real antes de que afecten tu servicio."
               blurAmount={5}
             >
               <AlertsPanel />

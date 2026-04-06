@@ -39,8 +39,8 @@ const MESSAGES = {
 
 const PLAN_FEATURES: Record<string, string[]> = {
   basico:   ['POS y mapa de mesas', 'Menú digital', 'Corte de caja', 'Gestión de personal'],
-  estandar: ['Todo lo de Básico', 'KDS cocina', 'Inventario', 'Reportes P&L y COGS', 'Reservaciones', 'Lealtad'],
-  premium:  ['Todo lo de Estándar', 'Delivery', 'Multi-sucursal', 'RH y nómina', 'Alarmas inteligentes'],
+  estandar: ['Todo lo de Básico', 'KDS cocina', 'Mesero móvil (PWA)', 'Inventario y recetas', 'Reportes P&L y COGS', 'Reservaciones', 'Lealtad', 'Alarmas inteligentes'],
+  premium:  ['Todo lo de Estándar', 'Delivery integrado', 'Multi-sucursal', 'RH y nómina', 'Control de gastos', 'Análisis de desperdicios'],
 };
 
 export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: SubscriptionWallProps) {
