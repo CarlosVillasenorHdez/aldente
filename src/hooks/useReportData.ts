@@ -137,10 +137,10 @@ export function useReportData(
 
     // Top / worst dishes
     const dishMap: Record<string, { cantidad: number; ingresos: number }> = {};
-    (itemsData || []).forEach((i: unknown) => {
-      if (!dishMap[i.name]) dishMap[i.name] = { cantidad: 0, ingresos: 0 };
-      dishMap[i.name].cantidad += i.qty;
-      dishMap[i.name].ingresos += i.qty * Number(i.price);
+    (itemsData || []).forEach((i: Record<string, unknown>) => {
+      if (!dishMap[i.name as string]) dishMap[i.name as string] = { cantidad: 0, ingresos: 0 };
+      dishMap[i.name as string].cantidad += i.qty as number;
+      dishMap[i.name as string].ingresos += (i.qty as number) * Number(i.price);
     });
     const sorted = Object.entries(dishMap)
       .map(([nombre, v]) => ({ nombre, cantidad: v.cantidad, ingresos: v.ingresos, categoria: '' }))
@@ -150,8 +150,8 @@ export function useReportData(
 
     // Hourly
     const hourMap: Record<string, { ventas: number; ordenes: number }> = {};
-    (ordersData || []).forEach((o: unknown) => {
-      const h = o.closed_at ? o.closed_at.substring(11, 13) + ':00' : '00:00';
+    (ordersData || []).forEach((o: Record<string, unknown>) => {
+      const h = o.closed_at ? (o.closed_at as string).substring(11, 13) + ':00' : '00:00';
       if (!hourMap[h]) hourMap[h] = { ventas: 0, ordenes: 0 };
       hourMap[h].ventas += Number(o.total);
       hourMap[h].ordenes += 1;
@@ -160,8 +160,8 @@ export function useReportData(
 
     // Staff
     const staffMap: Record<string, { ordenes: number; ventasTotal: number }> = {};
-    (ordersData || []).forEach((o: unknown) => {
-      const m = o.mesero || 'Sin asignar';
+    (ordersData || []).forEach((o: Record<string, unknown>) => {
+      const m = (o.mesero as string) || 'Sin asignar';
       if (!staffMap[m]) staffMap[m] = { ordenes: 0, ventasTotal: 0 };
       staffMap[m].ordenes += 1;
       staffMap[m].ventasTotal += Number(o.total);
@@ -191,12 +191,12 @@ export function useReportData(
       const costMap: Record<string, number> = {};
       const dishMeta: Record<string, { nombre: string; categoria: string; precioVenta: number }> = {};
       recipes.forEach((r: unknown) => {
-        const id = r.dish_id;
-        costMap[id] = (costMap[id] || 0) + Number(r.ingredients?.cost || 0) * Number(r.quantity || 0);
-        if (r.dishes) dishMeta[id] = { nombre: r.dishes.name, categoria: r.dishes.category, precioVenta: Number(r.dishes.price) };
+        const id = (r as any).dish_id;
+        costMap[id] = (costMap[id] || 0) + Number((r as any).ingredients?.cost || 0) * Number((r as any).quantity || 0);
+        if ((r as any).dishes) dishMeta[id] = { nombre: (r as any).dishes.name, categoria: (r as any).dishes.category, precioVenta: Number((r as any).dishes.price) };
       });
       const soldMap: Record<string, number> = {};
-      (soldItems || []).forEach((i: unknown) => { soldMap[i.name] = (soldMap[i.name] || 0) + i.qty; });
+      (soldItems || []).forEach((i: unknown) => { soldMap[(i as any).name] = (soldMap[(i as any).name] || 0) + (i as any).qty; });
 
       const cogs: DishCOGS[] = Object.entries(dishMeta).map(([id, meta]) => {
         const costo = costMap[id] || 0;
@@ -214,9 +214,9 @@ export function useReportData(
     const { data: ordersHistory } = await supabase.from('orders')
       .select('total, closed_at').eq('status', 'cerrada').gte('closed_at', hace30);
     const hourMap: Record<string, number[]> = {};
-    (ordersHistory || []).forEach((o: unknown) => {
+    (ordersHistory || []).forEach((o: Record<string, unknown>) => {
       if (!o.closed_at) return;
-      const h = o.closed_at.substring(11, 13) + ':00';
+      const h = (o.closed_at as string).substring(11, 13) + ':00';
       if (!hourMap[h]) hourMap[h] = [];
       hourMap[h].push(Number(o.total));
     });
@@ -224,9 +224,9 @@ export function useReportData(
     const { data: todayOrders } = await supabase.from('orders')
       .select('total, closed_at').eq('status', 'cerrada').gte('closed_at', hoy);
     const todayMap: Record<string, number> = {};
-    (todayOrders || []).forEach((o: unknown) => {
+    (todayOrders || []).forEach((o: Record<string, unknown>) => {
       if (!o.closed_at) return;
-      const h = o.closed_at.substring(11, 13) + ':00';
+      const h = (o.closed_at as string).substring(11, 13) + ':00';
       todayMap[h] = (todayMap[h] || 0) + Number(o.total);
     });
 
@@ -260,8 +260,8 @@ export function useReportData(
 
     const orderMap: Record<string, { name: string; price: number }[]> = {};
     rawItems.forEach((item: unknown) => {
-      if (!orderMap[item.order_id]) orderMap[item.order_id] = [];
-      orderMap[item.order_id].push({ name: item.name, price: Number(item.price) });
+      if (!orderMap[(item as any).order_id]) orderMap[(item as any).order_id] = [];
+      (orderMap[(item as any).order_id] as any[]).push({ name: (item as any).name, price: Number((item as any).price) });
     });
 
     const orders = Object.values(orderMap);
@@ -272,15 +272,15 @@ export function useReportData(
     const itemCount: Record<string, number> = {};
 
     orders.forEach((items) => {
-      const names = [...new Set(items.map((i) => i.name))];
+      const names = [...new Set(items.map((i) => (i as any).name))];
       names.forEach(n => { itemCount[n] = (itemCount[n] || 0) + 1; });
       for (let i = 0; i < names.length; i++) {
         for (let j = i + 1; j < names.length; j++) {
           const key = [names[i], names[j]].sort().join('|||');
           if (!pairMap[key]) pairMap[key] = {
             count: 0,
-            pa: items.find(x => x.name === names[i])?.price || 0,
-            pb: items.find(x => x.name === names[j])?.price || 0,
+            pa: items.find(x => (x as any).name === names[i])?.price || 0,
+            pb: items.find(x => (x as any).name === names[j])?.price || 0,
           };
           pairMap[key].count += 1;
         }
