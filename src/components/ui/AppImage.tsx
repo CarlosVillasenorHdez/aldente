@@ -67,40 +67,26 @@ const AppImage = memo(function AppImage({
         return classes.filter(Boolean).join(' ');
     }, [className, isLoading, onClick]);
 
-    const imageProps = useMemo(() => {
-        const baseProps: any = {
-            src: imageSrc,
-            alt,
-            className: imageClassName,
-            quality,
-            placeholder,
-            unoptimized: resolvedUnoptimized,
-            onError: handleError,
-            onLoad: handleLoad,
-            onClick,
-        };
-
-        if (priority) {
-            baseProps.priority = true;
-        } else {
-            baseProps.loading = loading;
-        }
-
-        if (blurDataURL && placeholder === 'blur') {
-            baseProps.blurDataURL = blurDataURL;
-        }
-
-        return baseProps;
-    }, [imageSrc, alt, imageClassName, quality, placeholder, blurDataURL, resolvedUnoptimized, priority, loading, handleError, handleLoad, onClick]);
+    const blurProps = placeholder === 'blur' && blurDataURL ? { blurDataURL } : {};
 
     if (fill) {
         return (
             <div className="relative" style={{ width: '100%', height: '100%' }}>
                 <Image
-                    {...imageProps}
+                    src={imageSrc}
+                    alt={alt}
+                    className={imageClassName}
+                    quality={quality}
+                    placeholder={placeholder}
+                    unoptimized={resolvedUnoptimized}
+                    onError={handleError}
+                    onLoad={handleLoad}
+                    onClick={onClick}
                     fill
                     sizes={sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'}
                     style={{ objectFit: 'cover' }}
+                    {...(priority ? { priority: true } : { loading })}
+                    {...blurProps}
                     {...props}
                 />
             </div>
@@ -109,10 +95,20 @@ const AppImage = memo(function AppImage({
 
     return (
         <Image
-            {...imageProps}
+            src={imageSrc}
+            alt={alt}
+            className={imageClassName}
+            quality={quality}
+            placeholder={placeholder}
+            unoptimized={resolvedUnoptimized}
+            onError={handleError}
+            onLoad={handleLoad}
+            onClick={onClick}
             width={width || 400}
             height={height || 300}
             sizes={sizes}
+            {...(priority ? { priority: true } : { loading })}
+            {...blurProps}
             {...props}
         />
     );

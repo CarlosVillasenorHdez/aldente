@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import TestimonialPhoto from '@/app/(marketing)/components/TestimonialPhoto';
+
 
 export const metadata: Metadata = {
   title: 'Aldente — Software de Gestión para Restaurantes',
@@ -996,19 +998,7 @@ export default function LandingPage() {
                 <p className="testimonial-quote">{`"${t.quote}"`}</p>
                 <div className="testimonial-divider" />
                 <div className="testimonial-author">
-                  <div className="testimonial-photo">
-                    <img
-                      src={t.photo}
-                      alt={t.name}
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        target.style.display = 'none';
-                        const placeholder = target.parentElement?.querySelector('.testimonial-photo-placeholder') as HTMLElement;
-                        if (placeholder) placeholder.style.display = 'flex';
-                      }}
-                    />
-                    <div className="testimonial-photo-placeholder" style={{display:'none', position:'absolute', inset:0}}>{t.initials}</div>
-                  </div>
+                  <TestimonialPhoto src={t.photo} alt={t.name} initials={t.initials} />
                   <div>
                     <div className="testimonial-name">{t.name}</div>
                     <div className="testimonial-biz">{t.biz}</div>
