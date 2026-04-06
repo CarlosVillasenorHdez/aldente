@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChefHat, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { ChefHat, Eye, EyeOff } from 'lucide-react';
 
 interface LoginUser {
   id: string;
@@ -142,7 +142,7 @@ export default function RestaurantLoginPage() {
   }, {});
 
   return (
-    <div style={{ minHeight: '100vh', minHeight: '-webkit-fill-available', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', backgroundColor: '#0a0c0f' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', backgroundColor: '#0a0c0f' }}>
       <div style={{ width: '100%', maxWidth: '360px' }}>
 
         {/* Logo */}
