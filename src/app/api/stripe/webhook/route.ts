@@ -38,7 +38,7 @@ async function syncPlanFeatures(supabase: ReturnType<typeof getAdminClient>, ten
 }
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-01-27.acacia' });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-02-24.acacia' });
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
   if (!signature) return NextResponse.json({ error: 'No signature' }, { status: 400 });
@@ -57,9 +57,9 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
 
       case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.CheckoutSession;
-        const tenantId = session.metadata?.tenant_id ?? session.subscription_data?.metadata?.tenant_id;
-        const plan = session.metadata?.plan ?? session.subscription_data?.metadata?.plan;
+        const session = event.data.object as Stripe.Checkout.Session;
+        let tenantId = session.metadata?.tenant_id;
+        let plan = session.metadata?.plan;
         if (tenantId && plan) {
           await syncPlanFeatures(supabase, tenantId, plan);
         }
@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const tenantId = sub.metadata?.tenant_id;
-        const plan = sub.metadata?.plan;
+        let tenantId = sub.metadata?.tenant_id;
+        let plan = sub.metadata?.plan;
         if (tenantId && plan) {
           await supabase.from('tenants').update({ plan, updated_at: new Date().toISOString() }).eq('id', tenantId);
           await syncPlanFeatures(supabase, tenantId, plan);
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        const tenantId = sub.metadata?.tenant_id;
+        let tenantId = sub.metadata?.tenant_id;
         if (tenantId) {
           await supabase.from('tenants').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', tenantId);
         }
