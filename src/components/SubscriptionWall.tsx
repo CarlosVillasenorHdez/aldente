@@ -1,22 +1,20 @@
 'use client';
 
-/**
- * SubscriptionWall — shown when a tenant's subscription is inactive or expired.
- * Replaces the full ERP content. No Sidebar, no Topbar.
- */
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getPlan } from '@/lib/plans';
 
 interface SubscriptionWallProps {
   reason: 'inactive' | 'expired' | 'trial_ended';
   plan?: string;
+  tenantId?: string;
 }
 
 const MESSAGES = {
   inactive: {
     icon: '🔒',
     title: 'Cuenta suspendida',
-    body: 'Tu cuenta ha sido desactivada. Por favor contacta a soporte para reactivarla.',
+    body: 'Tu cuenta ha sido desactivada. Contacta a soporte para reactivarla.',
     color: '#f87171',
     bg: 'rgba(248,113,113,0.08)',
     border: 'rgba(248,113,113,0.25)',
@@ -24,94 +22,122 @@ const MESSAGES = {
   expired: {
     icon: '⏰',
     title: 'Tu suscripción ha vencido',
-    body: 'El período de pago de tu plan ha expirado. Renueva para seguir usando Aldente.',
+    body: 'El período de pago de tu plan ha expirado. Renueva para seguir operando.',
     color: '#fb923c',
     bg: 'rgba(251,146,60,0.08)',
     border: 'rgba(251,146,60,0.25)',
   },
   trial_ended: {
     icon: '🎯',
-    title: 'Tu período de prueba ha terminado',
-    body: 'Gracias por probar Aldente. Elige un plan para continuar operando tu restaurante.',
+    title: 'Tu período de prueba terminó',
+    body: 'Gracias por probar Aldente. Elige un plan para continuar.',
     color: '#60a5fa',
     bg: 'rgba(96,165,250,0.08)',
     border: 'rgba(96,165,250,0.25)',
   },
 };
 
-export default function SubscriptionWall({ reason, plan = 'basico' }: SubscriptionWallProps) {
+const PLAN_FEATURES: Record<string, string[]> = {
+  basico:   ['POS y mapa de mesas', 'Menú digital', 'Corte de caja', 'Gestión de personal'],
+  estandar: ['Todo lo de Básico', 'KDS cocina', 'Inventario', 'Reportes P&L y COGS', 'Reservaciones', 'Lealtad'],
+  premium:  ['Todo lo de Estándar', 'Delivery', 'Multi-sucursal', 'RH y nómina', 'Alarmas inteligentes'],
+};
+
+export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: SubscriptionWallProps) {
   const msg = MESSAGES[reason];
-  const planInfo = getPlan(plan);
+  const router = useRouter();
+  const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  async function handleUpgrade(selectedPlan: string) {
+    if (!tenantId) {
+      setError('No se pudo identificar tu cuenta. Contacta soporte.');
+      return;
+    }
+    setLoading(selectedPlan);
+    setError('');
+    try {
+      const res = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, plan: selectedPlan }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error ?? 'No se pudo iniciar el pago. Intenta de nuevo.');
+      }
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.');
+    } finally {
+      setLoading(null);
+    }
+  }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#0f1923',
-      fontFamily: 'DM Sans, system-ui, sans-serif',
-      padding: '24px',
-    }}>
-      <div style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
-        {/* Icon */}
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>{msg.icon}</div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f1923', fontFamily: 'DM Sans, system-ui, sans-serif', padding: '24px' }}>
+      <div style={{ width: '100%', maxWidth: '560px' }}>
 
-        {/* Title */}
-        <h1 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, margin: '0 0 12px' }}>
-          {msg.title}
-        </h1>
-
-        {/* Body */}
-        <div style={{ padding: '16px 20px', borderRadius: '12px', backgroundColor: msg.bg, border: `1px solid ${msg.border}`, marginBottom: '24px' }}>
-          <p style={{ color: msg.color, fontSize: '14px', margin: '0 0 8px', fontWeight: 600 }}>
-            {msg.body}
-          </p>
-          {reason !== 'inactive' && (
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0 }}>
-              Plan actual: <strong style={{ color: '#f59e0b' }}>{planInfo.label}</strong> — ${planInfo.price.toLocaleString('es-MX')}/mes
-            </p>
-          )}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>{msg.icon}</div>
+          <h1 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, margin: '0 0 12px' }}>{msg.title}</h1>
+          <div style={{ padding: '14px 20px', borderRadius: '12px', backgroundColor: msg.bg, border: `1px solid ${msg.border}` }}>
+            <p style={{ color: msg.color, fontSize: '14px', margin: 0, fontWeight: 600 }}>{msg.body}</p>
+          </div>
         </div>
 
-        {/* Plans (only for expired/trial) */}
         {reason !== 'inactive' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '24px' }}>
-            {(['basico', 'estandar', 'premium'] as const).map(key => {
-              const p = getPlan(key);
-              return (
-                <div key={key} style={{ padding: '14px 10px', borderRadius: '10px', backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
-                  <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '13px', marginBottom: '4px' }}>{p.label}</div>
-                  <div style={{ color: '#f1f5f9', fontSize: '16px', fontWeight: 700, fontFamily: 'monospace' }}>
-                    ${p.price.toLocaleString('es-MX')}
+          <>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', textAlign: 'center', marginBottom: '16px' }}>
+              Elige el plan que mejor se adapte a tu restaurante:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+              {(['basico', 'estandar', 'premium'] as const).map(key => {
+                const p = getPlan(key);
+                const isCurrentPlan = key === plan;
+                const isLoading = loading === key;
+                return (
+                  <div key={key} style={{ borderRadius: '12px', backgroundColor: '#1a2535', border: isCurrentPlan ? '1px solid #f59e0b' : '1px solid #1e2d3d', padding: '16px 12px', display: 'flex', flexDirection: 'column' }}>
+                    {isCurrentPlan && (
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Plan actual</div>
+                    )}
+                    <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '14px', marginBottom: '2px' }}>{p.label}</div>
+                    <div style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 700, fontFamily: 'monospace', marginBottom: '2px' }}>${p.price.toLocaleString('es-MX')}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginBottom: '12px' }}>/mes MXN</div>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', flex: 1 }}>
+                      {PLAN_FEATURES[key].map(f => (
+                        <li key={f} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', padding: '2px 0', display: 'flex', alignItems: 'flex-start', gap: '5px' }}>
+                          <span style={{ color: '#22c55e', flexShrink: 0 }}>✓</span> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleUpgrade(key)}
+                      disabled={!!loading}
+                      style={{ width: '100%', padding: '9px', borderRadius: '8px', border: 'none', backgroundColor: isLoading ? 'rgba(245,158,11,0.5)' : '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '12px', cursor: loading ? 'wait' : 'pointer', transition: 'opacity .15s' }}
+                    >
+                      {isLoading ? '...' : `Contratar ${p.label}`}
+                    </button>
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>/mes</div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {error && (
+              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', fontSize: '13px', textAlign: 'center', marginBottom: '16px' }}>
+                {error}
+              </div>
+            )}
+          </>
         )}
 
-        {/* CTA */}
-        <a
-          href="mailto:soporte@aldente.mx?subject=Renovación%20de%20suscripción"
-          style={{
-            display: 'inline-block',
-            padding: '12px 28px',
-            borderRadius: '12px',
-            backgroundColor: '#f59e0b',
-            color: '#1B3A6B',
-            fontWeight: 700,
-            fontSize: '14px',
-            textDecoration: 'none',
-          }}
-        >
-          Contactar soporte
-        </a>
-
-        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', marginTop: '16px' }}>
-          soporte@aldente.mx
-        </p>
+        <div style={{ textAlign: 'center' }}>
+          <a href="mailto:soporte@aldente.mx?subject=Soporte%20de%20suscripción" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', textDecoration: 'none' }}>
+            ¿Necesitas ayuda? soporte@aldente.mx
+          </a>
+        </div>
       </div>
     </div>
   );
