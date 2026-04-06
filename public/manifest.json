@@ -1,43 +1,62 @@
 {
-  "name": "Aldente",
+  "name": "Aldente — Gestión para Restaurantes",
   "short_name": "Aldente",
-  "description": "Gestión integral para restaurantes",
+  "description": "Sistema de gestión integral para restaurantes: POS, cocina, inventario y reportes.",
   "start_url": "/login",
-  "id": "/login",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#0f1923",
-  "theme_color": "#f59e0b",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0a0c0f",
+  "theme_color": "#d4922a",
   "orientation": "any",
   "lang": "es-MX",
-  "categories": ["business", "productivity"],
+  "dir": "ltr",
+  "scope": "/",
+  "categories": ["business", "productivity", "food"],
   "icons": [
     { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
     {
       "name": "Punto de Venta",
       "short_name": "POS",
+      "description": "Abrir el punto de venta",
       "url": "/pos-punto-de-venta",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Cocina (KDS)",
       "short_name": "KDS",
+      "description": "Pantalla de cocina",
       "url": "/cocina",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Mesero",
+      "name": "Mesero Móvil",
       "short_name": "Mesero",
+      "description": "Tomar órdenes en mesa",
       "url": "/mesero",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Aldente POS"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
 }

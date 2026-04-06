@@ -92,6 +92,12 @@ export default function RestaurantLoginPage() {
     else router.replace('/dashboard');
   }
 
+  // Safe area insets for iOS notch
+  const safeStyle = {
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingBottom: 'env(safe-area-inset-bottom)',
+  };
+
   const inp = {
     width: '100%', padding: '10px 14px', borderRadius: '12px',
     border: '1px solid #2a3f5f', backgroundColor: '#0f1923',
@@ -136,7 +142,7 @@ export default function RestaurantLoginPage() {
   }, {});
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backgroundColor: '#0f1923' }}>
+    <div style={{ minHeight: '100vh', minHeight: '-webkit-fill-available', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))', backgroundColor: '#0a0c0f' }}>
       <div style={{ width: '100%', maxWidth: '360px' }}>
 
         {/* Logo */}
