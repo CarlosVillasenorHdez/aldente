@@ -272,3 +272,32 @@
   .font-500 { font-weight: 500; }
   .font-700 { font-weight: 700; }
 }
+/* ── PWA & Mobile safe area fixes ── */
+html {
+  height: -webkit-fill-available;
+}
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* iOS safe area insets for standalone PWA */
+.safe-top    { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Prevent iOS tap highlight flash */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent iOS input zoom */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+select, textarea {
+  font-size: max(16px, 1em);
+}
+
+/* Smooth scrolling for iOS */
+.overflow-y-auto, main {
+  -webkit-overflow-scrolling: touch;
+}

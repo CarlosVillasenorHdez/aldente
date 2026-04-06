@@ -9,9 +9,13 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
-  maximumScale: 5,
-  // themeColor here also sets <meta name="theme-color"> for Android Chrome
-  themeColor: '#f59e0b',
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover', // iOS notch support
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)',  color: '#0a0c0f' },
+    { media: '(prefers-color-scheme: light)', color: '#0a0c0f' },
+  ],
 };
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
