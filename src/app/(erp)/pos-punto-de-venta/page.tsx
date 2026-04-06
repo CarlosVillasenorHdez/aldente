@@ -1,7 +1,10 @@
-import React from 'react';
+import AppLayout from '@/components/AppLayout';
 import POSClient from './components/POSClient';
 
-// Backend: this page should be server-protected by role (cajero, mesero, admin, gerente)
 export default function POSPage() {
-  return <POSClient />;
+  return (
+    <AppLayout title="Punto de Venta" subtitle="POS — Gestión de mesas y órdenes">
+      <POSClient />
+    </AppLayout>
+  );
 }

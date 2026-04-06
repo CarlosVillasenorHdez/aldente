@@ -252,7 +252,7 @@ export function useOrderFlow() {
       for (const { item, data: recipeItems } of recipeResults) {
         if (!recipeItems) continue;
         for (const ri of recipeItems) {
-          const ingredient = (ri as any).ingredients;
+          const ingredient = (ri as unknown).ingredients;
           if (!ingredient) continue;
           const deductQty = Number(ri.quantity) * item.qty;
           const currentStock = Number(ingredient.stock);
@@ -299,7 +299,7 @@ export function useOrderFlow() {
       }).in('id', tableIds);
 
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error('Error al procesar pago: ' + (err?.message ?? 'Intenta de nuevo'));
       return false;
     }
@@ -335,7 +335,7 @@ export function useOrderFlow() {
       }).in('id', tableIds);
 
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error('Error al cancelar orden: ' + (err?.message ?? 'Intenta de nuevo'));
       return false;
     }

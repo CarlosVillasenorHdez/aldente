@@ -92,7 +92,7 @@ type AllRolePermissions = Record<string, RolePermissions>;
 const emptyForm = (): UserForm => ({ username: '', fullName: '', password: '12345', appRole: 'mesero', employeeId: '' });
 
 export default function UsuariosManagement() {
-  const { createUser, listUsers, toggleUserActive, updateUserRole } = useAuth();
+  const { createUser, listUsers, toggleUserActive, updateUserRole, appUser } = useAuth();
   const supabase = createClient();
 
   const [activeTab, setActiveTab] = useState<'usuarios' | 'permisos'>('usuarios');
@@ -226,6 +226,21 @@ export default function UsuariosManagement() {
     if (!form.employeeId) { setFormError('Selecciona un empleado del personal'); return; }
     if (!form.username.trim()) { setFormError('El nombre de usuario es requerido'); return; }
     if (form.password.length < 4) { setFormError('El PIN debe tener al menos 4 caracteres'); return; }
+
+    // ── Check max_users limit for this tenant's plan ──────────────────────
+    const { data: tenantData } = await supabase
+      .from('tenants')
+      .select('max_users, plan')
+      .eq('id', appUser?.tenantId)
+      .single();
+    if (tenantData) {
+      const activeUsers = users.filter(u => u.isActive).length;
+      if (activeUsers >= (tenantData.max_users ?? 5)) {
+        setFormError(`Tu plan ${tenantData.plan} permite máximo ${tenantData.max_users} usuarios activos. Actualiza tu plan para agregar más.`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await createUser(form.username, form.password, form.fullName, form.appRole);
