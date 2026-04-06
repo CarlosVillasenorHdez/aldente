@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const ADMIN_PATHS = ['/admin'];
 const PUBLIC_ADMIN = ['/admin/login'];
 
-export async function middleware(req: NextRequest) {
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+    const json = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Only intercept /admin/* routes
-  const isAdminPath = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
-  if (!isAdminPath) return NextResponse.next();
+  if (!pathname.startsWith('/admin')) return NextResponse.next();
 
   // Login page is always public
   if (PUBLIC_ADMIN.includes(pathname)) return NextResponse.next();
 
-  // Check Supabase Auth session via cookie
-  const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-  // Extract the session token from cookies
+  // Extract session token from cookies — no network call needed
   const cookieHeader = req.headers.get('cookie') ?? '';
-  const tokenMatch   = cookieHeader.match(/aldente_auth[^=]*=([^;]+)/);
-  const rawToken     = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
+  const tokenMatch = cookieHeader.match(/aldente_auth[^=]*=([^;]+)/);
+  const rawToken = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
 
   let accessToken: string | null = null;
   if (rawToken) {
@@ -35,20 +40,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/admin/login', req.url));
   }
 
-  // Verify token with Supabase
-  try {
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    });
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    if (error || !user) {
-      return NextResponse.redirect(new URL('/admin/login', req.url));
-    }
-  } catch {
+  // Verify JWT locally — no round trip to Supabase
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload) {
     return NextResponse.redirect(new URL('/admin/login', req.url));
   }
 
+  // Check token expiry
+  const exp = typeof payload.exp === 'number' ? payload.exp : 0;
+  if (exp < Math.floor(Date.now() / 1000)) {
+    return NextResponse.redirect(new URL('/admin/login', req.url));
+  }
+
+  // Valid token — let through
   return NextResponse.next();
 }
 
