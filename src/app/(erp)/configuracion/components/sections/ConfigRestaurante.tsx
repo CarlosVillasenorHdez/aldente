@@ -31,9 +31,10 @@ function SaveButton({ saved, onClick }: { saved: boolean; onClick: () => void })
 
 export default function ConfigRestaurante({ activeSection }: { activeSection: string }) {
   const supabase = createClient();
-  const { brandConfig } = useAuth();
+  const { brandConfig, appUser } = useAuth();
 
   // Restaurant settings
+  const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [restaurantName, setRestaurantName] = useState(brandConfig?.restaurantName || 'Mi Restaurante');
   const [restaurantNameDraft, setRestaurantNameDraft] = useState(brandConfig?.restaurantName || 'Mi Restaurante');
   const [logoPreview, setLogoPreview] = useState<string>('');
@@ -52,6 +53,12 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   // Load system config on mount
   useEffect(() => {
+    // Load tenant slug for employee link
+    if (appUser?.tenantId) {
+      supabase.from('tenants').select('slug').eq('id', appUser.tenantId).single()
+        .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
+    }
+
     supabase.from('system_config').select('config_key, config_value').then(({ data }) => {
       if (!data) return;
       const map: Record<string,string> = {};
@@ -131,7 +138,26 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none" maxLength={80}
             style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9' }} />
         </div>
-        <SaveButton saved={settingsSaved} onClick={handleSaveSettings} />
+        {/* Access link for employees */}
+      <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f59e0b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Link de acceso para empleados
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f1f5f9', wordBreak: 'break-all', marginBottom: '10px' }}
+          id="employee-link">
+          {typeof window !== 'undefined' && tenantSlug ? `${window.location.origin}/r/${tenantSlug}` : 'Cargando...'}
+        </div>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '0 0 10px' }}>
+          Comparte este link con tus empleados para que entren al sistema directamente.
+        </p>
+        <button onClick={() => {
+          const link = `${window.location.origin}/r/${tenantSlug ?? ''}`;
+          navigator.clipboard.writeText(link).catch(() => {});
+        }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)', backgroundColor: 'transparent', color: '#f59e0b', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+          Copiar link
+        </button>
+      </div>
+      <SaveButton saved={settingsSaved} onClick={handleSaveSettings} />
       </div>}
 
       {/* Operación */}
