@@ -300,7 +300,8 @@ export function useOrderFlow() {
 
       return true;
     } catch (err: unknown) {
-      toast.error('Error al procesar pago: ' + ((err instanceof Error ? err.message : null) ?? 'Intenta de nuevo'));
+      const msg = err instanceof Error ? err.message : 'Intenta de nuevo';
+      toast.error('Error al procesar pago: ' + msg);
       return false;
     }
   }, [supabase]);
@@ -336,7 +337,8 @@ export function useOrderFlow() {
 
       return true;
     } catch (err: unknown) {
-      toast.error('Error al cancelar orden: ' + (err?.message ?? 'Intenta de nuevo'));
+      const msg = err instanceof Error ? err.message : 'Intenta de nuevo';
+      toast.error('Error al cancelar orden: ' + msg);
       return false;
     }
   }, [supabase]);
