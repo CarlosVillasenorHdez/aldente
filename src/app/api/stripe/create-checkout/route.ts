@@ -8,7 +8,7 @@ import { STRIPE_PRICES, type StripePlanKey } from '@/lib/stripe';
  */
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-01-27.acacia',
+    apiVersion: '2025-02-24.acacia',
   });
 
   try {

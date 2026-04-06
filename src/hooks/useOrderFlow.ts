@@ -252,7 +252,7 @@ export function useOrderFlow() {
       for (const { item, data: recipeItems } of recipeResults) {
         if (!recipeItems) continue;
         for (const ri of recipeItems) {
-          const ingredient = (ri as unknown).ingredients;
+          const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number } | null;
           if (!ingredient) continue;
           const deductQty = Number(ri.quantity) * item.qty;
           const currentStock = Number(ingredient.stock);
@@ -300,7 +300,7 @@ export function useOrderFlow() {
 
       return true;
     } catch (err: unknown) {
-      toast.error('Error al procesar pago: ' + (err?.message ?? 'Intenta de nuevo'));
+      toast.error('Error al procesar pago: ' + ((err instanceof Error ? err.message : null) ?? 'Intenta de nuevo'));
       return false;
     }
   }, [supabase]);
