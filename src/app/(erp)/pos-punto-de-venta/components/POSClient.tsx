@@ -577,21 +577,25 @@ export default function POSClient() {
         return [];
       });
 
-    // Ensure all items are in DB before creating the comanda
-    // Force-execute the sync immediately (bypass debounce)
+    // Cancel any pending debounced sync — we'll handle it precisely below
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
     }
-    if (selectedTable.currentOrderId && orderItems.length > 0) {
-      const groupIds2 = selectedTable.mergeGroupId
-        ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
-        : [selectedTable.id];
+
+    // Write ONLY the already-sent items (snapshot) to the original order.
+    // New items go exclusively into the comanda — they must NOT appear in
+    // the original order card in the KDS.
+    const alreadySentItems = kitchenSent
+      ? orderItems.filter(oi => sentItemsSnapshot.some(s => s.id === oi.lineId))
+      : orderItems; // first send: all items belong to original order
+
+    if (selectedTable.currentOrderId && alreadySentItems.length > 0) {
       const { error: delErr } = await supabase.from('order_items')
         .delete().eq('order_id', selectedTable.currentOrderId);
       if (!delErr) {
         await supabase.from('order_items').insert(
-          orderItems.map((item) => ({
+          alreadySentItems.map((item) => ({
             order_id: selectedTable.currentOrderId,
             dish_id: item.menuItem.id,
             name: item.menuItem.name,
@@ -658,13 +662,22 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    // Always sync all items to DB — needed for billing and for reload when
-    // the mesero switches tables and comes back. The KDS card for the original
-    // order will show all items, which is correct (it's the full order context).
-    // New items added after kitchen send appear as a separate comanda card.
-    syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    if (kitchenSent) {
+      // Order already in KDS: sync ONLY the already-sent items to the original order.
+      // New items go into a comanda — they must NOT appear in the original KDS card.
+      // We still update the total so the table badge shows the correct amount.
+      const sentItems = newItems.filter(i =>
+        sentItemsSnapshot.some(s => s.id === i.lineId)
+      );
+      syncOrderToTable(orderId, groupIds, sentItems.length > 0 ? sentItems : orderItems.filter(i =>
+        sentItemsSnapshot.some(s => s.id === i.lineId)
+      ), newTotal);
+    } else {
+      // First send: all items belong to the original order
+      syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    }
 
-  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, supabase]);
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, sentItemsSnapshot, supabase]);
 
   const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;
