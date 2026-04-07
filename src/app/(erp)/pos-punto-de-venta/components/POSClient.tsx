@@ -627,24 +627,11 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    if (kitchenSent) {
-      // Order is in KDS — only update the running total on the order and table.
-      // DO NOT re-sync order_items: the KDS reads those items to render the card,
-      // and overwriting them would add the new items to the in-progress card.
-      // New items will appear in their own comanda card when the mesero sends it.
-      await supabase.from('orders').update({
-        total: newTotal,
-        subtotal: newSubtotal,
-        updated_at: new Date().toISOString(),
-      }).eq('id', orderId);
-      await supabase.from('restaurant_tables').update({
-        item_count: newItems.reduce((s, i) => s + i.quantity, 0),
-        partial_total: newTotal,
-        updated_at: new Date().toISOString(),
-      }).in('id', groupIds);
-    } else {
-      syncOrderToTable(orderId, groupIds, newItems, newTotal);
-    }
+    // Always sync all items to DB — needed for billing and for reload when
+    // the mesero switches tables and comes back. The KDS card for the original
+    // order will show all items, which is correct (it's the full order context).
+    // New items added after kitchen send appear as a separate comanda card.
+    syncOrderToTable(orderId, groupIds, newItems, newTotal);
 
   }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, supabase]);
 
@@ -789,7 +776,6 @@ export default function POSClient() {
       price: i.menuItem.price, qty: i.quantity,
       emoji: i.menuItem.emoji, notes: i.notes,
       excludedIngredientIds: i.excludedIngredientIds,
-      modifier: i.modifier,
       modifier: i.modifier,
     }));
 
