@@ -8,6 +8,7 @@ import AlertsPanel from './components/AlertsPanel';
 import LiveOperations from './components/LiveOperations';
 import RecentActivity from './components/RecentActivity';
 import UpgradeGate from '@/components/UpgradeGate';
+import FirstStepsChecklist from './components/FirstStepsChecklist';
 
 export default function DashboardPage() {
   return (
@@ -16,6 +17,9 @@ export default function DashboardPage() {
       subtitle="Resumen operativo del día"
     >
       <div className="flex flex-col gap-6">
+
+        {/* First steps checklist — visible during trial until all complete */}
+        <FirstStepsChecklist />
 
         {/* Quick actions — always visible */}
         <DashboardQuickActions />

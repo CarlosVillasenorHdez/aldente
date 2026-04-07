@@ -29,21 +29,47 @@ export default function TenantDetailPage() {
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [draft, setDraft] = useState<Partial<TenantDetail>>({});
 
-  const [usageStats, setUsageStats] = useState<{ ordersThisMonth: number; totalOrders: number } | null>(null);
+  const [usageStats, setUsageStats] = useState<{
+    ordersThisMonth: number;
+    totalOrders: number;
+    activeDays: number;       // distinct days with orders in last 14 days
+    lastOrderAt: string | null;
+    healthScore: 'green' | 'yellow' | 'red';
+    healthLabel: string;
+  } | null>(null);
 
   useEffect(() => {
     const monthStart = new Date();
     monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
     Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
       supabase.from('app_users').select('id, full_name, app_role, is_active').eq('tenant_id', id).order('app_role'),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id).gte('created_at', monthStart.toISOString()),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id),
-    ]).then(([{ data: t }, { data: u }, { count: monthly }, { count: total }]) => {
+      supabase.from('orders').select('created_at').eq('tenant_id', id).gte('created_at', fourteenDaysAgo.toISOString()).order('created_at', { ascending: false }),
+    ]).then(([{ data: t }, { data: u }, { count: monthly }, { count: total }, { data: recent }]) => {
       if (t) { setTenant(t as TenantDetail); setDraft(t as TenantDetail); }
       setUsers((u ?? []) as AppUser[]);
-      setUsageStats({ ordersThisMonth: monthly ?? 0, totalOrders: total ?? 0 });
+
+      // Calculate health score
+      const dates = new Set((recent ?? []).map((o: Record<string, string>) => new Date(o.created_at).toDateString()));
+      const activeDays = dates.size;
+      const lastOrderAt = recent && recent.length > 0 ? (recent[0] as Record<string, string>).created_at : null;
+      const daysSinceLastOrder = lastOrderAt
+        ? Math.floor((Date.now() - new Date(lastOrderAt).getTime()) / 86400000)
+        : 999;
+
+      let healthScore: 'green' | 'yellow' | 'red' = 'red';
+      let healthLabel = 'Sin actividad — contactar hoy';
+      if (activeDays >= 5) { healthScore = 'green'; healthLabel = 'Activo — adoptando bien'; }
+      else if (activeDays >= 2 && daysSinceLastOrder <= 3) { healthScore = 'yellow'; healthLabel = 'En proceso — guiar hacia más uso'; }
+      else if (daysSinceLastOrder > 3) { healthScore = 'red'; healthLabel = 'Inactivo +3 días — riesgo de churn'; }
+
+      setUsageStats({ ordersThisMonth: monthly ?? 0, totalOrders: total ?? 0, activeDays, lastOrderAt, healthScore, healthLabel });
       setLoading(false);
     });
   }, [id]);
@@ -107,6 +133,39 @@ export default function TenantDetailPage() {
           </span>
         )}
       </div>
+
+      {/* Health Score */}
+      {usageStats && (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '14px 16px', borderRadius: '12px', marginBottom: '10px',
+            background: usageStats.healthScore === 'green' ? 'rgba(52,211,153,0.07)' : usageStats.healthScore === 'yellow' ? 'rgba(251,191,36,0.07)' : 'rgba(248,113,113,0.07)',
+            border: `1px solid ${usageStats.healthScore === 'green' ? 'rgba(52,211,153,0.2)' : usageStats.healthScore === 'yellow' ? 'rgba(251,191,36,0.2)' : 'rgba(248,113,113,0.2)'}`,
+          }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, background: usageStats.healthScore === 'green' ? '#34d399' : usageStats.healthScore === 'yellow' ? '#fbbf24' : '#f87171' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{usageStats.healthLabel}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                {usageStats.activeDays} días activos en últimas 2 semanas · Meta: 5 turnos
+                {usageStats.lastOrderAt && ` · Última orden: ${new Date(usageStats.lastOrderAt).toLocaleDateString('es-MX')}`}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {[
+              { label: 'Días activos / 14d', value: `${usageStats.activeDays}/14`, color: usageStats.activeDays >= 5 ? '#34d399' : usageStats.activeDays >= 2 ? '#fbbf24' : '#f87171' },
+              { label: 'Órdenes este mes', value: String(usageStats.ordersThisMonth), color: '#f1f5f9' },
+              { label: 'Total histórico', value: String(usageStats.totalOrders), color: '#f1f5f9' },
+            ].map(m => (
+              <div key={m.label} style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{m.label}</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, color: m.color, fontFamily: 'monospace' }}>{m.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
 
