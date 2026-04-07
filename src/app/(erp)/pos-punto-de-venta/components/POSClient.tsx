@@ -550,9 +550,10 @@ export default function POSClient() {
     setSendingToKitchen(true);
 
     // Build list of NEW items (not in the last sent snapshot)
+    // Compare by lineId — each modifier variation is a separate line
     const newItems = orderItems
       .filter(oi => {
-        const prev = sentItemsSnapshot.find(s => s.id === oi.menuItem.id);
+        const prev = sentItemsSnapshot.find(s => s.id === oi.lineId);
         const prevQty = prev?.qty ?? 0;
         return oi.quantity > prevQty;
       })
@@ -606,7 +607,26 @@ export default function POSClient() {
       : [selectedTable.id];
 
     syncOrderToTable(orderId, groupIds, newItems, newTotal);
-  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
+
+    // ── Auto-comanda: if order is already in kitchen, fire new items immediately ──
+    // This handles "we want another guacamole" mid-service without requiring
+    // the waiter to manually press "Enviar comanda" again.
+    if (kitchenSent && orderId) {
+      const comandaItems = newLines.map(l => ({
+        name: l.menuItem.name,
+        qty: l.quantity,
+        modifier: l.modifier,
+        notes: l.notes,
+      }));
+      await sendToKitchen(orderId, comandaItems);
+      // Update snapshot so these items are included in future diffs
+      setSentItemsSnapshot(prev => [
+        ...prev,
+        ...newLines.map(l => ({ id: l.lineId, qty: l.quantity })),
+      ]);
+      toast.success(`Comanda enviada: ${newLines.map(l => l.menuItem.name).join(', ')}`);
+    }
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, sendToKitchen]);
 
   const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;

@@ -400,7 +400,7 @@ export function useOrderFlow() {
 
     const sendToKitchen = useCallback(async (
     orderId: string,
-    newItems?: { name: string; qty: number; notes?: string }[],
+    newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
   ): Promise<boolean> => {
     // Fetch current status first
     const { data: orderData } = await supabase
