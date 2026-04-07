@@ -94,6 +94,7 @@ export function useOrderFlow() {
     return (rows as DbOrderItem[]).map(i => {
       const dish = i.dish_id ? dishMap[i.dish_id] : null;
       return {
+        lineId: (i as any).line_id ?? `${i.dish_id ?? i.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
         dishId: i.dish_id ?? i.id,
         name: dish?.name ?? i.name,
         price: dish ? Number(dish.price) : Number(i.price),
@@ -353,7 +354,7 @@ export function useOrderFlow() {
 
   const sendToKitchen = useCallback(async (
     orderId: string,
-    newItems?: { name: string; qty: number; notes?: string }[],
+    newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
   ): Promise<boolean> => {
     // Fetch current status first
     const { data: orderData } = await supabase

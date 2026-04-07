@@ -471,6 +471,7 @@ export default function POSClient() {
           });
         }
         const restored: OrderItem[] = existingItems.map((i: any) => ({
+          lineId: i.line_id ?? `${i.dish_id ?? i.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
           menuItem: dishMap[i.dish_id] ?? {
             id: i.dish_id ?? i.id, name: i.name, category: '',
             price: Number(i.price), description: '', available: true, emoji: i.emoji ?? '\u{1F37D}\uFE0F',
@@ -743,11 +744,9 @@ export default function POSClient() {
 
     const flowItems = orderItems.map((i) => ({
       lineId: i.lineId,
-      lineId: i.lineId,
       dishId: i.menuItem.id, name: i.menuItem.name,
       price: i.menuItem.price, qty: i.quantity,
       emoji: i.menuItem.emoji, notes: i.notes,
-      modifier: i.modifier,
       modifier: i.modifier,
     }));
 
@@ -783,7 +782,7 @@ export default function POSClient() {
   };
 
   const mergeGroupLabel = selectedTable?.mergeGroupId
-    ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.name).join(' + ')
+    ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.name).join(', ')
     : null;
 
   // ─── Move / Delete table in layout ───────────────────────────────────────
