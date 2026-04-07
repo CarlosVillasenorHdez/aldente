@@ -566,9 +566,23 @@ export default function LandingPage() {
         .footer-bottom { max-width:1200px; margin:0 auto; padding:24px clamp(24px,6vw,80px); border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
         .footer-copy { font-size:12px; color:var(--cream4); }
 
+        /* ── WHY ALDENTE ── */
+        .why-section { background: var(--ink2); }
+        .why-grid { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; }
+        .why-left { position:sticky; top:96px; }
+        .why-intro { font-size:17px; color:var(--cream2); line-height:1.8; font-weight:300; margin-top:20px; }
+        .why-items { display:flex; flex-direction:column; }
+        .why-item { padding:32px 0; border-bottom:1px solid var(--line); }
+        .why-item:first-child { padding-top:8px; }
+        .why-item:last-child { border-bottom:none; }
+        .why-num { font-family:'Cormorant Garamond',serif; font-size:11px; color:var(--gold); opacity:.7; letter-spacing:.12em; margin-bottom:10px; display:block; font-style:italic; }
+        .why-item-title { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:500; color:var(--paper); margin-bottom:10px; letter-spacing:-.3px; line-height:1.2; }
+        .why-item-body { font-size:15px; color:rgba(245,240,232,0.65); line-height:1.75; font-weight:300; }
+
         /* RESPONSIVE */
         @media(max-width:900px){
           .nav-links{display:none;} .nav-signin{display:none;}
+          .why-grid{grid-template-columns:1fr;gap:40px;} .why-left{position:static;}
           .features-header{grid-template-columns:1fr;gap:24px;}
           .features-list{grid-template-columns:1fr;}
           .feature.span2{grid-column:span 1;}
@@ -683,20 +697,23 @@ export default function LandingPage() {
       </div>
 
       {/* WHY ALDENTE */}
-      <section className="why-section">
-        <div className="why-grid">
-          <div>
-            <div className="eyebrow">{t.why.eyebrow}</div>
-            <h2 className="display-h2" style={{marginTop:'16px'}}>{t.why.h2}</h2>
-            <p className="why-body">{t.why.body}</p>
-          </div>
-          <div className="why-items">
-            {t.why.items.map((item,i) => (
-              <div key={i} className="why-item">
-                <h3 className="why-item-title">{item.title}</h3>
-                <p className="why-item-body">{item.body}</p>
-              </div>
-            ))}
+      <section className="section why-section">
+        <div className="inner">
+          <div className="why-grid">
+            <div className="why-left">
+              <div className="eyebrow">{t.why.eyebrow}</div>
+              <h2 className="display-h2" style={{marginTop:'16px'}}>{t.why.h2}</h2>
+              <p className="why-intro">{t.why.body}</p>
+            </div>
+            <div className="why-items">
+              {t.why.items.map((item,i) => (
+                <div key={i} className="why-item">
+                  <span className="why-num">0{i+1}</span>
+                  <h3 className="why-item-title">{item.title}</h3>
+                  <p className="why-item-body">{item.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
