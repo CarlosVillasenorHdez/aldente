@@ -393,19 +393,21 @@ export function useOrderFlow() {
   }, [supabase]);
 
   // ── Send order to kitchen — FIFO model ─────────────────────────────────────
-  // FIRST SEND: kitchen_status 'en_edicion' → 'pendiente'. Whole order visible in KDS.
-  // COMANDA (subsequent): Creates a NEW independent order (is_comanda=true) that
-  // enters KDS at the back of the queue in 'pendiente'. The original order is never
-  // touched. Each comanda contains ONLY the newly added items, not the full order.
-  // The mesero explicitly presses "Enviar comanda" — never fires automatically.
+  // FIRST SEND: sets kitchen_status → 'pendiente'. Whole order visible in KDS.
+  // COMANDA: creates a NEW independent order (is_comanda=true) that enters KDS
+  // in 'pendiente' at the back of the queue. FIFO guaranteed.
+  // Rules:
+  //   - Only items NOT yet in the snapshot are sent as comanda.
+  //   - If original order is 'entregada' or 'cerrada', the comanda still creates
+  //     a new card because it's genuinely new work — FIFO queue, different card.
+  //   - Never fires automatically — mesero always presses the button.
 
   const sendToKitchen = useCallback(async (
     orderId: string,
-    newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
+    newItems?: { name: string; qty: number; notes?: string; modifier?: string; emoji?: string }[],
     meta?: { mesa: string; mesaNum?: number; mesero: string; tenantId: string; branch?: string | null },
   ): Promise<boolean> => {
 
-    // Fetch the original order to know its current state and copy metadata
     const { data: orderData, error: fetchErr } = await supabase
       .from('orders')
       .select('kitchen_status, mesa, mesa_num, mesero, tenant_id, branch')
@@ -413,14 +415,13 @@ export function useOrderFlow() {
       .single();
 
     if (fetchErr || !orderData) {
-      toast.error('No se pudo leer la orden');
-      return false;
+      toast.error('No se pudo leer la orden'); return false;
     }
 
-    const alreadyInKDS = orderData.kitchen_status !== 'en_edicion';
+    const status = orderData.kitchen_status ?? 'en_edicion';
 
-    // ── CASE 1: FIRST SEND ──────────────────────────────────────────────────
-    if (!alreadyInKDS) {
+    // ── CASE 1: FIRST SEND — order still in editing ─────────────────────────
+    if (status === 'en_edicion') {
       const { error } = await supabase.from('orders').update({
         kitchen_status: 'pendiente',
         updated_at: new Date().toISOString(),
@@ -429,11 +430,12 @@ export function useOrderFlow() {
       return true;
     }
 
-    // ── CASE 2: COMANDA — only if there are new items to send ───────────────
+    // ── CASE 2: COMANDA — order already went to kitchen at some point ────────
+    // Always create a new independent card, regardless of current status.
+    // Even if status is 'entregada', the new items are genuinely new work.
     if (!newItems || newItems.length === 0) return true;
 
     const now = new Date().toISOString();
-    // Use a short readable ID: original 6 chars + timestamp
     const comandaId = `${orderId.slice(-6)}-C${Date.now().toString(36).toUpperCase()}`;
 
     const { error: insertErr } = await supabase.from('orders').insert({
@@ -443,7 +445,7 @@ export function useOrderFlow() {
       mesa_num: orderData.mesa_num ?? meta?.mesaNum ?? 0,
       mesero: orderData.mesero ?? meta?.mesero ?? '',
       status: 'abierta',
-      kitchen_status: 'pendiente',   // enters at the BACK of the FIFO queue
+      kitchen_status: 'pendiente',
       is_comanda: true,
       parent_order_id: orderId,
       total: 0, subtotal: 0, iva: 0, discount: 0,
@@ -455,14 +457,13 @@ export function useOrderFlow() {
 
     if (insertErr) { toast.error('Error al enviar comanda: ' + insertErr.message); return false; }
 
-    // Insert ONLY the new items — the comanda card shows exactly what needs to be made
     const { error: itemsErr } = await supabase.from('order_items').insert(
       newItems.map(i => ({
         order_id: comandaId,
         name: i.name,
         qty: i.qty,
         price: 0,
-        emoji: '🍽️',
+        emoji: i.emoji ?? '🍽️',
         modifier: i.modifier || null,
         notes: i.notes || null,
         tenant_id: orderData.tenant_id ?? meta?.tenantId,
