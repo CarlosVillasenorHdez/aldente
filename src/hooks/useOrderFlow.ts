@@ -392,62 +392,86 @@ export function useOrderFlow() {
     }
   }, [supabase]);
 
-  // ── Send order to kitchen — supports comandas ──────────────────────────────
-  // First send: sets kitchen_status = 'pendiente' (order becomes visible in KDS).
-  // Subsequent sends (comanda): if order is already visible in KDS (pendiente/preparacion/lista),
-  // appends the new items as a kitchen_note with a unique batch ID instead of resetting status.
-  // This ensures in-progress orders are never reverted to pendiente.
+  // ── Send order to kitchen — FIFO model ─────────────────────────────────────
+  // First send: sets kitchen_status = 'pendiente' → order appears in KDS queue.
+  // Subsequent sends (comanda): creates a NEW independent order with is_comanda=true
+  // and parent_order_id pointing to the original. It enters the KDS queue at the
+  // back (FIFO), separate from the original which may be in any state.
+  // The mesero must explicitly press "Enviar comanda" — never automatic.
 
-    const sendToKitchen = useCallback(async (
+  const sendToKitchen = useCallback(async (
     orderId: string,
     newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
+    meta?: { mesa: string; mesero: string; tenantId: string; branchId?: string | null },
   ): Promise<boolean> => {
-    // Fetch current status first
     const { data: orderData } = await supabase
       .from('orders')
-      .select('kitchen_status, kitchen_notes')
+      .select('kitchen_status, mesa, mesero, tenant_id, branch')
       .eq('id', orderId)
       .single();
 
     const currentStatus = orderData?.kitchen_status ?? 'en_edicion';
-    // Any status other than 'en_edicion' means the order is already visible in KDS
     const alreadyInKDS = currentStatus !== 'en_edicion';
 
     if (alreadyInKDS && newItems && newItems.length > 0) {
-      // COMANDA: append new items as a kitchen note with unique batch ID — never change status
-      const batchId = `BATCH-${Date.now().toString(36).toUpperCase()}`;
-      const comandaText = `🔔 COMANDA [${batchId}]:\n` +
-        newItems.map(i => {
-          const mod = i.modifier ? ` [${i.modifier}]` : '';
-          const note = i.notes ? ` — ${i.notes}` : '';
-          return `  • ${i.qty}x ${i.name}${mod}${note}`;
-        }).join('\n');
-      const existingNotes = orderData?.kitchen_notes || '';
-      const separator = existingNotes ? '\n\n' : '';
-      const { error } = await supabase.from('orders').update({
-        kitchen_notes: existingNotes + separator + comandaText,
-        updated_at: new Date().toISOString(),
-      }).eq('id', orderId);
+      // COMANDA: create a new independent order in KDS queue (FIFO)
+      const now = new Date().toISOString();
+      const comandaId = `${orderId.slice(0, 8)}-CMD-${Date.now().toString(36).toUpperCase()}`;
+      const notesText = newItems.map(i => {
+        const mod = i.modifier ? ` [${i.modifier}]` : '';
+        const note = i.notes ? ` — ${i.notes}` : '';
+        return `${i.qty}x ${i.name}${mod}${note}`;
+      }).join(' · ');
+
+      const { error } = await supabase.from('orders').insert({
+        id: comandaId,
+        tenant_id: orderData?.tenant_id ?? meta?.tenantId,
+        mesa: orderData?.mesa ?? meta?.mesa ?? '',
+        mesero: orderData?.mesero ?? meta?.mesero ?? '',
+        status: 'abierta',
+        kitchen_status: 'pendiente',
+        kitchen_notes: `COMANDA → ${notesText}`,
+        is_comanda: true,
+        parent_order_id: orderId,
+        total: 0, subtotal: 0, iva_amount: 0, discount_amount: 0,
+        payment_method: 'efectivo',
+        opened_at: now,
+        updated_at: now,
+        branch: orderData?.branch ?? meta?.branchId ?? null,
+      });
+
       if (error) { toast.error('Error al enviar comanda: ' + error.message); return false; }
-      toast.success('✅ Comanda adicional enviada a cocina');
+
+      // Insert the comanda items so kitchen sees them on the card
+      if (newItems.length > 0) {
+        await supabase.from('order_items').insert(
+          newItems.map(i => ({
+            order_id: comandaId,
+            name: i.name,
+            qty: i.qty,
+            price: 0,
+            emoji: '🍽️',
+            modifier: i.modifier || null,
+            notes: i.notes || null,
+          }))
+        );
+      }
+
+      toast.success('Comanda enviada a cocina');
       return true;
     }
 
     if (alreadyInKDS) {
-      // Order already in KDS but no new items to append — nothing to do
       return true;
     }
 
-    // First send: order is still 'en_edicion' — set to pendiente
+    // First send: set to pendiente
     const { error } = await supabase.from('orders').update({
       kitchen_status: 'pendiente',
       updated_at: new Date().toISOString(),
     }).eq('id', orderId);
 
-    if (error) {
-      toast.error('Error al enviar a cocina: ' + error.message);
-      return false;
-    }
+    if (error) { toast.error('Error al enviar a cocina: ' + error.message); return false; }
     return true;
   }, [supabase]);
 
