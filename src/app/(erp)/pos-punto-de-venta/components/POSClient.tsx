@@ -577,25 +577,20 @@ export default function POSClient() {
         return [];
       });
 
-    // Cancel any pending debounced sync — we'll handle it precisely below
+    // Cancel any pending debounced sync
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
     }
 
-    // Write ONLY the already-sent items (snapshot) to the original order.
-    // New items go exclusively into the comanda — they must NOT appear in
-    // the original order card in the KDS.
-    const alreadySentItems = kitchenSent
-      ? orderItems.filter(oi => sentItemsSnapshot.some(s => s.id === oi.lineId))
-      : orderItems; // first send: all items belong to original order
-
-    if (selectedTable.currentOrderId && alreadySentItems.length > 0) {
+    // Flush ALL current items to DB immediately before creating the comanda.
+    // This ensures billing is complete and the order reload works correctly.
+    if (selectedTable.currentOrderId && orderItems.length > 0) {
       const { error: delErr } = await supabase.from('order_items')
         .delete().eq('order_id', selectedTable.currentOrderId);
       if (!delErr) {
         await supabase.from('order_items').insert(
-          alreadySentItems.map((item) => ({
+          orderItems.map((item) => ({
             order_id: selectedTable.currentOrderId,
             dish_id: item.menuItem.id,
             name: item.menuItem.name,
@@ -662,20 +657,11 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    if (kitchenSent) {
-      // Order already in KDS: sync ONLY the already-sent items to the original order.
-      // New items go into a comanda — they must NOT appear in the original KDS card.
-      // We still update the total so the table badge shows the correct amount.
-      const sentItems = newItems.filter(i =>
-        sentItemsSnapshot.some(s => s.id === i.lineId)
-      );
-      syncOrderToTable(orderId, groupIds, sentItems.length > 0 ? sentItems : orderItems.filter(i =>
-        sentItemsSnapshot.some(s => s.id === i.lineId)
-      ), newTotal);
-    } else {
-      // First send: all items belong to the original order
-      syncOrderToTable(orderId, groupIds, newItems, newTotal);
-    }
+    // Always sync ALL items to the original order.
+    // The original order = the billing record for the full table.
+    // Comanda orders are separate DB orders with only their new items.
+    // KDS shows original card (full context) + comanda card (new items only).
+    syncOrderToTable(orderId, groupIds, newItems, newTotal);
 
   }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, sentItemsSnapshot, supabase]);
 
