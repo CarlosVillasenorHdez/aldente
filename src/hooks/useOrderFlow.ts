@@ -304,8 +304,8 @@ export function useOrderFlow() {
           if (ing?.cost) costActual += u.deductQty * Number(ing.cost);
         }
       }
-      const marginActual = totalAmount - costActual;
-      const marginPct = totalAmount > 0 ? (marginActual / totalAmount) * 100 : 0;
+      const marginActual = total - costActual;
+      const marginPct = total > 0 ? (marginActual / total) * 100 : 0;
 
       await Promise.allSettled([
         // Save margin to order
