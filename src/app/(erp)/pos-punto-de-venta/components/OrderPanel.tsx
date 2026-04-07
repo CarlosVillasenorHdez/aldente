@@ -309,39 +309,28 @@ export default function OrderPanel({
           {/* Action buttons */}
           <div className="px-4 pb-4 flex flex-col gap-2">
             {/* Enviar a cocina — only show if not yet sent, or show re-send if already sent */}
-            {!kitchenSent ? (
+            {/* Single unified button — always "Enviar comanda", logic handled in sendToKitchen */}
+            <div className="flex gap-2">
               <button
                 onClick={onSendToKitchen}
                 disabled={sendingToKitchen || orderItems.length === 0 || !selectedTable.currentOrderId}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
                 style={{ backgroundColor: '#059669', color: 'white' }}
               >
                 <Send size={15} />
-                {sendingToKitchen ? 'Enviando...' : 'Enviar a Cocina'}
+                {sendingToKitchen ? 'Enviando...' : 'Enviar comanda'}
               </button>
-            ) : (
-              <div className="flex gap-2">
+              {kitchenSent && onSendKitchenNote && (
                 <button
-                  onClick={onSendToKitchen}
-                  disabled={sendingToKitchen}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
-                  style={{ backgroundColor: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.25)' }}
+                  onClick={() => setShowKitchenNote(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                  style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
+                  title="Nota urgente a cocina"
                 >
-                  <Send size={12} />
-                  {sendingToKitchen ? 'Enviando...' : 'Enviar comanda'}
+                  <MessageSquare size={13} />
                 </button>
-                {onSendKitchenNote && (
-                  <button
-                    onClick={() => setShowKitchenNote(true)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                    style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
-                    title="Enviar nota urgente a cocina"
-                  >
-                    <MessageSquare size={13} /> Nota
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
 
             <button
