@@ -395,13 +395,25 @@ export default function POSClient() {
 
     syncTimerRef.current = setTimeout(async () => {
       const count = items.reduce((s, i) => s + i.quantity, 0);
-      // Atomic upsert: delete + insert in sequence (debounce ensures only one runs)
-      const { error: delErr } = await supabase.from('order_items').delete().eq('order_id', orderId);
-      if (delErr) { console.error('[POS] sync delete error:', delErr.message); return; }
+
+      // Use upsert by line_id to avoid DELETE race conditions.
+      // First delete rows that are no longer in the list, then upsert current state.
+      const currentLineIds = items.map(i => i.lineId);
+
+      // Delete removed items (lineIds not in current list)
+      if (currentLineIds.length > 0) {
+        await supabase.from('order_items')
+          .delete()
+          .eq('order_id', orderId)
+          .not('id', 'in', `(${currentLineIds.map(id => `'${id}'`).join(',')})`);
+      } else {
+        await supabase.from('order_items').delete().eq('order_id', orderId);
+      }
 
       if (items.length > 0) {
-        const { error: insErr } = await supabase.from('order_items').insert(
+        const { error: insErr } = await supabase.from('order_items').upsert(
           items.map((item) => ({
+            id: item.lineId,          // stable lineId = upsert key
             order_id: orderId,
             dish_id: item.menuItem.id,
             name: item.menuItem.name,
@@ -410,9 +422,10 @@ export default function POSClient() {
             emoji: item.menuItem.emoji,
             modifier: item.modifier ?? null,
             notes: item.notes ?? null,
-          }))
+          })),
+          { onConflict: 'id' }
         );
-        if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
+        if (insErr) { console.error('[POS] sync upsert error:', insErr.message); return; }
       }
 
       await supabase.from('restaurant_tables').update({
@@ -573,6 +586,13 @@ export default function POSClient() {
         }
         return [];
       });
+
+    // Flush any pending debounced sync before creating the comanda
+    // to ensure DB has the latest items before sendToKitchen reads them
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
 
     const ok = await sendToKitchen(
       selectedTable.currentOrderId,
