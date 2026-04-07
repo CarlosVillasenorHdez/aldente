@@ -393,86 +393,85 @@ export function useOrderFlow() {
   }, [supabase]);
 
   // ── Send order to kitchen — FIFO model ─────────────────────────────────────
-  // First send: sets kitchen_status = 'pendiente' → order appears in KDS queue.
-  // Subsequent sends (comanda): creates a NEW independent order with is_comanda=true
-  // and parent_order_id pointing to the original. It enters the KDS queue at the
-  // back (FIFO), separate from the original which may be in any state.
-  // The mesero must explicitly press "Enviar comanda" — never automatic.
+  // FIRST SEND: kitchen_status 'en_edicion' → 'pendiente'. Whole order visible in KDS.
+  // COMANDA (subsequent): Creates a NEW independent order (is_comanda=true) that
+  // enters KDS at the back of the queue in 'pendiente'. The original order is never
+  // touched. Each comanda contains ONLY the newly added items, not the full order.
+  // The mesero explicitly presses "Enviar comanda" — never fires automatically.
 
   const sendToKitchen = useCallback(async (
     orderId: string,
     newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
-    meta?: { mesa: string; mesero: string; tenantId: string; branchId?: string | null },
+    meta?: { mesa: string; mesaNum?: number; mesero: string; tenantId: string; branch?: string | null },
   ): Promise<boolean> => {
-    const { data: orderData } = await supabase
+
+    // Fetch the original order to know its current state and copy metadata
+    const { data: orderData, error: fetchErr } = await supabase
       .from('orders')
-      .select('kitchen_status, mesa, mesero, tenant_id, branch')
+      .select('kitchen_status, mesa, mesa_num, mesero, tenant_id, branch')
       .eq('id', orderId)
       .single();
 
-    const currentStatus = orderData?.kitchen_status ?? 'en_edicion';
-    const alreadyInKDS = currentStatus !== 'en_edicion';
+    if (fetchErr || !orderData) {
+      toast.error('No se pudo leer la orden');
+      return false;
+    }
 
-    if (alreadyInKDS && newItems && newItems.length > 0) {
-      // COMANDA: create a new independent order in KDS queue (FIFO)
-      const now = new Date().toISOString();
-      const comandaId = `${orderId.slice(0, 8)}-CMD-${Date.now().toString(36).toUpperCase()}`;
-      const notesText = newItems.map(i => {
-        const mod = i.modifier ? ` [${i.modifier}]` : '';
-        const note = i.notes ? ` — ${i.notes}` : '';
-        return `${i.qty}x ${i.name}${mod}${note}`;
-      }).join(' · ');
+    const alreadyInKDS = orderData.kitchen_status !== 'en_edicion';
 
-      const { error } = await supabase.from('orders').insert({
-        id: comandaId,
-        tenant_id: orderData?.tenant_id ?? meta?.tenantId,
-        mesa: orderData?.mesa ?? meta?.mesa ?? '',
-        mesa_num: 0,
-        mesero: orderData?.mesero ?? meta?.mesero ?? '',
-        status: 'abierta',
+    // ── CASE 1: FIRST SEND ──────────────────────────────────────────────────
+    if (!alreadyInKDS) {
+      const { error } = await supabase.from('orders').update({
         kitchen_status: 'pendiente',
-        kitchen_notes: `COMANDA → ${notesText}`,
-        is_comanda: true,
-        parent_order_id: orderId,
-        total: 0, subtotal: 0, iva: 0, discount: 0,
-        pay_method: 'efectivo',
-        opened_at: now,
-        updated_at: now,
-        branch: orderData?.branch ?? meta?.branchId ?? null,
-      });
-
-      if (error) { toast.error('Error al enviar comanda: ' + error.message); return false; }
-
-      // Insert the comanda items so kitchen sees them on the card
-      if (newItems.length > 0) {
-        await supabase.from('order_items').insert(
-          newItems.map(i => ({
-            order_id: comandaId,
-            name: i.name,
-            qty: i.qty,
-            price: 0,
-            emoji: '🍽️',
-            modifier: i.modifier || null,
-            notes: i.notes || null,
-          }))
-        );
-      }
-
-      toast.success('Comanda enviada a cocina');
+        updated_at: new Date().toISOString(),
+      }).eq('id', orderId);
+      if (error) { toast.error('Error al enviar a cocina: ' + error.message); return false; }
       return true;
     }
 
-    if (alreadyInKDS) {
-      return true;
-    }
+    // ── CASE 2: COMANDA — only if there are new items to send ───────────────
+    if (!newItems || newItems.length === 0) return true;
 
-    // First send: set to pendiente
-    const { error } = await supabase.from('orders').update({
-      kitchen_status: 'pendiente',
-      updated_at: new Date().toISOString(),
-    }).eq('id', orderId);
+    const now = new Date().toISOString();
+    // Use a short readable ID: original 6 chars + timestamp
+    const comandaId = `${orderId.slice(-6)}-C${Date.now().toString(36).toUpperCase()}`;
 
-    if (error) { toast.error('Error al enviar a cocina: ' + error.message); return false; }
+    const { error: insertErr } = await supabase.from('orders').insert({
+      id: comandaId,
+      tenant_id: orderData.tenant_id ?? meta?.tenantId,
+      mesa: orderData.mesa ?? meta?.mesa ?? '',
+      mesa_num: orderData.mesa_num ?? meta?.mesaNum ?? 0,
+      mesero: orderData.mesero ?? meta?.mesero ?? '',
+      status: 'abierta',
+      kitchen_status: 'pendiente',   // enters at the BACK of the FIFO queue
+      is_comanda: true,
+      parent_order_id: orderId,
+      total: 0, subtotal: 0, iva: 0, discount: 0,
+      pay_method: 'efectivo',
+      opened_at: now,
+      updated_at: now,
+      branch: orderData.branch ?? meta?.branch ?? null,
+    });
+
+    if (insertErr) { toast.error('Error al enviar comanda: ' + insertErr.message); return false; }
+
+    // Insert ONLY the new items — the comanda card shows exactly what needs to be made
+    const { error: itemsErr } = await supabase.from('order_items').insert(
+      newItems.map(i => ({
+        order_id: comandaId,
+        name: i.name,
+        qty: i.qty,
+        price: 0,
+        emoji: '🍽️',
+        modifier: i.modifier || null,
+        notes: i.notes || null,
+        tenant_id: orderData.tenant_id ?? meta?.tenantId,
+      }))
+    );
+
+    if (itemsErr) { toast.error('Error al insertar items de comanda: ' + itemsErr.message); return false; }
+
+    toast.success('✅ Comanda enviada a cocina');
     return true;
   }, [supabase]);
 
