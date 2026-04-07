@@ -29,6 +29,8 @@ interface KitchenOrder {
   id: string;
   mesa: string;
   mesero: string;
+  isComanda: boolean;
+  parentOrderId: string | null;
   items: KitchenOrderItem[];
   kitchenStatus: KitchenStatus;
   kitchenNotes: string | null;
@@ -142,6 +144,11 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold" style={{ color: '#f1f5f9' }}>{order.mesa}</span>
+                {order.isComanda && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(168,85,247,0.15)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.3)', letterSpacing: '0.04em' }}>
+                    COMANDA
+                  </span>
+                )}
               {isCritical && (
                 <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
                   <AlertCircle size={10} /> ¡Urgente!
@@ -345,6 +352,8 @@ export default function KitchenModule() {
         id: o.id,
         mesa: o.mesa,
         mesero: o.mesero,
+        isComanda: Boolean(o.is_comanda),
+        parentOrderId: o.parent_order_id ?? null,
         items: (o.order_items || []).map((item: any) => ({
           id: item.id,
           name: item.name,

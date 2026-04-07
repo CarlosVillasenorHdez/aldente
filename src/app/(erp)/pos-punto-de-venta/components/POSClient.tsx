@@ -564,7 +564,16 @@ export default function POSClient() {
         return { name: oi.menuItem.name, qty: newQty, notes: oi.notes };
       });
 
-    const ok = await sendToKitchen(selectedTable.currentOrderId, newItems.length > 0 ? newItems : undefined);
+    const ok = await sendToKitchen(
+      selectedTable.currentOrderId,
+      newItems.length > 0 ? newItems : undefined,
+      {
+        mesa: selectedTable.name,
+        mesero: appUser?.fullName ?? 'Mesero',
+        tenantId: appUser?.tenantId ?? '',
+        branchId: appUser?.branchId ?? null,
+      }
+    );
     if (ok) {
       setKitchenSent(true);
       // Update snapshot to current items
@@ -609,25 +618,7 @@ export default function POSClient() {
 
     syncOrderToTable(orderId, groupIds, newItems, newTotal);
 
-    // ── Auto-comanda: if order is already in kitchen, fire new items immediately ──
-    // This handles "we want another guacamole" mid-service without requiring
-    // the waiter to manually press "Enviar comanda" again.
-    if (kitchenSent && orderId) {
-      const comandaItems = newLines.map(l => ({
-        name: l.menuItem.name,
-        qty: l.quantity,
-        modifier: l.modifier,
-        notes: l.notes,
-      }));
-      await sendToKitchen(orderId, comandaItems);
-      // Update snapshot so these items are included in future diffs
-      setSentItemsSnapshot(prev => [
-        ...prev,
-        ...newLines.map(l => ({ id: l.lineId, qty: l.quantity })),
-      ]);
-      toast.success(`Comanda enviada: ${newLines.map(l => l.menuItem.name).join(', ')}`);
-    }
-  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, sendToKitchen]);
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
 
   const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;
