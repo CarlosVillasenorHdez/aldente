@@ -162,14 +162,24 @@ const T = {
     hero: {
       eyebrow: 'Restaurant software',
       h1a: 'You know exactly',
-      h1b: 'what's happening in your restaurant.',
+      h1b: "what\'s happening in your restaurant.",
       h1c: 'Right now.',
-      sub: 'Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.',
+      sub: "Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.",
       cta: 'Try it free for 14 days →',
       ctaSecondary: 'See how it works',
       urlLabel: 'Your unique access',
     },
     marquee: ['Point of sale', 'Kitchen display KDS', 'Mobile waiter', 'Smart inventory', 'P&L reports', 'Loyalty program', 'Reservations', 'Multi-location', 'Expense control', 'Integrated delivery', 'Roles & permissions', 'Real-time alerts'],
+    why: {
+      eyebrow: 'Why Aldente',
+      h2: 'Designed from inside a kitchen.',
+      body: 'Most restaurant software was built by engineers who never waited on a ticket. Aldente was born watching what happens when a table has been waiting 40 minutes and the cook doesn\'t know the waiter already charged. Every design decision has a story behind it.',
+      items: [
+        { title: 'Total visibility, no more black boxes', body: 'See the status of every table, every order and every ingredient in real time. Not at the end of the day — right now.' },
+        { title: 'Your team adopts the system in hours', body: 'The waiter logs in from their phone with a PIN. The cook sees their screen. No weeks-long learning curves.' },
+        { title: 'The numbers that matter, not the ones that look good', body: 'Real P&L, 3-layer recipe costing, profit per order. Not Excel exports — direct decisions from the system.' },
+      ],
+    },
     features: {
       eyebrow: 'Modules',
       h2a: 'Everything a serious',
@@ -187,9 +197,8 @@ const T = {
       allPlans: 'All plans',
     },
     preview: {
-      kpis: ["Today's sales", 'Active orders', 'Tables occupied', 'Avg. ticket'],
-      chartLabel: 'Sales by hour — today',
-      mesasLabel: 'Active tables',
+      kpis: ["Today\'s sales", 'Active orders', 'Tables occupied', 'Avg. ticket'],
+      chartLabel: 'Sales by hour — today',mesasLabel: 'Active tables',
       mesas: [
         {name:'Table 1', status:'In service', color:'#22c55e'},
         {name:'Table 4', status:'Waiting', color:'#eab308'},
@@ -198,9 +207,7 @@ const T = {
       ],
     },
     howItWorks: {
-      eyebrow: 'Process',
-      h2a: 'Up and running in',
-      h2b: 'under fifteen minutes',
+      eyebrow: 'Process',h2a: 'Up and running in',h2b: 'under fifteen minutes',
       steps: [
         { n:'I',   title:'Register',            body:'Restaurant name, your name and a PIN. No five-page forms.' },
         { n:'II',  title:'Explore with demo data', body:'Sample menu, tables and staff already loaded so you can see the system working from the very first second.' },
@@ -209,10 +216,7 @@ const T = {
       ],
     },
     access: {
-      eyebrow: 'Access',
-      h2a: 'Every restaurant,',
-      h2b: 'its own space',
-      sub: 'Your restaurant has a unique URL. Your team logs in directly — without knowing that other restaurants exist on the system.',
+      eyebrow: 'Access',h2a: 'Every restaurant,',h2b: 'its own space',sub: 'Your restaurant has a unique URL. Your team logs in directly — without knowing that other restaurants exist on the system.',
       steps: [
         { n:'i',   title:'Your unique URL from day one',   body:'aldente.app/r/my-restaurant — no one else can see or access it.' },
         { n:'ii',  title:'Share it with your team once',   body:'Via WhatsApp, printed in the kitchen, however you prefer.' },
@@ -226,9 +230,7 @@ const T = {
       ],
     },
     testimonials: {
-      eyebrow: 'Testimonials',
-      h2a: 'What restaurant owners',
-      h2b: 'are saying',
+      eyebrow: 'Testimonials',h2a: 'What restaurant owners',h2b: 'are saying',
       items: [
         { quote: 'We used to lose tickets every day. With the kitchen display there\'s no more confusion. My cooks know exactly what to prepare and in what order.', name: 'Roberto Sánchez', biz: 'La Fonda de Roberto', photo: '/images/testimonials/roberto.jpg', initials: 'RS' },
         { quote: 'The recipe cost reports showed me that three dishes were losing money. We adjusted them and raised our margin by 12% in one month.', name: 'Daniela Fuentes', biz: 'La Hacienda', photo: '/images/testimonials/daniela.jpg', initials: 'DF' },
@@ -260,7 +262,7 @@ const T = {
         [
           { q:'Do I need to install anything?', a:'No. Aldente runs in the browser on any device. On Android and iOS you can install it as an app from the browser (PWA) — no app store needed.' },
           { q:'Does it work without internet?', a:'The POS and kitchen display have an offline mode. Orders are saved locally and sync when the connection comes back.' },
-          { q:"Can my staff see other restaurants' data?", a:"Impossible. Each restaurant has its own URL and separate database. No one on your team can see information from another business." },
+          { q:"Can my staff see other restaurants\' data?", a:"Impossible. Each restaurant has its own URL and separate database. No one on your team can see information from another business." },
         ],
         [
           { q:'Can I cancel anytime?', a:'Yes. No contracts, no penalties, no minimum periods. Cancel anytime and your data is kept for 30 days.' },
@@ -432,7 +434,7 @@ export default function LandingPage() {
         /* SECTIONS */
         .section { padding:clamp(80px,10vw,140px) clamp(24px,6vw,80px); }
         .inner { max-width:1200px; margin:0 auto; }
-        .eyebrow { display:flex; align-items:center; gap:16px; font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
+        .eyebrow { display:flex; align-items:center; gap:16px; font-size:11px; font-weight:500; letter-spacing:0.16em; color:var(--gold); opacity:.8; margin-bottom:20px; }
         .eyebrow::after { content:''; flex:1; max-width:60px; height:1px; background:var(--goldLine); }
         .display-h2 { font-family:'Cormorant Garamond',Georgia,serif; font-size:clamp(36px,5vw,64px); font-weight:300; line-height:1.05; letter-spacing:-1px; color:var(--paper); }
         .display-h2 em { font-style:italic; color:var(--cream3); }
