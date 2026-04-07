@@ -39,6 +39,7 @@ export interface OrderFlowItem {
   modifier?: string;         // per-line modifier shown prominently to kitchen
   excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
   extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
+  course?: number;                  // 1=first, 2=second, 3=last — controls kitchen timing
 }
 
 export interface OrderFlowTable {
@@ -191,6 +192,7 @@ export function useOrderFlow() {
             emoji: item.emoji,
             modifier: item.modifier || null,
             notes: item.notes || null,
+            course: item.course ?? 1,
           }))
         );
         if (insErr) { console.error('[useOrderFlow] sync insert error:', insErr.message); return; }
@@ -240,6 +242,7 @@ export function useOrderFlow() {
             emoji: item.emoji,
             modifier: item.modifier || null,
             notes: item.notes || null,
+            course: item.course ?? 1,
           }))
         );
       }
@@ -396,7 +399,35 @@ export function useOrderFlow() {
   // appends the new items as a kitchen_note with a unique batch ID instead of resetting status.
   // This ensures in-progress orders are never reverted to pendiente.
 
-  const sendToKitchen = useCallback(async (
+  // ── Fire a specific course to kitchen ──────────────────────────────────────
+  const fireCourse = useCallback(async (orderId: string, courseNum: number): Promise<boolean> => {
+    const { data: orderData } = await supabase.from('orders')
+      .select('kitchen_notes').eq('id', orderId).single();
+    const { data: courseItems } = await supabase.from('order_items')
+      .select('name, qty, modifier, notes')
+      .eq('order_id', orderId).eq('course', courseNum);
+    if (!courseItems || courseItems.length === 0) {
+      toast.error(`No hay platillos en el tiempo ${courseNum}`); return false;
+    }
+    const label = courseNum === 2 ? '2 TIEMPO' : courseNum === 3 ? 'POSTRE / CIERRE' : `TIEMPO ${courseNum}`;
+    const batchId = `T${courseNum}-${Date.now().toString(36).toUpperCase()}`;
+    const text = `COMANDA [${batchId}] - ${label}:\n` +
+      (courseItems as Record<string,unknown>[]).map(i => {
+        const mod = i.modifier ? ` [${i.modifier}]` : '';
+        const note = i.notes ? ` -- ${i.notes}` : '';
+        return `  - ${i.qty}x ${i.name}${mod}${note}`;
+      }).join('\n');
+    const existing = orderData?.kitchen_notes || '';
+    const { error } = await supabase.from('orders').update({
+      kitchen_notes: existing + (existing ? '\n\n' : '') + text,
+      updated_at: new Date().toISOString(),
+    }).eq('id', orderId);
+    if (error) { toast.error('Error: ' + error.message); return false; }
+    toast.success(`${label} enviado a cocina`);
+    return true;
+  }, [supabase]);
+
+    const sendToKitchen = useCallback(async (
     orderId: string,
     newItems?: { name: string; qty: number; notes?: string }[],
   ): Promise<boolean> => {
@@ -415,11 +446,13 @@ export function useOrderFlow() {
       // COMANDA: append new items as a kitchen note with unique batch ID — never change status
       const batchId = `BATCH-${Date.now().toString(36).toUpperCase()}`;
       const comandaText = `🔔 COMANDA [${batchId}]:\n` +
-        newItems.map(i => {
-          const mod = i.modifier ? ` [${i.modifier}]` : '';
-          const note = i.notes ? ` — ${i.notes}` : '';
-          return `  • ${i.qty}x ${i.name}${mod}${note}`;
-        }).join('\n');
+        newItems
+          .filter(i => (i.course ?? 1) === 1)  // only fire course-1 items immediately
+          .map(i => {
+            const mod = i.modifier ? ` [${i.modifier}]` : '';
+            const note = i.notes ? ` — ${i.notes}` : '';
+            return `  • ${i.qty}x ${i.name}${mod}${note}`;
+          }).join('\n');
       const existingNotes = orderData?.kitchen_notes || '';
       const separator = existingNotes ? '\n\n' : '';
       const { error } = await supabase.from('orders').update({
@@ -449,5 +482,5 @@ export function useOrderFlow() {
     return true;
   }, [supabase]);
 
-  return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, loadOrderItems, sendToKitchen };
+  return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, loadOrderItems, sendToKitchen, fireCourse };
 }

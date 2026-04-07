@@ -21,6 +21,8 @@ interface KitchenOrderItem {
   emoji: string;
   notes?: string;
   category?: string;
+  course?: number;    // 1=first, 2=second, 3=last — items with course>1 shown with badge
+  modifier?: string;  // per-item modifier e.g. "Sin cebolla"
 }
 
 interface KitchenOrder {
@@ -177,12 +179,24 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
                        border: isDone ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent' }}>
               <div className="flex items-center gap-2 px-3 py-2">
                 <span className="text-base leading-none">{item.emoji}</span>
-                <span className="flex-1 text-sm font-medium"
-                  style={{ color: isDone ? '#86efac' : '#f1f5f9',
-                           textDecoration: isDone ? 'line-through' : 'none',
-                           opacity: isDone ? 0.7 : 1 }}>
-                  {item.name}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium block"
+                    style={{ color: isDone ? '#86efac' : '#f1f5f9',
+                             textDecoration: isDone ? 'line-through' : 'none',
+                             opacity: isDone ? 0.7 : 1 }}>
+                    {item.name}
+                  </span>
+                  {item.modifier && (
+                    <span className="text-xs block mt-0.5" style={{ color: '#f59e0b', fontWeight: 500 }}>
+                      ↳ {item.modifier}
+                    </span>
+                  )}
+                  {(item.course ?? 1) > 1 && (
+                    <span className="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5" style={{ background: item.course === 2 ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)', color: item.course === 2 ? '#fbbf24' : '#c4b5fd', fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em' }}>
+                      {item.course === 2 ? '2° TIEMPO' : 'POSTRE'}
+                    </span>
+                  )}
+                </div>
                 <span className="text-sm font-bold px-2 py-0.5 rounded-md"
                   style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
                   ×{item.qty}
@@ -200,10 +214,10 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
                   <Check size={12} />
                 </button>
               </div>
-              {item.notes && (
+              {item.notes && !item.modifier && (
                 <div className="px-3 pb-2">
                   <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#fbbf24' }}>
-                    📝 {item.notes}
+                    {item.notes}
                   </span>
                 </div>
               )}
@@ -319,6 +333,8 @@ export default function KitchenModule() {
           preparationTimeMin: item.dishes?.preparation_time_min ?? 15,
           notes: item.notes,
           category: item.dishes?.category ?? null,
+          course: item.course ?? 1,
+          modifier: item.modifier ?? null,
         })),
         kitchenStatus: (o.kitchen_status ?? 'pendiente') as KitchenStatus,
         kitchenNotes: o.kitchen_notes || null,
