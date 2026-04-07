@@ -37,6 +37,7 @@ export interface OrderFlowItem {
   emoji: string;
   notes?: string;            // legacy general note
   modifier?: string;         // per-line modifier shown prominently to kitchen
+  course?: number;           // course number for ordering (1 = first course, etc.)
   excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
   extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
 }
