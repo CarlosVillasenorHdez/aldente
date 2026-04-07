@@ -222,10 +222,11 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
                           </span>
                           <button
                             onClick={() => onToggleItem(itemKey)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
-                            style={{ backgroundColor: isDone ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isDone ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`, color: isDone ? '#4ade80' : 'rgba(255,255,255,0.3)' }}
-                            title={isDone ? 'Marcar como pendiente' : 'Marcar como listo'}>
-                            <Check size={12} />
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 transition-all"
+                            style={{ backgroundColor: isDone ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isDone ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.12)'}`, color: isDone ? '#4ade80' : 'rgba(255,255,255,0.25)' }}
+                            title={isDone ? 'Desmarcar' : 'Marcar listo'}>
+                            <Check size={11} />
+                            <span style={{ fontSize: '10px', fontWeight: 600 }}>{isDone ? 'Listo' : '—'}</span>
                           </button>
                         </div>
                         {item.notes && !item.modifier && (
