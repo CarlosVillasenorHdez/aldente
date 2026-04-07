@@ -148,11 +148,6 @@ export default function OrderPanel({
                         ↳ {item.modifier}
                       </p>
                     )}
-                    {(item as any).course > 1 && (
-                      <span className="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5" style={{ background: (item as any).course === 2 ? 'rgba(245,158,11,0.12)' : 'rgba(139,92,246,0.12)', color: (item as any).course === 2 ? '#d97706' : '#a78bfa', fontSize: '10px', fontWeight: 600 }}>
-                        {(item as any).course === 2 ? '2° tiempo' : 'Postre'}
-                      </span>
-                    )}
                     <p className="text-xs text-gray-400 mt-0.5 font-mono">
                       ${item.menuItem.price.toFixed(2)} c/u
                     </p>
@@ -348,36 +343,6 @@ export default function OrderPanel({
               </div>
             )}
 
-            {/* Fire course 2 and 3 buttons — only shown when kitchenSent and items exist */}
-            {kitchenSent && onFireCourse && (() => {
-              const course2Items = orderItems.filter(i => (i as any).course === 2);
-              const course3Items = orderItems.filter(i => (i as any).course === 3);
-              if (course2Items.length === 0 && course3Items.length === 0) return null;
-              return (
-                <div className="flex flex-col gap-1.5">
-                  {course2Items.length > 0 && (
-                    <button
-                      onClick={() => onFireCourse(2)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all"
-                      style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#d97706' }}
-                    >
-                      <Send size={12} />
-                      Enviar 2° tiempo ({course2Items.length} platillo{course2Items.length > 1 ? 's' : ''})
-                    </button>
-                  )}
-                  {course3Items.length > 0 && (
-                    <button
-                      onClick={() => onFireCourse(3)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all"
-                      style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}
-                    >
-                      <Send size={12} />
-                      Enviar postre / cierre ({course3Items.length} platillo{course3Items.length > 1 ? 's' : ''})
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
 
             <button
               onClick={onCheckout}

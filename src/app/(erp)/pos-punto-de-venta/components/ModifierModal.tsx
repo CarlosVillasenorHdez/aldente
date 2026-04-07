@@ -44,7 +44,6 @@ export interface ModifierLine {
   extras: ExtraIngredient[];
   note: string;
   modifier: string;
-  course: number;  // 1 = inmediato, 2 = segundo tiempo, 3 = al final
 }
 
 export interface ExtraIngredient {
@@ -68,7 +67,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
 
   // ingState[rowIdx][ingredientId] = 'normal' | 'excluded' | 'extra'
   const [ingStates, setIngStates] = useState<Record<number, Record<string, IngredientState>>>({});
-  const [rows, setRows] = useState([{ qty: 1, note: '', course: 1 }]);
+  const [rows, setRows] = useState([{ qty: 1, note: '' }]);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -111,7 +110,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
 
   function addRow() {
     const newIdx = rows.length;
-    setRows(prev => [...prev, { qty: 1, note: '', course: 1 }]);
+    setRows(prev => [...prev, { qty: 1, note: '' }]);
     setIngStates(prev => ({ ...prev, [newIdx]: {} }));
     setExpandedRow(newIdx);
   }
@@ -136,9 +135,6 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, note } : r));
   }
 
-  function updateCourse(idx: number, course: number) {
-    setRows(prev => prev.map((r, i) => i === idx ? { ...r, course } : r));
-  }
 
   function appendQuickNote(idx: number, note: string) {
     setRows(prev => prev.map((r, i) => {
@@ -169,7 +165,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
     if (extras.length > 0) modParts.push(`Extra: ${extras.map(e => e.name).join(', ')}`);
     if (row.note.trim()) modParts.push(row.note.trim());
 
-    return { qty: row.qty, excluded, excludedIds, extras, note: row.note, modifier: modParts.join(' — '), course: row.course ?? 1 };
+    return { qty: row.qty, excluded, excludedIds, extras, note: row.note, modifier: modParts.join(' — ') };
   }
 
   function handleConfirm() {
@@ -272,34 +268,6 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
                   {/* Expanded */}
                   {expandedRow === idx && (
                     <div style={{padding:'12px 14px 14px', borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-
-                      {/* Course / timing */}
-                      <div style={{marginBottom:'16px'}}>
-                        <div style={{fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.35)', textTransform:'uppercase' as const, letterSpacing:'0.07em', marginBottom:'8px'}}>
-                          ¿Cuándo sale este platillo?
-                        </div>
-                        <div style={{display:'flex', gap:'6px'}}>
-                          {[
-                            {n:1, label:'Ahora', sub:'1er tiempo'},
-                            {n:2, label:'Después', sub:'2do tiempo'},
-                            {n:3, label:'Al final', sub:'Postre / cierre'},
-                          ].map(c => (
-                            <button
-                              key={c.n}
-                              onClick={() => updateCourse(idx, c.n)}
-                              style={{
-                                flex:1, padding:'8px 6px', borderRadius:'10px', border:'none', cursor:'pointer',
-                                textAlign:'center' as const,
-                                background: row.course === c.n ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-                                outline: row.course === c.n ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                              }}
-                            >
-                              <div style={{fontSize:'13px', fontWeight:600, color: row.course === c.n ? '#f59e0b' : 'rgba(255,255,255,0.6)', marginBottom:'2px'}}>{c.label}</div>
-                              <div style={{fontSize:'10px', color:'rgba(255,255,255,0.3)', lineHeight:1.3}}>{c.sub}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
 
                       {recipe.length > 0 && (
                         <div style={{marginBottom:'14px'}}>

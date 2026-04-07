@@ -52,7 +52,6 @@ export interface OrderItem {
   notes?: string;                      // legacy general note
   modifier?: string;                   // per-line modifier (e.g. "sin cebolla", "bien cocido")
   excludedIngredientIds?: string[];    // ingredient ids removed — skipped during inventory deduction
-  course: number;                      // 1=first, 2=second, 3=last — controls when item fires to kitchen
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -114,7 +113,7 @@ export default function POSClient() {
   const [branchName, setBranchName] = useState('Sucursal Principal');
 
   const supabase = createClient();
-  const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, fireCourse } = useOrderFlow();
+  const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen } = useOrderFlow();
   const { ivaPercent } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
@@ -591,7 +590,6 @@ export default function POSClient() {
       modifier: line.modifier || undefined,
       notes: line.note || undefined,
       excludedIngredientIds: line.excludedIds.length > 0 ? line.excludedIds : undefined,
-      course: line.course ?? 1,
     }));
 
     const newItems = [...orderItems, ...newLines];
@@ -751,7 +749,6 @@ export default function POSClient() {
       price: i.menuItem.price, qty: i.quantity,
       emoji: i.menuItem.emoji, notes: i.notes,
       excludedIngredientIds: i.excludedIngredientIds,
-      course: i.course ?? 1,
       modifier: i.modifier,
       modifier: i.modifier,
     }));
@@ -945,9 +942,6 @@ export default function POSClient() {
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
             kitchenSent={kitchenSent}
-            onFireCourse={selectedTable?.currentOrderId
-              ? (course: number) => fireCourse(selectedTable.currentOrderId!, course)
-              : undefined}
             sendingToKitchen={sendingToKitchen}
             onSendKitchenNote={handleSendKitchenNote}
           />

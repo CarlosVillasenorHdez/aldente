@@ -168,65 +168,84 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
         </div>
       </div>
 
-      {/* Items — con check individual por platillo */}
-      <div className="space-y-1.5 mb-3">
-        {order.items.map((item, i) => {
-          const itemKey = item.id || `${order.id}-${i}`;
-          const isDone  = readyItems.has(itemKey);
-          return (
-            <div key={itemKey} className="rounded-lg overflow-hidden transition-all"
-              style={{ backgroundColor: isDone ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
-                       border: isDone ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent' }}>
-              <div className="flex items-center gap-2 px-3 py-2">
-                <span className="text-base leading-none">{item.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium block"
-                    style={{ color: isDone ? '#86efac' : '#f1f5f9',
-                             textDecoration: isDone ? 'line-through' : 'none',
-                             opacity: isDone ? 0.7 : 1 }}>
-                    {item.name}
-                  </span>
-                  {item.modifier && (
-                    <span className="text-xs block mt-0.5" style={{ color: '#f59e0b', fontWeight: 500 }}>
-                      ↳ {item.modifier}
-                    </span>
-                  )}
-                  {(item.course ?? 1) > 1 && (
-                    <span className="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5" style={{ background: item.course === 2 ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)', color: item.course === 2 ? '#fbbf24' : '#c4b5fd', fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em' }}>
-                      {item.course === 2 ? '2° TIEMPO' : 'POSTRE'}
-                    </span>
-                  )}
-                </div>
-                <span className="text-sm font-bold px-2 py-0.5 rounded-md"
-                  style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
-                  ×{item.qty}
-                </span>
-                {/* Botón check individual */}
-                <button
-                  onClick={() => onToggleItem(itemKey)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{
-                    backgroundColor: isDone ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${isDone ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
-                    color: isDone ? '#4ade80' : 'rgba(255,255,255,0.3)',
-                  }}
-                  title={isDone ? 'Marcar como pendiente' : 'Marcar como listo'}>
-                  <Check size={12} />
-                </button>
-              </div>
-              {item.notes && !item.modifier && (
-                <div className="px-3 pb-2">
-                  <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#fbbf24' }}>
-                    {item.notes}
-                  </span>
-                </div>
-              )}
-            </div>
+      {/* Items — agrupados por categoría (estándar de industria) */}
+      <div className="space-y-2 mb-3">
+        {(() => {
+          const CAT_ORDER: Record<string, number> = {
+            'Entradas': 1, 'Appetizers': 1,
+            'Platos Fuertes': 2, 'Main Course': 2, 'Main': 2,
+            'Postres': 3, 'Desserts': 3,
+            'Bebidas': 4, 'Drinks': 4,
+            'Extras': 5,
+          };
+          const grouped = order.items.reduce<Record<string, typeof order.items>>((acc, item) => {
+            const cat = item.category || 'Sin categoría';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(item);
+            return acc;
+          }, {});
+          const sortedCats = Object.keys(grouped).sort((a, b) =>
+            (CAT_ORDER[a] ?? 99) - (CAT_ORDER[b] ?? 99)
           );
-        })}
+          const multiCat = sortedCats.length > 1;
+          return (
+            <>
+              {sortedCats.map(cat => (
+                <div key={cat}>
+                  {multiCat && (
+                    <div className="px-1 mb-1" style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      {cat}
+                    </div>
+                  )}
+                  {grouped[cat].map((item, i) => {
+                    const itemKey = item.id || `${order.id}-${i}`;
+                    const isDone = readyItems.has(itemKey);
+                    return (
+                      <div key={itemKey} className="rounded-lg overflow-hidden transition-all"
+                        style={{ backgroundColor: isDone ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)', border: isDone ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent' }}>
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <span className="text-base leading-none">{item.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium block"
+                              style={{ color: isDone ? '#86efac' : '#f1f5f9', textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.7 : 1 }}>
+                              {item.name}
+                            </span>
+                            {item.modifier && (
+                              <span className="text-xs block mt-0.5" style={{ color: '#f59e0b', fontWeight: 500 }}>
+                                ↳ {item.modifier}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold px-2 py-0.5 rounded-md"
+                            style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                            ×{item.qty}
+                          </span>
+                          <button
+                            onClick={() => onToggleItem(itemKey)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+                            style={{ backgroundColor: isDone ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isDone ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`, color: isDone ? '#4ade80' : 'rgba(255,255,255,0.3)' }}
+                            title={isDone ? 'Marcar como pendiente' : 'Marcar como listo'}>
+                            <Check size={12} />
+                          </button>
+                        </div>
+                        {item.notes && !item.modifier && (
+                          <div className="px-3 pb-2">
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#fbbf24' }}>
+                              {item.notes}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </>
+          );
+        })()}
       </div>
 
-      {/* Kitchen notes */}
+            {/* Kitchen notes */}
       {order.kitchenNotes && (
         <div className="flex items-start gap-2 px-3 py-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
