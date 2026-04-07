@@ -22,12 +22,14 @@ import type { DbOrderItem, DbDish } from '@/lib/supabase/types';
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
 export interface OrderFlowItem {
+  lineId: string;       // unique per line — key for all operations
   dishId: string;
   name: string;
   price: number;
   qty: number;
   emoji: string;
-  notes?: string;
+  notes?: string;       // legacy general note
+  modifier?: string;    // per-line modifier shown prominently to kitchen
 }
 
 export interface OrderFlowTable {
@@ -178,7 +180,7 @@ export function useOrderFlow() {
             qty: item.qty,
             price: item.price,
             emoji: item.emoji,
-            notes: item.notes || null,
+            notes: item.modifier ? `[${item.modifier}]${item.notes ? ' — ' + item.notes : ''}` : (item.notes || null),
           }))
         );
         if (insErr) { console.error('[useOrderFlow] sync insert error:', insErr.message); return; }
@@ -226,7 +228,7 @@ export function useOrderFlow() {
             qty: item.qty,
             price: item.price,
             emoji: item.emoji,
-            notes: item.notes || null,
+            notes: item.modifier ? `[${item.modifier}]${item.notes ? ' — ' + item.notes : ''}` : (item.notes || null),
           }))
         );
       }
@@ -368,7 +370,7 @@ export function useOrderFlow() {
       // COMANDA: append new items as a kitchen note with unique batch ID — never change status
       const batchId = `BATCH-${Date.now().toString(36).toUpperCase()}`;
       const comandaText = `🔔 COMANDA [${batchId}]:\n` +
-        newItems.map(i => `  • ${i.qty}x ${i.name}${i.notes ? ` (${i.notes})` : ''}`).join('\n');
+        newItems.map(i => { const mod = i.modifier ? ` [${i.modifier}]` : ''; const note = i.notes ? ` — ${i.notes}` : ''; return `  • ${i.qty}x ${i.name}${mod}${note}`; }).join('\n');
       const existingNotes = orderData?.kitchen_notes || '';
       const separator = existingNotes ? '\n\n' : '';
       const { error } = await supabase.from('orders').update({

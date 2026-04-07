@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import ModifierModal, { type ModifierLine } from '../../pos-punto-de-venta/components/ModifierModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShoppingCart, Plus, Minus, Send, X, ChevronLeft, Search, MessageSquare, CreditCard } from 'lucide-react';
@@ -32,6 +33,7 @@ export default function MeseroMobileView() {
   const [dishes, setDishes] = useState<DbDish[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderFlowItem[]>([]);
+  const [modifierPending, setModifierPending] = useState<DbDish | null>(null);
   const [category, setCategory] = useState('Todos');
   const [search, setSearch] = useState('');
   const [showCart, setShowCart] = useState(false);
@@ -238,21 +240,30 @@ export default function MeseroMobileView() {
     syncItems(orderId, [table.id], newItems, total);
   }, [syncItems]);
 
-  const addItem = async (dish: DbDish) => {
+  const addItem = (dish: DbDish) => {
     if (!selectedTable) return;
+    setModifierPending(dish);
+  };
 
-    const newItems = (() => {
-      const existing = orderItems.find(i => i.dishId === dish.id);
-      if (existing) return orderItems.map(i => i.dishId === dish.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...orderItems, {
-        dishId: dish.id, name: dish.name, price: Number(dish.price),
-        qty: 1, emoji: dish.emoji, notes: '',
-      }];
-    })();
+  const handleModifierConfirm = async (lines: ModifierLine[]) => {
+    if (!modifierPending || !selectedTable) return;
+    const dish = modifierPending;
+    setModifierPending(null);
 
+    const newLines: OrderFlowItem[] = lines.map(line => ({
+      lineId: `${dish.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      dishId: dish.id,
+      name: dish.name,
+      price: Number(dish.price),
+      qty: line.qty,
+      emoji: dish.emoji,
+      modifier: line.modifier || undefined,
+      notes: line.note || undefined,
+    }));
+
+    const newItems = [...orderItems, ...newLines];
     setOrderItems(newItems);
 
-    // Use the authenticated waiter name — never fall back to 'Administrador'
     const waiter = myName || appUser?.fullName || 'Mesero';
     const flowTable = { id: selectedTable.id, number: selectedTable.number, name: selectedTable.name, currentOrderId: currentOrderId ?? undefined };
     const orderId = await ensureOpenOrder(flowTable, waiter, branchName);
@@ -818,6 +829,14 @@ export default function MeseroMobileView() {
             </div>
           </div>
         </div>
+      )}
+
+      {modifierPending && (
+        <ModifierModal
+          item={{ id: modifierPending.id, name: modifierPending.name, price: Number(modifierPending.price), emoji: modifierPending.emoji }}
+          onConfirm={handleModifierConfirm}
+          onCancel={() => setModifierPending(null)}
+        />
       )}
     </div>
   );

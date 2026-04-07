@@ -135,21 +135,26 @@ export default function OrderPanel({
         ) : (
           <div>
             {orderItems.map((item) => (
-              <div key={item.menuItem.id} className="border-b border-gray-50 last:border-0">
+              <div key={item.lineId} className="border-b border-gray-50 last:border-0">
                 <div className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
                   <span className="text-xl flex-shrink-0 mt-0.5">{item.menuItem.emoji}</span>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-600 text-gray-800 leading-tight truncate" style={{ fontWeight: 600 }}>
+                    <p className="text-sm font-600 text-gray-800 leading-tight" style={{ fontWeight: 600 }}>
                       {item.menuItem.name}
                     </p>
+                    {item.modifier && (
+                      <p className="text-xs mt-0.5 font-medium truncate" style={{ color: '#d97706' }}>
+                        ↳ {item.modifier}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-400 mt-0.5 font-mono">
                       ${item.menuItem.price.toFixed(2)} c/u
                     </p>
 
                     <div className="flex items-center gap-2 mt-2">
                       <button
-                        onClick={() => onUpdateQty(item.menuItem.id, -1)}
+                        onClick={() => onUpdateQty(item.lineId, -1)}
                         className="w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-100 active:scale-95"
                         style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}
                       >
@@ -159,14 +164,14 @@ export default function OrderPanel({
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => onUpdateQty(item.menuItem.id, 1)}
+                        onClick={() => onUpdateQty(item.lineId, 1)}
                         className="w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-100 active:scale-95"
                         style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
                       >
                         <Plus size={10} />
                       </button>
                       <button
-                        onClick={() => setExpandedNoteId(expandedNoteId === item.menuItem.id ? null : item.menuItem.id)}
+                        onClick={() => setExpandedNoteId(expandedNoteId === item.lineId ? null : item.lineId)}
                         className="ml-auto w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                         style={{ backgroundColor: item.notes ? 'rgba(245,158,11,0.15)' : '#f3f4f6', color: item.notes ? '#d97706' : '#9ca3af' }}
                         title="Nota para cocina"
@@ -174,7 +179,7 @@ export default function OrderPanel({
                         <MessageSquare size={10} />
                       </button>
                     </div>
-                    {item.notes && expandedNoteId !== item.menuItem.id && (
+                    {item.notes && expandedNoteId !== item.lineId && (
                       <p className="text-xs mt-1 italic truncate" style={{ color: '#d97706' }}>
                         📝 {item.notes}
                       </p>
@@ -186,7 +191,7 @@ export default function OrderPanel({
                       ${(item.menuItem.price * item.quantity).toFixed(2)}
                     </span>
                     <button
-                      onClick={() => onRemoveItem(item.menuItem.id)}
+                      onClick={() => onRemoveItem(item.lineId)}
                       className="p-1 rounded hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={12} className="text-gray-300 hover:text-red-400" />
@@ -194,12 +199,12 @@ export default function OrderPanel({
                   </div>
                 </div>
 
-                {expandedNoteId === item.menuItem.id && (
+                {expandedNoteId === item.lineId && (
                   <div className="px-4 pb-3">
                     <input
                       type="text"
                       value={item.notes ?? ''}
-                      onChange={(e) => onUpdateNote(item.menuItem.id, e.target.value)}
+                      onChange={(e) => onUpdateNote(item.lineId, e.target.value)}
                       placeholder="Sin cebolla, término medio, extra salsa..."
                       className="w-full px-3 py-1.5 text-xs rounded-lg border outline-none"
                       style={{ borderColor: '#fde68a', backgroundColor: '#fffbeb', color: '#92400e' }}

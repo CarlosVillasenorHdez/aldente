@@ -7,6 +7,7 @@ import { useBranch } from '@/hooks/useBranch';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import TableMap from './TableMap';
+import ModifierModal, { type ModifierLine } from './ModifierModal';
 import type { LayoutTablePosition } from './TableMap';
 import MenuGrid from './MenuGrid';
 import OrderPanel from './OrderPanel';
@@ -45,9 +46,11 @@ export interface MenuItem {
 }
 
 export interface OrderItem {
+  lineId: string;      // unique per line — allows same dish multiple times with different modifiers
   menuItem: MenuItem;
   quantity: number;
-  notes?: string;
+  notes?: string;      // legacy general note
+  modifier?: string;   // per-line modifier (e.g. "sin cebolla", "bien cocido")
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -84,6 +87,7 @@ export default function POSClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [modifierPending, setModifierPending] = useState<typeof menuItems[0] | null>(null);
   const { branch: activeBranch } = useBranch();
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -447,7 +451,7 @@ export default function POSClient() {
           setKitchenSent(sent);
           if (sent) {
             // Snapshot current items as "already sent"
-            setSentItemsSnapshot(orderItems.map(i => ({ id: i.menuItem.id, qty: i.quantity })));
+            setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
           }
         });
       const { data: existingItems } = await supabase
@@ -561,23 +565,34 @@ export default function POSClient() {
     if (ok) {
       setKitchenSent(true);
       // Update snapshot to current items
-      setSentItemsSnapshot(orderItems.map(i => ({ id: i.menuItem.id, qty: i.quantity })));
+      setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
       if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? selectedTable.name}`);
     }
     setSendingToKitchen(false);
   };
 
-  const handleAddItem = useCallback(async (item: MenuItem) => {
+  const handleAddItem = useCallback((item: MenuItem) => {
     if (!item.available || !selectedTable) return;
+    // Open modifier modal — confirm adds lines with customization
+    setModifierPending(item);
+  }, [selectedTable]);
 
-    const newItems = (() => {
-      const existing = orderItems.find((o) => o.menuItem.id === item.id);
-      if (existing) return orderItems.map((o) => o.menuItem.id === item.id ? { ...o, quantity: o.quantity + 1 } : o);
-      return [...orderItems, { menuItem: item, quantity: 1 }];
-    })();
+  const handleModifierConfirm = useCallback(async (lines: ModifierLine[]) => {
+    if (!modifierPending || !selectedTable) return;
+    const item = modifierPending;
+    setModifierPending(null);
+
+    const newLines = lines.map(line => ({
+      lineId: `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      menuItem: item,
+      quantity: line.qty,
+      modifier: line.modifier || undefined,
+      notes: line.note || undefined,
+    }));
+
+    const newItems = [...orderItems, ...newLines];
     setOrderItems(newItems);
 
-    // Ensure an open order exists in DB, then sync items
     const orderId = await ensureOpenOrder(selectedTable);
     const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
     const discAmt = discount.type === 'pct'
@@ -589,12 +604,12 @@ export default function POSClient() {
       : [selectedTable.id];
 
     syncOrderToTable(orderId, groupIds, newItems, newTotal);
-  }, [selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
 
-  const handleUpdateQty = useCallback(async (itemId: string, delta: number) => {
+  const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;
     const newItems = orderItems
-      .map((o) => o.menuItem.id === itemId ? { ...o, quantity: Math.max(0, o.quantity + delta) } : o)
+      .map((o) => o.lineId === lineId ? { ...o, quantity: Math.max(0, o.quantity + delta) } : o)
       .filter((o) => o.quantity > 0);
     setOrderItems(newItems);
 
@@ -611,9 +626,9 @@ export default function POSClient() {
     }
   }, [selectedTable, orderItems, discount, tables, syncOrderToTable]);
 
-  const handleRemoveItem = useCallback(async (itemId: string) => {
+  const handleRemoveItem = useCallback(async (lineId: string) => {
     if (!selectedTable) return;
-    const newItems = orderItems.filter((o) => o.menuItem.id !== itemId);
+    const newItems = orderItems.filter((o) => o.lineId !== lineId);
     setOrderItems(newItems);
 
     if (selectedTable.currentOrderId) {
@@ -727,9 +742,13 @@ export default function POSClient() {
     const orderId = selectedTable.currentOrderId ?? `ORD-${Date.now()}`;
 
     const flowItems = orderItems.map((i) => ({
+      lineId: i.lineId,
+      lineId: i.lineId,
       dishId: i.menuItem.id, name: i.menuItem.name,
       price: i.menuItem.price, qty: i.quantity,
       emoji: i.menuItem.emoji, notes: i.notes,
+      modifier: i.modifier,
+      modifier: i.modifier,
     }));
 
     const ok = await closeOrder({
@@ -957,6 +976,14 @@ export default function POSClient() {
 
       {/* Spacer so content doesn't hide behind mobile tab bar */}
       <div className="h-14 md:hidden flex-shrink-0" />
+
+      {modifierPending && (
+        <ModifierModal
+          item={modifierPending}
+          onConfirm={handleModifierConfirm}
+          onCancel={() => setModifierPending(null)}
+        />
+      )}
 
       {showPaymentModal && (
         <PaymentModal
