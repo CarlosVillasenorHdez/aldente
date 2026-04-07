@@ -46,11 +46,12 @@ export interface MenuItem {
 }
 
 export interface OrderItem {
-  lineId: string;      // unique per line — allows same dish multiple times with different modifiers
+  lineId: string;                      // unique per line — allows same dish multiple times with different modifiers
   menuItem: MenuItem;
   quantity: number;
-  notes?: string;      // legacy general note
-  modifier?: string;   // per-line modifier (e.g. "sin cebolla", "bien cocido")
+  notes?: string;                      // legacy general note
+  modifier?: string;                   // per-line modifier (e.g. "sin cebolla", "bien cocido")
+  excludedIngredientIds?: string[];    // ingredient ids removed — skipped during inventory deduction
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -589,6 +590,7 @@ export default function POSClient() {
       quantity: line.qty,
       modifier: line.modifier || undefined,
       notes: line.note || undefined,
+      excludedIngredientIds: line.excludedIds.length > 0 ? line.excludedIds : undefined,
     }));
 
     const newItems = [...orderItems, ...newLines];
@@ -747,6 +749,7 @@ export default function POSClient() {
       dishId: i.menuItem.id, name: i.menuItem.name,
       price: i.menuItem.price, qty: i.quantity,
       emoji: i.menuItem.emoji, notes: i.notes,
+      excludedIngredientIds: i.excludedIngredientIds,
       modifier: i.modifier,
     }));
 

@@ -162,6 +162,18 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                 ${order.total.toFixed(2)}
               </span>
             </div>
+            {(order as any).marginActual > 0 && (
+              <div className="rounded-lg p-3 mt-2" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                <div className="flex justify-between text-sm" style={{ color: '#6b7280' }}>
+                  <span>Costo de recetas</span>
+                  <span className="font-mono">${((order as any).costActual ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold mt-1" style={{ color: '#16a34a' }}>
+                  <span>Utilidad bruta</span>
+                  <span className="font-mono">${((order as any).marginActual ?? 0).toFixed(2)} ({((order as any).marginPct ?? 0).toFixed(1)}%)</span>
+                </div>
+              </div>
+            )}
             {order.payMethod && (
               <div className="flex items-center gap-2 pt-1">
                 {order.payMethod === 'efectivo' ? (

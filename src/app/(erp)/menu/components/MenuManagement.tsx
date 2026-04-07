@@ -39,6 +39,7 @@ export interface RecipeItem {
   id?: string;
   ingredientId: string;
   ingredientName: string;
+  isRequired: boolean;
   quantity: number;
   unit: string;
   notes: string;
@@ -154,6 +155,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
         id: r.id,
         ingredientId: r.ingredient_id,
         ingredientName: r.ingredients?.name ?? '',
+        isRequired: Boolean(r.is_required),
         quantity: Number(r.quantity),
         unit: r.unit || r.ingredients?.unit || '',
         notes: r.notes ?? '',
@@ -286,7 +288,19 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     setRecipe((prev) => prev.map((r) => r.id === recipeId ? { ...r, quantity: qty } : r));
   };
 
-  const handleRemove = async (recipeId: string) => {
+  const handleToggleRequired = async (recipeId: string, current: boolean) => {
+    const { error } = await supabase.from('dish_recipes')
+      .update({ is_required: !current })
+      .eq('id', recipeId);
+    if (error) { alert('Error al actualizar ingrediente: ' + error.message); return; }
+    setRecipe(prev => prev.map(r => r.id === recipeId ? { ...r, isRequired: !current } : r));
+  };
+
+  const handleRemove = async (recipeId: string, isRequired: boolean) => {
+    if (isRequired) {
+      alert('Este ingrediente es requerido y no se puede eliminar de la receta. Primero desmárcalo como requerido.');
+      return;
+    }
     const { error } = await supabase.from('dish_recipes').delete().eq('id', recipeId);
     if (error) { alert('Error al eliminar ingrediente: ' + error.message); return; }
     setRecipe((prev) => prev.filter((r) => r.id !== recipeId));
@@ -439,10 +453,21 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                         <p className="text-xs font-semibold" style={{ color: '#f59e0b' }}>${itemCost.toFixed(2)}</p>
                         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>${((item as any).costPerUnit ?? 0).toFixed(2)}/{item.unit}</p>
                       </div>
+                      {/* Required toggle */}
                       <button
-                        onClick={() => item.id && handleRemove(item.id)}
+                        onClick={() => item.id && handleToggleRequired(item.id, item.isRequired)}
+                        title={item.isRequired ? 'Ingrediente requerido — toca para desmarcar' : 'Marcar como requerido (no se puede quitar en el pedido)'}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: item.isRequired ? 'rgba(245,158,11,0.15)' : 'transparent', color: item.isRequired ? '#f59e0b' : 'rgba(255,255,255,0.2)', border: item.isRequired ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent' }}
+                      >
+                        <Lock size={11} />
+                      </button>
+                      {/* Remove */}
+                      <button
+                        onClick={() => item.id && handleRemove(item.id, item.isRequired)}
                         className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-500/20 flex-shrink-0"
-                        style={{ color: 'rgba(239,68,68,0.6)' }}
+                        style={{ color: item.isRequired ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.6)' }}
+                        title={item.isRequired ? 'No se puede eliminar un ingrediente requerido' : 'Eliminar ingrediente'}
                       >
                         <Trash2 size={12} />
                       </button>

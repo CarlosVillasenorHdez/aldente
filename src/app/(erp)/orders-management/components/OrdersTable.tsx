@@ -25,6 +25,9 @@ export interface OrderRecord {
   iva: number;
   discount: number;
   total: number;
+  costActual: number;
+  marginActual: number;
+  marginPct: number;
   status: OrderStatus;
   payMethod: PaymentMethod;
   openedAt: string;
