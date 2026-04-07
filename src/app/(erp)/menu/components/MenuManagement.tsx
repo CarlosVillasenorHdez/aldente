@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Pencil, Trash2, X, Upload, ImageOff, ToggleLeft, ToggleRight,
-  ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus,
+  ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus, Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAudit } from '@/hooks/useAudit';
