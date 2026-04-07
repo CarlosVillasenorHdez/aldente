@@ -162,9 +162,9 @@ const T = {
     hero: {
       eyebrow: 'Restaurant software',
       h1a: 'You know exactly',
-      h1b: 'what's happening in your restaurant.',
+      h1b: "what's happening in your restaurant.",
       h1c: 'Right now.',
-      sub: 'Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.',
+      sub: "Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.",
       cta: 'Try it free for 14 days →',
       ctaSecondary: 'See how it works',
       urlLabel: 'Your unique access',
