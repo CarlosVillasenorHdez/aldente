@@ -619,6 +619,7 @@ export default function LandingPage() {
       <nav className="nav">
         <span className="nav-wordmark">Aldente</span>
         <div className="nav-links">
+          <a href="/blog" className="nav-link">Blog</a>
           <a href="#funciones" className="nav-link">{t.nav.features}</a>
           <a href="#como-funciona" className="nav-link">{t.nav.howItWorks}</a>
           <a href="#planes" className="nav-link">{t.nav.pricing}</a>
@@ -919,6 +920,7 @@ export default function LandingPage() {
             <div className="footer-col-title">{t.footer.product}</div>
             <a href="#funciones" className="footer-link">{t.footer.links.features}</a>
             <a href="#planes" className="footer-link">{t.footer.links.pricing}</a>
+            <a href="/blog" className="footer-link">Blog</a>
             <a href="/registro" className="footer-link">{t.footer.links.trial}</a>
             <a href="/login" className="footer-link">{t.footer.links.signin}</a>
           </div>

@@ -21,6 +21,13 @@ import type { DbOrderItem, DbDish } from '@/lib/supabase/types';
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
+export interface ExtraIngredient {
+  ingredientId: string;
+  name: string;
+  quantity: number;   // extra qty added (on top of base recipe)
+  unit: string;
+}
+
 export interface OrderFlowItem {
   lineId: string;            // unique per line — key for all operations
   dishId: string;
@@ -30,7 +37,8 @@ export interface OrderFlowItem {
   emoji: string;
   notes?: string;            // legacy general note
   modifier?: string;         // per-line modifier shown prominently to kitchen
-  excludedIngredientIds?: string[]; // ingredient ids removed by customer (skip deduction)
+  excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
+  extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
 }
 
 export interface OrderFlowTable {
@@ -262,37 +270,68 @@ export function useOrderFlow() {
 
           const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number } | null;
           if (!ingredient) continue;
-          const deductQty = Number(ri.quantity) * item.qty;
+
+          // Base deduction
+          let deductQty = Number(ri.quantity) * item.qty;
+
+          // Extra: customer requested double portion of this ingredient
+          const extra = item.extras?.find(e => e.ingredientId === ri.ingredient_id);
+          if (extra) deductQty += extra.quantity * item.qty;
+
           const currentStock = Number(ingredient.stock);
           stockUpdates.push({
             ingredientId: ri.ingredient_id,
             deductQty, currentStock,
             newStock: Math.max(0, currentStock - deductQty),
-            dishName: item.name, dishQty: item.qty,
+            dishName: item.name + (extra ? ` [extra ${extra.name}]` : ''), dishQty: item.qty,
           });
         }
       }
 
-      if (stockUpdates.length > 0) {
-        await Promise.allSettled([
-          ...stockUpdates.map(u =>
-            supabase.from('ingredients')
-              .update({ stock: u.newStock, updated_at: now })
-              .eq('id', u.ingredientId)
-          ),
-          ...stockUpdates.map(u =>
-            supabase.from('stock_movements').insert({
-              ingredient_id: u.ingredientId,
-              movement_type: 'salida',
-              quantity: u.deductQty,
-              previous_stock: u.currentStock,
-              new_stock: u.newStock,
-              reason: `Venta: ${u.dishName} x${u.dishQty} — Orden ${orderId}`,
-              created_by: 'Sistema',
-            })
-          ),
-        ]);
+      // Calculate actual cost and margin for this order
+      let costActual = 0;
+      for (const u of stockUpdates) {
+        // Get ingredient cost from DB (already fetched above)
+        const recipeResult = recipeResults.find(r =>
+          r.data?.some((ri: Record<string, unknown>) => ri.ingredient_id === u.ingredientId)
+        );
+        if (recipeResult?.data) {
+          const ri = recipeResult.data.find(
+            (r: Record<string, unknown>) => r.ingredient_id === u.ingredientId
+          );
+          const ing = ri ? (ri as Record<string, unknown>)['ingredients'] as { stock: number; cost?: number } | null : null;
+          if (ing?.cost) costActual += u.deductQty * Number(ing.cost);
+        }
       }
+      const marginActual = totalAmount - costActual;
+      const marginPct = totalAmount > 0 ? (marginActual / totalAmount) * 100 : 0;
+
+      await Promise.allSettled([
+        // Save margin to order
+        supabase.from('orders').update({
+          cost_actual: costActual,
+          margin_actual: marginActual,
+          margin_pct: marginPct,
+        }).eq('id', orderId),
+
+        // Deduct stock + log movements
+        ...stockUpdates.map(u =>
+          supabase.from('ingredients')
+            .update({ stock: u.newStock, updated_at: now })
+            .eq('id', u.ingredientId)
+        ),
+        ...stockUpdates.map(u =>
+          supabase.from('stock_movements').insert({
+            ingredient_id: u.ingredientId,
+            movement_type: 'salida',
+            quantity: u.deductQty,
+            previous_stock: u.currentStock,
+            new_stock: u.newStock,
+            reason: `Venta: ${u.dishName} x${u.dishQty} — Orden ${orderId}`,
+            created_by: 'Sistema',
+          })
+        ),
+      ]);
 
       // Free tables
       await supabase.from('restaurant_tables').update({
