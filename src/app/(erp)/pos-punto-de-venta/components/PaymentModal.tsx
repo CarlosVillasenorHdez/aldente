@@ -671,6 +671,9 @@ export default function PaymentModal({
                             <span className="text-lg w-7 text-center flex-shrink-0">{item.emoji || '🍽️'}</span>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
+                              {item.notes && (
+                                <p className="text-xs truncate" style={{ color: '#d97706' }}>↳ {item.notes}</p>
+                              )}
                               <p className="text-xs text-gray-400">
                                 ${item.price.toFixed(2)} c/u ·{' '}
                                 <span style={{ color: remaining === 0 ? '#22c55e' : '#f59e0b' }}>

@@ -408,6 +408,8 @@ export default function POSClient() {
             qty: item.quantity,
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
+            modifier: item.modifier ?? null,
+            notes: item.notes ?? null,
           }))
         );
         if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
@@ -445,15 +447,14 @@ export default function POSClient() {
 
     // Load existing open order if the table already has one
     if (primary.currentOrderId) {
-      // Check if already sent to kitchen
-      supabase.from('orders').select('kitchen_status').eq('id', primary.currentOrderId).single()
-        .then(({ data }) => {
-          const sent = data?.kitchen_status != null && data.kitchen_status !== 'en_edicion';
-          setKitchenSent(sent);
-          // Note: snapshot is set AFTER order_items are loaded below, in the loadOrderItems block
-        });
-      const { data: existingItems } = await supabase
-        .from('order_items').select('*').eq('order_id', primary.currentOrderId);
+      // Fetch order status AND items in parallel — no race condition
+      const [{ data: orderMeta }, { data: existingItems }] = await Promise.all([
+        supabase.from('orders').select('kitchen_status').eq('id', primary.currentOrderId).single(),
+        supabase.from('order_items').select('*').eq('order_id', primary.currentOrderId),
+      ]);
+
+      const alreadySent = orderMeta?.kitchen_status != null && orderMeta.kitchen_status !== 'en_edicion';
+      setKitchenSent(alreadySent);
 
       if (existingItems && existingItems.length > 0) {
         const dishIds = [...new Set(existingItems.map((i: any) => i.dish_id).filter(Boolean))];
@@ -469,10 +470,10 @@ export default function POSClient() {
           });
         }
         const restored: OrderItem[] = existingItems.map((i: any) => ({
-          lineId: i.id,   // use DB item id as lineId for snapshot tracking
+          lineId: i.id,
           menuItem: dishMap[i.dish_id] ?? {
             id: i.dish_id ?? i.id, name: i.name, category: '',
-            price: Number(i.price), description: '', available: true, emoji: i.emoji ?? '\u{1F37D}\uFE0F',
+            price: Number(i.price), description: '', available: true, emoji: i.emoji ?? '🍽️',
           },
           quantity: i.qty,
           modifier: i.modifier ?? undefined,
@@ -480,14 +481,10 @@ export default function POSClient() {
           course: i.course ?? 1,
         }));
         setOrderItems(restored);
-        // If order was already sent to kitchen, initialize snapshot so diff works correctly
-        supabase.from('orders').select('kitchen_status').eq('id', primary.currentOrderId).single()
-          .then(({ data: od }) => {
-            if (od?.kitchen_status && od.kitchen_status !== 'en_edicion') {
-              setSentItemsSnapshot(restored.map(r => ({ id: r.lineId, qty: r.quantity })));
-              setKitchenSent(true);
-            }
-          });
+        // Set snapshot SYNCHRONOUSLY with the items — diff will be accurate immediately
+        if (alreadySent) {
+          setSentItemsSnapshot(restored.map(r => ({ id: r.lineId, qty: r.quantity })));
+        }
       } else {
         setOrderItems([]);
       }
@@ -561,19 +558,20 @@ export default function POSClient() {
     // Build list of ONLY the newly added items since last send.
     // Each line is identified by its unique lineId so multiple variations
     // of the same dish (e.g. guacamole sin cebolla vs con chile) are tracked separately.
+    // Only items not yet in the snapshot (by lineId) are new.
+    // Snapshot is initialized when a table with an existing order is opened,
+    // so this diff is always accurate — no race condition.
     const newItems = orderItems
       .flatMap(oi => {
         const prev = sentItemsSnapshot.find(s => s.id === oi.lineId);
         if (!prev) {
-          // Line not in snapshot at all → fully new
-          return [{ name: oi.menuItem.name, qty: oi.quantity, notes: oi.notes, modifier: oi.modifier }];
+          return [{ name: oi.menuItem.name, qty: oi.quantity, notes: oi.notes, modifier: oi.modifier, emoji: oi.menuItem.emoji }];
         }
         const addedQty = oi.quantity - prev.qty;
         if (addedQty > 0) {
-          // Same line but quantity increased
-          return [{ name: oi.menuItem.name, qty: addedQty, notes: oi.notes, modifier: oi.modifier }];
+          return [{ name: oi.menuItem.name, qty: addedQty, notes: oi.notes, modifier: oi.modifier, emoji: oi.menuItem.emoji }];
         }
-        return []; // not new
+        return [];
       });
 
     const ok = await sendToKitchen(
@@ -629,9 +627,26 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    if (kitchenSent) {
+      // Order is in KDS — only update the running total on the order and table.
+      // DO NOT re-sync order_items: the KDS reads those items to render the card,
+      // and overwriting them would add the new items to the in-progress card.
+      // New items will appear in their own comanda card when the mesero sends it.
+      await supabase.from('orders').update({
+        total: newTotal,
+        subtotal: newSubtotal,
+        updated_at: new Date().toISOString(),
+      }).eq('id', orderId);
+      await supabase.from('restaurant_tables').update({
+        item_count: newItems.reduce((s, i) => s + i.quantity, 0),
+        partial_total: newTotal,
+        updated_at: new Date().toISOString(),
+      }).in('id', groupIds);
+    } else {
+      syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    }
 
-  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, supabase]);
 
   const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;
@@ -1018,12 +1033,12 @@ export default function POSClient() {
           iva={iva}
           discount={discountAmount}
           items={orderItems.map(oi => ({
-            id: oi.menuItem.id,
+            id: oi.lineId,              // unique per line — enables per-item split for same dish
             name: oi.menuItem.name,
             emoji: oi.menuItem.emoji,
             price: oi.menuItem.price,
-            quantity: oi.quantity,
-            notes: oi.notes,
+            quantity: 1,               // each line = 1 unit for assignment purposes
+            notes: oi.modifier ? `${oi.modifier}${oi.notes ? ' · ' + oi.notes : ''}` : oi.notes,
           }))}
           orderNumber={selectedTable?.currentOrderId ?? undefined}
           mesa={selectedTable?.name}
