@@ -192,6 +192,7 @@ export function useOrderFlow() {
             emoji: item.emoji,
             modifier: item.modifier || null,
             notes: item.notes || null,
+            course: item.course ?? 1,
           }))
         );
         if (insErr) { console.error('[useOrderFlow] sync insert error:', insErr.message); return; }
@@ -241,6 +242,7 @@ export function useOrderFlow() {
             emoji: item.emoji,
             modifier: item.modifier || null,
             notes: item.notes || null,
+            course: item.course ?? 1,
           }))
         );
       }
@@ -397,7 +399,7 @@ export function useOrderFlow() {
   // appends the new items as a kitchen_note with a unique batch ID instead of resetting status.
   // This ensures in-progress orders are never reverted to pendiente.
 
-  const sendToKitchen = useCallback(async (
+    const sendToKitchen = useCallback(async (
     orderId: string,
     newItems?: { name: string; qty: number; notes?: string; modifier?: string }[],
   ): Promise<boolean> => {

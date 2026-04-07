@@ -1,10 +1,6 @@
-import AppLayout from '@/components/AppLayout';
 import POSClient from './components/POSClient';
 
+// POSClient renders its own full layout (Sidebar + Topbar) — no AppLayout wrapper needed
 export default function POSPage() {
-  return (
-    <AppLayout title="Punto de Venta" subtitle="POS — Gestión de mesas y órdenes">
-      <POSClient />
-    </AppLayout>
-  );
+  return <POSClient />;
 }

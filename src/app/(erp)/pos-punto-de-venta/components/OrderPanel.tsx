@@ -343,6 +343,7 @@ export default function OrderPanel({
               </div>
             )}
 
+
             <button
               onClick={onCheckout}
               disabled={orderItems.length === 0}

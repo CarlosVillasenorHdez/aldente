@@ -135,6 +135,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, note } : r));
   }
 
+
   function appendQuickNote(idx: number, note: string) {
     setRows(prev => prev.map((r, i) => {
       if (i !== idx) return r;
@@ -267,6 +268,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
                   {/* Expanded */}
                   {expandedRow === idx && (
                     <div style={{padding:'12px 14px 14px', borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+
                       {recipe.length > 0 && (
                         <div style={{marginBottom:'14px'}}>
                           <div style={{fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.35)', textTransform:'uppercase' as const, letterSpacing:'0.07em', marginBottom:'10px'}}>
