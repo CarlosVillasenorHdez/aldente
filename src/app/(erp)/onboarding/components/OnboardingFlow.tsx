@@ -346,32 +346,68 @@ export default function OnboardingFlow() {
           </div>
         )}
 
-        {/* Step 5: Done */}
+        {/* Step 5: Done — designed for activation, not celebration */}
         {currentStep === 5 && (
-          <div className="text-center space-y-6 py-4">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#10b98120' }}>
-              <CheckCircle size={40} className="text-green-500" />
+          <div className="py-2">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <CheckCircle size={32} style={{ color: '#f59e0b' }} />
+              </div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: '#f1f5f9' }}>
+                {restaurantName || 'Tu restaurante'} está listo
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', lineHeight: 1.6 }}>
+                Ahora mismo puedes hacer cualquiera de estas 3 cosas.<br/>
+                <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Te recomendamos empezar por la primera.</strong>
+              </p>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">¡{restaurantName || 'Tu restaurante'} está listo! 🎉</h2>
-              <p className="text-gray-500">Tu configuración inicial está completa. Ahora puedes empezar a usar el sistema.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {[
-                { label: 'Ir al Dashboard', href: '/dashboard', color: '#1B3A6B' },
-                { label: 'Abrir POS', href: '/pos-punto-de-venta', color: '#f59e0b' },
-                { label: 'Ver Menú', href: '/menu', color: '#10b981' },
-                { label: 'Ver Mesas', href: '/configuracion', color: '#8b5cf6' },
-              ].map(link => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="py-3 px-4 rounded-xl font-medium text-white text-center transition-all hover:opacity-90"
-                  style={{ backgroundColor: link.color }}
-                >
-                  {link.label}
+
+            <div className="flex flex-col gap-3">
+              {/* Primary action */}
+              <a href="/pos-punto-de-venta"
+                className="block rounded-2xl p-5 transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#1B3A6B' }}>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(27,58,107,0.2)' }}>
+                    <span style={{ fontSize: '20px' }}>🗺</span>
+                  </div>
+                  <div>
+                    <div className="font-bold text-base mb-1">Haz tu primera orden de prueba</div>
+                    <div style={{ fontSize: '13px', opacity: 0.75, lineHeight: 1.5 }}>
+                      Selecciona una mesa, agrega un platillo y mándalo a cocina. Son 60 segundos y es el momento en que el sistema cobra vida.
+                    </div>
+                  </div>
+                </div>
+              </a>
+
+              {/* Secondary actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <a href="/r/" onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(window.location.origin + '/login'); import('sonner').then(m => m.toast.success('Link copiado — compártelo con tu equipo')); }}
+                  className="block rounded-xl p-4 transition-all hover:opacity-90 cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ fontSize: '20px', marginBottom: '8px' }}>📱</div>
+                  <div className="font-semibold text-sm mb-1" style={{ color: '#f1f5f9' }}>Invitar a tu equipo</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                    Copia el link y compártelo con tu cajero o mesero
+                  </div>
                 </a>
-              ))}
+
+                <a href="/cocina"
+                  className="block rounded-xl p-4 transition-all hover:opacity-90"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ fontSize: '20px', marginBottom: '8px' }}>👨‍🍳</div>
+                  <div className="font-semibold text-sm mb-1" style={{ color: '#f1f5f9' }}>Ver la pantalla de cocina</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                    Así ve tu cocinero las órdenes en tiempo real
+                  </div>
+                </a>
+              </div>
+
+              <a href="/dashboard"
+                className="text-center py-3 text-sm transition-all"
+                style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Ir al dashboard primero →
+              </a>
             </div>
           </div>
         )}

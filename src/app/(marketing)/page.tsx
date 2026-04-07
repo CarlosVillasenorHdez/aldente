@@ -16,15 +16,25 @@ const T = {
     },
     hero: {
       eyebrow: 'Software para restaurantes',
-      h1a: 'Opera mejor.',
-      h1b: 'Vende más.',
-      h1c: 'Preocúpate menos.',
-      sub: 'POS con mapa de mesas, cocina digital, mesero móvil e inventario real. Todo integrado, desde $800 al mes.',
-      cta: 'Registrar mi restaurante →',
-      ctaSecondary: 'Ver funciones',
+      h1a: 'Sabes exactamente',
+      h1b: 'qué pasa en tu restaurante.',
+      h1c: 'En este momento.',
+      sub: 'Sin llamar a tu cajero. Sin esperar el corte de mañana. Sin adivinar si te quedaste sin un ingrediente clave.',
+      cta: 'Pruébalo gratis 14 días →',
+      ctaSecondary: 'Ver cómo funciona',
       urlLabel: 'Tu acceso único',
     },
     marquee: ['Punto de venta', 'Cocina digital KDS', 'Mesero móvil', 'Inventario inteligente', 'Reportes P&L', 'Programa de lealtad', 'Reservaciones', 'Multi-sucursal', 'Control de gastos', 'Delivery integrado', 'Roles y permisos', 'Alertas en tiempo real'],
+    why: {
+      eyebrow: 'Por qué Aldente',
+      h2: 'Diseñado desde adentro de una cocina.',
+      body: 'La mayoría del software para restaurantes fue construido por ingenieros que nunca esperaron una comanda. Aldente nació observando qué pasa cuando una mesa lleva 40 minutos esperando y el cocinero no sabe que el mesero ya cobró. Cada decisión de diseño tiene una historia detrás.',
+      items: [
+        { title: 'Visibilidad total, no más cajas negras', body: 'Ves el estado de cada mesa, cada orden y cada ingrediente en tiempo real. No al final del día — ahora mismo.' },
+        { title: 'Tu equipo adopta el sistema en horas', body: 'El mesero entra desde su celular con un PIN. El cocinero ve su pantalla. No hay curvas de aprendizaje de semanas.' },
+        { title: 'Los números que importan, no los que se ven bien', body: 'P&L real, costo de receta en 3 capas, utilidad por orden. No Excel exports — decisiones directas desde el sistema.' },
+      ],
+    },
     features: {
       eyebrow: 'Módulos',
       h2a: 'Todo lo que necesita',
@@ -151,12 +161,12 @@ const T = {
     },
     hero: {
       eyebrow: 'Restaurant software',
-      h1a: 'Run better.',
-      h1b: 'Sell more.',
-      h1c: 'Worry less.',
-      sub: 'Table map POS, kitchen display, mobile waiter and real inventory. All integrated, from $800/month.',
-      cta: 'Register my restaurant →',
-      ctaSecondary: 'See features',
+      h1a: 'You know exactly',
+      h1b: 'what's happening in your restaurant.',
+      h1c: 'Right now.',
+      sub: 'Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.',
+      cta: 'Try it free for 14 days →',
+      ctaSecondary: 'See how it works',
       urlLabel: 'Your unique access',
     },
     marquee: ['Point of sale', 'Kitchen display KDS', 'Mobile waiter', 'Smart inventory', 'P&L reports', 'Loyalty program', 'Reservations', 'Multi-location', 'Expense control', 'Integrated delivery', 'Roles & permissions', 'Real-time alerts'],
@@ -671,6 +681,25 @@ export default function LandingPage() {
           )}
         </div>
       </div>
+
+      {/* WHY ALDENTE */}
+      <section className="why-section">
+        <div className="why-grid">
+          <div>
+            <div className="eyebrow">{t.why.eyebrow}</div>
+            <h2 className="display-h2" style={{marginTop:'16px'}}>{t.why.h2}</h2>
+            <p className="why-body">{t.why.body}</p>
+          </div>
+          <div className="why-items">
+            {t.why.items.map((item,i) => (
+              <div key={i} className="why-item">
+                <h3 className="why-item-title">{item.title}</h3>
+                <p className="why-item-body">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* FEATURES */}
       <section className="section" id="funciones">
