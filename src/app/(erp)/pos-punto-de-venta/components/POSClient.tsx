@@ -408,6 +408,8 @@ export default function POSClient() {
             qty: item.quantity,
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
+            modifier: item.modifier ?? null,
+            notes: item.notes ?? null,
           }))
         );
         if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
@@ -625,9 +627,26 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    if (kitchenSent) {
+      // Order is in KDS — only update the running total on the order and table.
+      // DO NOT re-sync order_items: the KDS reads those items to render the card,
+      // and overwriting them would add the new items to the in-progress card.
+      // New items will appear in their own comanda card when the mesero sends it.
+      await supabase.from('orders').update({
+        total: newTotal,
+        subtotal: newSubtotal,
+        updated_at: new Date().toISOString(),
+      }).eq('id', orderId);
+      await supabase.from('restaurant_tables').update({
+        item_count: newItems.reduce((s, i) => s + i.quantity, 0),
+        partial_total: newTotal,
+        updated_at: new Date().toISOString(),
+      }).in('id', groupIds);
+    } else {
+      syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    }
 
-  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable]);
+  }, [modifierPending, selectedTable, orderItems, discount, tables, ensureOpenOrder, syncOrderToTable, kitchenSent, supabase]);
 
   const handleUpdateQty = useCallback(async (lineId: string, delta: number) => {
     if (!selectedTable) return;
@@ -1015,12 +1034,12 @@ export default function POSClient() {
           iva={iva}
           discount={discountAmount}
           items={orderItems.map(oi => ({
-            id: oi.menuItem.id,
+            id: oi.lineId,              // unique per line — enables per-item split for same dish
             name: oi.menuItem.name,
             emoji: oi.menuItem.emoji,
             price: oi.menuItem.price,
-            quantity: oi.quantity,
-            notes: oi.notes,
+            quantity: 1,               // each line = 1 unit for assignment purposes
+            notes: oi.modifier ? `${oi.modifier}${oi.notes ? ' · ' + oi.notes : ''}` : oi.notes,
           }))}
           orderNumber={selectedTable?.currentOrderId ?? undefined}
           mesa={selectedTable?.name}
