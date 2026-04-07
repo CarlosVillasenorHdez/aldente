@@ -450,10 +450,7 @@ export default function POSClient() {
         .then(({ data }) => {
           const sent = data?.kitchen_status != null && data.kitchen_status !== 'en_edicion';
           setKitchenSent(sent);
-          if (sent) {
-            // Snapshot current items as "already sent"
-            setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
-          }
+          // Note: snapshot is set AFTER order_items are loaded below, in the loadOrderItems block
         });
       const { data: existingItems } = await supabase
         .from('order_items').select('*').eq('order_id', primary.currentOrderId);
@@ -472,14 +469,25 @@ export default function POSClient() {
           });
         }
         const restored: OrderItem[] = existingItems.map((i: any) => ({
-          lineId: i.line_id ?? `${i.dish_id ?? i.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+          lineId: i.id,   // use DB item id as lineId for snapshot tracking
           menuItem: dishMap[i.dish_id] ?? {
             id: i.dish_id ?? i.id, name: i.name, category: '',
             price: Number(i.price), description: '', available: true, emoji: i.emoji ?? '\u{1F37D}\uFE0F',
           },
           quantity: i.qty,
+          modifier: i.modifier ?? undefined,
+          notes: i.notes ?? undefined,
+          course: i.course ?? 1,
         }));
         setOrderItems(restored);
+        // If order was already sent to kitchen, initialize snapshot so diff works correctly
+        supabase.from('orders').select('kitchen_status').eq('id', primary.currentOrderId).single()
+          .then(({ data: od }) => {
+            if (od?.kitchen_status && od.kitchen_status !== 'en_edicion') {
+              setSentItemsSnapshot(restored.map(r => ({ id: r.lineId, qty: r.quantity })));
+              setKitchenSent(true);
+            }
+          });
       } else {
         setOrderItems([]);
       }
@@ -550,18 +558,22 @@ export default function POSClient() {
     }
     setSendingToKitchen(true);
 
-    // Build list of NEW items (not in the last sent snapshot)
-    // Compare by lineId — each modifier variation is a separate line
+    // Build list of ONLY the newly added items since last send.
+    // Each line is identified by its unique lineId so multiple variations
+    // of the same dish (e.g. guacamole sin cebolla vs con chile) are tracked separately.
     const newItems = orderItems
-      .filter(oi => {
+      .flatMap(oi => {
         const prev = sentItemsSnapshot.find(s => s.id === oi.lineId);
-        const prevQty = prev?.qty ?? 0;
-        return oi.quantity > prevQty;
-      })
-      .map(oi => {
-        const prev = sentItemsSnapshot.find(s => s.id === oi.menuItem.id);
-        const newQty = oi.quantity - (prev?.qty ?? 0);
-        return { name: oi.menuItem.name, qty: newQty, notes: oi.notes };
+        if (!prev) {
+          // Line not in snapshot at all → fully new
+          return [{ name: oi.menuItem.name, qty: oi.quantity, notes: oi.notes, modifier: oi.modifier }];
+        }
+        const addedQty = oi.quantity - prev.qty;
+        if (addedQty > 0) {
+          // Same line but quantity increased
+          return [{ name: oi.menuItem.name, qty: addedQty, notes: oi.notes, modifier: oi.modifier }];
+        }
+        return []; // not new
       });
 
     const ok = await sendToKitchen(
@@ -569,9 +581,10 @@ export default function POSClient() {
       newItems.length > 0 ? newItems : undefined,
       {
         mesa: selectedTable.name,
+        mesaNum: selectedTable.number,
         mesero: appUser?.fullName ?? 'Mesero',
         tenantId: appUser?.tenantId ?? '',
-        branchId: appUser?.branchId ?? null,
+        branch: appUser?.branchId ?? null,
       }
     );
     if (ok) {
