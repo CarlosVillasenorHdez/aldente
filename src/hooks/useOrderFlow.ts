@@ -542,5 +542,65 @@ export function useOrderFlow() {
     return true;
   }, [supabase]);
 
-  return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, cancelSingleOrder, loadOrderItems, sendToKitchen };
+  // ── Cancel a specific item from an order ────────────────────────────────────
+  // Searches active comandas of the given order for an item matching the dish.
+  // If found and the comanda is the only item, cancels the whole comanda.
+  // If the comanda has multiple items, removes just that item.
+  // Returns: { hasCost, found } — hasCost for merma feedback
+  const cancelItemFromKDS = useCallback(async (
+    parentOrderId: string,
+    dishId: string,
+    dishName: string,
+  ): Promise<{ hasCost: boolean; found: boolean }> => {
+    const now = new Date().toISOString();
+
+    // Find active comandas for this order that contain this dish
+    const { data: comandas } = await supabase.from('orders')
+      .select('id, kitchen_status, order_items(id, dish_id, name, qty)')
+      .eq('parent_order_id', parentOrderId)
+      .eq('is_comanda', true)
+      .neq('status', 'cancelada')
+      .order('created_at', { ascending: false }); // most recent first
+
+    if (!comandas || comandas.length === 0) return { hasCost: false, found: false };
+
+    // Find the most recent comanda that has this dish
+    let targetComanda: typeof comandas[0] | null = null;
+    let targetItem: Record<string, unknown> | null = null;
+
+    for (const c of comandas) {
+      const items = (c.order_items || []) as Record<string, unknown>[];
+      const found = items.find(i =>
+        i.dish_id === dishId || String(i.name) === dishName
+      );
+      if (found) { targetComanda = c; targetItem = found; break; }
+    }
+
+    if (!targetComanda || !targetItem) return { hasCost: false, found: false };
+
+    const hasCost = targetComanda.kitchen_status === 'preparacion' ||
+                    targetComanda.kitchen_status === 'lista';
+
+    const items = (targetComanda.order_items || []) as Record<string, unknown>[];
+
+    if (items.length <= 1) {
+      // Only item in this comanda — cancel the whole comanda
+      await supabase.from('orders').update({
+        status: 'cancelada',
+        kitchen_status: 'en_edicion',
+        cancel_type: hasCost ? 'con_costo' : 'sin_costo',
+        cancel_reason: `Platillo cancelado desde POS: ${dishName}`,
+        updated_at: now,
+      }).eq('id', targetComanda.id);
+    } else {
+      // Multiple items — just remove this item from the comanda
+      await supabase.from('order_items')
+        .delete()
+        .eq('id', String(targetItem.id));
+    }
+
+    return { hasCost, found: true };
+  }, [supabase]);
+
+    return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, cancelSingleOrder, cancelItemFromKDS, loadOrderItems, sendToKitchen };
 }
