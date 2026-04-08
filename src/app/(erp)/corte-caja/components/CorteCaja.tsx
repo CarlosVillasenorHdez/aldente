@@ -40,7 +40,7 @@ interface OrderSummary {
   por_mesero: { nombre: string; total: number; ordenes: number }[];
   por_hora: { hora: string; total: number }[];
   merma_total: number;
-  ordenes_canceladas: { id: string; mesa: string; mesero: string; subtotal: number; notes: string | null }[];
+  ordenes_canceladas: { id: string; mesa: string; mesero: string; subtotal: number; cancel_reason: string | null }[];
 }
 
 // Denominations vary by currency — configured per tenant
@@ -217,7 +217,7 @@ export default function CorteCaja() {
       merma_total: (mermaOrders || []).reduce((s, o) => s + Number(o.subtotal), 0),
       ordenes_canceladas: (mermaOrders || []).map(o => ({
         id: o.id, mesa: o.mesa, mesero: o.mesero,
-        subtotal: Number(o.subtotal), notes: o.notes,
+        subtotal: Number(o.subtotal), cancel_reason: o.cancel_reason,
       })),
     });
     setSummaryLoading(false);
@@ -485,7 +485,7 @@ export default function CorteCaja() {
                       <div>
                         <span className="font-semibold text-gray-700">{o.mesa}</span>
                         <span className="text-gray-400 ml-2">· {o.mesero}</span>
-                        {o.notes && <span className="text-gray-400 ml-2 italic">{o.notes.slice(0, 40)}</span>}
+                        {o.cancel_reason && <span className="text-gray-400 ml-2 italic">{o.cancel_reason.slice(0, 40)}</span>}
                       </div>
                       <span className="font-mono text-red-600 font-semibold">${fmt(o.subtotal)}</span>
                     </div>
