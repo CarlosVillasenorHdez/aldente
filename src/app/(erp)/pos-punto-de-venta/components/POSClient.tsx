@@ -91,6 +91,8 @@ export default function POSClient() {
   const [modifierPending, setModifierPending] = useState<typeof menuItems[0] | null>(null);
   const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string} | null>(null);
   const [cancelItemResult, setCancelItemResult] = useState<{name:string; hasCost:boolean} | null>(null);
+  // lineIds of items that are in a lista/entregada comanda — cannot be cancelled
+  const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
   const { branch: activeBranch } = useBranch();
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -585,12 +587,17 @@ export default function POSClient() {
       syncTimerRef.current = null;
     }
 
-    // Flush ALL current items to DB immediately before creating the comanda.
-    // This ensures billing is complete and the order reload works correctly.
+    // Flush ALL current items to DB. Use stable lineIds as order_item IDs
+    // so the snapshot stays in sync after reload.
     if (selectedTable.currentOrderId && orderItems.length > 0) {
       const { error: delErr } = await supabase.from('order_items')
         .delete().eq('order_id', selectedTable.currentOrderId);
       if (!delErr) {
+        // We don't need to re-read IDs because the snapshot was already
+        // built from lineIds — and after this flush the DB rows have
+        // auto-generated UUIDs that differ from lineIds.
+        // Solution: keep current snapshot as-is (lineIds), and after
+        // the comanda is sent, update snapshot to current orderItems lineIds.
         await supabase.from('order_items').insert(
           orderItems.map((item) => ({
             order_id: selectedTable.currentOrderId,
@@ -619,8 +626,65 @@ export default function POSClient() {
     );
     if (ok) {
       setKitchenSent(true);
-      // Update snapshot to current items
-      setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
+      // Re-read DB items to sync lineIds with actual DB UUIDs.
+      // This prevents the "duplicate on second send" bug where
+      // lineIds in state differ from DB ids after flush.
+      const { data: freshItems } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', selectedTable.currentOrderId);
+
+      if (freshItems && freshItems.length > 0) {
+        // Re-hydrate orderItems with DB IDs as lineIds
+        const dishIds = [...new Set(freshItems.map((i: any) => i.dish_id).filter(Boolean))];
+        let dishMap: Record<string, MenuItem> = {};
+        if (dishIds.length > 0) {
+          const { data: dishes } = await supabase.from('dishes').select('*').in('id', dishIds);
+          (dishes || []).forEach((d: any) => {
+            dishMap[d.id] = { id: d.id, name: d.name, category: d.category,
+              price: Number(d.price), description: d.description,
+              available: d.available, emoji: d.emoji, popular: d.popular };
+          });
+        }
+        const synced: OrderItem[] = freshItems.map((i: any) => ({
+          lineId: i.id,  // DB UUID — stable across reloads
+          menuItem: dishMap[i.dish_id] ?? {
+            id: i.dish_id ?? i.id, name: i.name, category: '',
+            price: Number(i.price), description: '', available: true, emoji: i.emoji ?? '🍽️',
+          },
+          quantity: i.qty,
+          modifier: i.modifier ?? undefined,
+          notes: i.notes ?? undefined,
+          course: i.course ?? 1,
+        }));
+        setOrderItems(synced);
+        setSentItemsSnapshot(synced.map(r => ({ id: r.lineId, qty: r.quantity })));
+
+        // Check comandas to find which items are in lista/entregada
+        if (selectedTable.currentOrderId) {
+          supabase.from('orders')
+            .select('id, kitchen_status, order_items(id, dish_id)')
+            .eq('parent_order_id', selectedTable.currentOrderId)
+            .eq('is_comanda', true)
+            .neq('status', 'cancelada')
+            .then(({ data: cs }) => {
+              const delivered = new Set<string>();
+              (cs || []).forEach((c: any) => {
+                if (c.kitchen_status === 'lista' || c.kitchen_status === 'entregada') {
+                  (c.order_items || []).forEach((ci: any) => {
+                    // Match comanda item to billing item by dish_id
+                    synced.filter(s => s.menuItem.id === ci.dish_id)
+                      .forEach(s => delivered.add(s.lineId));
+                  });
+                }
+              });
+              setDeliveredLineIds(delivered);
+            });
+        }
+      } else {
+        setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
+      }
+
       if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? selectedTable.name}`);
     }
     setSendingToKitchen(false);
@@ -691,6 +755,12 @@ export default function POSClient() {
     if (!selectedTable) return;
     const item = orderItems.find(o => o.lineId === lineId);
     if (!item) return;
+
+    // If item is in a lista/entregada comanda → cannot cancel
+    if (deliveredLineIds.has(lineId)) {
+      toast.error('Este platillo ya fue entregado — no se puede cancelar');
+      return;
+    }
 
     // If item was already sent to kitchen → show confirmation first
     const wasSent = sentItemsSnapshot.some(s => s.id === lineId);
@@ -1024,6 +1094,7 @@ export default function POSClient() {
             discount={discount}
             onUpdateQty={handleUpdateQty}
             onRemoveItem={handleRemoveItem}
+            deliveredLineIds={deliveredLineIds}
             onDiscountChange={setDiscount}
             onCheckout={() => {
               if (!kitchenSent && orderItems.length > 0) {

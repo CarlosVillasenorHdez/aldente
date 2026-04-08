@@ -188,6 +188,35 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
             )}
           </div>
 
+          {/* Cancelled items / waste */}
+          {order.cancelledComandas && order.cancelledComandas.length > 0 && (
+            <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#fff5f5', border: '1px solid #fca5a5' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>
+                ⚠️ Platillos cancelados ({order.cancelledComandas.length})
+              </p>
+              {order.cancelledComandas.map((c: any) => (
+                <div key={c.id} className="flex items-center justify-between py-1">
+                  <span className="text-xs" style={{ color: '#dc2626' }}>
+                    {c.hasCost ? '🔥 Merma' : '✗'} {c.reason}
+                  </span>
+                  {c.hasCost && c.wasteCost > 0 && (
+                    <span className="text-xs font-mono font-semibold" style={{ color: '#dc2626' }}>
+                      ${c.wasteCost.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {order.cancelledComandas.some((c: any) => c.hasCost) && (
+                <div className="flex justify-between mt-2 pt-2 border-t" style={{ borderColor: '#fca5a5' }}>
+                  <span className="text-xs font-semibold" style={{ color: '#991b1b' }}>Total merma</span>
+                  <span className="text-xs font-mono font-bold" style={{ color: '#dc2626' }}>
+                    ${order.cancelledComandas.filter((c: any) => c.hasCost).reduce((s: number, c: any) => s + c.wasteCost, 0).toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notes / cancellation reason */}
           {order.notes && (
             <div
