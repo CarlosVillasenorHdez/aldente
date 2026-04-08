@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useReportData, DateRange, DishSales, StaffPerformance, PeakPrediction } from '@/hooks/useReportData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Legend } from 'recharts';
-import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight, Tag, Receipt } from 'lucide-react';
+import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight, Tag, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import WasteAnalysisSummary from './WasteAnalysisSummary';
 
@@ -628,7 +628,7 @@ export default function ReportesManagement() {
             { label: 'Ventas', value: `$${kpisToUse.ventas.toLocaleString('es-MX')}`, sub: `${kpisToUse.ordenes} órdenes`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
             { label: 'Ticket prom.', value: `$${kpisToUse.ticket.toFixed(2)}`, sub: 'Por orden', icon: ShoppingCart, color: '#3b82f6', bg: '#eff6ff' },
             { label: 'Utilidad bruta', value: realKpis ? `$${(realKpis.ventas - (realKpis as any).costo || 0).toLocaleString('es-MX')}` : '—', sub: realKpis ? `${realKpis.margenPct.toFixed(1)}% margen` : 'Sin datos', icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4' },
-            { label: '⚠️ Merma', value: realKpis && realKpis.merma > 0 ? `$${realKpis.merma.toFixed(2)}` : '$0.00', sub: realKpis?.merma > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: realKpis?.merma > 0 ? '#dc2626' : '#9ca3af', bg: realKpis?.merma > 0 ? '#fef2f2' : '#f9fafb' },
+            { label: '⚠️ Merma', value: realKpis && realKpis.merma > 0 ? `$${realKpis.merma.toFixed(2)}` : '$0.00', sub: (realKpis?.merma ?? 0) > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: (realKpis?.merma ?? 0) > 0 ? '#dc2626' : '#9ca3af', bg: (realKpis?.merma ?? 0) > 0 ? '#fef2f2' : '#f9fafb' },
             { label: 'Descuentos', value: realKpis ? `$${((realKpis as any).descuentos || 0).toFixed(2)}` : '—', sub: 'Total aplicado', icon: Tag, color: '#8b5cf6', bg: '#f5f3ff' },
             { label: 'IVA generado', value: realKpis ? `$${((realKpis as any).iva || 0).toFixed(2)}` : '—', sub: 'Por pagar', icon: Receipt, color: '#6b7280', bg: '#f9fafb' },
           ].map((kpi) => {
