@@ -134,88 +134,99 @@ export default function OrderPanel({
           </div>
         ) : (
           <div>
-            {orderItems.map((item) => (
-              <div key={item.lineId} className="border-b border-gray-50 last:border-0">
-                <div className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
-                  <span className="text-xl flex-shrink-0 mt-0.5">{item.menuItem.emoji}</span>
+            {(() => {
+              // Group lines by dish name for compact display
+              const groups = orderItems.reduce<Record<string, typeof orderItems>>((acc, item) => {
+                const key = item.menuItem.id;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(item);
+                return acc;
+              }, {});
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-600 text-gray-800 leading-tight" style={{ fontWeight: 600 }}>
-                      {item.menuItem.name}
-                    </p>
-                    {item.modifier && (
-                      <p className="text-xs mt-0.5 font-medium truncate" style={{ color: '#d97706' }}>
-                        ↳ {item.modifier}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                      ${item.menuItem.price.toFixed(2)} c/u
-                    </p>
+              return Object.values(groups).map(group => {
+                const first = group[0];
+                const totalQty = group.reduce((s, i) => s + i.quantity, 0);
+                const totalPrice = group.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+                const hasVariations = group.some(i => i.modifier || i.notes);
+                const groupKey = first.menuItem.id;
+                const isExpanded = expandedNoteId === groupKey || group.length === 1;
 
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => onUpdateQty(item.lineId, -1)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-100 active:scale-95"
-                        style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}
-                      >
-                        <Minus size={10} />
-                      </button>
-                      <span className="font-mono font-700 text-sm w-5 text-center" style={{ fontWeight: 700 }}>
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => onUpdateQty(item.lineId, 1)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-100 active:scale-95"
-                        style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
-                      >
-                        <Plus size={10} />
-                      </button>
-                      <button
-                        onClick={() => setExpandedNoteId(expandedNoteId === item.lineId ? null : item.lineId)}
-                        className="ml-auto w-6 h-6 rounded-lg flex items-center justify-center transition-all"
-                        style={{ backgroundColor: item.notes ? 'rgba(245,158,11,0.15)' : '#f3f4f6', color: item.notes ? '#d97706' : '#9ca3af' }}
-                        title="Nota para cocina"
-                      >
-                        <MessageSquare size={10} />
-                      </button>
-                    </div>
-                    {item.notes && expandedNoteId !== item.lineId && (
-                      <p className="text-xs mt-1 italic truncate" style={{ color: '#d97706' }}>
-                        📝 {item.notes}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="font-mono font-700 text-sm text-gray-900" style={{ fontWeight: 700 }}>
-                      ${(item.menuItem.price * item.quantity).toFixed(2)}
-                    </span>
-                    <button
-                      onClick={() => onRemoveItem(item.lineId)}
-                      className="p-1 rounded hover:bg-red-50 transition-colors"
+                return (
+                  <div key={groupKey} className="border-b border-gray-50 last:border-0">
+                    {/* Group header */}
+                    <div
+                      className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors"
+                      onClick={() => group.length > 1 && setExpandedNoteId(isExpanded ? null : groupKey)}
+                      style={{ cursor: group.length > 1 ? 'pointer' : 'default' }}
                     >
-                      <Trash2 size={12} className="text-gray-300 hover:text-red-400" />
-                    </button>
-                  </div>
-                </div>
+                      <span className="text-xl flex-shrink-0 mt-0.5">{first.menuItem.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-gray-800 leading-tight" style={{ fontWeight: 600 }}>
+                            {first.menuItem.name}
+                          </p>
+                          {group.length > 1 && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+                              ×{totalQty}
+                            </span>
+                          )}
+                          {group.length > 1 && hasVariations && (
+                            <span className="text-xs" style={{ color: '#9ca3af' }}>
+                              {isExpanded ? '▲' : '▼'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                          ${first.menuItem.price.toFixed(2)} c/u
+                        </p>
+                      </div>
+                      <span className="font-mono text-sm text-gray-900" style={{ fontWeight: 700 }}>
+                        ${totalPrice.toFixed(2)}
+                      </span>
+                    </div>
 
-                {expandedNoteId === item.lineId && (
-                  <div className="px-4 pb-3">
-                    <input
-                      type="text"
-                      value={item.notes ?? ''}
-                      onChange={(e) => onUpdateNote(item.lineId, e.target.value)}
-                      placeholder="Sin cebolla, término medio, extra salsa..."
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border outline-none"
-                      style={{ borderColor: '#fde68a', backgroundColor: '#fffbeb', color: '#92400e' }}
-                      autoFocus
-                      onBlur={() => setExpandedNoteId(null)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setExpandedNoteId(null); }}
-                    />
+                    {/* Individual lines — shown when expanded or only 1 item */}
+                    {(isExpanded || group.length === 1) && group.map((item) => (
+                      <div key={item.lineId} className="px-4 pb-2 ml-8">
+                        <div className="flex items-center gap-2 py-1.5 border-t border-dashed" style={{ borderColor: '#f3f4f6' }}>
+                          <div className="flex-1 min-w-0">
+                            {item.modifier && (
+                              <p className="text-xs font-medium" style={{ color: '#d97706' }}>
+                                ↳ {item.modifier}
+                              </p>
+                            )}
+                            {item.notes && !item.modifier && (
+                              <p className="text-xs italic" style={{ color: '#9ca3af' }}>
+                                📝 {item.notes}
+                              </p>
+                            )}
+                            {!item.modifier && !item.notes && (
+                              <p className="text-xs" style={{ color: '#9ca3af' }}>Sin modificaciones</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => onUpdateQty(item.lineId, -1)}
+                              className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+                              <Minus size={9} />
+                            </button>
+                            <span className="font-mono text-xs w-4 text-center" style={{ fontWeight: 700 }}>{item.quantity}</span>
+                            <button onClick={() => onUpdateQty(item.lineId, 1)}
+                              className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+                              <Plus size={9} />
+                            </button>
+                            <button onClick={() => onRemoveItem(item.lineId)}
+                              className="w-5 h-5 rounded flex items-center justify-center ml-1" style={{ color: '#d1d5db' }}>
+                              <Trash2 size={9} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            ))}
+                );
+              });
+            })()}
+
           </div>
         )}
       </div>

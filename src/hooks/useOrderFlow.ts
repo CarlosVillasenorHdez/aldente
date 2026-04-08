@@ -40,6 +40,7 @@ export interface OrderFlowItem {
   course?: number;           // course number for ordering (1 = first course, etc.)
   excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
   extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
+  course?: number;                  // kept for DB compatibility
 }
 
 export interface OrderFlowTable {
@@ -104,7 +105,7 @@ export function useOrderFlow() {
     return (rows as DbOrderItem[]).map(i => {
       const dish = i.dish_id ? dishMap[i.dish_id] : null;
       return {
-        lineId: (i as any).line_id ?? `${i.dish_id ?? i.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        lineId: i.id,
         dishId: i.dish_id ?? i.id,
         name: dish?.name ?? i.name,
         price: dish ? Number(dish.price) : Number(i.price),
@@ -394,15 +395,11 @@ export function useOrderFlow() {
     }
   }, [supabase]);
 
-  // ── Send order to kitchen — FIFO model ─────────────────────────────────────
-  // FIRST SEND: sets kitchen_status → 'pendiente'. Whole order visible in KDS.
-  // COMANDA: creates a NEW independent order (is_comanda=true) that enters KDS
-  // in 'pendiente' at the back of the queue. FIFO guaranteed.
-  // Rules:
-  //   - Only items NOT yet in the snapshot are sent as comanda.
-  //   - If original order is 'entregada' or 'cerrada', the comanda still creates
-  //     a new card because it's genuinely new work — FIFO queue, different card.
-  //   - Never fires automatically — mesero always presses the button.
+  // ── Send order to kitchen — pure FIFO comanda model ────────────────────────
+  // Every send (first or subsequent) creates an is_comanda order in KDS.
+  // The original order is ONLY a billing container — never shown in KDS directly.
+  // This eliminates all item-filtering complexity: each comanda card shows
+  // exactly what was sent in that batch, nothing more.
 
   const sendToKitchen = useCallback(async (
     orderId: string,
@@ -420,28 +417,23 @@ export function useOrderFlow() {
       toast.error('No se pudo leer la orden'); return false;
     }
 
-    const status = orderData.kitchen_status ?? 'en_edicion';
-
-    // ── CASE 1: FIRST SEND — order still in editing ─────────────────────────
-    if (status === 'en_edicion') {
-      const sentAt = new Date().toISOString();
-      const { error } = await supabase.from('orders').update({
-        kitchen_status: 'pendiente',
-        kitchen_sent_at: sentAt,   // marks which items existed at send time
-        updated_at: sentAt,
-      }).eq('id', orderId);
-      if (error) { toast.error('Error al enviar a cocina: ' + error.message); return false; }
-      return true;
-    }
-
-    // ── CASE 2: COMANDA — order already went to kitchen at some point ────────
-    // Always create a new independent card, regardless of current status.
-    // Even if status is 'entregada', the new items are genuinely new work.
-    if (!newItems || newItems.length === 0) return true;
+    const isFirstSend = (orderData.kitchen_status ?? 'en_edicion') === 'en_edicion';
+    const itemsToSend = newItems && newItems.length > 0 ? newItems : null;
+    if (!itemsToSend) return true;
 
     const now = new Date().toISOString();
     const comandaId = `${orderId.slice(-6)}-C${Date.now().toString(36).toUpperCase()}`;
 
+    // Mark the original order so it's hidden from KDS but visible for billing
+    if (isFirstSend) {
+      await supabase.from('orders').update({
+        kitchen_status: 'pendiente',   // not 'en_edicion' anymore
+        kitchen_sent_at: now,
+        updated_at: now,
+      }).eq('id', orderId);
+    }
+
+    // Every send = new comanda card in KDS (FIFO)
     const { error: insertErr } = await supabase.from('orders').insert({
       id: comandaId,
       tenant_id: orderData.tenant_id ?? meta?.tenantId,
@@ -462,7 +454,7 @@ export function useOrderFlow() {
     if (insertErr) { toast.error('Error al enviar comanda: ' + insertErr.message); return false; }
 
     const { error: itemsErr } = await supabase.from('order_items').insert(
-      newItems.map(i => ({
+      (newItems ?? []).map(i => ({
         order_id: comandaId,
         name: i.name,
         qty: i.qty,
