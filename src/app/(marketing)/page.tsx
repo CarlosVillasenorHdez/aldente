@@ -644,7 +644,7 @@ export default function LandingPage() {
       {/* NAV */}
       <nav className="nav">
         <span className="nav-wordmark" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '50px', height: '50px', objectFit: 'contain' }} />
           Aldente
         </span>
         <div className="nav-links">
