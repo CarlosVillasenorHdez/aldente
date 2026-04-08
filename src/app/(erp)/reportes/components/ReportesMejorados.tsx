@@ -38,6 +38,7 @@ export default function ReportesMejorados() {
   const supabase = createClient();
   const [period, setPeriod] = useState<Period>('semana');
   const [loading, setLoading] = useState(true);
+  const [breakeven, setBreakeven] = useState(0);
   const [salesTrend, setSalesTrend] = useState<SalesTrend[]>([]);
   const [waiterStats, setWaiterStats] = useState<WaiterStats[]>([]);
   const [topProducts, setTopProducts] = useState<ProductStats[]>([]);
@@ -84,7 +85,15 @@ export default function ReportesMejorados() {
       const totalOrdenes = orderList.length;
       const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
       const utilidadBruta = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
-      const mermaTotal = orderList.reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+      // Merma comes from cancelled comandas, not from closed orders
+      const { data: mermaRows } = await supabase
+        .from('orders')
+        .select('waste_cost')
+        .eq('status', 'cancelada')
+        .eq('cancel_type', 'con_costo')
+        .gte('updated_at', start)
+        .lte('updated_at', end + 'T23:59:59');
+      const mermaTotal = (mermaRows || []).reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
       const margenPct = totalVentas > 0 ? (utilidadBruta / totalVentas) * 100 : 0;
       setKpis({ totalVentas, totalOrdenes, ticketPromedio, totalClientes: totalOrdenes, utilidadBruta, mermaTotal, margenPct });
 
@@ -104,7 +113,23 @@ export default function ReportesMejorados() {
         trendMap[key].ventas += Number(o.total);
         trendMap[key].ordenes += 1;
       });
-      setSalesTrend(Object.entries(trendMap).map(([label, v]) => ({ label, ...v })));
+      // Breakeven: sum fixed costs for the period
+      const { data: empData } = await supabase.from('employees').select('salary, salary_frequency').eq('status', 'activo');
+      const { data: gastosData } = await supabase.from('gastos_recurrentes').select('monto, frecuencia').eq('activo', true);
+      const monthlyPayroll = (empData || []).reduce((s: number, e: any) => {
+        const sal = Number(e.salary ?? 0);
+        const freq = e.salary_frequency ?? 'mensual';
+        return s + (freq === 'mensual' ? sal : freq === 'quincenal' ? sal*2 : sal*4.33);
+      }, 0);
+      const FREC: Record<string, number> = { diario:1/30, semanal:1/4.33, quincenal:0.5, mensual:1, bimestral:2, trimestral:3, semestral:6, anual:12 };
+      const monthlyGastos = (gastosData || []).reduce((s: number, g: any) => s + Number(g.monto) / (FREC[g.frecuencia] ?? 1), 0);
+      const days = period === 'hoy' ? 1 : period === 'semana' ? 7 : 30;
+      const periodFactor = days / 30;
+      const totalFixedCosts = Math.round((monthlyPayroll + monthlyGastos) * periodFactor);
+      const avgCogsRatio = totalVentas > 0 ? (orderList.reduce((s,o)=>s+Number((o as any).cost_actual??0),0) / totalVentas) : 0.20;
+      const breakevenVal = totalFixedCosts > 0 ? Math.round(totalFixedCosts / Math.max(0.1, 1 - avgCogsRatio)) : 0;
+      setBreakeven(breakevenVal);
+      setSalesTrend(Object.entries(trendMap).map(([label, v]) => ({ label, ...v, meta: Math.round(breakevenVal / (trendMap[label] ? Object.keys(trendMap).length : 1)) })));
 
       // Waiter stats
       const waiterMap: Record<string, { ordenes: number; total: number }> = {};
@@ -217,6 +242,7 @@ export default function ReportesMejorados() {
           <BarChart3 size={18} style={{ color: '#1B3A6B' }} />
           Tendencia de Ventas — {(PERIOD_LABELS as any)[period]}
         </h3>
+        {breakeven > 0 && <p className="text-xs mb-3" style={{color:'#9ca3af'}}>Meta de equilibrio: <strong style={{color:'#6b7280'}}>${breakeven.toLocaleString('es-MX')}</strong> — debes superar esto para ser rentable</p>}
         {salesTrend.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Sin datos para el período seleccionado</div>
         ) : (
@@ -233,6 +259,7 @@ export default function ReportesMejorados() {
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 'Ventas']} />
               <Area type="monotone" dataKey="ventas" stroke="#1B3A6B" fill="url(#salesGrad)" strokeWidth={2} />
+              {breakeven > 0 && <Area type="monotone" dataKey="meta" stroke="#9ca3af" fill="none" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />}
             </AreaChart>
           </ResponsiveContainer>
         )}

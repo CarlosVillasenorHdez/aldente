@@ -133,6 +133,7 @@ export default function AlarmasManagement() {
         .from('orders')
         .select('id, mesa, created_at, status')
         .in('status', ['abierta', 'preparacion', 'lista'])
+        .eq('is_comanda', false)  // billing orders only
         .order('created_at', { ascending: true })
         .limit(20);
 

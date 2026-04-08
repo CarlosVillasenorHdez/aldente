@@ -62,7 +62,8 @@ export default function SucursalesManagement() {
       const { data: orders } = await supabase
         .from('orders')
         .select('branch, total, status')
-        .eq('status', 'cerrada');
+        .eq('status', 'cerrada')
+        .eq('is_comanda', false);
 
       const { data: ingredients } = await supabase
         .from('ingredients')
