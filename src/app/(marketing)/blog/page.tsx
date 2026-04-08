@@ -73,7 +73,7 @@ export default function BlogPage() {
       `}</style>
 
       <nav className="nav">
-        <span className="nav-logo">Aldente</span>
+        <span className="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><img src="/assets/images/logo_aldente.png" alt="" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />Aldente</span>
         <a href="/" className="nav-back">← Inicio</a>
       </nav>
 

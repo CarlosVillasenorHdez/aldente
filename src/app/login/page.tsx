@@ -182,10 +182,12 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-            style={{ backgroundColor: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <ChefHat size={32} style={{ color: '#f59e0b' }} />
-          </div>
+          <img
+            src="/assets/images/logo_aldente.png"
+            alt="Aldente"
+            className="object-contain mb-3"
+            style={{ width: '80px', height: '80px' }}
+          />
           <h1 className="text-2xl font-bold text-white">Aldente</h1>
           <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Sistema de Gestión para Restaurantes

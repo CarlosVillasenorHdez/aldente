@@ -29,20 +29,15 @@ const AppLogo = memo(function AppLogo({
 
   return (
     <div className={containerClassName} onClick={onClick}>
-      {/* Show image if src provided, otherwise show icon */}
-      {src ?
       <AppImage
-        src="/assets/images/WhatsApp_Image_2026-03-20_at_11.44.04_AM-1774033922335.jpeg"
-        alt="Logo"
+        src="/assets/images/logo_aldente.png"
+        alt="Aldente"
         width={size}
         height={size}
-        className="flex-shrink-0"
+        className="flex-shrink-0 object-contain"
         priority={true}
-        unoptimized={src.endsWith('.svg')} /> :
-
-
-      <AppIcon name={iconName} size={size} className="flex-shrink-0" />
-      }
+        unoptimized={false}
+      />
     </div>);
 
 });

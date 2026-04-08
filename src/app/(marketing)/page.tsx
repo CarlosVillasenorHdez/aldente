@@ -641,7 +641,10 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav className="nav">
-        <span className="nav-wordmark">Aldente</span>
+        <span className="nav-wordmark" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+          Aldente
+        </span>
         <div className="nav-links">
           <a href="/blog" className="nav-link">Blog</a>
           <a href="#funciones" className="nav-link">{t.nav.features}</a>
@@ -959,7 +962,10 @@ export default function LandingPage() {
       <footer className="footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-wordmark">Aldente</div>
+            <div className="footer-wordmark" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+              Aldente
+            </div>
             <p className="footer-desc">{t.footer.desc}</p>
           </div>
           <div>
