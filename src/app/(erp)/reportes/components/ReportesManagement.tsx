@@ -183,7 +183,7 @@ export default function ReportesManagement() {
   const [monthlyPayroll, setMonthlyPayroll] = useState<number>(98400);
   const [gastosOpMensual, setGastosOpMensual] = useState<{ concepto: string; monto: number }[]>([]);
   const [depMensualTotal, setDepMensualTotal] = useState<number>(8400);
-  const [cogsLoading, setCogsLoading] = useState(true);
+  // cogsLoading: driven by the hook's loading state — no standalone state needed
 
   const [totalSalesData, setTotalSalesData] = useState<{ periodo: string; ventas: number; meta: number }[]>([]);
 
@@ -192,6 +192,7 @@ export default function ReportesManagement() {
     topDishesData, worstDishesData, hourlyData,
     staffPerformanceData: staffPerformanceData,
     cogsData, peakChartData, basketPairs,
+    loading: cogsLoading,
   } = useReportData(dateRange, customStart, customEnd);
 
   // Real data states
@@ -512,6 +513,21 @@ export default function ReportesManagement() {
     ? ((plUtilidadBruta / plTotalIngresos) * 100).toFixed(1)
     : '0.0';
 
+  // ── Standalone P&L derived values (for KPI cards + chart) ─────────────────
+  const plNomina = monthlyPayroll;
+  const plGastosOpItems = gastosOpMensual.filter(g =>
+    !g.concepto.includes('Financiero') && !g.concepto.includes('Impuestos')
+  );
+  const plGastosFinancieros = gastosOpMensual.find(g => g.concepto.includes('Financiero'))?.monto ?? 0;
+  const plGastosOpToUse = plGastosOpItems.length > 0 ? plGastosOpItems : [];
+  const plTotalOtrosGastos = plGastosOpToUse.reduce((s, g) => s + g.monto, 0);
+  const plTotalGastosOp = plNomina + plTotalOtrosGastos;
+  const plEbitda = (plMermaReal > 0 ? plUtilidadBrutaNeta : plUtilidadBruta) - plTotalGastosOp;
+  const plEbit = plEbitda - depMensualTotal;
+  const plUai = plEbit - plGastosFinancieros;
+  const plIsr = Math.round(Math.max(plUai, 0) * 0.30);
+  const plNetaCalculada = plUai - plIsr;
+
   // Build P&L data with real payroll + real gastos + real depreciaciones
   const plData: PLItem[] = useMemo(() => {
     const nomina = monthlyPayroll;
@@ -558,7 +574,7 @@ export default function ReportesManagement() {
     ];
   }, [monthlyPayroll, gastosOpMensual, depMensualTotal, plTotalIngresos, plUtilidadBruta, plMermaReal, plUtilidadBrutaNeta]);
 
-  const plUtilidadNeta = useMemo(() => plData.find((i) => i.concepto === 'UTILIDAD NETA')?.monto ?? 113386, [plData]);
+  const plUtilidadNeta = plNetaCalculada;
   const plMargenNeto = ((plUtilidadNeta / plTotalIngresos) * 100).toFixed(1);
 
   return (
@@ -1283,10 +1299,11 @@ export default function ReportesManagement() {
           {/* P&L KPI summary */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {[
-              { label: 'Ingresos Totales', value: '$508,200', delta: '+12.4%', up: true, color: '#10b981', bg: '#ecfdf5' },
-              { label: 'Utilidad Bruta', value: `$${plUtilidadBruta.toLocaleString('es-MX')}`, delta: `${plMargenBruto}% margen`, up: true, color: '#3b82f6', bg: '#eff6ff' },
-              { label: 'EBITDA', value: '$174,580', delta: '34.4% margen', up: true, color: '#f59e0b', bg: '#fffbeb' },
-              { label: 'Utilidad Neta', value: `$${plUtilidadNeta.toLocaleString('es-MX')}`, delta: `${plMargenNeto}% margen`, up: true, color: '#10b981', bg: '#ecfdf5' },
+              { label: 'Ingresos Totales', value: `$${plTotalIngresos.toLocaleString('es-MX')}`, delta: `${plTotalIngresos > 0 ? ((plUtilidadBruta/plTotalIngresos)*100).toFixed(1) : 0}% margen bruto`, up: true, color: '#10b981', bg: '#ecfdf5' },
+              { label: 'Utilidad Bruta', value: `$${plUtilidadBruta.toLocaleString('es-MX')}`, delta: `${plMargenBruto}% margen`, up: plUtilidadBruta >= 0, color: '#3b82f6', bg: '#eff6ff' },
+              ...(plMermaReal > 0 ? [{ label: '⚠️ Merma', value: `$${plMermaReal.toLocaleString('es-MX')}`, delta: `${plTotalIngresos > 0 ? ((plMermaReal/plTotalIngresos)*100).toFixed(2) : 0}% de ventas`, up: false, color: '#dc2626', bg: '#fef2f2' }] : []),
+              { label: 'EBITDA', value: `$${plEbitda.toLocaleString('es-MX')}`, delta: plTotalIngresos > 0 ? `${((plEbitda/plTotalIngresos)*100).toFixed(1)}% margen` : '—', up: plEbitda >= 0, color: '#f59e0b', bg: '#fffbeb' },
+              { label: 'Utilidad Neta', value: `$${plNetaCalculada.toLocaleString('es-MX')}`, delta: `${plMargenNeto}% margen`, up: plNetaCalculada >= 0, color: plNetaCalculada >= 0 ? '#10b981' : '#dc2626', bg: plNetaCalculada >= 0 ? '#ecfdf5' : '#fef2f2' },
             ].map(k => (
               <div key={k.label} className="rounded-xl border p-4" style={{ borderColor: '#e5e7eb', backgroundColor: k.bg }}>
                 <p className="text-xs text-gray-500 mb-1">{k.label}</p>
@@ -1304,14 +1321,15 @@ export default function ReportesManagement() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
                 data={[
-                  { concepto: 'Ingresos', valor: 508200, fill: '#10b981' },
-                  { concepto: 'COGS', valor: -162520, fill: '#ef4444' },
-                  { concepto: 'Ut. Bruta', valor: 345680, fill: '#3b82f6' },
-                  { concepto: 'Gastos Op.', valor: -171100, fill: '#f59e0b' },
-                  { concepto: 'EBITDA', valor: 174580, fill: '#8b5cf6' },
-                  { concepto: 'Dep.+Int.', valor: -12600, fill: '#f97316' },
-                  { concepto: 'ISR', valor: -48594, fill: '#ec4899' },
-                  { concepto: 'Ut. Neta', valor: 113386, fill: '#10b981' },
+                  { concepto: 'Ingresos', valor: plTotalIngresos, fill: '#10b981' },
+                  { concepto: 'COGS', valor: -plCogsReal, fill: '#ef4444' },
+                  ...(plMermaReal > 0 ? [{ concepto: 'Merma', valor: -plMermaReal, fill: '#dc2626' }] : []),
+                  { concepto: 'Ut. Bruta', valor: plMermaReal > 0 ? plUtilidadBrutaNeta : plUtilidadBruta, fill: '#3b82f6' },
+                  { concepto: 'Gastos Op.', valor: -plTotalGastosOp, fill: '#f59e0b' },
+                  { concepto: 'EBITDA', valor: plEbitda, fill: '#8b5cf6' },
+                  { concepto: 'Dep.+Int.', valor: -(depMensualTotal + plGastosFinancieros), fill: '#f97316' },
+                  { concepto: 'ISR', valor: -plIsr, fill: '#ec4899' },
+                  { concepto: 'Ut. Neta', valor: plNetaCalculada, fill: plNetaCalculada >= 0 ? '#10b981' : '#dc2626' },
                 ]}
                 margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
               >
@@ -1333,18 +1351,7 @@ export default function ReportesManagement() {
                   }}
                 />
                 <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                  {[
-                    { concepto: 'Ingresos', valor: 508200, fill: '#10b981' },
-                    { concepto: 'COGS', valor: -162520, fill: '#ef4444' },
-                    { concepto: 'Ut. Bruta', valor: 345680, fill: '#3b82f6' },
-                    { concepto: 'Gastos Op.', valor: -171100, fill: '#f59e0b' },
-                    { concepto: 'EBITDA', valor: 174580, fill: '#8b5cf6' },
-                    { concepto: 'Dep.+Int.', valor: -12600, fill: '#f97316' },
-                    { concepto: 'ISR', valor: -48594, fill: '#ec4899' },
-                    { concepto: 'Ut. Neta', valor: 113386, fill: '#10b981' },
-                  ].map((entry, index) => (
-                    <rect key={index} fill={entry.fill} />
-                  ))}
+                  {/* Cell colors driven by sign — positive=good, negative=cost */}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -1409,7 +1416,7 @@ export default function ReportesManagement() {
 
           {/* P&L footer note */}
           <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#ecfdf5', borderLeft: '3px solid #10b981' }}>
-            <strong>✅ Resumen ejecutivo:</strong> El restaurante opera con un margen neto del {plMargenNeto}% — por encima del promedio de la industria (8–12%). La utilidad bruta del {plMargenBruto}% refleja un buen control de costos de ingredientes. Se recomienda revisar los gastos operativos (nómina) que representan el 19.4% de los ingresos.
+            {plTotalIngresos > 0 ? (<><strong>✅ Resumen ejecutivo:</strong> El período muestra ingresos de <strong>${plTotalIngresos.toLocaleString('es-MX')}</strong> con una utilidad bruta del <strong>{plMargenBruto}%</strong>. {plMermaReal > 0 && <>La merma registrada de <strong>${plMermaReal.toLocaleString('es-MX')}</strong> representa el {((plMermaReal/plTotalIngresos)*100).toFixed(2)}% de las ventas — revisar razones de cancelación. </>}EBITDA: <strong>{plTotalIngresos > 0 ? ((plEbitda/plTotalIngresos)*100).toFixed(1) : 0}% margen</strong>. Margen neto: <strong>{plMargenNeto}%</strong>.</>) : 'Sin ventas en el período seleccionado.'}
           </div>
         </div>
 
