@@ -500,11 +500,14 @@ export default function ReportesManagement() {
   // P&L real: usar datos del período seleccionado (realKpis) o fallback
   const plTotalIngresos = realKpis?.ventas ?? 0;
 
-  // COGS real desde cogsData (suma de costoIngredientes * unidades vendidas)
-  const plCogsReal = cogsData.reduce((s, d) => s + d.costoIngredientes * d.unidadesVendidas, 0);
+  // COGS real: usar cost_actual de orders del período (filtrado por fecha y is_comanda=false)
+  // Esto es el costo real de ingredientes calculado al momento del cobro.
+  const plCogsReal = realKpis?.costo ?? 0;
+  const plMermaReal = realKpis?.merma ?? 0;
   const plUtilidadBruta = plTotalIngresos > 0
     ? Math.round(plTotalIngresos - plCogsReal)
     : 0;
+  const plUtilidadBrutaNeta = plUtilidadBruta - plMermaReal;
   const plMargenBruto = plTotalIngresos > 0
     ? ((plUtilidadBruta / plTotalIngresos) * 100).toFixed(1)
     : '0.0';
@@ -523,7 +526,7 @@ export default function ReportesManagement() {
     const gastosOpToUse = gastosOpItems.length > 0 ? gastosOpItems : (plTotalIngresos > 0 ? [] : gastosOpFallback);
     const totalOtrosGastos = gastosOpToUse.reduce((s, g) => s + g.monto, 0);
     const totalGastosOp = nomina + totalOtrosGastos;
-    const ebitda = plUtilidadBruta - totalGastosOp;
+    const ebitda = (plMermaReal > 0 ? plUtilidadBrutaNeta : plUtilidadBruta) - totalGastosOp;
     const ebit = ebitda - depMensualTotal;
     const uai = ebit - gastosFinancieros;
     const isr = Math.round(Math.max(uai, 0) * 0.30);
@@ -534,9 +537,13 @@ export default function ReportesManagement() {
       { concepto: 'Ventas (período)', monto: plTotalIngresos, tipo: 'ingreso', nivel: 1 },
       { concepto: 'TOTAL INGRESOS', monto: plTotalIngresos, tipo: 'total', nivel: 0 },
       { concepto: 'COSTO DE VENTAS (COGS)', monto: 0, tipo: 'subtotal', nivel: 0 },
-      { concepto: 'Costo de Ingredientes (recetas)', monto: plUtilidadBruta > 0 ? Math.round(plTotalIngresos - plUtilidadBruta) : 0, tipo: 'costo', nivel: 1 },
-      { concepto: 'TOTAL COGS', monto: plUtilidadBruta > 0 ? Math.round(plTotalIngresos - plUtilidadBruta) : 0, tipo: 'total', nivel: 0 },
+      { concepto: 'Costo de Ingredientes (recetas)', monto: Math.round(plCogsReal), tipo: 'costo', nivel: 1 },
+      { concepto: 'TOTAL COGS', monto: Math.round(plCogsReal), tipo: 'total', nivel: 0 },
       { concepto: 'UTILIDAD BRUTA', monto: plUtilidadBruta, tipo: 'total', nivel: 0 },
+      ...(plMermaReal > 0 ? [
+        { concepto: 'MERMA (platillos cancelados)', monto: plMermaReal, tipo: 'costo' as const, nivel: 1 },
+        { concepto: 'UTILIDAD BRUTA NETA', monto: plUtilidadBrutaNeta, tipo: 'total' as const, nivel: 0 },
+      ] : []),
       { concepto: 'GASTOS OPERATIVOS', monto: 0, tipo: 'subtotal', nivel: 0 },
       { concepto: 'Nómina y Prestaciones', monto: nomina, tipo: 'gasto', nivel: 1 },
       ...gastosOpToUse.map(g => ({ concepto: g.concepto, monto: g.monto, tipo: 'gasto' as const, nivel: 1 })),
@@ -549,7 +556,7 @@ export default function ReportesManagement() {
       { concepto: 'ISR (30%)', monto: isr, tipo: 'costo', nivel: 1 },
       { concepto: 'UTILIDAD NETA', monto: utilidadNeta, tipo: 'total', nivel: 0 },
     ];
-  }, [monthlyPayroll, gastosOpMensual, depMensualTotal, plTotalIngresos, plUtilidadBruta]);
+  }, [monthlyPayroll, gastosOpMensual, depMensualTotal, plTotalIngresos, plUtilidadBruta, plMermaReal, plUtilidadBrutaNeta]);
 
   const plUtilidadNeta = useMemo(() => plData.find((i) => i.concepto === 'UTILIDAD NETA')?.monto ?? 113386, [plData]);
   const plMargenNeto = ((plUtilidadNeta / plTotalIngresos) * 100).toFixed(1);
@@ -1083,7 +1090,7 @@ export default function ReportesManagement() {
                 {[
                   { label: 'COGS Total', value: `$${totalCogs.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, sub: `${((totalCogs / 508200) * 100).toFixed(1)}% de ingresos`, color: '#ef4444', bg: '#fef2f2' },
                   { label: 'Margen Bruto Prom.', value: `${avgMargin.toFixed(1)}%`, sub: 'Sobre precio de venta', color: '#10b981', bg: '#ecfdf5' },
-                  { label: 'Platillo más rentable', value: bestDish?.nombre ?? '—', sub: `${bestDish?.margenPct ?? 0}% margen bruto`, color: '#f59e0b', bg: '#fffbeb' },
+                  { label: 'Platillo más rentable', value: bestDish?.nombre ?? '—', sub: `${(bestDish?.margenPct ?? 0).toFixed(2)}% margen bruto`, color: '#f59e0b', bg: '#fffbeb' },
                   { label: 'Contribución Total', value: `$${totalContrib.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, sub: `${source.length} platillos`, color: '#3b82f6', bg: '#eff6ff' },
                 ].map(k => (
                   <div key={k.label} className="rounded-xl p-3" style={{ backgroundColor: k.bg }}>
@@ -1157,7 +1164,7 @@ export default function ReportesManagement() {
                       <td className="py-3 px-3 font-mono text-sm text-green-600">${dish.margenBruto.toFixed(2)}</td>
                       <td className="py-3 px-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-600" style={{ fontWeight: 600, color: margenColor, backgroundColor: margenBg }}>
-                          {dish.margenPct}%
+                          {dish.margenPct.toFixed(2)}%
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono text-sm text-gray-700">{dish.unidadesVendidas}</td>

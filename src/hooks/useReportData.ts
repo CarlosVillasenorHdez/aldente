@@ -131,7 +131,8 @@ export function useReportData(
       supabase.from('order_items').select('name, qty, price, created_at')
         .gte('created_at', startDate).lte('created_at', endDate + 'T23:59:59').limit(5000),
       supabase.from('orders').select('total, mesero, closed_at, created_at')
-        .eq('status', 'cerrada').gte('created_at', startDate)
+        .eq('status', 'cerrada').eq('is_comanda', false)
+        .gte('created_at', startDate)
         .lte('created_at', endDate + 'T23:59:59').limit(2000),
     ]);
 
@@ -184,8 +185,16 @@ export function useReportData(
       .from('dish_recipes')
       .select('dish_id, quantity, ingredients(name, cost, unit), dishes(name, price, category)');
 
+    // Use date-filtered order_items for accurate period COGS
+    const { startDate: cogsStart, endDate: cogsEnd } = dateRangeToISO(dateRange, customStart, customEnd);
     const { data: soldItems } = await supabase
-      .from('order_items').select('name, qty').gte('created_at', hace30);
+      .from('order_items')
+      .select('name, qty, order_id, orders!inner(status, is_comanda, closed_at)')
+      .eq('orders.status', 'cerrada')
+      .eq('orders.is_comanda', false)
+      .gte('orders.closed_at', cogsStart)
+      .lte('orders.closed_at', cogsEnd + 'T23:59:59')
+      .limit(5000);
 
     if (recipes) {
       const costMap: Record<string, number> = {};
