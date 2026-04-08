@@ -248,15 +248,17 @@ export function useOrderFlow() {
         );
       }
 
-      // Deduct inventory in parallel
+      // Deduct inventory in parallel — only for items with a valid dish_id
       const recipeResults = await Promise.all(
-        items.map(item =>
-          supabase
-            .from('dish_recipes')
-            .select('ingredient_id, quantity, ingredients(stock, name, unit, cost)')
-            .eq('dish_id', item.dishId)
-            .then(res => ({ item, data: res.data }))
-        )
+        items
+          .filter(item => item.dishId && item.dishId !== item.name) // skip items without proper dish ID
+          .map(item =>
+            supabase
+              .from('dish_recipes')
+              .select('ingredient_id, quantity, ingredients(stock, name, unit, cost)')
+              .eq('dish_id', item.dishId)
+              .then(res => ({ item, data: res.data }))
+          )
       );
 
       type StockUpdate = {

@@ -264,6 +264,7 @@ export default function MeseroMobileView() {
       emoji: dish.emoji,
       modifier: line.modifier || undefined,
       notes: line.note || undefined,
+      excludedIngredientIds: line.excludedIds?.length > 0 ? line.excludedIds : undefined,
     }));
 
     const newItems = [...orderItems, ...newLines];

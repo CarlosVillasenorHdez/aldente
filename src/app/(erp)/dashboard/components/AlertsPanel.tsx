@@ -64,6 +64,7 @@ export default function AlertsPanel() {
       .from('orders')
       .select('id, mesa, created_at, status')
       .in('status', ['abierta', 'preparacion', 'lista'])
+      .eq('is_comanda', false)
       .order('created_at', { ascending: true })
       .limit(5);
 
