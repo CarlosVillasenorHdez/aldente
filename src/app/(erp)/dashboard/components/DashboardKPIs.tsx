@@ -110,14 +110,11 @@ export default function DashboardKPIs() {
   const { features } = useFeatures();
   const supabase = createClient();
   const [kpis, setKpis] = useState({
-    ventasHoy: 0,
-    ventasAyer: 0,
-    ordenesAbiertas: 0,
-    totalMesas: 0,
-    mesasOcupadas: 0,
-    platilloTop: '—',
-    platilloTopQty: 0,
+    ventasHoy: 0, ventasAyer: 0,
+    ordenesAbiertas: 0, totalMesas: 0, mesasOcupadas: 0,
+    platilloTop: '—', platilloTopQty: 0,
     ticketPromedio: 0,
+    utilidadHoy: 0, mermaHoy: 0, margenHoy: 0,
     alertasInventario: [] as string[],
   });
   const [loading, setLoading] = useState(true);
@@ -149,8 +146,8 @@ export default function DashboardKPIs() {
           { data: topItems },
           { data: ingAlerta },
         ] = await Promise.all([
-          supabase.from('orders').select('total').eq('status', 'cerrada').gte('created_at', todayUTC),
-          supabase.from('orders').select('total').eq('status', 'cerrada').gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
+          supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
+          supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').in('status', ['abierta', 'preparacion', 'lista']),
           supabase.from('restaurant_tables').select('status'),
           supabase.from('order_items').select('name, qty').gte('created_at', todayUTC),
@@ -160,6 +157,9 @@ export default function DashboardKPIs() {
         const ventasHoy = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
         const ventasAyer = (cerradasAyer || []).reduce((s, o) => s + Number(o.total), 0);
         const ticketPromedio = cerradasHoy?.length ? ventasHoy / cerradasHoy.length : 0;
+        const utilidadHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+        const mermaHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+        const margenHoy = ventasHoy > 0 ? (utilidadHoy / ventasHoy) * 100 : 0;
         const mesasOcupadas = (mesas || []).filter((m) => m.status === 'ocupada').length;
         const totalMesas = (mesas || []).length;
 
@@ -172,14 +172,13 @@ export default function DashboardKPIs() {
           .map((i) => i.name);
 
         setKpis({
-          ventasHoy,
-          ventasAyer,
+          ventasHoy, ventasAyer,
           ordenesAbiertas: (abiertas || []).length,
-          totalMesas,
-          mesasOcupadas,
+          totalMesas, mesasOcupadas,
           platilloTop: topEntry[0] as string,
           platilloTopQty: topEntry[1] as number,
           ticketPromedio,
+          utilidadHoy, mermaHoy, margenHoy,
           alertasInventario,
         });
       } catch (err) {
@@ -255,6 +254,25 @@ export default function DashboardKPIs() {
         value={`$${Math.round(kpis.ticketPromedio).toLocaleString('es-MX')}`}
         icon={Receipt}
         color="green"
+        loading={loading}
+      />
+
+      <KPICard
+        title="Utilidad del Día"
+        value={kpis.utilidadHoy > 0 ? `$${kpis.utilidadHoy.toFixed(2)}` : '—'}
+        subValue={kpis.margenHoy > 0 ? `${kpis.margenHoy.toFixed(1)}% margen bruto` : 'Sin datos de costo'}
+        icon={TrendingUp}
+        color="green"
+        loading={loading}
+      />
+
+      <KPICard
+        title="Merma del Día"
+        value={kpis.mermaHoy > 0 ? `$${kpis.mermaHoy.toFixed(2)}` : '$0.00'}
+        subValue={kpis.mermaHoy > 0 ? 'Platillos cancelados con costo' : 'Sin mermas registradas ✓'}
+        icon={AlertTriangle}
+        color={kpis.mermaHoy > 0 ? 'red' : 'green'}
+        alert={kpis.mermaHoy > 0}
         loading={loading}
       />
 

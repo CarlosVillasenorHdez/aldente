@@ -505,9 +505,9 @@ export default function CorteCaja() {
                       <div>
                         <span className="font-semibold text-gray-700">{o.mesa}</span>
                         <span className="text-gray-400 ml-2">· {o.mesero}</span>
-                        {o.notes && <span className="text-gray-400 ml-2 italic">{o.notes.slice(0, 40)}</span>}
+                        {o.notes && <span className="text-gray-400 ml-2 italic text-xs">{o.notes.slice(0, 60)}</span>}
                       </div>
-                      <span className="font-mono text-red-600 font-semibold">${fmt(o.subtotal)}</span>
+                      <span className="font-mono text-red-600 font-semibold">${fmt((o as any).wasteCost || o.subtotal)}</span>
                     </div>
                   ))}
                 </div>
