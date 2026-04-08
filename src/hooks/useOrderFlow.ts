@@ -543,6 +543,7 @@ export function useOrderFlow() {
     parentOrderId: string,
     dishId: string,
     dishName: string,
+    reason = 'Platillo cancelado desde POS',
   ): Promise<{ hasCost: boolean; found: boolean }> => {
     const now = new Date().toISOString();
 
@@ -597,7 +598,7 @@ export function useOrderFlow() {
         status: 'cancelada',
         kitchen_status: 'en_edicion',
         cancel_type: hasCost ? 'con_costo' : 'sin_costo',
-        cancel_reason: `Platillo cancelado desde POS: ${dishName}`,
+        cancel_reason: `${reason}: ${dishName}`,
         waste_cost: wasteCost,
         updated_at: now,
       }).eq('id', targetComanda.id);
@@ -615,7 +616,7 @@ export function useOrderFlow() {
         await supabase.from('orders').update({
           waste_cost: Number(existing?.waste_cost ?? 0) + wasteCost,
           cancel_type: 'con_costo',
-          cancel_reason: `${existing?.cancel_reason ? existing.cancel_reason + '; ' : ''}Cancelado: ${dishName}`,
+          cancel_reason: `${existing?.cancel_reason ? existing.cancel_reason + '; ' : ''}${reason}: ${dishName}`,
           updated_at: now,
         }).eq('id', targetComanda.id);
       }

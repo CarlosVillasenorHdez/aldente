@@ -172,6 +172,25 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                   <span>Utilidad bruta</span>
                   <span className="font-mono">${((order as any).marginActual ?? 0).toFixed(2)} ({((order as any).marginPct ?? 0).toFixed(1)}%)</span>
                 </div>
+                {(() => {
+                  const mermaTotal = (order.cancelledComandas || [])
+                    .filter((c: any) => c.hasCost)
+                    .reduce((s: number, c: any) => s + (c.wasteCost || 0), 0);
+                  const utilidadNeta = ((order as any).marginActual ?? 0) - mermaTotal;
+                  if (mermaTotal > 0) return (
+                    <>
+                      <div className="flex justify-between text-xs mt-1" style={{ color: '#dc2626' }}>
+                        <span>Merma</span>
+                        <span className="font-mono">−${mermaTotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold mt-1 pt-1" style={{ borderTop: '1px solid rgba(52,211,153,0.3)', color: utilidadNeta >= 0 ? '#15803d' : '#dc2626' }}>
+                        <span>Utilidad neta</span>
+                        <span className="font-mono">${utilidadNeta.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                  return null;
+                })()}
               </div>
             )}
             {order.payMethod && (

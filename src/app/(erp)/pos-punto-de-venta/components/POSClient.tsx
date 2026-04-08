@@ -89,7 +89,7 @@ export default function POSClient() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [modifierPending, setModifierPending] = useState<typeof menuItems[0] | null>(null);
-  const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string} | null>(null);
+  const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string; reason:string} | null>(null);
   const [cancelItemResult, setCancelItemResult] = useState<{name:string; hasCost:boolean} | null>(null);
   // lineIds of items that are in a lista/entregada comanda — cannot be cancelled
   const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
@@ -792,7 +792,7 @@ export default function POSClient() {
     // If item was already sent to kitchen → show confirmation first
     const wasSent = sentItemsSnapshot.some(s => s.id === lineId);
     if (wasSent && kitchenSent) {
-      setCancelItemPending({ lineId, dishId: item.menuItem.id, name: item.menuItem.name, emoji: item.menuItem.emoji ?? '🍽️' });
+      setCancelItemPending({ lineId, dishId: item.menuItem.id, name: item.menuItem.name, emoji: item.menuItem.emoji ?? '🍽️', reason: '' });
       return;
     }
 
@@ -833,7 +833,7 @@ export default function POSClient() {
     setSentItemsSnapshot(prev => prev.filter(s => s.id !== lineId));
 
     // Cancel from KDS comanda
-    const result = await cancelItemFromKDS(selectedTable.currentOrderId, dishId, name);
+    const result = await cancelItemFromKDS(selectedTable.currentOrderId, dishId, name, cancelItemPending?.reason || 'Cancelado desde POS');
     setCancelItemResult({ name, hasCost: result.hasCost });
   }, [cancelItemPending, selectedTable, orderItems, discount, tables,
       syncOrderToTable, cancelItemFromKDS, setSentItemsSnapshot]);
@@ -1174,26 +1174,51 @@ export default function POSClient() {
       {/* Cancel item confirmation */}
       {cancelItemPending && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
-          <div style={{ background:'#1a1a2e', border:'1px solid rgba(239,68,68,0.35)', borderRadius:'20px', padding:'28px 24px', maxWidth:'360px', width:'100%', textAlign:'center' }}>
-            <div style={{ fontSize:'40px', marginBottom:'12px' }}>🗑️</div>
-            <h3 style={{ color:'#f1f5f9', fontSize:'17px', fontWeight:700, marginBottom:'8px' }}>
-              ¿Cancelar platillo?
-            </h3>
-            <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'14px', marginBottom:'6px' }}>
-              {cancelItemPending.emoji} {cancelItemPending.name}
-            </p>
-            <p style={{ color:'#f87171', fontSize:'13px', marginBottom:'24px', lineHeight:1.5 }}>
-              Este platillo ya fue enviado a cocina. Si está en preparación, se registrará como merma.
-            </p>
+          <div style={{ background:'#1a1a2e', border:'1px solid rgba(239,68,68,0.35)', borderRadius:'20px', padding:'24px', maxWidth:'380px', width:'100%' }}>
+            <div style={{ textAlign:'center', marginBottom:'16px' }}>
+              <div style={{ fontSize:'36px', marginBottom:'8px' }}>🗑️</div>
+              <h3 style={{ color:'#f1f5f9', fontSize:'17px', fontWeight:700, marginBottom:'6px' }}>¿Cancelar platillo?</h3>
+              <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'14px' }}>{cancelItemPending.emoji} {cancelItemPending.name}</p>
+              <p style={{ color:'#f87171', fontSize:'12px', marginTop:'6px', lineHeight:1.5 }}>
+                Si está en preparación, se registrará como merma.
+              </p>
+            </div>
+            {/* Reason selector */}
+            <div style={{ marginBottom:'16px' }}>
+              <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'11px', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>
+                Motivo de cancelación
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                {[
+                  'Solicitud del cliente',
+                  'Cliente encontró problema con el platillo',
+                  'Error al registrar',
+                  'Platillo no disponible',
+                  'Demora excesiva en preparación',
+                  'Otro motivo',
+                ].map(r => (
+                  <button key={r}
+                    onClick={() => setCancelItemPending(prev => prev ? {...prev, reason: r} : null)}
+                    style={{
+                      padding:'8px 12px', borderRadius:'9px', textAlign:'left', border:'none', cursor:'pointer', fontSize:'13px',
+                      background: cancelItemPending.reason === r ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                      color: cancelItemPending.reason === r ? '#f87171' : 'rgba(255,255,255,0.6)',
+                      outline: cancelItemPending.reason === r ? '1.5px solid rgba(239,68,68,0.4)' : 'none',
+                    }}>
+                    {cancelItemPending.reason === r ? '● ' : '○ '}{r}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display:'flex', gap:'10px' }}>
-              <button
-                onClick={() => setCancelItemPending(null)}
+              <button onClick={() => setCancelItemPending(null)}
                 style={{ flex:1, padding:'11px', borderRadius:'11px', border:'1px solid rgba(255,255,255,0.15)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'14px', cursor:'pointer' }}>
                 Mantener
               </button>
               <button
                 onClick={handleConfirmCancelItem}
-                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'none', background:'#dc2626', color:'white', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                disabled={!cancelItemPending.reason}
+                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'none', background: cancelItemPending.reason ? '#dc2626' : 'rgba(239,68,68,0.3)', color:'white', fontSize:'14px', fontWeight:600, cursor: cancelItemPending.reason ? 'pointer' : 'not-allowed' }}>
                 Sí, cancelar
               </button>
             </div>
