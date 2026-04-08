@@ -169,10 +169,9 @@ export default function CorteCaja() {
         .order('closed_at', { ascending: false }),
       supabase
         .from('orders')
-        .select('id, mesa, mesero, subtotal, notes, closed_at')
+        .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at')
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
-        .eq('is_comanda', true)  // include both full order cancels and individual item cancels
         .gte('updated_at', desde)
         .order('updated_at', { ascending: false }),
     ]);
