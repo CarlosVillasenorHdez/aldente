@@ -27,9 +27,10 @@ export default function LiveOperations() {
   const fetchLive = useCallback(async () => {
     const { data } = await supabase
       .from('orders')
-      .select('id, mesa, mesero, kitchen_status, created_at')
-      .in('status', ['abierta', 'preparacion', 'lista'])
-      .neq('kitchen_status', 'en_edicion')
+      .select('id, mesa, mesero, kitchen_status, created_at, parent_order_id')
+      .eq('is_comanda', true)                         // only kitchen comanda cards
+      .in('kitchen_status', ['pendiente', 'preparacion', 'lista'])
+      .neq('status', 'cancelada')
       .order('created_at', { ascending: true });
 
     setOrders((data || []).map((o: any) => ({

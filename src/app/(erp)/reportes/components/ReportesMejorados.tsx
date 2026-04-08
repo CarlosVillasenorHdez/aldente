@@ -43,7 +43,7 @@ export default function ReportesMejorados() {
   const [topProducts, setTopProducts] = useState<ProductStats[]>([]);
   const [bottomProducts, setBottomProducts] = useState<ProductStats[]>([]);
   const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
-  const [kpis, setKpis] = useState({ totalVentas: 0, totalOrdenes: 0, ticketPromedio: 0, totalClientes: 0 });
+  const [kpis, setKpis] = useState({ totalVentas: 0, totalOrdenes: 0, ticketPromedio: 0, totalClientes: 0, utilidadBruta: 0, mermaTotal: 0, margenPct: 0 });
 
   const getDateRange = useCallback((p: Period) => {
     const now = new Date();
@@ -70,7 +70,7 @@ export default function ReportesMejorados() {
       // Load closed orders
       const { data: orders, error } = await supabase
         .from('orders')
-        .select('id, mesero, total, subtotal, created_at, closed_at')
+        .select('id, mesero, total, subtotal, created_at, closed_at, cost_actual, margin_actual, waste_cost')
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('created_at', start)
@@ -83,7 +83,10 @@ export default function ReportesMejorados() {
       const totalVentas = orderList.reduce((s, o) => s + Number(o.total), 0);
       const totalOrdenes = orderList.length;
       const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-      setKpis({ totalVentas, totalOrdenes, ticketPromedio, totalClientes: totalOrdenes });
+      const utilidadBruta = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+      const mermaTotal = orderList.reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+      const margenPct = totalVentas > 0 ? (utilidadBruta / totalVentas) * 100 : 0;
+      setKpis({ totalVentas, totalOrdenes, ticketPromedio, totalClientes: totalOrdenes, utilidadBruta, mermaTotal, margenPct });
 
       // Sales trend
       const trendMap: Record<string, { ventas: number; ordenes: number }> = {};
@@ -192,6 +195,8 @@ export default function ReportesMejorados() {
           { label: 'Ventas Totales', value: `$${kpis.totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#10b981' },
           { label: 'Órdenes', value: kpis.totalOrdenes, icon: ShoppingCart, color: '#1B3A6B' },
           { label: 'Ticket Promedio', value: `$${kpis.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: '#f59e0b' },
+          { label: 'Utilidad Bruta', value: kpis.utilidadBruta > 0 ? `$${kpis.utilidadBruta.toFixed(2)}` : '—', icon: TrendingUp, color: '#16a34a' },
+          { label: '⚠️ Merma', value: kpis.mermaTotal > 0 ? `$${kpis.mermaTotal.toFixed(2)}` : '$0.00', icon: TrendingUp, color: kpis.mermaTotal > 0 ? '#dc2626' : '#9ca3af' },
           { label: 'Alertas Inventario', value: lowStock.length, icon: AlertTriangle, color: lowStock.length > 0 ? '#ef4444' : '#6b7280' },
         ].map(k => (
           <div key={k.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">

@@ -260,7 +260,10 @@ export default function ReportesManagement() {
       setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes, merma: totalMerma, margenPct: Math.round(margenPct * 10) / 10, costo: totalCosto, descuentos: totalDescuentos, iva: totalIva });
 
       // ── Build totalSalesData grouped by period ──
-      const DAILY_META = 15000;
+      // Daily target: use average of last week if available, else default
+      const DAILY_META = realKpis?.ventas > 0 && dateRange === 'hoy'
+        ? Math.max(realKpis.ventas * 1.1, 1000)  // 10% above current as stretch goal
+        : 15000;
       if (dateRange === 'hoy') {
         // Group by hour
         const hourBuckets: Record<string, number> = {};
@@ -1104,7 +1107,7 @@ export default function ReportesManagement() {
             return (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
                 {[
-                  { label: 'COGS Total', value: `$${totalCogs.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, sub: `${((totalCogs / 508200) * 100).toFixed(1)}% de ingresos`, color: '#ef4444', bg: '#fef2f2' },
+                  { label: 'COGS Total', value: `$${totalCogs.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, sub: plTotalIngresos > 0 ? `${((totalCogs / plTotalIngresos) * 100).toFixed(1)}% de ingresos` : '% de ingresos', color: '#ef4444', bg: '#fef2f2' },
                   { label: 'Margen Bruto Prom.', value: `${avgMargin.toFixed(1)}%`, sub: 'Sobre precio de venta', color: '#10b981', bg: '#ecfdf5' },
                   { label: 'Platillo más rentable', value: bestDish?.nombre ?? '—', sub: `${(bestDish?.margenPct ?? 0).toFixed(2)}% margen bruto`, color: '#f59e0b', bg: '#fffbeb' },
                   { label: 'Contribución Total', value: `$${totalContrib.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, sub: `${source.length} platillos`, color: '#3b82f6', bg: '#eff6ff' },
