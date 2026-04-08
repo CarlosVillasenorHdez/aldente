@@ -128,6 +128,7 @@ export default function OrdersTable() {
     let query = supabase
       .from('orders')
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
+      .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
       .order('created_at', { ascending: false });
 
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');

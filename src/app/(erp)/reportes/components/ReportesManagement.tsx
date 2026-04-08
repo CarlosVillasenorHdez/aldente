@@ -86,7 +86,7 @@ const plDataFallback: PLItem[] = [
 
 // ─── KPI Summary Data ─────────────────────────────────────────────────────────
 
-const kpiData = {
+const kpiData: Record<string, { ventas: number; ordenes: number; ticket: number; clientes: number; merma?: number; margenPct?: number }> = {
   hoy: { ventas: 34602, ordenes: 115, ticket: 300.9, clientes: 98 },
   semana: { ventas: 139400, ordenes: 742, ticket: 187.9, clientes: 621 },
   mes: { ventas: 548200, ordenes: 2890, ticket: 189.7, clientes: 2340 },
@@ -196,7 +196,7 @@ export default function ReportesManagement() {
 
   // Real data states
   const [realStaffData, setRealStaffData] = useState<StaffPerformance[]>([]);
-  const [realKpis, setRealKpis] = useState<{ ventas: number; ordenes: number; ticket: number; clientes: number } | null>(null);
+  const [realKpis, setRealKpis] = useState<{ ventas: number; ordenes: number; ticket: number; clientes: number; merma: number; margenPct: number } | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
   const supabase = createClient();
@@ -231,11 +231,12 @@ export default function ReportesManagement() {
     try {
       const { start, end } = getDateBounds();
 
-      // Fetch closed orders in range (capped at 2000 to protect browser)
+      // Fetch closed orders in range — exclude comanda sub-orders (billing only)
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('id, total, mesero, created_at')
+        .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
         .eq('status', 'cerrada')
+        .eq('is_comanda', false)   // only billing orders, not comanda sub-orders
         .gte('created_at', start)
         .lte('created_at', end)
         .limit(2000);
@@ -249,7 +250,10 @@ export default function ReportesManagement() {
       const totalVentas = orderList.reduce((s, o) => s + Number(o.total), 0);
       const totalOrdenes = orderList.length;
       const ticketProm = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-      setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes });
+      const totalMerma = orderList.reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+      const totalMarginActual = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+      const margenPct = totalVentas > 0 ? (totalMarginActual / totalVentas) * 100 : 0;
+      setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes, merma: totalMerma, margenPct: Math.round(margenPct * 10) / 10 });
 
       // ── Build totalSalesData grouped by period ──
       const DAILY_META = 15000;

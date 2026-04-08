@@ -72,6 +72,7 @@ export default function ReportesMejorados() {
         .from('orders')
         .select('id, mesero, total, subtotal, created_at, closed_at')
         .eq('status', 'cerrada')
+        .eq('is_comanda', false)
         .gte('created_at', start)
         .lte('created_at', end);
       if (error) throw error;
