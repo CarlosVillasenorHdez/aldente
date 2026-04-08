@@ -251,7 +251,16 @@ export default function ReportesManagement() {
       const totalVentas = orderList.reduce((s, o) => s + Number(o.total), 0);
       const totalOrdenes = orderList.length;
       const ticketProm = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-      const totalMerma = orderList.reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+      // Merma lives on cancelled comandas (is_comanda=true, status=cancelada, cancel_type=con_costo)
+      // NOT on closed billing orders — must query separately
+      const { data: mermaOrders } = await supabase
+        .from('orders')
+        .select('waste_cost')
+        .eq('status', 'cancelada')
+        .eq('cancel_type', 'con_costo')
+        .gte('updated_at', start)
+        .lte('updated_at', end);
+      const totalMerma = (mermaOrders || []).reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
       const totalMarginActual = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
       const margenPct = totalVentas > 0 ? (totalMarginActual / totalVentas) * 100 : 0;
       const totalCosto = orderList.reduce((s, o) => s + Number((o as any).cost_actual ?? 0), 0);
@@ -260,9 +269,17 @@ export default function ReportesManagement() {
       setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes, merma: totalMerma, margenPct: Math.round(margenPct * 10) / 10, costo: totalCosto, descuentos: totalDescuentos, iva: totalIva });
 
       // ── Build totalSalesData grouped by period ──
-      // Daily target: use average of last week if available, else default
-      const DAILY_META = realKpis?.ventas > 0 && dateRange === 'hoy'
-        ? Math.max(realKpis.ventas * 1.1, 1000)  // 10% above current as stretch goal
+      // Punto de equilibrio: total expenses for the period (OPEX + dep + financiero)
+      // This is the minimum sales needed to break even
+      const totalGastosPeriodo = Math.round(
+        (monthlyPayroll + (gastosOpMensual.reduce((s,g) => s+g.monto, 0)) + depMensualTotal) * periodFactor
+      );
+      // Add COGS margin: if avg COGS is ~20%, breakeven = gastos / (1 - 0.20)
+      const avgCogsMargin = realKpis?.costo && realKpis?.ventas > 0
+        ? realKpis.costo / realKpis.ventas
+        : 0.20;
+      const DAILY_META = totalGastosPeriodo > 0
+        ? Math.round(totalGastosPeriodo / Math.max(0.1, 1 - avgCogsMargin))
         : 15000;
       if (dateRange === 'hoy') {
         // Group by hour
@@ -516,18 +533,35 @@ export default function ReportesManagement() {
     ? ((plUtilidadBruta / plTotalIngresos) * 100).toFixed(1)
     : '0.0';
 
-  // ── Standalone P&L derived values (for KPI cards + chart) ─────────────────
-  const plNomina = monthlyPayroll;
-  const plGastosOpItems = gastosOpMensual.filter(g =>
+  // ── Period scaling factor: convert monthly expenses to the selected period ──
+  // hoy = 1/30 of monthly | semana = 7/30 | mes = 1.0 | personalizado = days/30
+  const periodDays = useMemo(() => {
+    if (dateRange === 'hoy') return 1;
+    if (dateRange === 'semana') return 7;
+    if (dateRange === 'mes') return 30;
+    // personalizado
+    if (customStart && customEnd) {
+      const diff = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / 86400000) + 1;
+      return Math.max(1, diff);
+    }
+    return 30;
+  }, [dateRange, customStart, customEnd]);
+  const periodFactor = periodDays / 30; // 1.0 = full month
+
+  // ── Standalone P&L derived values scaled to period ─────────────────────────
+  const plNomina = Math.round(monthlyPayroll * periodFactor);
+  const gastosOpScaled = gastosOpMensual.map(g => ({ ...g, monto: Math.round(g.monto * periodFactor) }));
+  const plGastosOpItems = gastosOpScaled.filter(g =>
     !g.concepto.includes('Financiero') && !g.concepto.includes('Impuestos')
   );
-  const plGastosFinancieros = gastosOpMensual.find(g => g.concepto.includes('Financiero'))?.monto ?? 0;
+  const plGastosFinancieros = Math.round((gastosOpMensual.find(g => g.concepto.includes('Financiero'))?.monto ?? 0) * periodFactor);
   const plGastosOpToUse = plGastosOpItems.length > 0 ? plGastosOpItems : [];
-  const plTotalOtrosGastos = plGastosOpToUse.reduce((s, g) => s + g.monto, 0);
+  const plTotalOtrosGastos = plGastosOpToUse.reduce((s, g) => s + g.monto, 0); // already scaled
   const plTotalGastosOp = plNomina + plTotalOtrosGastos;
   const plEbitda = (plMermaReal > 0 ? plUtilidadBrutaNeta : plUtilidadBruta) - plTotalGastosOp;
-  const plEbit = plEbitda - depMensualTotal;
-  const plUai = plEbit - plGastosFinancieros;
+  const plDepPeriodo = Math.round(depMensualTotal * periodFactor);
+  const plEbit = plEbitda - plDepPeriodo;
+  const plUai = plEbit - plGastosFinancieros; // financieros already scaled
   const plIsr = Math.round(Math.max(plUai, 0) * 0.30);
   const plNetaCalculada = plUai - plIsr;
 
@@ -564,18 +598,18 @@ export default function ReportesManagement() {
         { concepto: 'UTILIDAD BRUTA NETA', monto: plUtilidadBrutaNeta, tipo: 'total' as const, nivel: 0 },
       ] : []),
       { concepto: 'GASTOS OPERATIVOS', monto: 0, tipo: 'subtotal', nivel: 0 },
-      { concepto: 'Nómina y Prestaciones', monto: nomina, tipo: 'gasto', nivel: 1 },
-      ...gastosOpToUse.map(g => ({ concepto: g.concepto, monto: g.monto, tipo: 'gasto' as const, nivel: 1 })),
+      { concepto: 'Nómina y Prestaciones', monto: Math.round(nomina * periodFactor), tipo: 'gasto', nivel: 1 },
+      ...gastosOpToUse.map(g => ({ concepto: g.concepto, monto: Math.round(g.monto * periodFactor), tipo: 'gasto' as const, nivel: 1 })),
       { concepto: 'TOTAL GASTOS OPERATIVOS', monto: totalGastosOp, tipo: 'total', nivel: 0 },
       { concepto: 'EBITDA', monto: ebitda, tipo: 'total', nivel: 0 },
-      { concepto: 'Depreciación y Amortización', monto: depMensualTotal, tipo: 'gasto', nivel: 1 },
+      { concepto: 'Depreciación y Amortización', monto: Math.round(depMensualTotal * periodFactor), tipo: 'gasto', nivel: 1 },
       { concepto: 'UTILIDAD OPERATIVA (EBIT)', monto: ebit, tipo: 'total', nivel: 0 },
       { concepto: 'Gastos Financieros (Intereses)', monto: gastosFinancieros, tipo: 'gasto', nivel: 1 },
       { concepto: 'UTILIDAD ANTES DE IMPUESTOS', monto: uai, tipo: 'total', nivel: 0 },
       { concepto: 'ISR (30%)', monto: isr, tipo: 'costo', nivel: 1 },
       { concepto: 'UTILIDAD NETA', monto: utilidadNeta, tipo: 'total', nivel: 0 },
     ];
-  }, [monthlyPayroll, gastosOpMensual, depMensualTotal, plTotalIngresos, plUtilidadBruta, plMermaReal, plUtilidadBrutaNeta]);
+  }, [monthlyPayroll, gastosOpMensual, depMensualTotal, plTotalIngresos, plUtilidadBruta, plMermaReal, plUtilidadBrutaNeta, periodFactor]);
 
   const plUtilidadNeta = plNetaCalculada;
   const plMargenNeto = ((plUtilidadNeta / plTotalIngresos) * 100).toFixed(1);
@@ -679,7 +713,15 @@ export default function ReportesManagement() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Ventas Totales</h2>
-              <p className="text-xs text-gray-500">Comparativo vs meta diaria ($15,000)</p>
+              {(() => {
+              const gastosPeriodo = Math.round((monthlyPayroll + gastosOpMensual.reduce((s,g)=>s+g.monto,0) + depMensualTotal) * periodFactor);
+              return (
+                <p className="text-xs text-gray-500">
+                  Meta de equilibrio: <strong style={{color:'#6b7280'}}>${gastosPeriodo.toLocaleString('es-MX')}</strong>
+                  {' '}— necesitas vender más de esto para ser rentable en {dateRange === 'hoy' ? 'el día' : dateRange === 'semana' ? 'la semana' : dateRange === 'mes' ? 'el mes' : 'el período'}
+                </p>
+              );
+            })()}
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: '#f59e0b' }}></span>Ventas</span>
@@ -1330,7 +1372,7 @@ export default function ReportesManagement() {
                   { concepto: 'Ut. Bruta', valor: plMermaReal > 0 ? plUtilidadBrutaNeta : plUtilidadBruta, fill: '#3b82f6' },
                   { concepto: 'Gastos Op.', valor: -plTotalGastosOp, fill: '#f59e0b' },
                   { concepto: 'EBITDA', valor: plEbitda, fill: '#8b5cf6' },
-                  { concepto: 'Dep.+Int.', valor: -(depMensualTotal + plGastosFinancieros), fill: '#f97316' },
+                  { concepto: 'Dep.+Int.', valor: -(plDepPeriodo + plGastosFinancieros), fill: '#f97316' },
                   { concepto: 'ISR', valor: -plIsr, fill: '#ec4899' },
                   { concepto: 'Ut. Neta', valor: plNetaCalculada, fill: plNetaCalculada >= 0 ? '#10b981' : '#dc2626' },
                 ]}
