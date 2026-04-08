@@ -26,7 +26,7 @@ const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas',
 export default function MeseroMobileView() {
   const supabase = createClient();
   const { appUser } = useAuth();
-  const { ensureOpenOrder, syncItems, loadOrderItems, sendToKitchen, closeOrder, cancelOrder } = useOrderFlow();
+  const { ensureOpenOrder, syncItems, loadOrderItems, sendToKitchen, closeOrder, cancelOrder, cancelItemFromKDS } = useOrderFlow();
   const { features } = useFeatures();
 
   const [tables, setTables] = useState<Table[]>([]);
@@ -34,6 +34,11 @@ export default function MeseroMobileView() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderFlowItem[]>([]);
   const [modifierPending, setModifierPending] = useState<DbDish | null>(null);
+  const [kitchenSent, setKitchenSent] = useState(false);
+  const [sentSnapshot, setSentSnapshot] = useState<{dishId:string;qty:number}[]>([]);
+  const [cancelPending, setCancelPending] = useState<{dishId:string;name:string;emoji:string;reason:string;notes:string} | null>(null);
+  const [cancelResult, setCancelResult] = useState<{name:string;hasCost:boolean} | null>(null);
+  const [deliveredDishIds, setDeliveredDishIds] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState('Todos');
   const [search, setSearch] = useState('');
   const [showCart, setShowCart] = useState(false);
@@ -275,8 +280,24 @@ export default function MeseroMobileView() {
   };
 
   const removeItem = async (dishId: string) => {
+    const item = orderItems.find(i => i.dishId === dishId);
+    if (!item) return;
+
+    // Block if delivered
+    if (deliveredDishIds.has(dishId)) {
+      toast.error('Este platillo ya fue entregado — no se puede cancelar');
+      return;
+    }
+
+    // If sent to kitchen → show confirmation modal with reason
+    const wasSent = kitchenSent && sentSnapshot.some(s => s.dishId === dishId);
+    if (wasSent && currentOrderId) {
+      setCancelPending({ dishId, name: item.name, emoji: item.emoji ?? '🍽️', reason: '', notes: '' });
+      return;
+    }
+
+    // Not sent — remove locally
     if (!selectedTable || !currentOrderId) {
-      // No order yet — just update local state
       setOrderItems(prev => {
         const ex = prev.find(i => i.dishId === dishId);
         if (ex && ex.qty > 1) return prev.map(i => i.dishId === dishId ? { ...i, qty: i.qty - 1 } : i);
@@ -291,6 +312,28 @@ export default function MeseroMobileView() {
     }, []);
     setOrderItems(newItems);
     syncToDb(newItems, selectedTable, currentOrderId);
+  };
+
+  const confirmCancelItem = async () => {
+    if (!cancelPending || !currentOrderId) return;
+    const { dishId, name, reason, notes } = cancelPending;
+    setCancelPending(null);
+
+    const fullReason = notes ? `${reason}: ${notes}` : reason;
+
+    // Remove from local state
+    const newItems = orderItems.reduce<OrderFlowItem[]>((acc, i) => {
+      if (i.dishId !== dishId) return [...acc, i];
+      if (i.qty > 1) return [...acc, { ...i, qty: i.qty - 1 }];
+      return acc;
+    }, []);
+    setOrderItems(newItems);
+    syncToDb(newItems, selectedTable!, currentOrderId);
+    setSentSnapshot(prev => prev.filter(s => s.dishId !== dishId));
+
+    // Cancel in KDS
+    const result = await cancelItemFromKDS(currentOrderId, dishId, name, fullReason);
+    setCancelResult({ name, hasCost: result.hasCost });
   };
 
   const updateNote = (dishId: string, note: string) => {
@@ -382,12 +425,9 @@ export default function MeseroMobileView() {
       );
 
       toast.success(`Orden enviada a cocina — ${selectedTable.name}`);
-      setOrderItems([]);
-      setCurrentOrderId(null);
+      setKitchenSent(true);
+      setSentSnapshot(orderItems.map(i => ({ dishId: i.dishId, qty: i.qty })));
       setShowCart(false);
-      setView('tables');
-      setSelectedTable(null);
-      loadData();
     } catch (err: any) {
       toast.error('Error al enviar orden: ' + err.message);
     } finally {
@@ -794,6 +834,72 @@ export default function MeseroMobileView() {
           onClose={() => setShowPayment(false)}
           onComplete={handlePaymentComplete}
         />
+      )}
+
+      {/* ── Cancel item modal ── */}
+      {cancelPending && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div style={{ background:'#1a1a2e', border:'1px solid rgba(239,68,68,0.35)', borderRadius:'20px 20px 0 0', padding:'24px', width:'100%', maxWidth:'480px' }}>
+            <div style={{ textAlign:'center', marginBottom:'16px' }}>
+              <div style={{ fontSize:'32px', marginBottom:'8px' }}>🗑️</div>
+              <h3 style={{ color:'#f1f5f9', fontSize:'16px', fontWeight:700, marginBottom:'4px' }}>¿Cancelar platillo?</h3>
+              <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'13px' }}>{cancelPending.emoji} {cancelPending.name}</p>
+              <p style={{ color:'#f87171', fontSize:'12px', marginTop:'4px' }}>Ya fue enviado a cocina — se registrará la merma si está en preparación.</p>
+            </div>
+            <div style={{ marginBottom:'14px' }}>
+              <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'10px', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>Motivo</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                {['Solicitud del cliente','Cliente encontró problema con el platillo','Error al registrar','Platillo no disponible','Demora excesiva en preparación','Otro motivo'].map(r => (
+                  <button key={r} onClick={() => setCancelPending(prev => prev ? {...prev, reason: r} : null)}
+                    style={{ padding:'8px 12px', borderRadius:'9px', textAlign:'left', border:'none', cursor:'pointer', fontSize:'13px',
+                      background: cancelPending.reason === r ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                      color: cancelPending.reason === r ? '#f87171' : 'rgba(255,255,255,0.6)',
+                      outline: cancelPending.reason === r ? '1.5px solid rgba(239,68,68,0.4)' : 'none' }}>
+                    {cancelPending.reason === r ? '● ' : '○ '}{r}
+                  </button>
+                ))}
+              </div>
+              {cancelPending.reason && (
+                <textarea value={cancelPending.notes}
+                  onChange={e => setCancelPending(prev => prev ? {...prev, notes: e.target.value} : null)}
+                  placeholder="Notas adicionales (opcional)"
+                  rows={2}
+                  style={{ width:'100%', marginTop:'8px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'9px', padding:'8px 12px', color:'#f1f5f9', fontSize:'12px', resize:'none', outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}
+                />
+              )}
+            </div>
+            <div style={{ display:'flex', gap:'10px' }}>
+              <button onClick={() => setCancelPending(null)}
+                style={{ flex:1, padding:'12px', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.15)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'14px', cursor:'pointer' }}>
+                Mantener
+              </button>
+              <button onClick={confirmCancelItem} disabled={!cancelPending.reason}
+                style={{ flex:1, padding:'12px', borderRadius:'12px', border:'none', background: cancelPending.reason ? '#dc2626' : 'rgba(239,68,68,0.3)', color:'white', fontSize:'14px', fontWeight:600, cursor: cancelPending.reason ? 'pointer' : 'not-allowed' }}>
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancel item result ── */}
+      {cancelResult && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background: cancelResult.hasCost ? '#1a0f0f' : '#0f1a10', border:`1px solid ${cancelResult.hasCost ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}`, borderRadius:'20px', padding:'28px 24px', maxWidth:'320px', width:'100%', textAlign:'center' }}>
+            <div style={{ fontSize:'36px', marginBottom:'10px' }}>{cancelResult.hasCost ? '⚠️' : '✅'}</div>
+            <h3 style={{ color:'#f1f5f9', fontSize:'15px', fontWeight:700, marginBottom:'8px' }}>
+              {cancelResult.hasCost ? 'Merma registrada' : 'Platillo cancelado'}
+            </h3>
+            <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'13px', marginBottom:'20px' }}>
+              {cancelResult.name} fue retirado del kanban de cocina.
+              {cancelResult.hasCost && ' El costo se registró como merma.'}
+            </p>
+            <button onClick={() => setCancelResult(null)}
+              style={{ width:'100%', padding:'11px', borderRadius:'11px', border:'none', background: cancelResult.hasCost ? '#dc2626' : '#16a34a', color:'white', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+              Entendido
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ── Confirm cancel table ── */}
