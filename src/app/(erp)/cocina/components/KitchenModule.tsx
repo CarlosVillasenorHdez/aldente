@@ -316,7 +316,8 @@ export default function KitchenModule() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<KitchenStatus | null>(null);
   const [stationFilter, setStationFilter] = useState<string>('Todas');
-  const [cancelConfirm, setCancelConfirm] = useState<{orderId:string; mesa:string; kitchenStatus:string} | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState<{orderId:string; mesa:string; kitchenStatus:string; isTableCancel?:boolean} | null>(null);
+  const [cancelResult, setCancelResult] = useState<{mesa:string; hasCost:boolean; removedCount:number} | null>(null);
   const prevCountRef = useRef(0);
   const tick = useElapsedTick();
   const supabase = createClient();
@@ -540,11 +541,15 @@ export default function KitchenModule() {
     const { orderId, mesa, kitchenStatus } = cancelConfirm;
     setCancelConfirm(null);
 
-    // Determine cost based on kitchen status at time of cancellation
     const hasCost = kitchenStatus === 'preparacion' || kitchenStatus === 'lista';
     const cancelType = hasCost ? 'con_costo' : 'sin_costo';
     const now = new Date().toISOString();
 
+    // Get parent_order_id of this comanda to find siblings
+    const { data: thisOrder } = await supabase.from('orders')
+      .select('parent_order_id').eq('id', orderId).single();
+
+    // Cancel this comanda
     const { error } = await supabase.from('orders').update({
       status: 'cancelada',
       kitchen_status: 'en_edicion',
@@ -554,13 +559,38 @@ export default function KitchenModule() {
     }).eq('id', orderId);
 
     if (error) { toast.error('Error al cancelar: ' + error.message); return; }
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
-    if (hasCost) {
-      toast.error(`⚠️ Merma registrada — ${mesa} (ingredientes ya utilizados)`);
-    } else {
-      toast.success(`Comanda de ${mesa} cancelada sin costo`);
+    let removedIds = [orderId];
+
+    // If there's a parent, also cancel sibling comandas still in KDS
+    // (other comandas of the same mesa that are active)
+    if (thisOrder?.parent_order_id) {
+      const { data: siblings } = await supabase.from('orders')
+        .select('id, kitchen_status')
+        .eq('parent_order_id', thisOrder.parent_order_id)
+        .eq('is_comanda', true)
+        .neq('id', orderId)
+        .neq('status', 'cancelada');
+
+      if (siblings && siblings.length > 0) {
+        await Promise.all(siblings.map(s =>
+          supabase.from('orders').update({
+            status: 'cancelada',
+            kitchen_status: 'en_edicion',
+            cancel_type: (s.kitchen_status === 'preparacion' || s.kitchen_status === 'lista') ? 'con_costo' : 'sin_costo',
+            cancel_reason: 'Cancelado desde cocina (mesa cancelada)',
+            updated_at: now,
+          }).eq('id', s.id)
+        ));
+        removedIds = [...removedIds, ...siblings.map(s => s.id)];
+      }
     }
+
+    // Remove all cancelled orders from KDS immediately
+    setOrders((prev) => prev.filter((o) => !removedIds.includes(o.id)));
+
+    // Show confirmation modal instead of toast
+    setCancelResult({ mesa, hasCost, removedCount: removedIds.length });
   };
 
   const allCategories = React.useMemo(() => {
@@ -752,6 +782,34 @@ export default function KitchenModule() {
 
 
       {/* ── Cancel confirm modal ── */}
+      {/* Cancel result confirmation */}
+      {cancelResult && (
+        <div role="dialog" aria-modal="true"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="rounded-2xl p-6 max-w-xs w-full text-center"
+            style={{ background: cancelResult.hasCost ? '#1a1010' : '#0f1a10', border: `1px solid ${cancelResult.hasCost ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}` }}>
+            <div className="text-4xl mb-3">{cancelResult.hasCost ? '⚠️' : '✅'}</div>
+            <h3 className="text-base font-bold text-white mb-2">
+              {cancelResult.hasCost ? 'Merma registrada' : 'Orden cancelada'}
+            </h3>
+            <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Mesa <strong className="text-white">{cancelResult.mesa}</strong>
+            </p>
+            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {cancelResult.removedCount} {cancelResult.removedCount === 1 ? 'comanda retirada' : 'comandas retiradas'} del kanban
+              {cancelResult.hasCost && ' — ingredientes ya utilizados, se registró como merma'}
+            </p>
+            <button
+              onClick={() => setCancelResult(null)}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm"
+              style={{ background: cancelResult.hasCost ? '#dc2626' : '#16a34a', color: 'white' }}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       {cancelConfirm && (
         <div role="dialog" aria-modal="true" aria-labelledby="kds-cancel-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
