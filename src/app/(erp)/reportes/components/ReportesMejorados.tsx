@@ -210,7 +210,7 @@ export default function ReportesMejorados() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <BarChart3 size={18} style={{ color: '#1B3A6B' }} />
-          Tendencia de Ventas — {PERIOD_LABELS[period]}
+          Tendencia de Ventas — {(PERIOD_LABELS as any)[period]}
         </h3>
         {salesTrend.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Sin datos para el período seleccionado</div>
