@@ -89,7 +89,7 @@ export default function POSClient() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [modifierPending, setModifierPending] = useState<typeof menuItems[0] | null>(null);
-  const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string; reason:string} | null>(null);
+  const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string; reason:string; notes:string} | null>(null);
   const [cancelItemResult, setCancelItemResult] = useState<{name:string; hasCost:boolean} | null>(null);
   // lineIds of items that are in a lista/entregada comanda — cannot be cancelled
   const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
@@ -792,7 +792,7 @@ export default function POSClient() {
     // If item was already sent to kitchen → show confirmation first
     const wasSent = sentItemsSnapshot.some(s => s.id === lineId);
     if (wasSent && kitchenSent) {
-      setCancelItemPending({ lineId, dishId: item.menuItem.id, name: item.menuItem.name, emoji: item.menuItem.emoji ?? '🍽️', reason: '' });
+      setCancelItemPending({ lineId, dishId: item.menuItem.id, name: item.menuItem.name, emoji: item.menuItem.emoji ?? '🍽️', reason: '', notes: '' });
       return;
     }
 
@@ -833,7 +833,10 @@ export default function POSClient() {
     setSentItemsSnapshot(prev => prev.filter(s => s.id !== lineId));
 
     // Cancel from KDS comanda
-    const result = await cancelItemFromKDS(selectedTable.currentOrderId, dishId, name, cancelItemPending?.reason || 'Cancelado desde POS');
+    const cancelReason = cancelItemPending?.notes
+      ? `${cancelItemPending?.reason || 'Cancelado'}: ${cancelItemPending.notes}`
+      : (cancelItemPending?.reason || 'Cancelado desde POS');
+    const result = await cancelItemFromKDS(selectedTable.currentOrderId, dishId, name, cancelReason);
     setCancelItemResult({ name, hasCost: result.hasCost });
   }, [cancelItemPending, selectedTable, orderItems, discount, tables,
       syncOrderToTable, cancelItemFromKDS, setSentItemsSnapshot]);
@@ -1210,6 +1213,21 @@ export default function POSClient() {
                 ))}
               </div>
             </div>
+            {/* Optional notes */}
+            {cancelItemPending.reason && (
+              <div style={{ marginBottom:'12px' }}>
+                <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'11px', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>
+                  Notas adicionales (opcional)
+                </p>
+                <textarea
+                  value={cancelItemPending.notes}
+                  onChange={e => setCancelItemPending(prev => prev ? {...prev, notes: e.target.value} : null)}
+                  placeholder={`Ej: ${cancelItemPending.reason === 'Cliente encontró problema con el platillo' ? 'Había un cabello en la sopa' : cancelItemPending.reason === 'Demora excesiva en preparación' ? 'Cliente esperó más de 30 minutos' : 'Detalle adicional...'}`}
+                  rows={2}
+                  style={{ width:'100%', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'9px', padding:'8px 12px', color:'#f1f5f9', fontSize:'13px', resize:'none', outline:'none', fontFamily:'inherit' }}
+                />
+              </div>
+            )}
             <div style={{ display:'flex', gap:'10px' }}>
               <button onClick={() => setCancelItemPending(null)}
                 style={{ flex:1, padding:'11px', borderRadius:'11px', border:'1px solid rgba(255,255,255,0.15)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'14px', cursor:'pointer' }}>

@@ -162,37 +162,45 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                 ${order.total.toFixed(2)}
               </span>
             </div>
-            {(order as any).marginActual > 0 && (
-              <div className="rounded-lg p-3 mt-2" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                <div className="flex justify-between text-sm" style={{ color: '#6b7280' }}>
-                  <span>Costo de recetas</span>
-                  <span className="font-mono">${((order as any).costActual ?? 0).toFixed(2)}</span>
+            {(order as any).marginActual > 0 && (() => {
+              const mermaTotal = (order.cancelledComandas || [])
+                .filter((c: any) => c.hasCost)
+                .reduce((s: number, c: any) => s + (c.wasteCost || 0), 0);
+              const utilidadBruta = (order as any).marginActual ?? 0;
+              const utilidadNeta = utilidadBruta - mermaTotal;
+              return (
+                <div className="rounded-lg overflow-hidden mt-2" style={{ border: '1px solid rgba(34,197,94,0.2)' }}>
+                  {/* Costo */}
+                  <div className="flex justify-between px-3 py-2 text-sm" style={{ background: 'rgba(34,197,94,0.04)', color: '#6b7280', borderBottom: '1px solid rgba(34,197,94,0.1)' }}>
+                    <span>Costo de recetas</span>
+                    <span className="font-mono">${((order as any).costActual ?? 0).toFixed(2)}</span>
+                  </div>
+                  {/* Utilidad bruta */}
+                  <div className="flex justify-between px-3 py-2.5" style={{ background: 'rgba(34,197,94,0.06)', borderBottom: mermaTotal > 0 ? '1px solid rgba(34,197,94,0.15)' : 'none' }}>
+                    <span className="text-sm font-bold" style={{ color: '#15803d' }}>Utilidad bruta</span>
+                    <span className="font-mono font-bold text-sm" style={{ color: '#16a34a' }}>
+                      ${utilidadBruta.toFixed(2)} ({((order as any).marginPct ?? 0).toFixed(1)}%)
+                    </span>
+                  </div>
+                  {/* Merma — mismo peso que utilidad */}
+                  {mermaTotal > 0 && (
+                    <div className="flex justify-between px-3 py-2.5" style={{ background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(239,68,68,0.15)' }}>
+                      <span className="text-sm font-bold" style={{ color: '#991b1b' }}>⚠️ Merma</span>
+                      <span className="font-mono font-bold text-sm" style={{ color: '#dc2626' }}>−${mermaTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {/* Utilidad neta */}
+                  {mermaTotal > 0 && (
+                    <div className="flex justify-between px-3 py-2.5" style={{ background: utilidadNeta >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)' }}>
+                      <span className="text-sm font-bold" style={{ color: utilidadNeta >= 0 ? '#15803d' : '#991b1b' }}>Utilidad neta</span>
+                      <span className="font-mono font-bold text-sm" style={{ color: utilidadNeta >= 0 ? '#16a34a' : '#dc2626' }}>
+                        ${utilidadNeta.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between text-sm font-semibold mt-1" style={{ color: '#16a34a' }}>
-                  <span>Utilidad bruta</span>
-                  <span className="font-mono">${((order as any).marginActual ?? 0).toFixed(2)} ({((order as any).marginPct ?? 0).toFixed(1)}%)</span>
-                </div>
-                {(() => {
-                  const mermaTotal = (order.cancelledComandas || [])
-                    .filter((c: any) => c.hasCost)
-                    .reduce((s: number, c: any) => s + (c.wasteCost || 0), 0);
-                  const utilidadNeta = ((order as any).marginActual ?? 0) - mermaTotal;
-                  if (mermaTotal > 0) return (
-                    <>
-                      <div className="flex justify-between text-xs mt-1" style={{ color: '#dc2626' }}>
-                        <span>Merma</span>
-                        <span className="font-mono">−${mermaTotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold mt-1 pt-1" style={{ borderTop: '1px solid rgba(52,211,153,0.3)', color: utilidadNeta >= 0 ? '#15803d' : '#dc2626' }}>
-                        <span>Utilidad neta</span>
-                        <span className="font-mono">${utilidadNeta.toFixed(2)}</span>
-                      </div>
-                    </>
-                  );
-                  return null;
-                })()}
-              </div>
-            )}
+              );
+            })()}
             {order.payMethod && (
               <div className="flex items-center gap-2 pt-1">
                 {order.payMethod === 'efectivo' ? (
@@ -207,32 +215,28 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
             )}
           </div>
 
-          {/* Cancelled items / waste */}
+          {/* Cancelled items detail — shown after financials */}
           {order.cancelledComandas && order.cancelledComandas.length > 0 && (
-            <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#fff5f5', border: '1px solid #fca5a5' }}>
-              <p className="text-xs font-semibold mb-2" style={{ color: '#991b1b' }}>
-                ⚠️ Platillos cancelados ({order.cancelledComandas.length})
-              </p>
+            <div className="rounded-xl overflow-hidden mb-1" style={{ border: '1px solid #fca5a5' }}>
+              <div className="px-4 py-2.5" style={{ background: '#fef2f2' }}>
+                <p className="text-sm font-bold" style={{ color: '#991b1b' }}>
+                  ⚠️ Platillos cancelados ({order.cancelledComandas.length})
+                </p>
+              </div>
               {order.cancelledComandas.map((c: any) => (
-                <div key={c.id} className="flex items-center justify-between py-1">
-                  <span className="text-xs" style={{ color: '#dc2626' }}>
-                    {c.hasCost ? '🔥 Merma' : '✗'} {c.reason}
-                  </span>
+                <div key={c.id} className="flex items-start justify-between px-4 py-2.5 border-t" style={{ borderColor: '#fef2f2', background: 'white' }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: c.hasCost ? '#dc2626' : '#6b7280' }}>
+                      {c.hasCost ? '🔥' : '✗'} {c.reason || 'Cancelado'}
+                    </p>
+                  </div>
                   {c.hasCost && c.wasteCost > 0 && (
-                    <span className="text-xs font-mono font-semibold" style={{ color: '#dc2626' }}>
+                    <span className="text-sm font-mono font-bold" style={{ color: '#dc2626' }}>
                       ${c.wasteCost.toFixed(2)}
                     </span>
                   )}
                 </div>
               ))}
-              {order.cancelledComandas.some((c: any) => c.hasCost) && (
-                <div className="flex justify-between mt-2 pt-2 border-t" style={{ borderColor: '#fca5a5' }}>
-                  <span className="text-xs font-semibold" style={{ color: '#991b1b' }}>Total merma</span>
-                  <span className="text-xs font-mono font-bold" style={{ color: '#dc2626' }}>
-                    ${order.cancelledComandas.filter((c: any) => c.hasCost).reduce((s: number, c: any) => s + c.wasteCost, 0).toFixed(2)}
-                  </span>
-                </div>
-              )}
             </div>
           )}
 
