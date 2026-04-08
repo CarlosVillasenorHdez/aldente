@@ -1078,9 +1078,18 @@ export default function POSClient() {
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-50">
               <span className="text-2xl">🗑️</span>
             </div>
-            <h3 id="pos-cancel-title" className="text-base font-bold text-center text-gray-900 mb-2">¿Cancelar orden?</h3>
+            <h3 id="pos-cancel-title" className="text-base font-bold text-center text-gray-900 mb-2">¿Cancelar mesa?</h3>
+            {kitchenSent && (
+              <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                <p className="font-semibold text-red-700">Comandas en cocina activas</p>
+                <p className="text-xs text-red-500 mt-1">
+                  Las que estén <strong>En Preparación</strong> o <strong>Listas</strong> se registrarán como merma.
+                  Las que estén <strong>Pendientes</strong> se cancelarán sin costo.
+                </p>
+              </div>
+            )}
             <p className="text-sm text-center text-gray-500 mb-5">
-              Se liberará <strong className="text-gray-800">{selectedTable.name}</strong> y se eliminarán todos los artículos sin cobrar.
+              Se liberará <strong className="text-gray-800">{selectedTable.name}</strong>.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowCancelConfirm(false)} aria-label="Mantener la orden"

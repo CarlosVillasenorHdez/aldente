@@ -215,7 +215,7 @@ export default function PaymentModal({
     (items ?? []).forEach(item => { rem[item.id] = item.quantity; });
     persons.forEach(p => {
       Object.entries(p.itemSplit).forEach(([id, qty]) => {
-        rem[id] = (rem[id] ?? 0) - qty;
+        rem[id] = (rem[id] ?? 0) - (qty as number);
       });
     });
     return rem;
@@ -713,7 +713,7 @@ export default function PaymentModal({
                     </div>
                     {persons.map(p => {
                       const pt = personTotals.find(t => t.id === p.id);
-                      const itemCount = Object.values(p.itemSplit).reduce((s, q) => s + q, 0);
+                      const itemCount = Object.values(p.itemSplit).reduce((s: number, q: unknown) => s + (q as number), 0);
                       if (itemCount === 0) return null;
                       return (
                         <div key={p.id} className="flex items-center justify-between">
@@ -758,7 +758,7 @@ export default function PaymentModal({
                     if (myTotal === 0) return null;
                     const cashVal = parseFloat(p.cashInput) || 0;
                     const myChange = p.method === 'efectivo' ? cashVal - myTotal : 0;
-                    const itemCount = Object.values(p.itemSplit).reduce((s, q) => s + q, 0);
+                    const itemCount = Object.values(p.itemSplit).reduce((s: number, q: unknown) => s + (q as number), 0);
                     return (
                       <div key={p.id} className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
                         <div className="flex items-center justify-between px-4 py-2.5"

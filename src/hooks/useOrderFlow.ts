@@ -359,20 +359,91 @@ export function useOrderFlow() {
 
   // ── Cancel order ──────────────────────────────────────────────────────────
 
+  // ── Cancel a single comanda/order with cost logic ────────────────────────
+  // kitchen_status determines whether ingredients were used:
+  //   pendiente   → sin_costo  (nothing started, no waste)
+  //   preparacion → con_costo  (ingredients consumed, record as merma)
+  //   lista       → con_costo  (fully made, definitely wasted)
+  const cancelSingleOrder = useCallback(async (
+    orderId: string,
+    reason = 'Cancelado',
+  ): Promise<'sin_costo' | 'con_costo'> => {
+    const now = new Date().toISOString();
+
+    // Check current kitchen status
+    const { data: orderData } = await supabase.from('orders')
+      .select('kitchen_status, tenant_id')
+      .eq('id', orderId).single();
+
+    const kStatus = orderData?.kitchen_status ?? 'pendiente';
+    const hasCost = kStatus === 'preparacion' || kStatus === 'lista';
+    const cancelType: 'sin_costo' | 'con_costo' = hasCost ? 'con_costo' : 'sin_costo';
+
+    // Calculate waste cost if needed
+    let wasteCost = 0;
+    if (hasCost) {
+      const { data: items } = await supabase.from('order_items')
+        .select('dish_id, qty').eq('order_id', orderId);
+      if (items && items.length > 0) {
+        const dishIds = [...new Set((items as Record<string,unknown>[])
+          .map(i => i.dish_id).filter(Boolean))] as string[];
+        if (dishIds.length > 0) {
+          const { data: recipes } = await supabase.from('dish_recipes')
+            .select('dish_id, quantity, ingredients(cost)')
+            .in('dish_id', dishIds);
+          for (const item of (items as Record<string,unknown>[])) {
+            const dishRecipes = (recipes || []).filter(
+              (r: Record<string,unknown>) => r.dish_id === item.dish_id
+            );
+            for (const r of dishRecipes) {
+              const ing = (r as Record<string,unknown>).ingredients as { cost?: number } | null;
+              if (ing?.cost) wasteCost += Number(r.quantity) * Number(ing.cost) * Number(item.qty);
+            }
+          }
+        }
+      }
+    }
+
+    await supabase.from('orders').update({
+      status: 'cancelada',
+      kitchen_status: 'en_edicion',
+      cancel_type: cancelType,
+      cancel_reason: reason,
+      waste_cost: wasteCost,
+      updated_at: now,
+    }).eq('id', orderId);
+
+    return cancelType;
+  }, [supabase]);
+
+  // ── Cancel full table: original order + all its comandas ──────────────────
   const cancelOrder = useCallback(async (
     orderId: string | null,
     tableIds: string[],
+    reason = 'Mesa cancelada',
   ): Promise<boolean> => {
     try {
       if (orderId) {
-        const { error } = await supabase.from('orders')
-          .update({
-            status: 'cancelada',
-            kitchen_status: 'en_edicion',  // hide from KDS immediately
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', orderId);
-        if (error) throw error;
+        // Find all comandas linked to this order
+        const { data: comandas } = await supabase.from('orders')
+          .select('id, kitchen_status')
+          .eq('parent_order_id', orderId)
+          .neq('status', 'cancelada');
+
+        // Cancel each comanda with cost logic
+        const cancelPromises = (comandas || []).map(c =>
+          cancelSingleOrder(c.id, reason)
+        );
+        await Promise.all(cancelPromises);
+
+        // Cancel the original billing order (always sin_costo — it's just a container)
+        await supabase.from('orders').update({
+          status: 'cancelada',
+          kitchen_status: 'en_edicion',
+          cancel_type: 'sin_costo',
+          cancel_reason: reason,
+          updated_at: new Date().toISOString(),
+        }).eq('id', orderId);
       }
 
       await supabase.from('restaurant_tables').update({
@@ -392,7 +463,7 @@ export function useOrderFlow() {
       toast.error('Error al cancelar orden: ' + msg);
       return false;
     }
-  }, [supabase]);
+  }, [supabase, cancelSingleOrder]);
 
   // ── Send order to kitchen — pure FIFO comanda model ────────────────────────
   // Every send (first or subsequent) creates an is_comanda order in KDS.
@@ -471,5 +542,5 @@ export function useOrderFlow() {
     return true;
   }, [supabase]);
 
-  return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, loadOrderItems, sendToKitchen };
+  return { ensureOpenOrder, syncItems, closeOrder, cancelOrder, cancelSingleOrder, loadOrderItems, sendToKitchen };
 }
