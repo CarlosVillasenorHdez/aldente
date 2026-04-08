@@ -135,16 +135,16 @@ const T = {
       ],
     },
     cta: {
-      h2a: 'Tu restaurante merece',
-      h2b: 'trabajar con orden.',
-      sub: '14 días gratis. Sin tarjeta. Cancela cuando quieras.',
-      primary: 'Registrar mi restaurante →',
-      secondary: 'Hablar con el equipo',
+      h2a: 'Your restaurant deserves to',
+      h2b: 'run with precision.',
+      sub: '14 days free. No card. Cancel anytime.',
+      primary: 'Register my restaurant →',
+      secondary: 'Talk to the team',
     },
     footer: {
-      desc: 'Sistema de gestión integral para restaurantes.',
-      product: 'Producto', company: 'Empresa', support: 'Soporte',
-      links: { features:'Funciones', pricing:'Precios', trial:'Prueba gratis', signin:'Iniciar sesión', contact:'Contacto', sales:'Ventas', email:'soporte@aldente.app', faq:'Preguntas frecuentes' },
+      desc: 'All-in-one management system for restaurants.',
+      product: 'Product', company: 'Company', support: 'Support',
+      links: { features:'Features', pricing:'Pricing', trial:'Free trial', signin:'Sign in', contact:'Contact', sales:'Sales', email:'hello@aldente.app', faq:'FAQ' },
       copy: '© {year} Aldente. All rights reserved.',
       made: 'Crafted with precision',
     },
@@ -162,7 +162,7 @@ const T = {
     hero: {
       eyebrow: 'Restaurant software',
       h1a: 'You know exactly',
-      h1b: "what's happening in your restaurant.",
+      h1b: "what\'s happening in your restaurant.",
       h1c: 'Right now.',
       sub: "Without calling your cashier. Without waiting for tomorrow's report. Without guessing if you're running low on ingredients.",
       cta: 'Try it free for 14 days →',
@@ -353,7 +353,8 @@ export default function LandingPage() {
           animation: navIn .6s ease both;
         }
         @keyframes navIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
-        .nav-wordmark { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:500; letter-spacing:0.06em; color:var(--gold); text-transform:uppercase; }
+        .nav-wordmark { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:500; letter-spacing:0.06em; color:var(--gold); text-transform:uppercase; margin-bottom:12px; animation:fadeUp .8s .1s ease both; }
+        .nav-wordmark.text-[35px] { font-size:35px; }
         .nav-links { display:flex; gap:2px; }
         .nav-link { padding:7px 14px; border-radius:8px; font-size:13px; color:var(--cream3); transition:color .15s; }
         .nav-link:hover { color:var(--cream2); }
@@ -401,7 +402,7 @@ export default function LandingPage() {
         .hero-eyebrow {
           display:inline-flex; align-items:center; gap:12px;
           font-size:11px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase;
-          color:var(--gold); margin-bottom:36px; animation:fadeUp .8s .1s ease both;
+          color:var(--gold); margin-bottom:36px; animation:fadeUp .8s .2s ease both;
         }
         .hero-eyebrow::before,.hero-eyebrow::after { content:''; display:block; width:32px; height:1px; background:var(--goldLine); }
         .hero-h1 {
@@ -643,7 +644,7 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav className="nav">
-        <span className="nav-wordmark" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span className="nav-wordmark text-[35px] text-[rgba(201,150,58,1)]" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
           Aldente
         </span>
