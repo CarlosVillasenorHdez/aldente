@@ -40,7 +40,6 @@ export interface OrderFlowItem {
   course?: number;           // course number for ordering (1 = first course, etc.)
   excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
   extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
-  course?: number;                  // kept for DB compatibility
 }
 
 export interface OrderFlowTable {
