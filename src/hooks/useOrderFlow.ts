@@ -424,9 +424,11 @@ export function useOrderFlow() {
 
     // ── CASE 1: FIRST SEND — order still in editing ─────────────────────────
     if (status === 'en_edicion') {
+      const sentAt = new Date().toISOString();
       const { error } = await supabase.from('orders').update({
         kitchen_status: 'pendiente',
-        updated_at: new Date().toISOString(),
+        kitchen_sent_at: sentAt,   // marks which items existed at send time
+        updated_at: sentAt,
       }).eq('id', orderId);
       if (error) { toast.error('Error al enviar a cocina: ' + error.message); return false; }
       return true;
