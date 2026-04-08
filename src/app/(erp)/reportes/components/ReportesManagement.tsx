@@ -93,7 +93,7 @@ const kpiData: Record<string, { ventas: number; ordenes: number; ticket: number;
   personalizado: { ventas: 87400, ordenes: 412, ticket: 212.1, clientes: 356 },
 };
 
-// ─── Tooltip Components ───────────────────────────────────────────────────────
+// ─── Tooltip Components ─────────────────────────────────────────────────
 
 const BarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -261,8 +261,8 @@ export default function ReportesManagement() {
 
       // ── Build totalSalesData grouped by period ──
       // Daily target: use average of last week if available, else default
-      const DAILY_META = realKpis?.ventas > 0 && dateRange === 'hoy'
-        ? Math.max(realKpis.ventas * 1.1, 1000)  // 10% above current as stretch goal
+      const DAILY_META = (realKpis?.ventas ?? 0) > 0 && dateRange === 'hoy'
+        ? Math.max(realKpis!.ventas * 1.1, 1000)  // 10% above current as stretch goal
         : 15000;
       if (dateRange === 'hoy') {
         // Group by hour
