@@ -31,6 +31,7 @@ interface KitchenOrder {
   mesero: string;
   isComanda: boolean;
   parentOrderId: string | null;
+  kitchenSentAt: string | null;   // timestamp when order was sent to kitchen
   items: KitchenOrderItem[];
   kitchenStatus: KitchenStatus;
   kitchenNotes: string | null;
@@ -341,7 +342,7 @@ export default function KitchenModule() {
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*, dishes(category))')
+      .select('*, kitchen_sent_at, order_items(*, dishes(category))')
       .in('status', ['abierta', 'preparacion', 'lista'])
       .neq('kitchen_status', 'en_edicion')
       .order('created_at', { ascending: true });
@@ -354,17 +355,31 @@ export default function KitchenModule() {
         mesero: o.mesero,
         isComanda: Boolean(o.is_comanda),
         parentOrderId: o.parent_order_id ?? null,
-        items: (o.order_items || []).map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          qty: item.qty,
-          emoji: item.emoji || '🍽️',
-          preparationTimeMin: item.dishes?.preparation_time_min ?? 15,
-          notes: item.notes,
-          category: item.dishes?.category ?? null,
-          course: item.course ?? 1,
-          modifier: item.modifier ?? null,
-        })),
+        kitchenSentAt: o.kitchen_sent_at ?? null,
+        items: (() => {
+          const allItems = (o.order_items || []);
+          // For non-comanda orders: only show items that existed when the order
+          // was sent to kitchen (created_at <= kitchen_sent_at).
+          // Items added later for billing belong to comanda orders.
+          const sentAt = o.kitchen_sent_at ? new Date(o.kitchen_sent_at).getTime() : null;
+          const filtered = (!o.is_comanda && sentAt)
+            ? allItems.filter((item: any) => {
+                const itemTime = item.created_at ? new Date(item.created_at).getTime() : 0;
+                return itemTime <= sentAt + 2000; // 2s buffer for clock skew
+              })
+            : allItems;
+          return filtered.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            qty: item.qty,
+            emoji: item.emoji || '🍽️',
+            preparationTimeMin: item.dishes?.preparation_time_min ?? 15,
+            notes: item.notes,
+            category: item.dishes?.category ?? null,
+            course: item.course ?? 1,
+            modifier: item.modifier ?? null,
+          }));
+        })(),
         kitchenStatus: (o.kitchen_status ?? 'pendiente') as KitchenStatus,
         kitchenNotes: o.kitchen_notes || null,
         kitchenStartedAt: o.kitchen_started_at || null,
