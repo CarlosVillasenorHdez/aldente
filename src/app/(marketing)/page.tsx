@@ -594,7 +594,7 @@ export default function LandingPage() {
           .testimonials-grid{grid-template-columns:1fr;}
           .plans-grid{grid-template-columns:1fr;}
           .faq-cols{grid-template-columns:1fr;}
-          .footer-inner{grid-template-columns:1fr 1fr;gap:32px;}
+          .footer-inner{grid-template-columns:1fr;}
           .footer-bottom{flex-direction:column;gap:10px;}
           .preview-body{grid-template-columns:1fr 1fr;}
           .preview-chart{grid-column:span 2;}
@@ -644,7 +644,7 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav className="nav">
-        <span className="nav-wordmark text-[35px] text-[rgba(201,150,58,1)]" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span className="nav-wordmark text-[rgba(201,150,58,1)] font-extrabold text-[34px]" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
           Aldente
         </span>
