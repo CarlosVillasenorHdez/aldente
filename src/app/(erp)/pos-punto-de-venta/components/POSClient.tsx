@@ -368,8 +368,30 @@ export default function POSClient() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
           fetchTables();
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload: any) => {
           fetchTables();
+          // If a comanda changed status to lista/entregada, refresh non-cancellable items
+          const updated = payload.new as Record<string, unknown>;
+          if (updated?.is_comanda && updated?.parent_order_id) {
+            const status = updated.kitchen_status as string;
+            if (status === 'lista' || status === 'entregada' || status === 'cancelada') {
+              // Use ref to get current selectedTable and orderItems without stale closure
+              setSelectedTable(prev => {
+                if (prev?.currentOrderId === updated.parent_order_id) {
+                  // Trigger refresh — use setTimeout to avoid state update during render
+                  setTimeout(() => {
+                    setOrderItems(items => {
+                      if (items.length > 0 && prev?.currentOrderId) {
+                        refreshDeliveredItems(prev.currentOrderId as string, items);
+                      }
+                      return items;
+                    });
+                  }, 0);
+                }
+                return prev;
+              });
+            }
+          }
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, () => {
           fetchTables();
