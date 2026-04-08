@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useReportData, DateRange, DishSales, StaffPerformance, PeakPrediction } from '@/hooks/useReportData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Legend } from 'recharts';
-import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight, Tag, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import WasteAnalysisSummary from './WasteAnalysisSummary';
 
@@ -196,7 +196,7 @@ export default function ReportesManagement() {
 
   // Real data states
   const [realStaffData, setRealStaffData] = useState<StaffPerformance[]>([]);
-  const [realKpis, setRealKpis] = useState<{ ventas: number; ordenes: number; ticket: number; clientes: number; merma: number; margenPct: number } | null>(null);
+  const [realKpis, setRealKpis] = useState<{ ventas: number; ordenes: number; ticket: number; clientes: number; merma: number; margenPct: number; costo: number; descuentos: number; iva: number } | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
   const supabase = createClient();
@@ -253,7 +253,10 @@ export default function ReportesManagement() {
       const totalMerma = orderList.reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
       const totalMarginActual = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
       const margenPct = totalVentas > 0 ? (totalMarginActual / totalVentas) * 100 : 0;
-      setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes, merma: totalMerma, margenPct: Math.round(margenPct * 10) / 10 });
+      const totalCosto = orderList.reduce((s, o) => s + Number((o as any).cost_actual ?? 0), 0);
+      const totalDescuentos = orderList.reduce((s, o) => s + Number((o as any).discount ?? 0), 0);
+      const totalIva = orderList.reduce((s, o) => s + Number((o as any).iva ?? 0), 0);
+      setRealKpis({ ventas: Math.round(totalVentas), ordenes: totalOrdenes, ticket: Math.round(ticketProm * 100) / 100, clientes: totalOrdenes, merma: totalMerma, margenPct: Math.round(margenPct * 10) / 10, costo: totalCosto, descuentos: totalDescuentos, iva: totalIva });
 
       // ── Build totalSalesData grouped by period ──
       const DAILY_META = 15000;
@@ -486,7 +489,7 @@ export default function ReportesManagement() {
 
   const sortedCogsData = useMemo(() => {
     const source = cogsData.length > 0 ? cogsData : cogsData;
-    return [...source].sort((a, b) => b[cogsSort] - a[cogsSort]);
+    return [...source].sort((a, b) => (b as any)[cogsSort] - (a as any)[cogsSort]);
   }, [cogsSort, cogsData, cogsData]);
 
   const topStaff = useMemo(() =>
@@ -620,23 +623,26 @@ export default function ReportesManagement() {
         </div>
 
         {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {[
-            { label: 'Ventas Totales', value: `$${kpisToUse.ventas.toLocaleString('es-MX')}`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Órdenes', value: kpisToUse.ordenes.toLocaleString('es-MX'), icon: ShoppingBag, color: '#3b82f6', bg: '#eff6ff' },
-            { label: 'Ticket Promedio', value: `$${kpisToUse.ticket.toFixed(2)}`, icon: ShoppingCart, color: '#10b981', bg: '#ecfdf5' },
-            { label: 'Clientes', value: kpisToUse.clientes.toLocaleString('es-MX'), icon: Users, color: '#8b5cf6', bg: '#f5f3ff' },
+            { label: 'Ventas', value: `$${kpisToUse.ventas.toLocaleString('es-MX')}`, sub: `${kpisToUse.ordenes} órdenes`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
+            { label: 'Ticket prom.', value: `$${kpisToUse.ticket.toFixed(2)}`, sub: 'Por orden', icon: ShoppingCart, color: '#3b82f6', bg: '#eff6ff' },
+            { label: 'Utilidad bruta', value: realKpis ? `$${(realKpis.ventas - (realKpis as any).costo || 0).toLocaleString('es-MX')}` : '—', sub: realKpis ? `${realKpis.margenPct.toFixed(1)}% margen` : 'Sin datos', icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4' },
+            { label: '⚠️ Merma', value: realKpis && realKpis.merma > 0 ? `$${realKpis.merma.toFixed(2)}` : '$0.00', sub: realKpis?.merma > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: realKpis?.merma > 0 ? '#dc2626' : '#9ca3af', bg: realKpis?.merma > 0 ? '#fef2f2' : '#f9fafb' },
+            { label: 'Descuentos', value: realKpis ? `$${((realKpis as any).descuentos || 0).toFixed(2)}` : '—', sub: 'Total aplicado', icon: Tag, color: '#8b5cf6', bg: '#f5f3ff' },
+            { label: 'IVA generado', value: realKpis ? `$${((realKpis as any).iva || 0).toFixed(2)}` : '—', sub: 'Por pagar', icon: Receipt, color: '#6b7280', bg: '#f9fafb' },
           ].map((kpi) => {
             const KpiIcon = kpi.icon;
             return (
               <div key={kpi.label} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-gray-500 font-500">{kpi.label}</span>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: kpi.bg }}>
-                    <KpiIcon size={16} style={{ color: kpi.color }} />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500">{kpi.label}</span>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: kpi.bg }}>
+                    <KpiIcon size={13} style={{ color: kpi.color }} />
                   </div>
                 </div>
-                <p className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>{kpi.value}</p>
+                <p className="text-lg font-bold font-mono" style={{ color: kpi.color, fontWeight: 700 }}>{kpi.value}</p>
+                {kpi.sub && <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{kpi.sub}</p>}
               </div>
             );
           })}

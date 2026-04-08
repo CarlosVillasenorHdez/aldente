@@ -6,7 +6,7 @@ import { useAudit } from '@/hooks/useAudit';
 import { useSysConfig } from '@/hooks/useSysConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CreditCard, Banknote, TrendingUp, Plus, Minus, ChevronDown, ChevronUp, Printer, Lock, Unlock, Receipt, Users, ShoppingBag,  } from 'lucide-react';
+import { CreditCard, Banknote, TrendingUp, Plus, Minus, ChevronDown, ChevronUp, Printer, Lock, Unlock, Receipt, Users, ShoppingBag, AlertTriangle } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,10 +37,14 @@ interface OrderSummary {
   ordenes_count: number;
   descuentos_total: number;
   iva_total: number;
+  costo_total: number;
+  utilidad_bruta: number;
+  margen_pct: number;
   por_mesero: { nombre: string; total: number; ordenes: number }[];
   por_hora: { hora: string; total: number }[];
   merma_total: number;
-  ordenes_canceladas: { id: string; mesa: string; mesero: string; subtotal: number; cancel_reason: string | null }[];
+  merma_ingredientes: number;
+  ordenes_canceladas: { id: string; mesa: string; mesero: string; subtotal: number; notes: string | null; wasteCost: number }[];
 }
 
 // Denominations vary by currency — configured per tenant
@@ -163,13 +167,14 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
       supabase
         .from('orders')
-        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at')
+        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost')
         .eq('status', 'cerrada')
+        .eq('is_comanda', false)
         .gte('closed_at', desde)
         .order('closed_at', { ascending: false }),
       supabase
         .from('orders')
-        .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at')
+        .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at, is_comanda, parent_order_id')
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
         .gte('updated_at', desde)
@@ -177,7 +182,7 @@ export default function CorteCaja() {
     ]);
 
     if (!orders || orders.length === 0) {
-      setSummary({ ventas_efectivo: 0, ventas_tarjeta: 0, ventas_total: 0, ordenes_count: 0, descuentos_total: 0, iva_total: 0, por_mesero: [], por_hora: [], merma_total: 0, ordenes_canceladas: [] });
+      setSummary({ ventas_efectivo: 0, ventas_tarjeta: 0, ventas_total: 0, ordenes_count: 0, descuentos_total: 0, iva_total: 0, costo_total: 0, utilidad_bruta: 0, margen_pct: 0, merma_ingredientes: 0, por_mesero: [], por_hora: [], merma_total: 0, ordenes_canceladas: [] });
       setSummaryLoading(false);
       return;
     }
@@ -204,20 +209,32 @@ export default function CorteCaja() {
       }
     });
 
+    const costo_total = orders.reduce((s, o) => s + Number((o as any).cost_actual ?? 0), 0);
+    const utilidad_bruta = orders.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+    const margen_pct = ventas_total > 0 ? (utilidad_bruta / ventas_total) * 100 : 0;
+    const merma_ingredientes = (mermaOrders || []).reduce((s, o) => {
+      const wc = Number((o as any).waste_cost ?? 0);
+      return s + (wc > 0 ? wc : Number(o.subtotal ?? 0));
+    }, 0);
+
     setSummary({
       ventas_efectivo, ventas_tarjeta, ventas_total,
       ordenes_count: orders.length,
       descuentos_total, iva_total,
+      costo_total, utilidad_bruta, margen_pct,
+      merma_ingredientes,
       por_mesero: Object.entries(meseroMap)
         .map(([nombre, v]) => ({ nombre, ...v }))
         .sort((a, b) => b.total - a.total),
       por_hora: Object.entries(hourMap)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([hora, total]) => ({ hora, total })),
-      merma_total: (mermaOrders || []).reduce((s, o) => s + Number(o.subtotal), 0),
+      merma_total: merma_ingredientes,
       ordenes_canceladas: (mermaOrders || []).map(o => ({
-        id: o.id, mesa: o.mesa, mesero: o.mesero,
-        subtotal: Number(o.subtotal), cancel_reason: o.cancel_reason,
+        id: o.id, mesa: (o as any).mesa ?? '—', mesero: (o as any).mesero ?? '—',
+        subtotal: Number((o as any).waste_cost ?? 0) || Number(o.subtotal ?? 0),
+        wasteCost: Number((o as any).waste_cost ?? 0),
+        notes: (o as any).cancel_reason ?? null,
       })),
     });
     setSummaryLoading(false);
@@ -425,9 +442,11 @@ export default function CorteCaja() {
       ) : summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: '#ecfdf5' },
-            { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: '#eff6ff' },
+            { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: '#fffbeb', sub: `${summary.ordenes_count} órdenes` },
+            { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: '#ecfdf5', sub: null },
+            { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: '#eff6ff', sub: null },
+            { label: 'Utilidad Bruta',  value: `$${fmt(summary.utilidad_bruta ?? 0)}`, icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4', sub: `${(summary.margen_pct ?? 0).toFixed(1)}% margen` },
+            { label: '⚠️ Merma',       value: summary.merma_total > 0 ? `$${fmt(summary.merma_total)}` : '$0.00', icon: AlertTriangle, color: summary.merma_total > 0 ? '#dc2626' : '#9ca3af', bg: summary.merma_total > 0 ? '#fef2f2' : '#f9fafb', sub: summary.merma_total > 0 ? `${summary.ordenes_canceladas.length} cancelaciones` : 'Sin mermas ✓' },
             { label: 'Órdenes',         value: String(summary.ordenes_count),      icon: ShoppingBag,  color: '#8b5cf6', bg: '#f5f3ff' },
           ].map(k => (
             <div key={k.label} className="bg-white rounded-2xl border p-4" style={{ borderColor: '#e5e7eb' }}>
@@ -437,7 +456,8 @@ export default function CorteCaja() {
                   <k.icon size={14} style={{ color: k.color }} />
                 </div>
               </div>
-              <p className="text-xl font-bold font-mono text-gray-900">{k.value}</p>
+              <p className="text-xl font-bold font-mono text-gray-900" style={{ color: k.color }}>{k.value}</p>
+              {(k as any).sub && <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{(k as any).sub}</p>}
             </div>
           ))}
         </div>
@@ -485,9 +505,9 @@ export default function CorteCaja() {
                       <div>
                         <span className="font-semibold text-gray-700">{o.mesa}</span>
                         <span className="text-gray-400 ml-2">· {o.mesero}</span>
-                        {o.cancel_reason && <span className="text-gray-400 ml-2 italic">{o.cancel_reason.slice(0, 40)}</span>}
+                        {o.notes && <span className="text-gray-400 ml-2 italic text-xs">{o.notes.slice(0, 60)}</span>}
                       </div>
-                      <span className="font-mono text-red-600 font-semibold">${fmt(o.subtotal)}</span>
+                      <span className="font-mono text-red-600 font-semibold">${fmt((o as any).wasteCost || o.subtotal)}</span>
                     </div>
                   ))}
                 </div>
