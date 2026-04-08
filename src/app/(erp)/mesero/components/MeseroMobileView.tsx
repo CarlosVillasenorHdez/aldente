@@ -217,12 +217,44 @@ export default function MeseroMobileView() {
   const selectTable = async (table: Table) => {
     setSelectedTable(table);
     setShowCart(false);
+    // Reset kitchen tracking for this table
+    setKitchenSent(false);
+    setSentSnapshot([]);
+    setDeliveredDishIds(new Set());
 
     if (table.currentOrderId) {
-      // Mesa ocupada — cargar items existentes
       const existing = await loadOrderItems(table.currentOrderId);
       setOrderItems(existing);
       setCurrentOrderId(table.currentOrderId);
+
+      // Restore kitchen state
+      const { data: orderMeta } = await supabase
+        .from('orders').select('kitchen_status')
+        .eq('id', table.currentOrderId).single();
+
+      const alreadySent = orderMeta?.kitchen_status != null &&
+                          orderMeta.kitchen_status !== 'en_edicion';
+      if (alreadySent && existing.length > 0) {
+        setKitchenSent(true);
+        setSentSnapshot(existing.map(i => ({ dishId: i.dishId, qty: i.qty })));
+
+        // Find items in lista/entregada comandas → lock them
+        const { data: comandas } = await supabase
+          .from('orders')
+          .select('id, kitchen_status, order_items(id, dish_id)')
+          .eq('parent_order_id', table.currentOrderId)
+          .eq('is_comanda', true).neq('status', 'cancelada');
+
+        const delivered = new Set<string>();
+        (comandas || []).forEach((c: any) => {
+          if (c.kitchen_status === 'lista' || c.kitchen_status === 'entregada') {
+            (c.order_items || []).forEach((ci: any) => {
+              existing.filter(s => s.dishId === ci.dish_id).forEach(s => delivered.add(s.dishId));
+            });
+          }
+        });
+        setDeliveredDishIds(delivered);
+      }
     } else {
       setOrderItems([]);
       setCurrentOrderId(null);
@@ -280,39 +312,31 @@ export default function MeseroMobileView() {
     syncToDb(newItems, selectedTable, orderId);
   };
 
-  const removeItem = async (dishId: string) => {
-    const item = orderItems.find(i => i.dishId === dishId);
+  // removeItem uses lineId (unique per line) to correctly handle
+  // multiple variations of the same dish (e.g. 2 guacamoles with different modifiers)
+  const removeItem = async (lineId: string) => {
+    const item = orderItems.find(i => i.lineId === lineId);
     if (!item) return;
 
     // Block if delivered
-    if (deliveredDishIds.has(dishId)) {
+    if (deliveredDishIds.has(item.dishId)) {
       toast.error('Este platillo ya fue entregado — no se puede cancelar');
       return;
     }
 
-    // If sent to kitchen → show confirmation modal with reason
-    const wasSent = kitchenSent && sentSnapshot.some(s => s.dishId === dishId);
+    // If sent to kitchen → show confirmation with reason
+    const wasSent = kitchenSent && sentSnapshot.some(s => s.dishId === item.dishId);
     if (wasSent && currentOrderId) {
-      setCancelPending({ dishId, name: item.name, emoji: item.emoji ?? '🍽️', reason: '', notes: '' });
+      setCancelPending({ dishId: item.dishId, name: item.name, emoji: item.emoji ?? '🍽️', reason: '', notes: '' });
       return;
     }
 
     // Not sent — remove locally
-    if (!selectedTable || !currentOrderId) {
-      setOrderItems(prev => {
-        const ex = prev.find(i => i.dishId === dishId);
-        if (ex && ex.qty > 1) return prev.map(i => i.dishId === dishId ? { ...i, qty: i.qty - 1 } : i);
-        return prev.filter(i => i.dishId !== dishId);
-      });
-      return;
-    }
-    const newItems = orderItems.reduce<OrderFlowItem[]>((acc, i) => {
-      if (i.dishId !== dishId) return [...acc, i];
-      if (i.qty > 1) return [...acc, { ...i, qty: i.qty - 1 }];
-      return acc;
-    }, []);
+    const newItems = orderItems.filter(i => i.lineId !== lineId);
     setOrderItems(newItems);
-    syncToDb(newItems, selectedTable, currentOrderId);
+    if (selectedTable && currentOrderId) {
+      syncToDb(newItems, selectedTable, currentOrderId);
+    }
   };
 
   const confirmCancelItem = async () => {
@@ -322,15 +346,23 @@ export default function MeseroMobileView() {
 
     const fullReason = notes ? `${reason}: ${notes}` : reason;
 
-    // Remove from local state
-    const newItems = orderItems.reduce<OrderFlowItem[]>((acc, i) => {
-      if (i.dishId !== dishId) return [...acc, i];
-      if (i.qty > 1) return [...acc, { ...i, qty: i.qty - 1 }];
-      return acc;
-    }, []);
+    // Remove from local state — remove first matching item
+    const idx = orderItems.findIndex(i => i.dishId === dishId);
+    const newItems = idx >= 0 ? [
+      ...orderItems.slice(0, idx),
+      ...orderItems.slice(idx + 1),
+    ] : orderItems;
+
     setOrderItems(newItems);
-    syncToDb(newItems, selectedTable!, currentOrderId);
-    setSentSnapshot(prev => prev.filter(s => s.dishId !== dishId));
+    if (selectedTable && currentOrderId) syncToDb(newItems, selectedTable, currentOrderId);
+    setSentSnapshot(prev => {
+      const i = prev.findIndex(s => s.dishId === dishId);
+      if (i < 0) return prev;
+      const updated = [...prev];
+      if (updated[i].qty > 1) updated[i] = { ...updated[i], qty: updated[i].qty - 1 };
+      else updated.splice(i, 1);
+      return updated;
+    });
 
     // Cancel in KDS
     const result = await cancelItemFromKDS(currentOrderId, dishId, name, fullReason);
@@ -396,8 +428,28 @@ export default function MeseroMobileView() {
       const waiter = myName;
       const flowTable = { id: selectedTable.id, number: selectedTable.number, name: selectedTable.name, currentOrderId: currentOrderId ?? undefined };
       const orderId = await ensureOpenOrder(flowTable, waiter, branchName);
+      if (!currentOrderId) setCurrentOrderId(orderId);
 
-      // Final sync: flush debounce immediately
+      // Build diff — only items NOT yet in the snapshot are new
+      const newItems = orderItems.flatMap(item => {
+        const prev = sentSnapshot.find(s => s.dishId === item.dishId);
+        if (!prev) {
+          return [{ name: item.name, qty: item.qty, notes: item.notes, emoji: item.emoji }];
+        }
+        const addedQty = item.qty - prev.qty;
+        if (addedQty > 0) {
+          return [{ name: item.name, qty: addedQty, notes: item.notes, emoji: item.emoji }];
+        }
+        return [];
+      });
+
+      if (newItems.length === 0) {
+        toast.error('No hay platillos nuevos para enviar a cocina');
+        setSending(false);
+        return;
+      }
+
+      // Flush ALL items to billing order
       await supabase.from('order_items').delete().eq('order_id', orderId);
       await supabase.from('order_items').insert(
         orderItems.map(item => ({
@@ -407,6 +459,8 @@ export default function MeseroMobileView() {
           qty: item.qty,
           price: item.price,
           emoji: item.emoji,
+          modifier: item.modifier ?? null,
+          notes: item.notes ?? null,
         }))
       );
       await supabase.from('restaurant_tables').update({
@@ -418,16 +472,43 @@ export default function MeseroMobileView() {
         updated_at: new Date().toISOString(),
       }).eq('id', selectedTable.id);
 
-      // Create a comanda card in KDS (is_comanda=true, FIFO queue)
+      // Send ONLY new items as comanda to KDS
       await sendToKitchen(
         orderId,
-        orderItems.map(i => ({ name: i.name, qty: i.qty, notes: i.notes, emoji: i.emoji })),
+        newItems,
         { mesa: selectedTable.name, mesero: waiter, tenantId: appUser?.tenantId ?? '' }
       );
 
-      toast.success(`Orden enviada a cocina — ${selectedTable.name}`);
-      setKitchenSent(true);
-      setSentSnapshot(orderItems.map(i => ({ dishId: i.dishId, qty: i.qty })));
+      // Re-read DB items to sync lineIds with real UUIDs (same pattern as POS)
+      const { data: freshItems } = await supabase
+        .from('order_items').select('*').eq('order_id', orderId);
+
+      if (freshItems && freshItems.length > 0) {
+        const dishIds = [...new Set(freshItems.map((i: any) => i.dish_id).filter(Boolean))];
+        let dishMap: Record<string, any> = {};
+        if (dishIds.length > 0) {
+          const { data: dishes } = await supabase.from('dishes').select('*').in('id', dishIds);
+          (dishes || []).forEach((d: any) => { dishMap[d.id] = d; });
+        }
+        const synced: OrderFlowItem[] = freshItems.map((i: any) => ({
+          lineId: i.id,
+          dishId: i.dish_id ?? i.id,
+          name: dishMap[i.dish_id]?.name ?? i.name,
+          price: dishMap[i.dish_id] ? Number(dishMap[i.dish_id].price) : Number(i.price),
+          qty: i.qty,
+          emoji: dishMap[i.dish_id]?.emoji ?? i.emoji ?? '🍽️',
+          modifier: i.modifier ?? undefined,
+          notes: i.notes ?? undefined,
+        }));
+        setOrderItems(synced);
+        setKitchenSent(true);
+        setSentSnapshot(synced.map(r => ({ dishId: r.dishId, qty: r.qty })));
+      } else {
+        setKitchenSent(true);
+        setSentSnapshot(orderItems.map(i => ({ dishId: i.dishId, qty: i.qty })));
+      }
+
+      toast.success(`Comanda enviada a cocina — ${selectedTable.name}`);
       setShowCart(false);
     } catch (err: any) {
       toast.error('Error al enviar orden: ' + err.message);
@@ -649,7 +730,7 @@ export default function MeseroMobileView() {
                         </button>
                       ) : (
                         <div className="flex items-center gap-2 w-full justify-between">
-                          <button onClick={() => removeItem(dish.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-white active:scale-95" style={{ backgroundColor: '#ef4444' }}>
+                          <button onClick={() => { const line = orderItems.find(i => i.dishId === dish.id); if (line) removeItem(line.lineId); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-white active:scale-95" style={{ backgroundColor: '#ef4444' }}>
                             <Minus size={14} />
                           </button>
                           <span className="font-bold text-gray-800">{qty}</span>
@@ -686,7 +767,7 @@ export default function MeseroMobileView() {
                       <p className="text-xs text-gray-500">${item.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })} c/u</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => removeItem(item.dishId)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ef444420', color: '#ef4444' }}>
+                      <button onClick={() => removeItem(item.lineId)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ef444420', color: '#ef4444' }}>
                         <Minus size={12} />
                       </button>
                       <span className="font-bold text-gray-800 w-5 text-center">{item.qty}</span>
