@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Minus, Plus, Trash2, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare } from 'lucide-react';
+import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare } from 'lucide-react';
 import { Table, OrderItem } from './POSClient';
 
 interface OrderPanelProps {
@@ -10,6 +10,7 @@ interface OrderPanelProps {
   orderItems: OrderItem[];
   onUpdateQty: (itemId: string, delta: number) => void;
   onRemoveItem: (itemId: string) => void;
+  deliveredLineIds?: Set<string>;
   subtotal: number;
   discountAmount: number;
   iva: number;
@@ -31,6 +32,7 @@ export default function OrderPanel({
   orderItems,
   onUpdateQty,
   onRemoveItem,
+  deliveredLineIds,
   subtotal,
   discountAmount,
   iva,

@@ -172,6 +172,7 @@ export default function CorteCaja() {
         .select('id, mesa, mesero, subtotal, notes, closed_at')
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
+        .eq('is_comanda', true)  // include both full order cancels and individual item cancels
         .gte('updated_at', desde)
         .order('updated_at', { ascending: false }),
     ]);

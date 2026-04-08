@@ -36,6 +36,8 @@ export interface OrderRecord {
   branch: string;
   notes?: string;
   cancelType?: 'sin_costo' | 'con_costo' | null;
+  wasteCost: number;
+  cancelledComandas: { id: string; reason: string; wasteCost: number; hasCost: boolean }[];
   kitchenStatus?: string;
 }
 
@@ -125,7 +127,7 @@ export default function OrdersTable() {
     // Base query — si hay filtro de fechas no ponemos límite; si no, cap en 500
     let query = supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
       .order('created_at', { ascending: false });
 
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');
@@ -167,6 +169,15 @@ export default function OrdersTable() {
         branch: (o as any).branch,
         notes: (o as any).notes,
         cancelType: (o as any).cancel_type ?? null,
+        wasteCost: Number((o as any).waste_cost ?? 0),
+        cancelledComandas: ((o as any).cancelled_comandas || [])
+          .filter((c: any) => c.status === 'cancelada')
+          .map((c: any) => ({
+            id: c.id,
+            reason: c.cancel_reason || 'Cancelado',
+            wasteCost: Number(c.waste_cost ?? 0),
+            hasCost: c.cancel_type === 'con_costo',
+          })),
         kitchenStatus: (o as any).kitchen_status ?? null,
       })));
     }
@@ -486,7 +497,7 @@ export default function OrdersTable() {
                 </tr>
               ) : (
                 paginated.map((order) => {
-                  const sc = statusConfig[order.status];
+                  const sc = statusConfig[order.status as OrderStatus];
                   const isSelected = selectedRows.has(order.id);
                   const isOpen = ['abierta', 'preparacion', 'lista'].includes(order.status);
                   return (
