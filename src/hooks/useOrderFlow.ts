@@ -575,6 +575,22 @@ export function useOrderFlow() {
 
     const items = (targetComanda.order_items || []) as Record<string, unknown>[];
 
+    // Calculate waste_cost for this item if it has cost
+    let wasteCost = 0;
+    if (hasCost && dishId) {
+      const { data: recipes } = await supabase.from('dish_recipes')
+        .select('quantity, ingredients(cost)')
+        .eq('dish_id', dishId);
+      if (recipes) {
+        for (const r of recipes as Record<string,unknown>[]) {
+          const ing = r.ingredients as { cost?: number } | null;
+          if (ing?.cost) wasteCost += Number(r.quantity) * Number(ing.cost);
+        }
+      }
+      // Multiply by quantity ordered
+      wasteCost *= Number(targetItem.qty ?? 1);
+    }
+
     if (items.length <= 1) {
       // Only item in this comanda — cancel the whole comanda
       await supabase.from('orders').update({
@@ -582,13 +598,27 @@ export function useOrderFlow() {
         kitchen_status: 'en_edicion',
         cancel_type: hasCost ? 'con_costo' : 'sin_costo',
         cancel_reason: `Platillo cancelado desde POS: ${dishName}`,
+        waste_cost: wasteCost,
         updated_at: now,
       }).eq('id', targetComanda.id);
     } else {
-      // Multiple items — just remove this item from the comanda
+      // Multiple items — remove this item and record partial waste on the comanda
       await supabase.from('order_items')
         .delete()
         .eq('id', String(targetItem.id));
+
+      // Update waste_cost on the comanda (add to existing if any)
+      if (hasCost && wasteCost > 0) {
+        const { data: existing } = await supabase.from('orders')
+          .select('waste_cost, cancel_type, cancel_reason')
+          .eq('id', targetComanda.id).single();
+        await supabase.from('orders').update({
+          waste_cost: Number(existing?.waste_cost ?? 0) + wasteCost,
+          cancel_type: 'con_costo',
+          cancel_reason: `${existing?.cancel_reason ? existing.cancel_reason + '; ' : ''}Cancelado: ${dishName}`,
+          updated_at: now,
+        }).eq('id', targetComanda.id);
+      }
     }
 
     return { hasCost, found: true };
