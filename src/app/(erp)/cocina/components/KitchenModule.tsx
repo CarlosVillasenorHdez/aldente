@@ -74,7 +74,7 @@ interface OrderCardProps {
   order: KitchenOrder;
   onAdvance: (id: string, next: KitchenStatus) => void;
   onDeliver: (id: string) => void;
-  onCancel: (id: string, mesa: string) => void;
+  onCancel: (id: string, mesa: string, kitchenStatus: string) => void;
   tick: number;
   isDragging: boolean;
   readyItems: Set<string>;
@@ -285,7 +285,7 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
           </button>
         )}
         <button
-          onClick={() => onCancel(order.id, order.mesa)}
+          onClick={() => onCancel(order.id, order.mesa, order.kitchenStatus)}
           className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 transition-all hover:brightness-110"
           style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
           title="Cancelar orden"
@@ -316,7 +316,7 @@ export default function KitchenModule() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<KitchenStatus | null>(null);
   const [stationFilter, setStationFilter] = useState<string>('Todas');
-  const [cancelConfirm, setCancelConfirm] = useState<{orderId:string; mesa:string} | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState<{orderId:string; mesa:string; kitchenStatus:string} | null>(null);
   const prevCountRef = useRef(0);
   const tick = useElapsedTick();
   const supabase = createClient();
@@ -531,20 +531,36 @@ export default function KitchenModule() {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
   };
 
-  const handleCancelFromKitchen = (orderId: string, mesa: string) => {
-    setCancelConfirm({ orderId, mesa });
+  const handleCancelFromKitchen = (orderId: string, mesa: string, kitchenStatus: string) => {
+    setCancelConfirm({ orderId, mesa, kitchenStatus });
   };
 
   const executeCancelFromKitchen = async () => {
     if (!cancelConfirm) return;
-    const { orderId, mesa } = cancelConfirm;
+    const { orderId, mesa, kitchenStatus } = cancelConfirm;
     setCancelConfirm(null);
+
+    // Determine cost based on kitchen status at time of cancellation
+    const hasCost = kitchenStatus === 'preparacion' || kitchenStatus === 'lista';
+    const cancelType = hasCost ? 'con_costo' : 'sin_costo';
+    const now = new Date().toISOString();
+
     const { error } = await supabase.from('orders').update({
-      status: 'cancelada', kitchen_status: 'en_edicion', updated_at: new Date().toISOString(),
+      status: 'cancelada',
+      kitchen_status: 'en_edicion',
+      cancel_type: cancelType,
+      cancel_reason: 'Cancelado desde cocina',
+      updated_at: now,
     }).eq('id', orderId);
-    if (error) { toast.error('Error al cancelar orden: ' + error.message); return; }
+
+    if (error) { toast.error('Error al cancelar: ' + error.message); return; }
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    toast.success(`Orden de ${mesa} cancelada`);
+
+    if (hasCost) {
+      toast.error(`⚠️ Merma registrada — ${mesa} (ingredientes ya utilizados)`);
+    } else {
+      toast.success(`Comanda de ${mesa} cancelada sin costo`);
+    }
   };
 
   const allCategories = React.useMemo(() => {
@@ -746,9 +762,19 @@ export default function KitchenModule() {
               style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}>
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 id="kds-cancel-title" className="text-base font-bold text-center text-white mb-2">¿Cancelar orden?</h3>
-            <p className="text-sm text-center mb-5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              La orden de <strong className="text-white">{cancelConfirm.mesa}</strong> se eliminará del tablero.
+            <h3 id="kds-cancel-title" className="text-base font-bold text-center text-white mb-2">¿Cancelar comanda?</h3>
+            {(cancelConfirm.kitchenStatus === 'preparacion' || cancelConfirm.kitchenStatus === 'lista') ? (
+              <div className="mb-4 p-3 rounded-xl text-center" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <p className="text-sm font-semibold" style={{ color: '#f87171' }}>Se registrará como merma</p>
+                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Los ingredientes ya fueron usados</p>
+              </div>
+            ) : (
+              <p className="text-sm text-center mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                Está en espera — sin costo de ingredientes
+              </p>
+            )}
+            <p className="text-sm text-center mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Comanda de <strong className="text-white">{cancelConfirm.mesa}</strong>
             </p>
             <div className="flex gap-3">
               <button onClick={() => setCancelConfirm(null)} aria-label="Mantener la orden"

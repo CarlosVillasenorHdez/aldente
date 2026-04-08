@@ -374,8 +374,12 @@ export default function MeseroMobileView() {
         updated_at: new Date().toISOString(),
       }).eq('id', selectedTable.id);
 
-      // Mark kitchen_status as 'pendiente' so the KDS picks it up
-      await sendToKitchen(orderId);
+      // Create a comanda card in KDS (is_comanda=true, FIFO queue)
+      await sendToKitchen(
+        orderId,
+        orderItems.map(i => ({ name: i.name, qty: i.qty, notes: i.notes, emoji: i.emoji })),
+        { mesa: selectedTable.name, mesero: waiter, tenantId: appUser?.tenantId ?? '' }
+      );
 
       toast.success(`Orden enviada a cocina — ${selectedTable.name}`);
       setOrderItems([]);
