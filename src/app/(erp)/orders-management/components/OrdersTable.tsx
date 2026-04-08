@@ -399,6 +399,34 @@ export default function OrdersTable() {
         </div>
       </div>
 
+      {/* Cancellation reasons breakdown — only show when there are cancellations */}
+      {(() => {
+        const allReasons: string[] = [];
+        filtered.forEach(o => {
+          (o.cancelledComandas || []).forEach((c: any) => {
+            if (c.reason) allReasons.push(c.reason);
+          });
+        });
+        if (allReasons.length === 0) return null;
+        const reasonCounts = allReasons.reduce<Record<string,number>>((acc, r) => {
+          acc[r] = (acc[r] || 0) + 1; return acc;
+        }, {});
+        const sorted = Object.entries(reasonCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+        return (
+          <div className="rounded-xl border p-4" style={{ backgroundColor: '#fff5f5', borderColor: '#fca5a5' }}>
+            <p className="text-xs font-semibold mb-3" style={{ color: '#991b1b' }}>⚠️ Razones de cancelación más frecuentes</p>
+            <div className="flex flex-wrap gap-2">
+              {sorted.map(([reason, count]) => (
+                <span key={reason} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626' }}>
+                  {reason}
+                  <span className="font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#dc2626', color: 'white', fontSize: '10px' }}>{count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="bg-white rounded-xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="relative flex-1 min-w-48">
