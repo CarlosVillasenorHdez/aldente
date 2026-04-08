@@ -45,7 +45,7 @@ export default function AdminGroupLayout({ children }: { children: React.ReactNo
       <header style={{ borderBottom: '1px solid #1e2d3d', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d1720', position: 'sticky', top: 0, zIndex: 50 }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: 'rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🛡</div>
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           <span style={{ fontWeight: 700, fontSize: '15px', color: '#f59e0b' }}>Aldente</span>
           <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginLeft: '2px' }}>admin</span>
         </div>

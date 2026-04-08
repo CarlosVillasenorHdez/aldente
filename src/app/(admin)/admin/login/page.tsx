@@ -49,11 +49,11 @@ export default function AdminLoginPage() {
     <div style={{ position: 'fixed', inset: 0, backgroundColor: '#060d18', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '16px', backgroundColor: '#1e2d3d', marginBottom: '16px' }}>
-            <ShieldCheck size={26} style={{ color: '#60a5fa' }} />
-          </div>
-          <h1 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, margin: 0 }}>Admin</h1>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Panel de Superadministrador</p>
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '12px' }} />
+          <h1 style={{ color: '#f1f5f9', fontSize: '22px', fontWeight: 700, margin: 0 }}>Aldente</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <ShieldCheck size={14} style={{ color: '#60a5fa' }} /> Panel de Superadministrador
+          </p>
         </div>
         <div style={{ backgroundColor: '#0d1b2a', border: '1px solid #1e2d3d', borderRadius: '16px', padding: '28px' }}>
           <h2 style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 600, marginBottom: '20px', marginTop: 0 }}>Iniciar sesión</h2>
