@@ -93,6 +93,7 @@ export default function POSClient() {
   const [cancelItemResult, setCancelItemResult] = useState<{name:string; hasCost:boolean} | null>(null);
   // lineIds of items that are in a lista/entregada comanda — cannot be cancelled
   const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
+
   const { branch: activeBranch } = useBranch();
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -117,6 +118,28 @@ export default function POSClient() {
   const [branchName, setBranchName] = useState('Sucursal Principal');
 
   const supabase = createClient();
+
+  // Recalculates which items are non-cancellable based on comanda status in DB
+  const refreshDeliveredItems = useCallback(async (
+    orderId: string,
+    currentItems: OrderItem[],
+  ) => {
+    const { data: cs } = await supabase.from('orders')
+      .select('id, kitchen_status, order_items(id, dish_id)')
+      .eq('parent_order_id', orderId)
+      .eq('is_comanda', true)
+      .neq('status', 'cancelada');
+    const delivered = new Set<string>();
+    (cs || []).forEach((c: any) => {
+      if (c.kitchen_status === 'lista' || c.kitchen_status === 'entregada') {
+        (c.order_items || []).forEach((ci: any) => {
+          currentItems.filter(s => s.menuItem.id === ci.dish_id)
+            .forEach(s => delivered.add(s.lineId));
+        });
+      }
+    });
+    setDeliveredLineIds(delivered);
+  }, [supabase]);
   const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, cancelItemFromKDS } = useOrderFlow();
   const { ivaPercent } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
@@ -659,27 +682,9 @@ export default function POSClient() {
         }));
         setOrderItems(synced);
         setSentItemsSnapshot(synced.map(r => ({ id: r.lineId, qty: r.quantity })));
-
-        // Check comandas to find which items are in lista/entregada
+        // Refresh which items are non-cancellable (lista/entregada comandas)
         if (selectedTable.currentOrderId) {
-          supabase.from('orders')
-            .select('id, kitchen_status, order_items(id, dish_id)')
-            .eq('parent_order_id', selectedTable.currentOrderId)
-            .eq('is_comanda', true)
-            .neq('status', 'cancelada')
-            .then(({ data: cs }) => {
-              const delivered = new Set<string>();
-              (cs || []).forEach((c: any) => {
-                if (c.kitchen_status === 'lista' || c.kitchen_status === 'entregada') {
-                  (c.order_items || []).forEach((ci: any) => {
-                    // Match comanda item to billing item by dish_id
-                    synced.filter(s => s.menuItem.id === ci.dish_id)
-                      .forEach(s => delivered.add(s.lineId));
-                  });
-                }
-              });
-              setDeliveredLineIds(delivered);
-            });
+          refreshDeliveredItems(selectedTable.currentOrderId, synced);
         }
       } else {
         setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
@@ -784,7 +789,7 @@ export default function POSClient() {
         : [selectedTable.id];
       syncOrderToTable(selectedTable.currentOrderId, groupIds, newItems, newTotal);
     }
-  }, [selectedTable, orderItems, discount, tables, syncOrderToTable, sentItemsSnapshot, kitchenSent]);
+  }, [selectedTable, orderItems, discount, tables, syncOrderToTable, sentItemsSnapshot, kitchenSent, deliveredLineIds, refreshDeliveredItems]);
 
   const handleConfirmCancelItem = useCallback(async () => {
     if (!cancelItemPending || !selectedTable?.currentOrderId) return;
