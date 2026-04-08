@@ -253,7 +253,7 @@ export function useOrderFlow() {
         items.map(item =>
           supabase
             .from('dish_recipes')
-            .select('ingredient_id, quantity, ingredients(stock, name, unit)')
+            .select('ingredient_id, quantity, ingredients(stock, name, unit, cost)')
             .eq('dish_id', item.dishId)
             .then(res => ({ item, data: res.data }))
         )
@@ -263,6 +263,7 @@ export function useOrderFlow() {
         ingredientId: string; deductQty: number;
         currentStock: number; newStock: number;
         dishName: string; dishQty: number;
+        costPerUnit: number;
       };
       const stockUpdates: StockUpdate[] = [];
 
@@ -272,7 +273,7 @@ export function useOrderFlow() {
           // Skip excluded ingredients — customer requested removal
           if (item.excludedIngredientIds?.includes(ri.ingredient_id)) continue;
 
-          const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number } | null;
+          const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number; cost?: number } | null;
           if (!ingredient) continue;
 
           // Base deduction
@@ -283,30 +284,21 @@ export function useOrderFlow() {
           if (extra) deductQty += extra.quantity * item.qty;
 
           const currentStock = Number(ingredient.stock);
+          const ingredientCost = Number(ingredient.cost ?? 0);
           stockUpdates.push({
             ingredientId: ri.ingredient_id,
             deductQty, currentStock,
             newStock: Math.max(0, currentStock - deductQty),
             dishName: item.name + (extra ? ` [extra ${extra.name}]` : ''), dishQty: item.qty,
+            costPerUnit: ingredientCost,
           });
         }
       }
 
-      // Calculate actual cost and margin for this order
-      let costActual = 0;
-      for (const u of stockUpdates) {
-        // Get ingredient cost from DB (already fetched above)
-        const recipeResult = recipeResults.find(r =>
-          r.data?.some((ri: Record<string, unknown>) => ri.ingredient_id === u.ingredientId)
-        );
-        if (recipeResult?.data) {
-          const ri = recipeResult.data.find(
-            (r: Record<string, unknown>) => r.ingredient_id === u.ingredientId
-          );
-          const ing = ri ? (ri as Record<string, unknown>)['ingredients'] as { stock: number; cost?: number } | null : null;
-          if (ing?.cost) costActual += u.deductQty * Number(ing.cost);
-        }
-      }
+      // Calculate actual cost and margin — costPerUnit already captured in stockUpdates
+      const costActual = stockUpdates.reduce(
+        (sum, u) => sum + u.deductQty * u.costPerUnit, 0
+      );
       const marginActual = total - costActual;
       const marginPct = total > 0 ? (marginActual / total) * 100 : 0;
 

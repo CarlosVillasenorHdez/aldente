@@ -345,27 +345,58 @@ export default function OrdersTable() {
   const openCount = filtered.filter((o) => ['abierta', 'preparacion', 'lista'].includes(o.status)).length;
   const isDateFiltered = !!(dateFrom || dateTo);
   const hasMoreOrders = !isDateFiltered && orders.length >= 1000;
+  const cerradasCount = filtered.filter((o) => o.status === 'cerrada').length;
   const cancelCount = filtered.filter((o) => o.status === 'cancelada').length;
-  const mermaOrders = filtered.filter((o) => o.status === 'cancelada' && o.cancelType === 'con_costo');
-  const mermaTotal = mermaOrders.reduce((s, o) => s + o.subtotal, 0);
-  const cancelSinCosto = filtered.filter((o) => o.status === 'cancelada' && o.cancelType !== 'con_costo').length;
+
+  // Merma total: órdenes canceladas con costo + platillos cancelados dentro de órdenes cerradas
+  const mermaFromCancelledOrders = filtered
+    .filter((o) => o.status === 'cancelada' && o.cancelType === 'con_costo')
+    .reduce((s, o) => s + (o.wasteCost > 0 ? o.wasteCost : o.subtotal), 0);
+  const mermaFromCancelledItems = filtered
+    .reduce((s, o) => {
+      const itemsMerma = (o.cancelledComandas || [])
+        .filter((c: any) => c.hasCost)
+        .reduce((ss: number, c: any) => ss + (c.wasteCost || 0), 0);
+      return s + itemsMerma;
+    }, 0);
+  const mermaTotal = mermaFromCancelledOrders + mermaFromCancelledItems;
+  const ordenesMerma = filtered.filter((o) =>
+    (o.status === 'cancelada' && o.cancelType === 'con_costo') ||
+    (o.cancelledComandas || []).some((c: any) => c.hasCost)
+  ).length;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Summary bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: 'Total Órdenes', value: loading ? '…' : String(filtered.length), color: '#1B3A6B', bg: '#eff6ff', border: '#bfdbfe' },
-          { label: 'Abiertas Ahora', value: loading ? '…' : String(openCount), color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-          { label: 'Ventas Cerradas', value: loading ? '…' : `$${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
-          { label: 'Canceladas s/costo', value: loading ? '…' : String(cancelSinCosto), color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb' },
-          { label: '⚠️ Merma', value: loading ? '…' : (mermaTotal > 0 ? `$${mermaTotal.toFixed(2)}` : `${mermaOrders.length} órd.`), color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl p-4 border" style={{ backgroundColor: stat.bg, borderColor: stat.border }}>
-            <p className="text-xs text-gray-500 mb-1 font-medium">{stat.label}</p>
-            <p className="font-mono font-bold text-lg" style={{ color: stat.color }}>{stat.value}</p>
-          </div>
-        ))}
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Ventas — primary */}
+        <div className="rounded-xl p-4 border md:col-span-1" style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac' }}>
+          <p className="text-xs font-medium mb-1" style={{ color: '#166534' }}>Ventas cerradas</p>
+          <p className="font-mono font-bold text-xl" style={{ color: '#16a34a' }}>
+            {loading ? '…' : `$${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
+          </p>
+          <p className="text-xs mt-1" style={{ color: '#166534' }}>{loading ? '' : `${cerradasCount} orden${cerradasCount !== 1 ? 'es' : ''}`}</p>
+        </div>
+        {/* Merma — highlighted */}
+        <div className="rounded-xl p-4 border" style={{ backgroundColor: mermaTotal > 0 ? '#fef2f2' : '#f9fafb', borderColor: mermaTotal > 0 ? '#fca5a5' : '#e5e7eb' }}>
+          <p className="text-xs font-medium mb-1" style={{ color: mermaTotal > 0 ? '#991b1b' : '#6b7280' }}>⚠️ Merma total</p>
+          <p className="font-mono font-bold text-xl" style={{ color: mermaTotal > 0 ? '#dc2626' : '#9ca3af' }}>
+            {loading ? '…' : mermaTotal > 0 ? `$${mermaTotal.toFixed(2)}` : '$0.00'}
+          </p>
+          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{loading ? '' : `${ordenesMerma} orden${ordenesMerma !== 1 ? 'es' : ''} afectadas`}</p>
+        </div>
+        {/* Abiertas */}
+        <div className="rounded-xl p-4 border" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
+          <p className="text-xs font-medium mb-1" style={{ color: '#92400e' }}>Abiertas ahora</p>
+          <p className="font-mono font-bold text-xl" style={{ color: '#d97706' }}>{loading ? '…' : openCount}</p>
+          <p className="text-xs mt-1" style={{ color: '#92400e' }}>En curso</p>
+        </div>
+        {/* Canceladas */}
+        <div className="rounded-xl p-4 border" style={{ backgroundColor: '#f9fafb', borderColor: '#e5e7eb' }}>
+          <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Canceladas</p>
+          <p className="font-mono font-bold text-xl" style={{ color: '#6b7280' }}>{loading ? '…' : cancelCount}</p>
+          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Total en el período</p>
+        </div>
       </div>
 
       {/* Filters */}
