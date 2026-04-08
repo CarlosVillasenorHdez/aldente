@@ -89,6 +89,8 @@ export default function POSClient() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [modifierPending, setModifierPending] = useState<typeof menuItems[0] | null>(null);
+  const [cancelItemPending, setCancelItemPending] = useState<{lineId:string; dishId:string; name:string; emoji:string} | null>(null);
+  const [cancelItemResult, setCancelItemResult] = useState<{name:string; hasCost:boolean} | null>(null);
   const { branch: activeBranch } = useBranch();
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -113,7 +115,7 @@ export default function POSClient() {
   const [branchName, setBranchName] = useState('Sucursal Principal');
 
   const supabase = createClient();
-  const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen } = useOrderFlow();
+  const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, cancelItemFromKDS } = useOrderFlow();
   const { ivaPercent } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
@@ -687,6 +689,17 @@ export default function POSClient() {
 
   const handleRemoveItem = useCallback(async (lineId: string) => {
     if (!selectedTable) return;
+    const item = orderItems.find(o => o.lineId === lineId);
+    if (!item) return;
+
+    // If item was already sent to kitchen → show confirmation first
+    const wasSent = sentItemsSnapshot.some(s => s.id === lineId);
+    if (wasSent && kitchenSent) {
+      setCancelItemPending({ lineId, dishId: item.menuItem.id, name: item.menuItem.name, emoji: item.menuItem.emoji ?? '🍽️' });
+      return;
+    }
+
+    // Not sent yet → remove locally only
     const newItems = orderItems.filter((o) => o.lineId !== lineId);
     setOrderItems(newItems);
 
@@ -701,7 +714,32 @@ export default function POSClient() {
         : [selectedTable.id];
       syncOrderToTable(selectedTable.currentOrderId, groupIds, newItems, newTotal);
     }
-  }, [selectedTable, orderItems, discount, tables, syncOrderToTable]);
+  }, [selectedTable, orderItems, discount, tables, syncOrderToTable, sentItemsSnapshot, kitchenSent]);
+
+  const handleConfirmCancelItem = useCallback(async () => {
+    if (!cancelItemPending || !selectedTable?.currentOrderId) return;
+    const { lineId, dishId, name } = cancelItemPending;
+    setCancelItemPending(null);
+
+    // Remove from local state and billing
+    const newItems = orderItems.filter((o) => o.lineId !== lineId);
+    setOrderItems(newItems);
+    const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const discAmt = discount.type === 'pct'
+      ? newSubtotal * (discount.value / 100) : Math.min(discount.value, newSubtotal);
+    const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+    const groupIds = selectedTable.mergeGroupId
+      ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
+      : [selectedTable.id];
+    syncOrderToTable(selectedTable.currentOrderId, groupIds, newItems, newTotal);
+    // Also update snapshot
+    setSentItemsSnapshot(prev => prev.filter(s => s.id !== lineId));
+
+    // Cancel from KDS comanda
+    const result = await cancelItemFromKDS(selectedTable.currentOrderId, dishId, name);
+    setCancelItemResult({ name, hasCost: result.hasCost });
+  }, [cancelItemPending, selectedTable, orderItems, discount, tables,
+      syncOrderToTable, cancelItemFromKDS, setSentItemsSnapshot]);
 
   // ─── Update note for a specific item ────────────────────────────────────────
   const handleUpdateNote = useCallback(async (itemId: string, note: string) => {
@@ -1034,6 +1072,57 @@ export default function POSClient() {
 
       {/* Spacer so content doesn't hide behind mobile tab bar */}
       <div className="h-14 md:hidden flex-shrink-0" />
+
+      {/* Cancel item confirmation */}
+      {cancelItemPending && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background:'#1a1a2e', border:'1px solid rgba(239,68,68,0.35)', borderRadius:'20px', padding:'28px 24px', maxWidth:'360px', width:'100%', textAlign:'center' }}>
+            <div style={{ fontSize:'40px', marginBottom:'12px' }}>🗑️</div>
+            <h3 style={{ color:'#f1f5f9', fontSize:'17px', fontWeight:700, marginBottom:'8px' }}>
+              ¿Cancelar platillo?
+            </h3>
+            <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'14px', marginBottom:'6px' }}>
+              {cancelItemPending.emoji} {cancelItemPending.name}
+            </p>
+            <p style={{ color:'#f87171', fontSize:'13px', marginBottom:'24px', lineHeight:1.5 }}>
+              Este platillo ya fue enviado a cocina. Si está en preparación, se registrará como merma.
+            </p>
+            <div style={{ display:'flex', gap:'10px' }}>
+              <button
+                onClick={() => setCancelItemPending(null)}
+                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'1px solid rgba(255,255,255,0.15)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'14px', cursor:'pointer' }}>
+                Mantener
+              </button>
+              <button
+                onClick={handleConfirmCancelItem}
+                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'none', background:'#dc2626', color:'white', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                Sí, cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel item result */}
+      {cancelItemResult && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background: cancelItemResult.hasCost ? '#1a0f0f' : '#0f1a10', border:`1px solid ${cancelItemResult.hasCost ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}`, borderRadius:'20px', padding:'28px 24px', maxWidth:'340px', width:'100%', textAlign:'center' }}>
+            <div style={{ fontSize:'40px', marginBottom:'12px' }}>{cancelItemResult.hasCost ? '⚠️' : '✅'}</div>
+            <h3 style={{ color:'#f1f5f9', fontSize:'16px', fontWeight:700, marginBottom:'8px' }}>
+              {cancelItemResult.hasCost ? 'Merma registrada' : 'Platillo cancelado'}
+            </h3>
+            <p style={{ color:'rgba(255,255,255,0.6)', fontSize:'14px', marginBottom:'20px' }}>
+              {cancelItemResult.name} fue retirado del kanban de cocina.
+              {cancelItemResult.hasCost && ' Los ingredientes ya utilizados se registraron como merma.'}
+            </p>
+            <button
+              onClick={() => setCancelItemResult(null)}
+              style={{ width:'100%', padding:'12px', borderRadius:'11px', border:'none', background: cancelItemResult.hasCost ? '#dc2626' : '#16a34a', color:'white', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {modifierPending && (
         <ModifierModal
