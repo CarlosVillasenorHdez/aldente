@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -62,6 +63,7 @@ const emptyForm = {
 
 export default function ReservacionesManagement() {
   const supabase = createClient();
+  const router = useRouter();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,6 +229,18 @@ export default function ReservacionesManagement() {
     if (error) { toast.error('Error: ' + error.message); return; }
     toast.success('Estado actualizado');
     loadData();
+  };
+
+  const handleSeatGuest = async (r: Reservation) => {
+    await supabase.from('reservations').update({ status: 'completada', updated_at: new Date().toISOString() }).eq('id', r.id);
+    if (r.tableId) {
+      await supabase.from('restaurant_tables').update({
+        status: 'ocupada', waiter: r.guestName, updated_at: new Date().toISOString()
+      }).eq('id', r.tableId);
+    }
+    toast.success(`${r.guestName} sentado — abriendo POS...`);
+    loadData();
+    setTimeout(() => router.push('/pos-punto-de-venta'), 800);
   };
 
   const handleEdit = (r: Reservation) => {
@@ -424,7 +438,7 @@ export default function ReservacionesManagement() {
               ) : (
                 <div className="space-y-2">
                   {getReservationsForDate(selectedDate).map(r => (
-                    <ReservationCard key={r.id} reservation={r} tables={tables} onEdit={handleEdit} onStatusChange={handleStatusChange} />
+                    <ReservationCard key={r.id} reservation={r as Reservation} tables={tables as RestaurantTable[]} onEdit={handleEdit} onStatusChange={handleStatusChange} onSeat={handleSeatGuest} />
                   ))}
                 </div>
               )}
@@ -443,7 +457,7 @@ export default function ReservacionesManagement() {
             </div>
           ) : (
             reservations.map(r => (
-              <ReservationCard key={r.id} reservation={r} tables={tables} onEdit={handleEdit} onStatusChange={handleStatusChange} />
+              <ReservationCard key={r.id} reservation={r as Reservation} tables={tables as RestaurantTable[]} onEdit={handleEdit} onStatusChange={handleStatusChange} onSeat={handleSeatGuest} />
             ))
           )}
         </div>
@@ -452,11 +466,13 @@ export default function ReservacionesManagement() {
   );
 }
 
-function ReservationCard({ reservation: r, tables, onEdit, onStatusChange }: {
+function ReservationCard({ reservation: r, tables, onEdit, onStatusChange, onSeat }: {
   reservation: Reservation;
   tables: RestaurantTable[];
   onEdit: (r: Reservation) => void;
-  onStatusChange: (id: string, status: string) => void;
+  onStatusChange: (id: string, status: string) => Promise<void> | void;
+  onSeat: (r: Reservation) => Promise<void> | void;
+  [key: string]: unknown;
 }) {
   const table = tables.find(t => t.id === r.tableId);
   return (
@@ -481,7 +497,17 @@ function ReservationCard({ reservation: r, tables, onEdit, onStatusChange }: {
         </div>
         {r.notes && <p className="text-xs text-gray-400 mt-1 truncate">{r.notes}</p>}
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+        {(r.status === 'confirmada' || r.status === 'pendiente') && (
+          <button
+            onClick={() => onSeat(r)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors active:scale-95"
+            style={{ backgroundColor: '#16a34a' }}
+            title="Sentar al cliente y abrir POS"
+          >
+            <Users size={12} /> Sentar
+          </button>
+        )}
         <select
           value={r.status}
           onChange={e => onStatusChange(r.id, e.target.value)}
