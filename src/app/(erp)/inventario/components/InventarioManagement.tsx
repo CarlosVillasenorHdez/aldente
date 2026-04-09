@@ -179,6 +179,8 @@ export default function InventarioManagement() {
   const [movementForm, setMovementForm] = useState(emptyMovementForm());
   const [movInputMode, setMovInputMode] = useState<'direct'|'purchase'>('direct');
   const [movPurchaseQty, setMovPurchaseQty] = useState(1);
+  const [ingSearch, setIngSearch] = useState('');
+  const [ingDropOpen, setIngDropOpen] = useState(false);
   const [historyIngredientId, setHistoryIngredientId] = useState<string | null>(null);
   // Equivalences state
   const [equivModalOpen, setEquivModalOpen] = useState(false);
@@ -436,6 +438,8 @@ export default function InventarioManagement() {
     setMovementForm(emptyMovementForm());
     setMovInputMode('direct');
     setMovPurchaseQty(1);
+    setIngSearch('');
+    setIngDropOpen(false);
     await fetchIngredients();
     if (activeTab === 'movimientos') await fetchMovements();
   }
@@ -538,7 +542,6 @@ export default function InventarioManagement() {
           { key: 'inventario', label: 'Inventario', icon: <Package size={14} /> },
           { key: 'movimientos', label: 'Historial de Movimientos', icon: <History size={14} /> },
           { key: 'alertas', label: `Alertas (${lowStockItems.length + reorderItems.length})`, icon: <Bell size={14} /> },
-          { key: 'equivalencias', label: 'Equivalencias', icon: <Scale size={14} /> },
           { key: 'analisis', label: 'Análisis de Desperdicio', icon: <BarChart2 size={14} /> },
           { key: 'pronostico', label: 'Pronóstico 7 días', icon: <TrendingUp size={14} /> },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
@@ -1223,19 +1226,60 @@ export default function InventarioManagement() {
                   ))}
                 </div>
               </div>
-              {/* Ingrediente */}
-              <div>
+              {/* Ingrediente — buscador */}
+              <div style={{ position: 'relative' }}>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Ingrediente *</label>
-                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={movementForm.ingredientId} onChange={e => setMovementForm(p => ({ ...p, ingredientId: e.target.value }))}>
-                  <option value="" style={{ backgroundColor: '#162d55' }}>Seleccionar ingrediente...</option>
-                  {ingredients.map(i => (
-                    <option key={i.id} value={i.id} style={{ backgroundColor: '#162d55' }}>
-                      {i.name} — {i.stock} {i.unit} disponibles
-                    </option>
-                  ))}
-                </select>
+                {movementForm.ingredientId && !ingDropOpen ? (
+                  <button type="button"
+                    onClick={() => { setIngDropOpen(true); setIngSearch(''); }}
+                    className="w-full px-3 py-2 rounded-lg text-sm text-white text-left outline-none flex items-center justify-between"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(245,158,11,0.4)' }}>
+                    <span>
+                      {ingredients.find(i => i.id === movementForm.ingredientId)?.name}
+                      <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: '8px', fontSize: '12px' }}>
+                        ({ingredients.find(i => i.id === movementForm.ingredientId)?.stock} {ingredients.find(i => i.id === movementForm.ingredientId)?.unit})
+                      </span>
+                    </span>
+                    <span style={{ color: '#f59e0b', fontSize: '11px' }}>cambiar</span>
+                  </button>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      autoFocus={ingDropOpen}
+                      placeholder="Buscar ingrediente..."
+                      value={ingSearch}
+                      onChange={e => { setIngSearch(e.target.value); setIngDropOpen(true); }}
+                      onFocus={() => setIngDropOpen(true)}
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.3)' }}
+                    />
+                    {ingDropOpen && (
+                      <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 50, maxHeight: '220px', overflowY: 'auto', backgroundColor: '#0f1f3d', border: '1px solid #243f72', borderRadius: '10px', marginTop: '4px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                        {ingredients
+                          .filter(i => i.name.toLowerCase().includes(ingSearch.toLowerCase()) ||
+                                       i.category.toLowerCase().includes(ingSearch.toLowerCase()) ||
+                                       i.supplier?.toLowerCase().includes(ingSearch.toLowerCase()))
+                          .slice(0, 20)
+                          .map(i => (
+                            <button type="button" key={i.id}
+                              onClick={() => { setMovementForm(p => ({ ...p, ingredientId: i.id })); setIngDropOpen(false); setIngSearch(''); setMovInputMode('direct'); setMovPurchaseQty(1); }}
+                              className="w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10"
+                              style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontWeight: 500 }}>{i.name}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
+                                {i.stock} {i.unit} · {i.category}
+                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQtyPerUnit ?? 1))} ${i.purchaseUnit}` : ''}
+                              </span>
+                            </button>
+                          ))}
+                        {ingredients.filter(i => i.name.toLowerCase().includes(ingSearch.toLowerCase())).length === 0 && (
+                          <p style={{ color: 'rgba(255,255,255,0.4)', padding: '12px', fontSize: '13px', textAlign: 'center' }}>Sin resultados para "{ingSearch}"</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {/* Cantidad — con toggle de presentación para entradas */}
               <div>

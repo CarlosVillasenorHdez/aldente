@@ -717,14 +717,177 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 
 // ─── Dish Form Modal ──────────────────────────────────────────────────────────
 
+
+// ─── Inline Recipe Editor (used in wizard step 2) ────────────────────────────
+function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate: (dishId: string, newPrice: number) => void }) {
+  const supabase = createClient();
+  const [recipe, setRecipe] = useState<RecipeItem[]>([]);
+  const [allIngredients, setAllIngredients] = useState<{ id: string; name: string; unit: string; category: string; cost: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [selectedIngId, setSelectedIngId] = useState('');
+  const [addQty, setAddQty] = useState(0);
+  const [ingSearch, setIngSearch] = useState('');
+  const [ingDropOpen, setIngDropOpen] = useState(false);
+  const [simulatorPrice, setSimulatorPrice] = useState(dish.price);
+
+  useEffect(() => {
+    setLoading(true);
+    supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
+      if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
+      setLoading(false);
+    });
+  }, []);
+
+  const totalIngCost = recipe.reduce((s, r) => s + (r.costPerUnit ?? 0) * r.quantity, 0);
+  const margin = simulatorPrice > 0 ? ((simulatorPrice - totalIngCost) / simulatorPrice) * 100 : 0;
+  const selectedIng = allIngredients.find(i => i.id === selectedIngId);
+  const availableIngs = allIngredients.filter(i => !recipe.find(r => r.ingredientId === i.id));
+  const filtered = availableIngs.filter(i => i.name.toLowerCase().includes(ingSearch.toLowerCase()) || i.category.toLowerCase().includes(ingSearch.toLowerCase()));
+
+  const handleAdd = async () => {
+    if (!selectedIngId || addQty <= 0) return;
+    setSaving(true);
+    const { error } = await supabase.from('dish_recipes').insert({
+      dish_id: dish.id, ingredient_id: selectedIngId, quantity: addQty, unit: selectedIng?.unit ?? '', notes: '',
+    });
+    if (!error) {
+      setRecipe(prev => [...prev, {
+        id: Date.now().toString(), ingredientId: selectedIngId,
+        ingredientName: selectedIng?.name ?? '', isRequired: false,
+        quantity: addQty, unit: selectedIng?.unit ?? '',
+        notes: '', costPerUnit: selectedIng?.cost ?? 0,
+      }]);
+      setSelectedIngId(''); setAddQty(0); setIngSearch(''); setIngDropOpen(false);
+    }
+    setSaving(false);
+  };
+
+  const handleRemove = async (recipeId: string) => {
+    await supabase.from('dish_recipes').delete().eq('id', recipeId);
+    setRecipe(prev => prev.filter(r => r.id !== recipeId));
+  };
+
+  const handlePriceUpdate = async () => {
+    await supabase.from('dishes').update({ price: simulatorPrice, updated_at: new Date().toISOString() }).eq('id', dish.id);
+    onPriceUpdate(dish.id, simulatorPrice);
+  };
+
+  if (loading) return <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Cargando ingredientes...</div>;
+
+  return (
+    <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Price + margin simulator */}
+      <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+        <p style={{ fontSize: '11px', fontWeight: 600, color: '#f59e0b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>💰 Precio y margen</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '120px' }}>
+            <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>Precio de venta ($)</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input type="number" min={0} step={0.5} value={simulatorPrice || ''}
+                onChange={e => setSimulatorPrice(parseFloat(e.target.value) || 0)}
+                style={{ flex: 1, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '6px 10px', color: 'white', fontSize: '14px', fontWeight: 600 }} />
+              <button onClick={handlePriceUpdate} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: '#1B3A6B', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                Guardar
+              </button>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Costo ingredientes</p>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: '#f87171' }}>${totalIngCost.toFixed(2)}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Margen bruto</p>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: margin >= 60 ? '#4ade80' : margin >= 40 ? '#f59e0b' : '#f87171' }}>{margin.toFixed(1)}%</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Add ingredient */}
+      <div>
+        <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agregar ingrediente</p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ flex: 2, position: 'relative' }}>
+            {selectedIngId && !ingDropOpen ? (
+              <button onClick={() => { setIngDropOpen(true); setIngSearch(''); }}
+                style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', color: 'white', textAlign: 'left', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}>
+                <span>{selectedIng?.name}</span>
+                <span style={{ color: '#f59e0b', fontSize: '11px' }}>cambiar</span>
+              </button>
+            ) : (
+              <>
+                <input type="text" placeholder="Buscar ingrediente..." value={ingSearch}
+                  onChange={e => { setIngSearch(e.target.value); setIngDropOpen(true); }}
+                  onFocus={() => setIngDropOpen(true)}
+                  style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                {ingDropOpen && (
+                  <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 100, maxHeight: '180px', overflowY: 'auto', background: '#0f1f3d', border: '1px solid #243f72', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                    {filtered.slice(0, 15).map(i => (
+                      <button key={i.id} onClick={() => { setSelectedIngId(i.id); setIngDropOpen(false); setIngSearch(''); }}
+                        style={{ width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', color: 'white', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{i.name}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>${i.cost.toFixed(2)}/{i.unit}</span>
+                      </button>
+                    ))}
+                    {filtered.length === 0 && <p style={{ padding: '10px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', textAlign: 'center' }}>Sin resultados</p>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>
+              Cantidad {selectedIng ? `(${selectedIng.unit})` : ''}
+              {selectedIng && addQty > 0 && <span style={{ color: '#f59e0b', marginLeft: '4px' }}>${(selectedIng.cost * addQty).toFixed(2)}</span>}
+            </label>
+            <input type="number" min={0} step={0.1} value={addQty || ''} onChange={e => setAddQty(parseFloat(e.target.value) || 0)}
+              style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <button onClick={handleAdd} disabled={saving || !selectedIngId || addQty <= 0}
+            style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: selectedIngId && addQty > 0 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: selectedIngId && addQty > 0 ? '#1B3A6B' : 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      {/* Recipe list */}
+      {recipe.length > 0 ? (
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ingredientes ({recipe.length})</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {recipe.map(r => (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ color: 'white', fontSize: '13px', fontWeight: 500 }}>{r.ingredientName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>{r.quantity} {r.unit}</span>
+                  <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace' }}>${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}</span>
+                  <button onClick={() => handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', padding: '2px' }}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '16px 0' }}>
+          Sin ingredientes aún. Agrega ingredientes para calcular el costo y margen.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (data: Omit<Dish, 'id'>) => void; onClose: () => void }) {
+  const supabase = createClient();
   const isEdit = dish !== null;
+  const [step, setStep] = useState<1|2>(1); // 1=dish info, 2=recipe
+  const [savedDish, setSavedDish] = useState<Dish | null>(null); // dish after step 1
   const [form, setForm] = useState<Omit<Dish, 'id'>>(
     dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15 }
       : emptyForm()
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Omit<Dish, 'id'>, string>>>({});
   const [imagePreview, setImagePreview] = useState<string | null>(dish?.image ?? null);
+  const [savingStep1, setSavingStep1] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) => {
@@ -753,10 +916,35 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
     return Object.keys(errs).length === 0;
   };
 
+  const handleStep1 = async () => {
+    if (!validate()) return;
+    if (isEdit) {
+      // For edits: just save and close (no wizard)
+      onSave(form);
+      return;
+    }
+    // For new dishes: save to DB, then go to step 2 (recipe)
+    setSavingStep1(true);
+    try {
+      const { data, error } = await supabase.from('dishes').insert({
+        name: form.name, description: form.description, price: form.price,
+        category: form.category, available: form.available, image: form.image,
+        image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
+        preparation_time_min: (form as any).preparationTimeMin ?? 15,
+      }).select().single();
+      if (error) throw error;
+      setSavedDish(data as Dish);
+      setStep(2);
+    } catch (err: any) {
+      alert('Error al guardar platillo: ' + (err?.message ?? 'Intenta de nuevo'));
+    } finally {
+      setSavingStep1(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-    onSave(form);
+    handleStep1();
   };
 
   return (
@@ -764,11 +952,30 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
-          <div>
-            <h2 className="font-bold text-white text-lg">{isEdit ? 'Editar platillo' : 'Agregar platillo'}</h2>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{isEdit ? `Modificando: ${dish.name}` : 'Nuevo platillo al menú'}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="font-bold text-white text-lg">
+                {isEdit ? 'Editar platillo' : step === 1 ? 'Nuevo platillo' : `Receta: ${savedDish?.name ?? form.name}`}
+              </h2>
+            </div>
+            {!isEdit && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ backgroundColor: step >= 1 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: step >= 1 ? '#1B3A6B' : 'rgba(255,255,255,0.4)' }}>1</div>
+                  <span className="text-xs font-medium" style={{ color: step === 1 ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>Información</span>
+                </div>
+                <div className="w-8 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ backgroundColor: step >= 2 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: step >= 2 ? '#1B3A6B' : 'rgba(255,255,255,0.4)' }}>2</div>
+                  <span className="text-xs font-medium" style={{ color: step === 2 ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>Receta y precio</span>
+                </div>
+              </div>
+            )}
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <button onClick={step === 2 ? () => { onSave(form); onClose(); } : onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
             <X size={16} />
           </button>
         </div>
@@ -851,11 +1058,35 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
             </button>
           </div>
         </form>
+
+        {/* ── STEP 2: Inline Recipe Editor ── */}
+        {step === 2 && savedDish && (
+          <div className="flex-1 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+            <InlineRecipeEditor dish={savedDish} onPriceUpdate={(_, newPrice) => {
+              setSavedDish(prev => prev ? { ...prev, price: newPrice } : prev);
+              setForm(prev => ({ ...prev, price: newPrice }));
+            }} />
+          </div>
+        )}
+
         <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#243f72' }}>
-          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>
-          <button type="button" onClick={handleSubmit} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-            {isEdit ? 'Guardar cambios' : 'Agregar platillo'}
-          </button>
+          {step === 1 ? (
+            <>
+              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>
+              <button type="button" onClick={() => handleStep1()} disabled={savingStep1} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
+                {savingStep1 ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Continuar → Receta'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>
+                Terminar sin receta
+              </button>
+              <button type="button" onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2" style={{ backgroundColor: '#10b981', color: 'white' }}>
+                ✓ Listo — guardar platillo
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -987,32 +1218,29 @@ export default function MenuManagement() {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (data: Omit<Dish, 'id'>) => {
+    // For new dishes: the wizard already inserted in step 1 — just refresh
+    if (!editingDish) {
+      setFormOpen(false);
+      setEditingDish(null);
+      await fetchDishes();
+      return;
+    }
+    // For edits: update the existing dish
     setSaving(true);
     try {
-      if (editingDish) {
-        const { error } = await supabase.from('dishes').update({
-          name: data.name, description: data.description, price: data.price,
-          category: data.category, available: data.available, image: data.image,
-          image_alt: data.imageAlt, emoji: data.emoji, popular: data.popular,
-          preparation_time_min: (data as any).preparationTimeMin ?? 15,
-          updated_at: new Date().toISOString(),
-        }).eq('id', editingDish.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('dishes').insert({
-          name: data.name, description: data.description, price: data.price,
-          category: data.category, available: data.available, image: data.image,
-          image_alt: data.imageAlt, emoji: data.emoji, popular: data.popular,
-          preparation_time_min: (data as any).preparationTimeMin ?? 15,
-        });
-        if (error) throw error;
-      }
+      const { error } = await supabase.from('dishes').update({
+        name: data.name, description: data.description, price: data.price,
+        category: data.category, available: data.available, image: data.image,
+        image_alt: data.imageAlt, emoji: data.emoji, popular: data.popular,
+        preparation_time_min: (data as any).preparationTimeMin ?? 15,
+        updated_at: new Date().toISOString(),
+      }).eq('id', editingDish.id);
+      if (error) throw error;
       setFormOpen(false);
       setEditingDish(null);
       await fetchDishes();
     } catch (err: any) {
-      const action = editingDish ? 'actualizar' : 'agregar';
-      alert(`Error al ${action} platillo: ${err?.message ?? 'Intenta de nuevo'}`);
+      alert('Error al actualizar platillo: ' + (err?.message ?? 'Intenta de nuevo'));
     } finally {
       setSaving(false);
     }
