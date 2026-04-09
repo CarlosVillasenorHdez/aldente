@@ -719,8 +719,8 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 // ─── Dish Form Modal ──────────────────────────────────────────────────────────
 
 
-// ─── Inline Recipe Editor (used in wizard step 2) ────────────────────────────
-function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate: (dishId: string, newPrice: number) => void }) {
+// ─── Inline Recipe Editor (wizard step 2) ────────────────────────────────────
+function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPrice: number) => void }) {
   const supabase = createClient();
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
   const [allIngredients, setAllIngredients] = useState<{ id: string; name: string; unit: string; category: string; cost: number }[]>([]);
@@ -730,10 +730,10 @@ function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate
   const [addQty, setAddQty] = useState(0);
   const [ingSearch, setIngSearch] = useState('');
   const [ingDropOpen, setIngDropOpen] = useState(false);
-  const [simulatorPrice, setSimulatorPrice] = useState(dish.price);
+  const [finalPrice, setFinalPrice] = useState(dish.price || 0);
+  const [targetMargin, setTargetMargin] = useState(65); // % default target
 
   useEffect(() => {
-    setLoading(true);
     supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       setLoading(false);
@@ -741,10 +741,15 @@ function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate
   }, []);
 
   const totalIngCost = recipe.reduce((s, r) => s + (r.costPerUnit ?? 0) * r.quantity, 0);
-  const margin = simulatorPrice > 0 ? ((simulatorPrice - totalIngCost) / simulatorPrice) * 100 : 0;
+  // Suggested price based on target margin: price = cost / (1 - margin%)
+  const suggestedPrice = totalIngCost > 0 ? Math.ceil(totalIngCost / (1 - targetMargin / 100)) : 0;
+  const actualMargin = finalPrice > 0 ? ((finalPrice - totalIngCost) / finalPrice) * 100 : 0;
   const selectedIng = allIngredients.find(i => i.id === selectedIngId);
   const availableIngs = allIngredients.filter(i => !recipe.find(r => r.ingredientId === i.id));
-  const filtered = availableIngs.filter(i => i.name.toLowerCase().includes(ingSearch.toLowerCase()) || i.category.toLowerCase().includes(ingSearch.toLowerCase()));
+  const filteredIngs = availableIngs.filter(i =>
+    i.name.toLowerCase().includes(ingSearch.toLowerCase()) ||
+    i.category.toLowerCase().includes(ingSearch.toLowerCase())
+  );
 
   const handleAdd = async () => {
     if (!selectedIngId || addQty <= 0) return;
@@ -769,119 +774,167 @@ function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate
     setRecipe(prev => prev.filter(r => r.id !== recipeId));
   };
 
-  const handlePriceUpdate = async () => {
-    await supabase.from('dishes').update({ price: simulatorPrice, updated_at: new Date().toISOString() }).eq('id', dish.id);
-    onPriceUpdate(dish.id, simulatorPrice);
-  };
+  const marginColor = actualMargin >= 65 ? '#4ade80' : actualMargin >= 50 ? '#f59e0b' : '#f87171';
 
-  if (loading) return <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Cargando ingredientes...</div>;
+  if (loading) return <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>Cargando...</div>;
 
   return (
-    <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Price + margin simulator */}
-      <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: '#f59e0b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>💰 Precio y margen</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '120px' }}>
-            <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>Precio de venta ($)</label>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input type="number" min={0} step={0.5} value={simulatorPrice || ''}
-                onChange={e => setSimulatorPrice(parseFloat(e.target.value) || 0)}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '6px 10px', color: 'white', fontSize: '14px', fontWeight: 600 }} />
-              <button onClick={handlePriceUpdate} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: '#1B3A6B', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                Guardar
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, minHeight: '420px' }}>
+        {/* LEFT: Add ingredients */}
+        <div style={{ padding: '20px 24px', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '14px' }}>Ingredientes de la receta</p>
+
+          {/* Search + add */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ position: 'relative', marginBottom: '8px' }}>
+              {selectedIngId && !ingDropOpen ? (
+                <button onClick={() => { setIngDropOpen(true); setIngSearch(''); }}
+                  style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '10px', color: 'white', textAlign: 'left', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 500 }}>{selectedIng?.name}</span>
+                  <span style={{ color: '#f59e0b', fontSize: '11px' }}>cambiar ✎</span>
+                </button>
+              ) : (
+                <>
+                  <input type="text" placeholder="🔍 Buscar ingrediente..." value={ingSearch}
+                    onChange={e => { setIngSearch(e.target.value); setIngDropOpen(true); }}
+                    onFocus={() => setIngDropOpen(true)}
+                    style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                  {ingDropOpen && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 100, maxHeight: '200px', overflowY: 'auto', background: '#0d1d38', border: '1px solid #243f72', borderRadius: '10px', marginTop: '4px', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+                      {filteredIngs.slice(0, 20).map(i => (
+                        <button key={i.id} onClick={() => { setSelectedIngId(i.id); setIngDropOpen(false); setIngSearch(''); }}
+                          style={{ width: '100%', padding: '9px 14px', textAlign: 'left', border: 'none', background: 'none', color: 'white', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{i.name} <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>({i.category})</span></span>
+                          <span style={{ color: '#f59e0b', fontSize: '12px', fontFamily: 'monospace' }}>${i.cost.toFixed(2)}/{i.unit}</span>
+                        </button>
+                      ))}
+                      {filteredIngs.length === 0 && <p style={{ padding: '12px', color: 'rgba(255,255,255,0.35)', fontSize: '12px', textAlign: 'center' }}>Sin resultados</p>}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '4px' }}>
+                  Cantidad {selectedIng ? `(${selectedIng.unit})` : ''}
+                  {selectedIng && addQty > 0 && <span style={{ color: '#f59e0b', marginLeft: '6px' }}> = ${(selectedIng.cost * addQty).toFixed(2)}</span>}
+                </label>
+                <input type="number" min={0} step={0.01} value={addQty || ''} onChange={e => setAddQty(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00" style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '9px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <button onClick={handleAdd} disabled={saving || !selectedIngId || addQty <= 0}
+                style={{ padding: '8px 16px', borderRadius: '9px', border: 'none', background: selectedIngId && addQty > 0 ? '#f59e0b' : 'rgba(255,255,255,0.08)', color: selectedIngId && addQty > 0 ? '#1B3A6B' : 'rgba(255,255,255,0.25)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                + Agregar
               </button>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Costo ingredientes</p>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: '#f87171' }}>${totalIngCost.toFixed(2)}</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Margen bruto</p>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: margin >= 60 ? '#4ade80' : margin >= 40 ? '#f59e0b' : '#f87171' }}>{margin.toFixed(1)}%</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Add ingredient */}
-      <div>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agregar ingrediente</p>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 2, position: 'relative' }}>
-            {selectedIngId && !ingDropOpen ? (
-              <button onClick={() => { setIngDropOpen(true); setIngSearch(''); }}
-                style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', color: 'white', textAlign: 'left', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{selectedIng?.name}</span>
-                <span style={{ color: '#f59e0b', fontSize: '11px' }}>cambiar</span>
-              </button>
-            ) : (
-              <>
-                <input type="text" placeholder="Buscar ingrediente..." value={ingSearch}
-                  onChange={e => { setIngSearch(e.target.value); setIngDropOpen(true); }}
-                  onFocus={() => setIngDropOpen(true)}
-                  style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-                {ingDropOpen && (
-                  <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 100, maxHeight: '180px', overflowY: 'auto', background: '#0f1f3d', border: '1px solid #243f72', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                    {filtered.slice(0, 15).map(i => (
-                      <button key={i.id} onClick={() => { setSelectedIngId(i.id); setIngDropOpen(false); setIngSearch(''); }}
-                        style={{ width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', color: 'white', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>{i.name}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>${i.cost.toFixed(2)}/{i.unit}</span>
-                      </button>
-                    ))}
-                    {filtered.length === 0 && <p style={{ padding: '10px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', textAlign: 'center' }}>Sin resultados</p>}
+          {/* Recipe list */}
+          {recipe.length === 0 ? (
+            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>
+              Sin ingredientes. Agrégalos para calcular el costo y precio sugerido.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '220px', overflowY: 'auto' }}>
+              {recipe.map(r => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div>
+                    <span style={{ color: 'white', fontSize: '13px', fontWeight: 500 }}>{r.ingredientName}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginLeft: '8px' }}>{r.quantity} {r.unit}</span>
                   </div>
-                )}
-              </>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace', fontWeight: 600 }}>
+                      ${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}
+                    </span>
+                    <button onClick={() => handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}>✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Cost summary + price calculator */}
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '-4px' }}>Costo y precio sugerido</p>
+
+          {/* Cost breakdown */}
+          <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '10px', padding: '14px' }}>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '6px' }}>Costo total de ingredientes</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: '#f87171', fontFamily: 'monospace' }}>
+              ${totalIngCost.toFixed(2)}
+            </p>
+            {recipe.length > 0 && <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>{recipe.length} ingrediente{recipe.length !== 1 ? 's' : ''}</p>}
+          </div>
+
+          {/* Target margin slider */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Margen objetivo</label>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#f59e0b' }}>{targetMargin}%</span>
+            </div>
+            <input type="range" min={20} max={85} step={5} value={targetMargin} onChange={e => setTargetMargin(Number(e.target.value))}
+              style={{ width: '100%', accentColor: '#f59e0b' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '2px' }}>
+              <span>20% (bajo)</span><span>65% (ideal)</span><span>85% (premium)</span>
+            </div>
+          </div>
+
+          {/* Suggested price */}
+          {suggestedPrice > 0 && (
+            <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>Precio sugerido ({targetMargin}% margen)</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <p style={{ fontSize: '22px', fontWeight: 700, color: '#4ade80', fontFamily: 'monospace' }}>${suggestedPrice}</p>
+                <button onClick={() => setFinalPrice(suggestedPrice)}
+                  style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: 'rgba(74,222,128,0.15)', color: '#4ade80', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                  Usar este
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Final price input */}
+          <div>
+            <label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>Precio final del platillo ($) *</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', fontSize: '15px' }}>$</span>
+              <input type="number" min={0} step={0.5} value={finalPrice || ''} onChange={e => setFinalPrice(parseFloat(e.target.value) || 0)} placeholder="0.00"
+                style={{ width: '100%', padding: '11px 12px 11px 26px', background: 'rgba(255,255,255,0.07)', border: `1.5px solid ${finalPrice > 0 ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.12)'}`, borderRadius: '10px', color: 'white', fontSize: '20px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            {finalPrice > 0 && totalIngCost > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Margen bruto real</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: marginColor }}>{actualMargin.toFixed(1)}%</span>
+              </div>
             )}
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>
-              Cantidad {selectedIng ? `(${selectedIng.unit})` : ''}
-              {selectedIng && addQty > 0 && <span style={{ color: '#f59e0b', marginLeft: '4px' }}>${(selectedIng.cost * addQty).toFixed(2)}</span>}
-            </label>
-            <input type="number" min={0} step={0.1} value={addQty || ''} onChange={e => setAddQty(parseFloat(e.target.value) || 0)}
-              style={{ width: '100%', padding: '8px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-          <button onClick={handleAdd} disabled={saving || !selectedIngId || addQty <= 0}
-            style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: selectedIngId && addQty > 0 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: selectedIngId && addQty > 0 ? '#1B3A6B' : 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-            + Agregar
-          </button>
         </div>
       </div>
 
-      {/* Recipe list */}
-      {recipe.length > 0 ? (
-        <div>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ingredientes ({recipe.length})</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {recipe.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ color: 'white', fontSize: '13px', fontWeight: 500 }}>{r.ingredientName}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>{r.quantity} {r.unit}</span>
-                  <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace' }}>${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}</span>
-                  <button onClick={() => r.id && handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', padding: '2px' }}>✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '16px 0' }}>
-          Sin ingredientes aún. Agrega ingredientes para calcular el costo y margen.
-        </p>
-      )}
+      {/* Footer */}
+      <div style={{ display: 'flex', gap: '12px', padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+        <button onClick={() => onFinish(0)} style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          Sin precio ahora
+        </button>
+        <button onClick={() => onFinish(finalPrice)} disabled={finalPrice <= 0}
+          style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: finalPrice > 0 ? '#10b981' : 'rgba(255,255,255,0.08)', color: finalPrice > 0 ? 'white' : 'rgba(255,255,255,0.25)', fontSize: '14px', fontWeight: 700, cursor: finalPrice > 0 ? 'pointer' : 'not-allowed' }}>
+          ✓ Guardar platillo con precio ${finalPrice > 0 ? finalPrice.toFixed(2) : '—'}
+          {finalPrice > 0 && actualMargin > 0 && <span style={{ opacity: 0.75, marginLeft: '8px', fontSize: '12px' }}>({actualMargin.toFixed(1)}% margen)</span>}
+        </button>
+      </div>
     </div>
   );
 }
 
+
 function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (data: Omit<Dish, 'id'>) => void; onClose: () => void }) {
   const supabase = createClient();
   const isEdit = dish !== null;
-  const [step, setStep] = useState<1|2>(1); // 1=dish info, 2=recipe
-  const [savedDish, setSavedDish] = useState<Dish | null>(null); // dish after step 1
+  const [step, setStep] = useState<1|2>(1);
+  const [savedDish, setSavedDish] = useState<Dish | null>(null);
   const [form, setForm] = useState<Omit<Dish, 'id'>>(
     dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15 }
       : emptyForm()
@@ -892,8 +945,8 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setForm(prev => ({ ...prev, [key]: value }));
+    setErrors(prev => ({ ...prev, [key]: undefined }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -911,7 +964,6 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
   const validate = () => {
     const errs: typeof errors = {};
     if (!form.name.trim()) errs.name = 'El nombre es requerido';
-    if (form.price <= 0) errs.price = 'El precio debe ser mayor a 0';
     if (!form.description.trim()) errs.description = 'La descripción es requerida';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -919,16 +971,12 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
   const handleStep1 = async () => {
     if (!validate()) return;
-    if (isEdit) {
-      // For edits: just save and close (no wizard)
-      onSave(form);
-      return;
-    }
-    // For new dishes: save to DB, then go to step 2 (recipe)
+    if (isEdit) { onSave(form); return; }
     setSavingStep1(true);
     try {
       const { data, error } = await supabase.from('dishes').insert({
-        name: form.name, description: form.description, price: form.price,
+        name: form.name, description: form.description,
+        price: form.price || 0, // temporary price, will be set in step 2
         category: form.category, available: form.available, image: form.image,
         image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
         preparation_time_min: (form as any).preparationTimeMin ?? 15,
@@ -937,162 +985,150 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
       setSavedDish(data as Dish);
       setStep(2);
     } catch (err: any) {
-      alert('Error al guardar platillo: ' + (err?.message ?? 'Intenta de nuevo'));
-    } finally {
-      setSavingStep1(false);
-    }
+      alert('Error al guardar: ' + (err?.message ?? 'Intenta de nuevo'));
+    } finally { setSavingStep1(false); }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleStep1();
+  const handleFinish = async (finalPrice: number) => {
+    if (savedDish) {
+      await supabase.from('dishes').update({ price: finalPrice, updated_at: new Date().toISOString() }).eq('id', savedDish.id);
+    }
+    onSave({ ...form, price: finalPrice });
+    onClose();
   };
+
+  const EMOJI_OPTIONS = ['🍔','🌮','🍕','🍜','🥗','🍱','🥩','🍗','🐟','🦐','🍝','🥘','🫕','🍲','🥙','🌯','🍞','🧀','🥚','🥓','🍟','🌭','🍿','🧆','🫔','🥧','🍰','🎂','☕','🧃'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={step === 2 ? undefined : onClose} />
+      <div className="relative w-full rounded-2xl shadow-2xl flex flex-col" style={{ backgroundColor: '#162d55', border: '1px solid #243f72', maxWidth: step === 2 ? '780px' : '520px', maxHeight: '92vh' }}>
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-1">
-              <h2 className="font-bold text-white text-lg">
-                {isEdit ? 'Editar platillo' : step === 1 ? 'Nuevo platillo' : `Receta: ${savedDish?.name ?? form.name}`}
-              </h2>
-            </div>
+            <h2 className="font-bold text-white text-lg">
+              {isEdit ? `Editar: ${dish?.name}` : step === 1 ? 'Nuevo platillo' : savedDish?.name}
+            </h2>
             {!isEdit && (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: step >= 1 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: step >= 1 ? '#1B3A6B' : 'rgba(255,255,255,0.4)' }}>1</div>
-                  <span className="text-xs font-medium" style={{ color: step === 1 ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>Información</span>
-                </div>
-                <div className="w-8 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: step >= 2 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: step >= 2 ? '#1B3A6B' : 'rgba(255,255,255,0.4)' }}>2</div>
-                  <span className="text-xs font-medium" style={{ color: step === 2 ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>Receta y precio</span>
-                </div>
+              <div className="flex items-center gap-3 mt-1.5">
+                {[{ n: 1, label: 'Información' }, { n: 2, label: 'Receta y precio' }].map((s, i) => (
+                  <React.Fragment key={s.n}>
+                    {i > 0 && <div className="w-6 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />}
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: step >= s.n ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: step >= s.n ? '#1B3A6B' : 'rgba(255,255,255,0.35)' }}>{s.n}</div>
+                      <span className="text-xs" style={{ color: step === s.n ? '#f59e0b' : 'rgba(255,255,255,0.35)', fontWeight: step === s.n ? 600 : 400 }}>{s.label}</span>
+                    </div>
+                  </React.Fragment>
+                ))}
               </div>
             )}
           </div>
-          <button onClick={step === 2 ? () => { onSave(form); onClose(); } : onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            <X size={16} />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>Imagen del platillo</label>
-            <div className="relative w-full h-36 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer group transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.15)' }} onClick={() => fileRef.current?.click()}>
-              {imagePreview ? (
-                <>
-                  <img src={imagePreview} alt="Vista previa del platillo" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
-                    <Upload size={16} className="text-white" />
-                    <span className="text-white text-sm">Cambiar imagen</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  <ImageOff size={28} />
-                  <span className="text-xs">Haz clic para subir imagen</span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>JPG, PNG, WEBP · Máx 5 MB</span>
-                </div>
-              )}
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Nombre del platillo <span className="text-red-400">*</span></label>
-            <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Ej. Tacos de Res (3 pzas)" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: errors.name ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
-            {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Descripción <span className="text-red-400">*</span></label>
-            <textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Describe los ingredientes y preparación..." rows={3} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all resize-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: errors.description ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
-            {errors.description && <p className="text-xs text-red-400 mt-1">{errors.description}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Precio (MXN) <span className="text-red-400">*</span></label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>$</span>
-                <input type="number" min={0} step={0.5} value={form.price || ''} onChange={(e) => set('price', parseFloat(e.target.value) || 0)} placeholder="0.00" className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm outline-none transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: errors.price ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
-              </div>
-              {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría</label>
-              <div className="relative">
-                <select value={form.category} onChange={(e) => set('category', e.target.value as Dish['category'])} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
-                  {CATEGORIES.filter((c) => c !== 'Todas').map((c) => (
-                    <option key={c} value={c} style={{ backgroundColor: '#162d55' }}>{c}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
-              </div>
-            </div>
-          </div>
-          {/* Preparation time */}
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              ⏱️ Tiempo de preparación (minutos)
-            </label>
-            <input
-              type="number" min={1} max={120} step={1}
-              value={(form as any).preparationTimeMin ?? 15}
-              onChange={(e) => set('preparationTimeMin' as any, parseInt(e.target.value) || 15)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-              style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}
-            />
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              El KDS usa este tiempo para mostrar alertas de demora en cocina
-            </p>
-          </div>
-          <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div>
-              <p className="text-sm font-semibold text-white">Disponible en menú</p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{form.available ? 'Visible para los clientes' : 'Oculto del menú activo'}</p>
-            </div>
-            <button type="button" onClick={() => set('available', !form.available)} className="transition-all">
-              {form.available ? <ToggleRight size={32} style={{ color: '#f59e0b' }} /> : <ToggleLeft size={32} style={{ color: 'rgba(255,255,255,0.3)' }} />}
-            </button>
-          </div>
-        </form>
-
-        {/* ── STEP 2: Inline Recipe Editor ── */}
-        {step === 2 && savedDish && (
-          <div className="flex-1 overflow-y-auto" style={{ maxHeight: '60vh' }}>
-            <InlineRecipeEditor dish={savedDish} onPriceUpdate={(_, newPrice) => {
-              setSavedDish(prev => prev ? { ...prev, price: newPrice } : prev);
-              setForm(prev => ({ ...prev, price: newPrice }));
-            }} />
-          </div>
-        )}
-
-        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#243f72' }}>
-          {step === 1 ? (
-            <>
-              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>
-              <button type="button" onClick={() => handleStep1()} disabled={savingStep1} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-                {savingStep1 ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Continuar → Receta'}
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>
-                Terminar sin receta
-              </button>
-              <button type="button" onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2" style={{ backgroundColor: '#10b981', color: 'white' }}>
-                ✓ Listo — guardar platillo
-              </button>
-            </>
+          {step === 1 && (
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.4)' }}><X size={16} /></button>
           )}
         </div>
+
+        {/* STEP 1: Dish info */}
+        {step === 1 && (
+          <>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {/* Image */}
+              <div className="relative w-full h-32 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer group" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.12)' }} onClick={() => fileRef.current?.click()}>
+                {imagePreview ? (
+                  <><img src={imagePreview} alt="" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2"><Upload size={16} className="text-white" /><span className="text-white text-sm">Cambiar</span></div></>
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <ImageOff size={24} /><span className="text-xs">Clic para subir imagen</span>
+                  </div>
+                )}
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+
+              {/* Emoji picker */}
+              <div>
+                <label className="block text-xs font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Emoji del platillo</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {EMOJI_OPTIONS.map(e => (
+                    <button key={e} type="button" onClick={() => set('emoji', e)}
+                      className="w-8 h-8 rounded-lg text-lg flex items-center justify-center transition-all"
+                      style={{ backgroundColor: form.emoji === e ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)', border: form.emoji === e ? '1.5px solid #f59e0b' : '1px solid rgba(255,255,255,0.08)' }}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Nombre del platillo <span className="text-red-400">*</span></label>
+                <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Hamburguesa de Res" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: errors.name ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Descripción <span className="text-red-400">*</span></label>
+                <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="Describe el platillo: ingredientes principales, preparación..." rows={2} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: errors.description ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                {errors.description && <p className="text-xs text-red-400 mt-1">{errors.description}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Category */}
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría</label>
+                  <div className="relative">
+                    <select value={form.category} onChange={e => set('category', e.target.value as Dish['category'])} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
+                      {CATEGORIES.filter(c => c !== 'Todas').map(c => <option key={c} value={c} style={{ backgroundColor: '#162d55' }}>{c}</option>)}
+                    </select>
+                    <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  </div>
+                </div>
+                {/* Prep time */}
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>⏱ Tiempo prep. (min)</label>
+                  <input type="number" min={1} max={120} step={1} value={(form as any).preparationTimeMin ?? 15} onChange={e => set('preparationTimeMin' as any, parseInt(e.target.value) || 15)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                </div>
+              </div>
+
+              {/* Available toggle */}
+              <button type="button" onClick={() => set('available', !form.available)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div>
+                  <p className="text-sm font-semibold text-white text-left">Disponible en menú</p>
+                  <p className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>Visible para los clientes</p>
+                </div>
+                {form.available ? <ToggleRight size={28} style={{ color: '#f59e0b' }} /> : <ToggleLeft size={28} style={{ color: 'rgba(255,255,255,0.25)' }} />}
+              </button>
+
+              {/* Popular toggle */}
+              <button type="button" onClick={() => set('popular', !form.popular)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div>
+                  <p className="text-sm font-semibold text-white text-left">⭐ Platillo popular</p>
+                  <p className="text-xs text-left" style={{ color: 'rgba(255,255,255,0.4)' }}>Aparece destacado en el menú</p>
+                </div>
+                {form.popular ? <ToggleRight size={28} style={{ color: '#f59e0b' }} /> : <ToggleLeft size={28} style={{ color: 'rgba(255,255,255,0.25)' }} />}
+              </button>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#243f72' }}>
+              <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)' }}>Cancelar</button>
+              <button type="button" onClick={handleStep1} disabled={savingStep1} className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
+                {savingStep1 ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Continuar → Agregar receta'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 2: Recipe + price */}
+        {step === 2 && savedDish && (
+          <div className="flex-1 overflow-y-auto">
+            <InlineRecipeEditor dish={savedDish} onFinish={handleFinish} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 
 // ─── Dish Card ────────────────────────────────────────────────────────────────
 

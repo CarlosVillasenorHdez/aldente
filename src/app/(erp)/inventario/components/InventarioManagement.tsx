@@ -11,7 +11,7 @@ import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
-type Category = 'Todas' | 'Carnes' | 'Verduras' | 'Lácteos' | 'Bebidas' | 'Abarrotes' | 'Especias';
+type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste';
 type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico';
 type Ingredient = {
@@ -56,7 +56,23 @@ type UnitEquivalence = {
   conversionFactor: number;
   notes: string;
 };
-const CATEGORIES: Category[] = ['Todas', 'Carnes', 'Verduras', 'Lácteos', 'Bebidas', 'Abarrotes', 'Especias'];
+const CATEGORIES: Category[] = [
+  'Todas',
+  'Carnes y Aves',   // res, pollo, cerdo, pavo, etc.
+  'Mariscos',        // camarón, pulpo, calamar, etc.
+  'Verduras',        // verduras frescas y hortalizas
+  'Frutas',          // frutas frescas
+  'Lácteos',         // leche, queso, crema, mantequilla
+  'Panadería',       // pan, tortillas, bolillos, harinas
+  'Pastas y Granos', // arroz, frijol, pasta, cereales
+  'Especias',        // sal, pimienta, condimentos, hierbas
+  'Aceites y Salsas',// aceite, vinagre, salsas, aderezos
+  'Bebidas',         // refrescos, jugos, agua, alcohol
+  'Congelados',      // alimentos congelados
+  'Empaques',        // cajas, bolsas, contenedores desechables
+  'Limpieza',        // detergentes, esponjas, jabones
+  'Otros',           // todo lo que no encaja en las demás
+];
 // Units grouped by type for better UX
 const UNITS_WEIGHT: UnitType[] = ['kg', 'g', 'costal'];
 const UNITS_VOLUME: UnitType[] = ['lt', 'ml', 'botella', 'lata'];
@@ -85,7 +101,7 @@ const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: Re
   ajuste: { bg: 'bg-blue-900/30 text-blue-300', text: 'Ajuste', icon: <RefreshCw size={13} className="text-blue-400" /> },
 };
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
-  name: '', category: 'Abarrotes', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
+  name: '', category: 'Otros', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
   purchasePrice: 0, purchaseQtyPerUnit: 1, purchaseUnit: '',
 });
@@ -181,6 +197,11 @@ export default function InventarioManagement() {
   const [movPurchaseQty, setMovPurchaseQty] = useState(1);
   const [ingSearch, setIngSearch] = useState('');
   const [ingDropOpen, setIngDropOpen] = useState(false);
+  const [detailIngId, setDetailIngId] = useState<string | null>(null);
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [detailMovements, setDetailMovements] = useState<StockMovement[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [historyIngredientId, setHistoryIngredientId] = useState<string | null>(null);
   // Equivalences state
   const [equivModalOpen, setEquivModalOpen] = useState(false);
@@ -443,6 +464,26 @@ export default function InventarioManagement() {
     await fetchIngredients();
     if (activeTab === 'movimientos') await fetchMovements();
   }
+  // ─── Ingredient detail panel ─────────────────────────────────────────────────
+  async function openDetail(id: string) {
+    setDetailIngId(id);
+    setDetailLoading(true);
+    const { data } = await supabase
+      .from('stock_movements')
+      .select('*')
+      .eq('ingredient_id', id)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    setDetailMovements((data || []).map((m: any) => ({
+      id: m.id, ingredientId: m.ingredient_id, ingredientName: '',
+      movementType: m.movement_type, quantity: Number(m.quantity),
+      previousStock: Number(m.previous_stock), newStock: Number(m.new_stock),
+      reason: m.reason, createdBy: m.created_by, createdAt: m.created_at,
+      unit: '',
+    })));
+    setDetailLoading(false);
+  }
+
   // ─── Equivalences CRUD ───────────────────────────────────────────────────
 
   function openAddEquiv() { setEquivEditId(null); setEquivForm(emptyEquivForm()); setEquivModalOpen(true); }
@@ -757,11 +798,11 @@ export default function InventarioManagement() {
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#f87171' }}>{lowStockItems.length}</span>
             </div>
             <div className="flex justify-end mb-2">
-              <button onClick={handleExportPurchaseOrder}
+              <button onClick={() => setShowShoppingList(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                 style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
                 <Download size={13} />
-                Exportar lista de compras
+                📋 Lista de compras
               </button>
             </div>
             {lowStockItems.length === 0 ? (
@@ -933,6 +974,249 @@ export default function InventarioManagement() {
       {activeTab === 'analisis' && <AnalisisDesperdicioTab />}
       {/* ── TAB: PRONÓSTICO ── */}
       {activeTab === 'pronostico' && <ForecastingChart />}
+
+      {/* ── SHOPPING LIST CHECKLIST ── */}
+      {showShoppingList && (() => {
+        const allItems = [...lowStockItems, ...reorderItems.filter(r => !lowStockItems.find(l => l.id === r.id))];
+        const toggleCheck = (id: string) => setCheckedItems(prev => {
+          const next = new Set(prev);
+          next.has(id) ? next.delete(id) : next.add(id);
+          return next;
+        });
+        const handlePDF = () => {
+          const rows = allItems.map(ing => {
+            const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
+            const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+              ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
+            return `<tr style="border-bottom:1px solid #f3f4f6;${checkedItems.has(ing.id) ? 'opacity:0.45;text-decoration:line-through' : ''}">
+              <td style="padding:8px 12px;font-size:13px">${checkedItems.has(ing.id) ? '✓' : '○'}</td>
+              <td style="padding:8px 12px;font-weight:600;font-size:13px">${ing.name}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#6b7280">${ing.category}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#ef4444;font-family:monospace">${ing.stock} ${ing.unit}</td>
+              <td style="padding:8px 12px;font-size:13px;font-weight:700;font-family:monospace">${suggest.toFixed(1)} ${ing.unit}${suggestPres ? ` (~${suggestPres} ${ing.purchaseUnit})` : ''}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#6b7280">${ing.supplier || '—'}</td>
+              <td style="padding:8px 12px;font-size:12px;color:#6b7280">${ing.supplierPhone || '—'}</td>
+            </tr>`;
+          }).join('');
+          const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lista de Compras</title>
+          <style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}h1{font-size:20px;color:#1B3A6B;border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:20px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.04em}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+          </head><body>
+          <h1>📋 Lista de Compras — ${new Date().toLocaleDateString('es-MX', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h1>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px">${allItems.length} ingrediente(s) por comprar · ${checkedItems.size} ya adquirido(s)</p>
+          <table><thead><tr><th>✓</th><th>Ingrediente</th><th>Categoría</th><th>Stock actual</th><th>Cantidad a pedir</th><th>Proveedor</th><th>Teléfono</th></tr></thead><tbody>${rows}</tbody></table>
+          <div style="margin-top:24px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:12px">Generado por Aldente ERP · ${new Date().toLocaleString('es-MX')}</div>
+          </body></html>`;
+          const win = window.open('','_blank','width=900,height=700');
+          if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+        };
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowShoppingList(false)} />
+            <div style={{ position: 'relative', background: '#0d1b35', border: '1px solid #243f72', borderRadius: '20px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 60px rgba(0,0,0,0.5)' }}>
+              {/* Header */}
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'white', marginBottom: '2px' }}>📋 Lista de compras</h2>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{allItems.length} ingredientes · {checkedItems.size} adquiridos</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handlePDF} style={{ padding: '8px 14px', borderRadius: '9px', border: 'none', background: '#1B3A6B', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>📄 Exportar PDF</button>
+                  <button onClick={() => setShowShoppingList(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px', padding: '4px 8px' }}>×</button>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+                <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px' }}>
+                  <div style={{ height: '100%', width: `${allItems.length > 0 ? (checkedItems.size / allItems.length) * 100 : 0}%`, background: '#4ade80', borderRadius: '2px', transition: 'width 0.3s' }} />
+                </div>
+              </div>
+              {/* Items */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 24px' }}>
+                {allItems.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)' }}>
+                    <p style={{ fontSize: '32px', marginBottom: '8px' }}>✅</p>
+                    <p>No hay ingredientes por comprar</p>
+                  </div>
+                ) : allItems.map(ing => {
+                  const checked = checkedItems.has(ing.id);
+                  const isLow = ing.stock < ing.minStock;
+                  const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
+                  const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+                    ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
+                  return (
+                    <div key={ing.id} onClick={() => toggleCheck(ing.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer', transition: 'all 0.15s', background: checked ? 'rgba(74,222,128,0.05)' : isLow ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : isLow ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`, opacity: checked ? 0.6 : 1 }}>
+                      {/* Checkbox */}
+                      <div style={{ width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${checked ? '#4ade80' : 'rgba(255,255,255,0.2)'}`, background: checked ? '#4ade80' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                        {checked && <span style={{ fontSize: '12px', color: '#0d1b35', fontWeight: 700 }}>✓</span>}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: checked ? 'rgba(255,255,255,0.4)' : 'white', textDecoration: checked ? 'line-through' : 'none' }}>{ing.name}</span>
+                          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{ing.category}</span>
+                          {isLow && !checked && <span style={{ fontSize: '10px', color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>URGENTE</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>Stock: {ing.stock} {ing.unit}</span>
+                          {ing.supplier && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>{ing.supplier}</span>}
+                        </div>
+                      </div>
+                      {/* Quantity to buy */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ fontSize: '15px', fontWeight: 700, color: checked ? 'rgba(255,255,255,0.3)' : '#f59e0b', fontFamily: 'monospace' }}>
+                          {suggestPres ? `${suggestPres} ${ing.purchaseUnit}` : `${suggest.toFixed(1)} ${ing.unit}`}
+                        </p>
+                        {suggestPres && <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>{suggest.toFixed(0)} {ing.unit}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Footer */}
+              <div style={{ padding: '14px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button onClick={() => setCheckedItems(new Set())} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '12px' }}>Desmarcar todo</button>
+                <button onClick={() => setCheckedItems(new Set(allItems.map(i => i.id)))} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: '12px' }}>Marcar todo</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── INGREDIENT DETAIL PANEL ── */}
+      {detailIngId && (() => {
+        const ing = ingredients.find(i => i.id === detailIngId);
+        if (!ing) return null;
+        const isLow = ing.stock < ing.minStock;
+        const isNearRop = ing.stock < ing.reorderPoint && !isLow;
+        const stockMax = Math.max(ing.reorderPoint * 2, ing.stock * 1.3, ing.minStock * 3, 1);
+        // RoP formula: if daily usage can be estimated from movements
+        const exits = detailMovements.filter(m => m.movementType === 'salida');
+        const avgDailyUsage = exits.length > 0
+          ? exits.reduce((s, m) => s + m.quantity, 0) / Math.max(1, exits.length)
+          : null;
+        const suggestedRop = avgDailyUsage ? Math.ceil(avgDailyUsage * 3) : null; // 3 days lead time default
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setDetailIngId(null)} />
+            <div style={{ position: 'relative', width: '420px', height: '100%', background: '#0d1b35', borderLeft: '1px solid #243f72', overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{ing.category}</p>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'white', lineHeight: 1.2 }}>{ing.name}</h2>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>{ing.supplier || 'Sin proveedor'}</p>
+                </div>
+                <button onClick={() => setDetailIngId(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px', padding: '4px' }}>×</button>
+              </div>
+
+              {/* Stock gauge */}
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  {[
+                    { label: 'Stock actual', value: `${ing.stock} ${ing.unit}`, color: isLow ? '#f87171' : isNearRop ? '#f59e0b' : '#4ade80' },
+                    { label: 'Stock mínimo', value: `${ing.minStock} ${ing.unit}`, color: 'rgba(255,255,255,0.6)' },
+                    { label: 'Punto RoP', value: `${ing.reorderPoint} ${ing.unit}`, color: 'rgba(255,255,255,0.6)' },
+                  ].map(kpi => (
+                    <div key={kpi.label} style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</p>
+                      <p style={{ fontSize: '16px', fontWeight: 700, color: kpi.color, fontFamily: 'monospace' }}>{kpi.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {/* Bar */}
+                <div style={{ height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, (ing.minStock / stockMax) * 100)}%`, background: '#f87171', position: 'absolute', left: 0 }} title="Stock mínimo" />
+                  <div style={{ height: '100%', width: `${Math.min(100, (ing.reorderPoint / stockMax) * 100)}%`, background: '#f59e0b', position: 'absolute', left: 0, opacity: 0.6 }} title="Punto de reorden" />
+                  <div style={{ height: '100%', width: `${Math.min(100, (ing.stock / stockMax) * 100)}%`, background: isLow ? '#f87171' : isNearRop ? '#f59e0b' : '#4ade80', position: 'absolute', left: 0, opacity: 0.8 }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>
+                  <span>0</span><span style={{ color: '#f87171' }}>mín</span><span style={{ color: '#f59e0b' }}>RoP</span><span>{stockMax.toFixed(0)}</span>
+                </div>
+              </div>
+
+              {/* RoP Calculator */}
+              <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: '12px', padding: '14px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', marginBottom: '8px' }}>📐 Punto de Reorden (RoP)</p>
+                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '10px', fontFamily: 'monospace' }}>RoP = demanda diaria × tiempo de entrega</p>
+                {avgDailyUsage !== null ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Uso promedio/salida</span>
+                      <span style={{ color: 'white', fontFamily: 'monospace' }}>{avgDailyUsage.toFixed(2)} {ing.unit}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Lead time estimado</span>
+                      <span style={{ color: 'white' }}>3 días</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span style={{ color: '#f59e0b' }}>RoP sugerido</span>
+                      <span style={{ color: '#f59e0b', fontFamily: 'monospace' }}>{suggestedRop} {ing.unit}</span>
+                    </div>
+                    {suggestedRop !== ing.reorderPoint && (
+                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
+                        Actual: {ing.reorderPoint} {ing.unit}
+                        {suggestedRop! > ing.reorderPoint ? ' — considera subir el RoP' : ' — RoP actual es conservador'}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Sin historial de salidas para calcular</p>
+                )}
+              </div>
+
+              {/* Movement history */}
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Historial de movimientos</p>
+                {detailLoading ? (
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Cargando...</p>
+                ) : detailMovements.length === 0 ? (
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Sin movimientos registrados</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {detailMovements.map(m => (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ fontSize: '14px', flexShrink: 0 }}>
+                          {m.movementType === 'entrada' ? '📥' : m.movementType === 'salida' ? '📤' : '🔄'}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ fontSize: '12px', color: m.movementType === 'entrada' ? '#4ade80' : m.movementType === 'salida' ? '#f87171' : '#60a5fa', fontWeight: 600 }}>
+                              {m.movementType === 'entrada' ? '+' : m.movementType === 'salida' ? '-' : '~'}{m.quantity} {ing.unit}
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>
+                              {new Date(m.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{m.reason || '—'}</span>
+                            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace', flexShrink: 0 }}>{m.newStock} {ing.unit}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Cost info */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[
+                  { label: 'Costo unitario', value: `$${ing.cost.toFixed(2)}/${ing.unit}` },
+                  { label: 'Valor en stock', value: `$${(ing.stock * ing.cost).toFixed(2)}` },
+                  { label: 'Proveedor', value: ing.supplier || 'No asignado' },
+                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQtyPerUnit} ${ing.unit})` : 'Misma unidad' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{item.label}</p>
+                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {/* ── MODAL: Delete Ingredient ── */}
       {deleteId && deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
