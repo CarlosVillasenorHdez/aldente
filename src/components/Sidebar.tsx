@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import AppLogo from '@/components/ui/AppLogo';
+
 import { LayoutDashboard, ShoppingCart, UtensilsCrossed, ClipboardList, Package, Users, BarChart3, Settings, ChevronLeft, ChevronRight, GitBranch, Receipt, ChefHat, Calendar, Truck, Star, Building2, Smartphone, UserCog, BellRing, Scissors, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';

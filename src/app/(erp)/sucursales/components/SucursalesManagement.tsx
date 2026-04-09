@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Plus, Edit2, Trash2, X, Check, Users, MapPin, Phone, Mail, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, MapPin, Phone, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Branch {
   id: string; name: string; address: string; phone: string;
