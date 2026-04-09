@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Clock, UtensilsCrossed, AlertTriangle, CheckCircle, Flame } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,18 +21,26 @@ function calcElapsed(createdAt: string) {
 
 export default function LiveOperations() {
   const supabase = createClient();
+  const { tenantId } = useAuth();
   const [orders, setOrders] = useState<LiveOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
   const fetchLive = useCallback(async () => {
-    const { data } = await supabase
+    // Build query with explicit tenant filter (defense-in-depth alongside RLS)
+    let query = supabase
       .from('orders')
       .select('id, mesa, mesero, kitchen_status, created_at, parent_order_id')
-      .eq('is_comanda', true)                         // only kitchen comanda cards
+      .eq('is_comanda', true)
       .in('kitchen_status', ['pendiente', 'preparacion', 'lista'])
       .neq('status', 'cancelada')
       .order('created_at', { ascending: true });
+
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data } = await query;
 
     setOrders((data || []).map((o: any) => ({
       id: o.id,
@@ -42,7 +51,7 @@ export default function LiveOperations() {
       elapsedMin: calcElapsed(o.created_at),
     })));
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, tenantId]);
 
   useEffect(() => { fetchLive(); }, [fetchLive]);
 

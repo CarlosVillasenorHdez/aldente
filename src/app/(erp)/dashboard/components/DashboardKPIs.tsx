@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useFeatures } from '@/hooks/useFeatures';
+import { useAuth } from '@/contexts/AuthContext';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -108,6 +109,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
 
 export default function DashboardKPIs() {
   const { features } = useFeatures();
+  const { tenantId } = useAuth();
   const supabase = createClient();
   const [kpis, setKpis] = useState({
     ventasHoy: 0, ventasAyer: 0,
@@ -140,6 +142,10 @@ export default function DashboardKPIs() {
         const yesterdayUTC = startOfYesterdayMX.toISOString();
         const sameHourYesterdayUTC = sameHourYesterdayMX.toISOString();
 
+        // Helper: apply tenant filter to any query (defense-in-depth alongside RLS)
+        const withTenant = (q: any): Promise<{ data: any[] | null; error: any }> =>
+          tenantId ? q.eq('tenant_id', tenantId) : q;
+
         const [
           { data: cerradasHoy },
           { data: mermaOrdersRaw },
@@ -150,23 +156,23 @@ export default function DashboardKPIs() {
           { data: ingAlerta },
           { data: gastosAlert },
         ] = await Promise.all([
-          supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
-          supabase.from('orders').select('waste_cost').eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
-          supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
-          supabase.from('orders').select('id').in('status', ['abierta', 'preparacion', 'lista']),
-          supabase.from('restaurant_tables').select('status'),
-          supabase.from('order_items').select('name, qty').gte('created_at', todayUTC),
-          supabase.from('ingredients').select('name, stock, min_stock'),
-          supabase.from('gastos_recurrentes')
+          withTenant(supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
+          withTenant(supabase.from('orders').select('waste_cost').eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC)),
+          withTenant(supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC)),
+          withTenant(supabase.from('orders').select('id').in('status', ['abierta', 'preparacion', 'lista'])),
+          withTenant(supabase.from('restaurant_tables').select('status')),
+          withTenant(supabase.from('order_items').select('name, qty').gte('created_at', todayUTC)),
+          withTenant(supabase.from('ingredients').select('name, stock, min_stock')),
+          withTenant(supabase.from('gastos_recurrentes')
             .select('nombre, monto, proximo_pago, frecuencia')
             .eq('activo', true)
-            .eq('estado', 'pendiente'),
+            .eq('estado', 'pendiente')),
         ]);
 
-        const ventasHoy = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
-        const ventasAyer = (cerradasAyer || []).reduce((s, o) => s + Number(o.total), 0);
+        const ventasHoy = (cerradasHoy || []).reduce((s: number, o: any) => s + Number(o.total), 0);
+        const ventasAyer = (cerradasAyer || []).reduce((s: number, o: any) => s + Number(o.total), 0);
         const ticketPromedio = cerradasHoy?.length ? ventasHoy / cerradasHoy.length : 0;
-        const utilidadHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+        const utilidadHoy = (cerradasHoy || []).reduce((s: number, o: any) => s + Number(o.margin_actual ?? 0), 0);
         // Merma lives on cancelled comandas, NOT on closed orders
         const mermaHoy = (mermaOrdersRaw || []).reduce((s: number, o: any) => s + Number(o.waste_cost ?? 0), 0);
         const margenHoy = ventasHoy > 0 ? (utilidadHoy / ventasHoy) * 100 : 0;
@@ -226,7 +232,7 @@ export default function DashboardKPIs() {
       supabase.removeChannel(channel);
       clearInterval(interval);
     };
-  }, []);
+  }, [tenantId]);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4">
@@ -235,7 +241,7 @@ export default function DashboardKPIs() {
         <KPICard
           title="Ventas del Día"
           value={`$${kpis.ventasHoy.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
-          trend={kpis.ventasAyer > 0 ? ((kpis.ventasHoy - kpis.ventasAyer) / kpis.ventasAyer) * 100 : undefined}
+          trend={kpis.ventasAyer > 0 ? Math.round(((kpis.ventasHoy - kpis.ventasAyer) / kpis.ventasAyer) * 100) : undefined}
           trendLabel={`vs. ayer a esta hora ($${kpis.ventasAyer.toLocaleString('es-MX', { minimumFractionDigits: 0 })})`}
           icon={TrendingUp}
           color="amber"
@@ -255,118 +261,50 @@ export default function DashboardKPIs() {
       <KPICard
         title="Mesas Ocupadas"
         value={`${kpis.mesasOcupadas}/${kpis.totalMesas}`}
-        subValue={`${kpis.totalMesas > 0 ? Math.round((kpis.mesasOcupadas / kpis.totalMesas) * 100) : 0}% de ocupación`}
         icon={LayoutGrid}
-        color="green"
-        loading={loading}
-      />
-
-      <KPICard
-        title="Platillo Top del Día"
-        value={kpis.platilloTop}
-        subValue={`${kpis.platilloTopQty} vendidos hoy`}
-        icon={Star}
         color="purple"
         loading={loading}
       />
 
       <KPICard
+        title="Platillo Top"
+        value={kpis.platilloTop}
+        subValue={kpis.platilloTopQty > 0 ? `${kpis.platilloTopQty} vendidos hoy` : undefined}
+        icon={Star}
+        color="orange"
+        loading={loading}
+      />
+
+      <KPICard
         title="Ticket Promedio"
-        value={`$${Math.round(kpis.ticketPromedio).toLocaleString('es-MX')}`}
+        value={`$${kpis.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
         icon={Receipt}
         color="green"
         loading={loading}
       />
 
-      <KPICard
-        title="Utilidad del Día"
-        value={kpis.utilidadHoy > 0 ? `$${kpis.utilidadHoy.toFixed(2)}` : '—'}
-        subValue={kpis.margenHoy > 0 ? `${kpis.margenHoy.toFixed(1)}% margen bruto` : 'Sin datos de costo'}
-        icon={TrendingUp}
-        color="green"
-        loading={loading}
-      />
-
-      <KPICard
-        title="Merma del Día"
-        value={kpis.mermaHoy > 0 ? `$${kpis.mermaHoy.toFixed(2)}` : '$0.00'}
-        subValue={kpis.mermaHoy > 0 ? 'Platillos cancelados con costo' : 'Sin mermas registradas ✓'}
-        icon={AlertTriangle}
-        color={kpis.mermaHoy > 0 ? 'red' : 'green'}
-        alert={kpis.mermaHoy > 0}
-        loading={loading}
-      />
-
-      {/* Gastos por pagar alert */}
-      {/* Gastos por pagar — prominent card with list */}
-      {kpis.gastosPorPagar.length > 0 && (
-        <div className="col-span-2 md:col-span-4">
-          <div className="kpi-card" style={{
-            backgroundColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fef2f2' : '#fffbeb',
-            borderColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fca5a5' : '#fde68a',
-          }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                <span style={{ fontSize:'18px' }}>💳</span>
-                <div>
-                  <p style={{ fontSize:'11px', fontWeight:600, color: '#92400e', textTransform:'uppercase', letterSpacing:'0.05em' }}>
-                    {kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '⚠️ Pagos vencidos' : 'Pagos próximos'}
-                  </p>
-                  <p style={{ fontSize:'18px', fontWeight:700, color: '#92400e' }}>
-                    ${kpis.totalGastosPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-              <a href="/gastos" style={{ fontSize:'12px', fontWeight:600, color:'#d97706', textDecoration:'none', padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)' }}>
-                Ver gastos →
-              </a>
-            </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-              {kpis.gastosPorPagar.slice(0, 4).map(g => {
-                const isOverdue = new Date(g.proximo_pago) < new Date();
-                return (
-                  <div key={g.nombre} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 10px', borderRadius:'8px', backgroundColor: isOverdue ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.6)' }}>
-                    <span style={{ fontSize:'13px', color: isOverdue ? '#dc2626' : '#92400e', fontWeight: isOverdue ? 600 : 400 }}>
-                      {isOverdue ? '🔴' : '🟡'} {g.nombre}
-                    </span>
-                    <div style={{ textAlign:'right' }}>
-                      <span style={{ fontSize:'13px', fontWeight:700, color: isOverdue ? '#dc2626' : '#92400e', fontFamily:'monospace' }}>
-                        ${Number(g.monto).toLocaleString('es-MX')}
-                      </span>
-                      <span style={{ fontSize:'11px', color:'#9ca3af', marginLeft:'6px' }}>{g.proximo_pago}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {features.gastos && (
+        <KPICard
+          title="Gastos por Pagar"
+          value={`$${kpis.totalGastosPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`}
+          subValue={kpis.gastosPorPagar.length > 0 ? `${kpis.gastosPorPagar.length} pago(s) próximos` : 'Sin pagos próximos'}
+          icon={AlertTriangle}
+          color={kpis.totalGastosPorPagar > 0 ? 'red' : 'green'}
+          alert={kpis.totalGastosPorPagar > 0}
+          loading={loading}
+        />
       )}
 
-      {/* Inventory alert — gated for Estándar plan */}
-      {/* Gate: basico has no alarmas/inventario features */}
-      {(!features.inventario && !features.alarmas) ? (
-        <div className="col-span-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Alertas de inventario</div>
-            <div style={{ fontSize: '13px', color: '#b45309' }}>Disponible en el plan Estándar — activa el inventario para recibir alertas de stock bajo antes de que afecten tu servicio.</div>
-          </div>
-          <a href="/configuracion" style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#d97706', color: '#fff', fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Ver plan →</a>
-        </div>
-      ) : kpis.alertasInventario.length > 0 && (
-        <div className="col-span-2">
-          <KPICard
-            title={`Alerta de Inventario (${kpis.alertasInventario.length})`}
-            value={`${kpis.alertasInventario.length} items`}
-            subValue={kpis.alertasInventario.length > 0 ? kpis.alertasInventario.slice(0, 3).join(' · ') + ' bajo mínimo' : 'Sin alertas activas'}
-            icon={AlertTriangle}
-            color="red"
-            alert
-            span="wide"
-            loading={loading}
-          />
-        </div>
+      {kpis.alertasInventario.length > 0 && (
+        <KPICard
+          title="Alertas Inventario"
+          value={`${kpis.alertasInventario.length}`}
+          subValue={kpis.alertasInventario.slice(0, 2).join(', ')}
+          icon={AlertTriangle}
+          color="red"
+          alert
+          loading={loading}
+        />
       )}
     </div>
   );

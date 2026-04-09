@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Package, Clock, ChevronRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AlertItem {
   id: string;
@@ -31,17 +32,23 @@ function timeAgo(isoString: string): string {
 export default function AlertsPanel() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { tenantId } = useAuth();
   const supabase = createClient();
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     const newAlerts: AlertItem[] = [];
 
+    // Helper: apply tenant filter (defense-in-depth alongside RLS)
+    const withTenant = (q: any) => tenantId ? q.eq('tenant_id', tenantId) : q;
+
     // 1. Inventory alerts: stock < min_stock
-    const { data: ingredients } = await supabase
-      .from('ingredients')
-      .select('id, name, stock, min_stock, unit, updated_at')
-      .filter('min_stock', 'gt', 0);
+    const { data: ingredients } = await withTenant(
+      supabase
+        .from('ingredients')
+        .select('id, name, stock, min_stock, unit, updated_at')
+        .filter('min_stock', 'gt', 0)
+    ) as { data: { id: string; name: string; stock: number; min_stock: number; unit: string; updated_at: string }[] | null };
 
     if (ingredients) {
       ingredients
@@ -62,14 +69,16 @@ export default function AlertsPanel() {
     // 1b. Gastos vencidos — urgent payment alerts
     const today = new Date().toISOString().split('T')[0];
     const in7days = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
-    const { data: gastosVencidos } = await supabase
-      .from('gastos_recurrentes')
-      .select('id, nombre, monto, proximo_pago, frecuencia, categoria')
-      .eq('activo', true)
-      .eq('estado', 'pendiente')
-      .lte('proximo_pago', in7days)
-      .order('proximo_pago', { ascending: true })
-      .limit(5);
+    const { data: gastosVencidos } = await withTenant(
+      supabase
+        .from('gastos_recurrentes')
+        .select('id, nombre, monto, proximo_pago, frecuencia, categoria')
+        .eq('activo', true)
+        .eq('estado', 'pendiente')
+        .lte('proximo_pago', in7days)
+        .order('proximo_pago', { ascending: true })
+        .limit(5)
+    );
 
     (gastosVencidos || []).forEach((g: any) => {
       const isOverdue = g.proximo_pago < today;
@@ -84,13 +93,15 @@ export default function AlertsPanel() {
     });
 
     // 2. Order alerts: open orders older than 30 min
-    const { data: openOrders } = await supabase
-      .from('orders')
-      .select('id, mesa, created_at, status')
-      .in('status', ['abierta', 'preparacion', 'lista'])
-      .eq('is_comanda', false)
-      .order('created_at', { ascending: true })
-      .limit(5);
+    const { data: openOrders } = await withTenant(
+      supabase
+        .from('orders')
+        .select('id, mesa, created_at, status')
+        .in('status', ['abierta', 'preparacion', 'lista'])
+        .eq('is_comanda', false)
+        .order('created_at', { ascending: true })
+        .limit(5)
+    ) as { data: { id: string; mesa: string; created_at: string; status: string }[] | null };
 
     if (openOrders) {
       openOrders.forEach((o) => {
@@ -116,7 +127,7 @@ export default function AlertsPanel() {
 
     setAlerts(newAlerts);
     setLoading(false);
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     fetchAlerts();
