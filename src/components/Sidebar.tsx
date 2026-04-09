@@ -153,9 +153,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center h-16 px-3 flex-shrink-0 border-b" style={{ borderColor: sidebarBorder }}>
         <div className="flex items-center gap-2 overflow-hidden">
           {brandConfig.logoUrl ? (
-            <img src={brandConfig.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+            <img src={brandConfig.logoUrl} alt="Logo" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
           ) : (
-            <AppLogo size={45} className="flex-shrink-0" />
+            <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
           )}
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">

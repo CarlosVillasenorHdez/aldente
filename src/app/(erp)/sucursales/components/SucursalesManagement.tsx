@@ -1,375 +1,272 @@
 'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Building2, Plus, TrendingUp, ShoppingCart, Users, Edit2, Trash2, X, Check, AlertTriangle, BarChart3, MapPin, Phone, Mail } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Users, MapPin, Phone, Mail, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  managerName: string;
-  isActive: boolean;
+  id: string; name: string; address: string; phone: string;
+  email: string; managerName: string; isActive: boolean;
+}
+interface AppUser {
+  id: string; fullName: string; appRole: string; branchId: string | null; username: string;
 }
 
-interface BranchStats {
-  branchId: string;
-  branchName: string;
-  todayRevenue?: number;
-  todayOrders?: number;
-  totalOrders: number;
-  totalRevenue: number;
-  avgTicket: number;
-  lowStockItems: number;
-}
-
-const emptyBranch: Omit<Branch, 'id'> = {
-  name: '', address: '', phone: '', email: '', managerName: '', isActive: true,
+const ROLE_LABELS: Record<string,string> = {
+  admin:'Administrador',gerente:'Gerente',cajero:'Cajero',mesero:'Mesero',
+  cocinero:'Cocinero',ayudante_cocina:'Ayudante de Cocina',repartidor:'Repartidor',
 };
+const ROLE_COLORS: Record<string,string> = {
+  admin:'#c9963a',gerente:'#a78bfa',cajero:'#34d399',mesero:'#60a5fa',
+  cocinero:'#f97316',ayudante_cocina:'#fb923c',repartidor:'#e879f9',
+};
+
+const empty: Omit<Branch,'id'> = { name:'', address:'', phone:'', email:'', managerName:'', isActive:true };
 
 export default function SucursalesManagement() {
   const supabase = createClient();
+  const { appUser } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [stats, setStats] = useState<BranchStats[]>([]);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<Branch, 'id'>>(emptyBranch);
+  const [editingId, setEditingId] = useState<string|null>(null);
+  const [form, setForm] = useState<Omit<Branch,'id'>>(empty);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'branches'>('overview');
+  const [expandedBranch, setExpandedBranch] = useState<string|null>(null);
+  const [assigningUser, setAssigningUser] = useState<string|null>(null); // userId being assigned
 
-  const loadBranches = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      const mapped: Branch[] = (data || []).map((b: any) => ({
-        id: b.id,
-        name: b.name,
-        address: b.address,
-        phone: b.phone,
-        email: b.email,
-        managerName: b.manager_name,
-        isActive: b.is_active,
-      }));
-      setBranches(mapped);
+    const [{ data: b }, { data: u }] = await Promise.all([
+      supabase.from('branches').select('*').order('name'),
+      supabase.from('app_users').select('id,full_name,app_role,branch_id,username').eq('tenant_id', appUser?.tenantId).neq('app_role','superadmin').order('full_name'),
+    ]);
+    setBranches((b||[]).map((x:any)=>({ id:x.id, name:x.name, address:x.address||'', phone:x.phone||'', email:x.email||'', managerName:x.manager_name||'', isActive:x.is_active })));
+    setUsers((u||[]).map((x:any)=>({ id:x.id, fullName:x.full_name, appRole:x.app_role, branchId:x.branch_id, username:x.username })));
+    setLoading(false);
+  }, [appUser?.tenantId]);
 
-      // Load consolidated stats from orders (last 30 days)
-      const since = new Date(); since.setDate(since.getDate() - 30);
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('branch, total, status, created_at')
-        .eq('status', 'cerrada')
-        .eq('is_comanda', false)
-        .gte('created_at', since.toISOString());
+  useEffect(() => { load(); }, [load]);
 
-      const { data: ingredients } = await supabase
-        .from('ingredients')
-        .select('name, stock, min_stock');
-
-      const lowStock = (ingredients || []).filter((i: any) => Number(i.stock) <= Number(i.min_stock)).length;
-
-      // Group orders by branch
-      const branchMap: Record<string, { total: number; count: number }> = {};
-      (orders || []).forEach((o: any) => {
-        const b = o.branch || 'Sin sucursal';
-        if (!branchMap[b]) branchMap[b] = { total: 0, count: 0 };
-        branchMap[b].total += Number(o.total);
-        branchMap[b].count += 1;
-      });
-
-      const branchStats: BranchStats[] = mapped.map((b) => {
-        const s = branchMap[b.name] || { total: 0, count: 0 };
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayOrders = (orders || []).filter((o: any) => o.branch === b.name && o.created_at?.startsWith(todayStr));
-        const todayRevenue = todayOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0);
-        return {
-          branchId: b.id,
-          branchName: b.name,
-          totalOrders: s.count,
-          totalRevenue: s.total,
-          avgTicket: s.count > 0 ? s.total / s.count : 0,
-          lowStockItems: lowStock,
-          todayRevenue,
-          todayOrders: todayOrders.length,
-        };
-      });
-      setStats(branchStats);
-    } catch (err: any) {
-      toast.error('Error al cargar sucursales: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
-
-  useEffect(() => { loadBranches(); }, [loadBranches]);
-
-  const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('El nombre es obligatorio'); return; }
+  async function handleSave() {
+    if (!form.name.trim()) { toast.error('El nombre es requerido'); return; }
     setSaving(true);
     try {
-      const payload = {
-        name: form.name.trim(),
-        address: form.address,
-        phone: form.phone,
-        email: form.email,
-        manager_name: form.managerName,
-        is_active: form.isActive,
-        updated_at: new Date().toISOString(),
-      };
       if (editingId) {
-        const { error } = await supabase.from('branches').update(payload).eq('id', editingId);
-        if (error) throw error;
+        await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, updated_at:new Date().toISOString() }).eq('id', editingId);
         toast.success('Sucursal actualizada');
       } else {
-        const { error } = await supabase.from('branches').insert(payload);
-        if (error) throw error;
+        await supabase.from('branches').insert({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, tenant_id:appUser?.tenantId });
         toast.success('Sucursal creada');
       }
-      setShowForm(false);
-      setEditingId(null);
-      setForm(emptyBranch);
-      loadBranches();
-    } catch (err: any) {
-      toast.error('Error: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleEdit = (b: Branch) => {
-    setForm({ name: b.name, address: b.address, phone: b.phone, email: b.email, managerName: b.managerName, isActive: b.isActive });
-    setEditingId(b.id);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta sucursal?')) return;
-    const { error } = await supabase.from('branches').delete().eq('id', id);
-    if (error) { toast.error('Error: ' + error.message); return; }
-    toast.success('Sucursal eliminada');
-    loadBranches();
-  };
-
-  const totalRevenue = stats.reduce((s, b) => s + b.totalRevenue, 0);
-  const totalOrders = stats.reduce((s, b) => s + b.totalOrders, 0);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#f59e0b' }} />
-      </div>
-    );
+      setShowForm(false); setEditingId(null); setForm(empty);
+      await load();
+    } catch (e:any) { toast.error(e.message); } finally { setSaving(false); }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm('¿Eliminar esta sucursal? Los usuarios asignados quedarán sin sucursal.')) return;
+    await supabase.from('branches').delete().eq('id', id);
+    toast.success('Sucursal eliminada');
+    await load();
+  }
+
+  async function handleToggleActive(b: Branch) {
+    await supabase.from('branches').update({ is_active:!b.isActive }).eq('id', b.id);
+    await load();
+  }
+
+  async function assignUserToBranch(userId: string, branchId: string | null) {
+    setAssigningUser(userId);
+    await supabase.from('app_users').update({ branch_id: branchId }).eq('id', userId);
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, branchId } : u));
+    setAssigningUser(null);
+  }
+
+  function startEdit(b: Branch) {
+    setForm({ name:b.name, address:b.address, phone:b.phone, email:b.email, managerName:b.managerName, isActive:b.isActive });
+    setEditingId(b.id); setShowForm(true);
+  }
+
+  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.04)', color:'#f1f5f9', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s' } as React.CSSProperties;
+
+  if (loading) return <div style={{ textAlign:'center', padding:48, color:'rgba(255,255,255,.4)' }}>Cargando sucursales...</div>;
+
   return (
-    <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex gap-2 border-b" style={{ borderColor: '#e5e7eb' }}>
-        {(['overview', 'branches'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            {tab === 'overview' ? '📊 Vista Consolidada' : '🏢 Sucursales'}
-          </button>
-        ))}
+    <div style={{ maxWidth:900, margin:'0 auto', padding:'0 0 48px' }}>
+      {/* Header */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:28 }}>
+        <div>
+          <h2 style={{ fontSize:22, fontWeight:700, color:'#f1f5f9', margin:'0 0 4px' }}>Sucursales</h2>
+          <p style={{ fontSize:13, color:'rgba(255,255,255,.4)', margin:0 }}>{branches.length} sucursal{branches.length!==1?'es':''} · {users.length} usuario{users.length!==1?'s':''}</p>
+        </div>
+        <button onClick={()=>{ setShowForm(true); setEditingId(null); setForm(empty); }}
+          style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:12, border:'none', background:'#c9963a', color:'#07090f', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+          <Plus size={16}/> Nueva sucursal
+        </button>
       </div>
 
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Sucursales Activas', value: branches.filter(b => b.isActive).length, icon: Building2, color: '#1B3A6B' },
-              { label: 'Órdenes Totales', value: totalOrders, icon: ShoppingCart, color: '#10b981' },
-              { label: 'Ingresos Totales', value: `$${totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: '#f59e0b' },
-              { label: 'Ticket Promedio', value: totalOrders > 0 ? `$${(totalRevenue / totalOrders).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : '$0.00', icon: BarChart3, color: '#8b5cf6' },
-            ].map((kpi) => (
-              <div key={kpi.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: kpi.color + '15' }}>
-                    <kpi.icon size={20} style={{ color: kpi.color }} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">{kpi.label}</p>
-                    <p className="text-lg font-bold text-gray-800">{kpi.value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Form */}
+      {showForm && (
+        <div style={{ padding:24, borderRadius:16, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)', marginBottom:20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
+            <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
+            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'rgba(255,255,255,.4)', cursor:'pointer' }}><X size={16}/></button>
           </div>
-
-          {/* Per-branch breakdown */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800">Rendimiento por Sucursal</h3>
-              <p className="text-xs text-gray-400 mt-1">Ingresos acumulados de los últimos 30 días</p>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+            <div>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Nombre *</label>
+              <input style={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Ej: Sucursal Centro"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Sucursal</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Órdenes</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ventas hoy</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ingresos (30d)</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ticket Prom.</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Inventario Bajo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {stats.map((s) => (
-                    <tr key={s.branchId} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Building2 size={16} style={{ color: '#1B3A6B' }} />
-                          <span className="font-medium text-gray-800">{s.branchName}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-700">{s.totalOrders}</td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="font-semibold" style={{ color: s.todayRevenue && s.todayRevenue > 0 ? '#16a34a' : '#9ca3af' }}>
-                          ${(s.todayRevenue ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                        </span>
-                        {s.todayOrders ? <span className="text-xs text-gray-400 ml-1">({s.todayOrders} órd.)</span> : null}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-800">
-                        ${s.totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-700">
-                        ${s.avgTicket.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {s.lowStockItems > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600">
-                            <AlertTriangle size={12} /> {s.lowStockItems}
-                          </span>
-                        ) : (
-                          <span className="text-green-600 text-xs">✓ OK</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {stats.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">Sin datos de sucursales</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Gerente / Responsable</label>
+              <input style={inp} value={form.managerName} onChange={e=>setForm(p=>({...p,managerName:e.target.value}))} placeholder="Nombre del encargado"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
+            <div style={{ gridColumn:'span 2' }}>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Dirección</label>
+              <input style={inp} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Calle, número, colonia"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+            </div>
+            <div>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Teléfono</label>
+              <input style={inp} value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="55 1234 5678"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+            </div>
+            <div>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Correo</label>
+              <input style={inp} value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="sucursal@restaurante.mx"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }}
+              style={{ padding:'9px 20px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'transparent', color:'rgba(255,255,255,.6)', fontSize:13, cursor:'pointer' }}>
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={saving||!form.name.trim()}
+              style={{ padding:'9px 20px', borderRadius:10, border:'none', background: form.name.trim()?'#c9963a':'rgba(201,150,58,.25)', color:'#07090f', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              {saving?'Guardando...':editingId?'Guardar cambios':'Crear sucursal'}
+            </button>
           </div>
         </div>
       )}
 
-      {activeTab === 'branches' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">{branches.length} sucursal(es) registrada(s)</p>
-            <button
-              onClick={() => { setForm(emptyBranch); setEditingId(null); setShowForm(true); }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-              style={{ backgroundColor: '#1B3A6B' }}
-            >
-              <Plus size={16} /> Nueva Sucursal
-            </button>
-          </div>
-
-          {/* Form */}
-          {showForm && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-800 mb-4">{editingId ? 'Editar Sucursal' : 'Nueva Sucursal'}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { key: 'name', label: 'Nombre *', placeholder: 'Sucursal Centro' },
-                  { key: 'address', label: 'Dirección', placeholder: 'Calle Principal #1' },
-                  { key: 'phone', label: 'Teléfono', placeholder: '555-0001' },
-                  { key: 'email', label: 'Email', placeholder: 'sucursal@restaurante.com' },
-                  { key: 'managerName', label: 'Gerente', placeholder: 'Nombre del gerente' },
-                ].map((f) => (
-                  <div key={f.key}>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-                    <input
-                      type="text"
-                      value={(form as any)[f.key]}
-                      onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                      placeholder={f.placeholder}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    />
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 pt-5">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={form.isActive}
-                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">Sucursal activa</label>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                  style={{ backgroundColor: '#1B3A6B' }}
-                >
-                  <Check size={16} /> {saving ? 'Guardando...' : 'Guardar'}
-                </button>
-                <button
-                  onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyBranch); }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
-                >
-                  <X size={16} /> Cancelar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Branch cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {branches.map((b) => (
-              <div key={b.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1B3A6B15' }}>
-                      <Building2 size={20} style={{ color: '#1B3A6B' }} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">{b.name}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${b.isActive ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                        {b.isActive ? 'Activa' : 'Inactiva'}
+      {/* Branches list */}
+      {branches.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'60px 0', color:'rgba(255,255,255,.3)' }}>
+          <Building2 size={48} style={{ marginBottom:16, opacity:.3 }} />
+          <p style={{ fontSize:16, marginBottom:8 }}>Sin sucursales registradas</p>
+          <p style={{ fontSize:13 }}>Crea tu primera sucursal para comenzar a gestionar múltiples ubicaciones.</p>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {branches.map(b => {
+            const branchUsers = users.filter(u => u.branchId === b.id);
+            const unassigned = users.filter(u => !u.branchId);
+            const isExpanded = expandedBranch === b.id;
+            return (
+              <div key={b.id} style={{ borderRadius:16, border:`1px solid ${isExpanded?'rgba(201,150,58,.3)':'rgba(255,255,255,.07)'}`, background: isExpanded?'rgba(201,150,58,.04)':'rgba(255,255,255,.02)', overflow:'hidden', transition:'all .2s' }}>
+                {/* Branch header */}
+                <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px 20px' }}>
+                  <div style={{ width:44, height:44, borderRadius:12, background:'rgba(201,150,58,.12)', border:'1px solid rgba(201,150,58,.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏢</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
+                      <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{b.name}</h3>
+                      <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: b.isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)', color: b.isActive?'#34d399':'#f87171', border: `1px solid ${b.isActive?'rgba(52,211,153,.2)':'rgba(248,113,113,.2)'}` }}>
+                        {b.isActive?'Activa':'Inactiva'}
                       </span>
                     </div>
+                    <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                      {b.address && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{b.address}</span>}
+                      {b.phone && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{b.phone}</span>}
+                      {b.managerName && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Users size={11}/>{b.managerName}</span>}
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEdit(b)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-                      <Edit2 size={14} />
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', marginRight:4 }}>{branchUsers.length} usuario{branchUsers.length!==1?'s':''}</span>
+                    <button onClick={()=>startEdit(b)} title="Editar"
+                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.04)', color:'rgba(255,255,255,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Edit2 size={13}/>
                     </button>
-                    <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
-                      <Trash2 size={14} />
+                    <button onClick={()=>handleToggleActive(b)} title={b.isActive?'Desactivar':'Activar'}
+                      style={{ width:34, height:34, borderRadius:8, border:`1px solid ${b.isActive?'rgba(248,113,113,.2)':'rgba(52,211,153,.2)'}`, background: b.isActive?'rgba(248,113,113,.06)':'rgba(52,211,153,.06)', color: b.isActive?'#f87171':'#34d399', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      {b.isActive?<ToggleRight size={14}/>:<ToggleLeft size={14}/>}
+                    </button>
+                    <button onClick={()=>handleDelete(b.id)} title="Eliminar"
+                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(248,113,113,.15)', background:'rgba(248,113,113,.06)', color:'rgba(248,113,113,.7)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Trash2 size={13}/>
+                    </button>
+                    <button onClick={()=>setExpandedBranch(isExpanded?null:b.id)}
+                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(255,255,255,.08)', background:'rgba(255,255,255,.03)', color:'rgba(255,255,255,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      {isExpanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}
                     </button>
                   </div>
                 </div>
-                <div className="space-y-1.5 text-sm text-gray-600">
-                  {b.address && <div className="flex items-center gap-2"><MapPin size={13} className="text-gray-400" />{b.address}</div>}
-                  {b.phone && <div className="flex items-center gap-2"><Phone size={13} className="text-gray-400" />{b.phone}</div>}
-                  {b.email && <div className="flex items-center gap-2"><Mail size={13} className="text-gray-400" />{b.email}</div>}
-                  {b.managerName && <div className="flex items-center gap-2"><Users size={13} className="text-gray-400" />{b.managerName}</div>}
-                </div>
+
+                {/* Expanded: users panel */}
+                {isExpanded && (
+                  <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', padding:'16px 20px' }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.4)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>
+                      Usuarios en esta sucursal ({branchUsers.length})
+                    </p>
+                    {branchUsers.length === 0 && (
+                      <p style={{ fontSize:13, color:'rgba(255,255,255,.3)', fontStyle:'italic', marginBottom:12 }}>Sin usuarios asignados aún.</p>
+                    )}
+                    <div style={{ display:'flex', flexDirection:'column', gap:4, marginBottom:16 }}>
+                      {branchUsers.map(u=>(
+                        <div key={u.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 12px', borderRadius:10, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.06)' }}>
+                          <div style={{ width:32, height:32, borderRadius:8, background:`${ROLE_COLORS[u.appRole]||'#c9963a'}15`, border:`1px solid ${ROLE_COLORS[u.appRole]||'#c9963a'}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>
+                            {u.appRole==='admin'?'👑':u.appRole==='mesero'?'🍽️':u.appRole==='cocinero'?'👨‍🍳':'👤'}
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{u.fullName}</span>
+                            <span style={{ fontSize:11, color:ROLE_COLORS[u.appRole]||'rgba(255,255,255,.4)', marginLeft:8 }}>{ROLE_LABELS[u.appRole]||u.appRole}</span>
+                          </div>
+                          <button onClick={()=>assignUserToBranch(u.id, null)} disabled={assigningUser===u.id}
+                            style={{ padding:'4px 10px', borderRadius:7, border:'1px solid rgba(248,113,113,.2)', background:'rgba(248,113,113,.08)', color:'#f87171', fontSize:11, cursor:'pointer' }}>
+                            Quitar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Unassigned users to add */}
+                    {unassigned.length > 0 && (
+                      <>
+                        <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>
+                          Agregar usuario a esta sucursal
+                        </p>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                          {unassigned.map(u=>(
+                            <button key={u.id} onClick={()=>assignUserToBranch(u.id, b.id)} disabled={assigningUser===u.id}
+                              style={{ padding:'5px 12px', borderRadius:8, border:'1px solid rgba(201,150,58,.2)', background:'rgba(201,150,58,.08)', color:'#c9963a', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                              + {u.fullName} <span style={{ opacity:.6 }}>({ROLE_LABELS[u.appRole]||u.appRole})</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Unassigned users summary */}
+      {users.filter(u=>!u.branchId).length > 0 && branches.length > 0 && (
+        <div style={{ marginTop:24, padding:'16px 20px', borderRadius:14, background:'rgba(248,113,113,.05)', border:'1px solid rgba(248,113,113,.15)' }}>
+          <p style={{ fontSize:13, fontWeight:600, color:'#f87171', margin:'0 0 8px', display:'flex', alignItems:'center', gap:8 }}>
+            <Users size={14}/> {users.filter(u=>!u.branchId).length} usuario{users.filter(u=>!u.branchId).length!==1?'s':''} sin sucursal asignada
+          </p>
+          <p style={{ fontSize:12, color:'rgba(255,255,255,.4)', margin:0 }}>
+            Los usuarios sin sucursal aparecerán en el login de todos los accesos. Asígnalos expandiendo una sucursal arriba.
+          </p>
         </div>
       )}
     </div>
