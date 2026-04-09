@@ -27,9 +27,9 @@ type Ingredient = {
   supplierUrl: string;
   supplierPhone: string;
   notes: string;
-  purchasePrice?: number;
-  purchaseQty?: number;
-  purchaseUnit?: string;
+  purchasePrice?: number | null;
+  purchaseQtyPerUnit: number;
+  purchaseUnit?: string | null;
 };
 type StockMovement = {
   id: string;
@@ -87,7 +87,7 @@ const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: Re
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Abarrotes', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
-  purchasePrice: 0, purchaseQty: 1, purchaseUnit: '',
+  purchasePrice: 0, purchaseQtyPerUnit: 1, purchaseUnit: '',
 });
 const emptyMovementForm = () => ({
   ingredientId: '',
@@ -308,6 +308,9 @@ export default function InventarioManagement() {
       name: ing.name, category: ing.category, stock: ing.stock, unit: ing.unit,
       minStock: ing.minStock, reorderPoint: ing.reorderPoint, cost: ing.cost,
       supplier: ing.supplier, supplierUrl: ing.supplierUrl, supplierPhone: ing.supplierPhone, notes: ing.notes,
+      purchaseQtyPerUnit: ing.purchaseQtyPerUnit ?? 1,
+      purchaseUnit: ing.purchaseUnit ?? '',
+      purchasePrice: ing.purchasePrice ?? null,
     });
     setFormErrors({});
     setModalOpen(true);
@@ -335,7 +338,7 @@ export default function InventarioManagement() {
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
           purchase_unit: form.purchaseUnit || null,
-          purchase_qty_per_unit: form.purchaseQty || 1,
+          purchase_qty_per_unit: form.purchaseQtyPerUnit || 1,
           purchase_price: form.purchasePrice || null,
           updated_at: new Date().toISOString(),
         }).eq('id', editingId);
@@ -359,7 +362,7 @@ export default function InventarioManagement() {
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
           purchase_unit: form.purchaseUnit || null,
-          purchase_qty_per_unit: form.purchaseQty || 1,
+          purchase_qty_per_unit: form.purchaseQtyPerUnit || 1,
           purchase_price: form.purchasePrice || null,
         }).select().single();
         if (error) throw error;
@@ -770,9 +773,11 @@ export default function InventarioManagement() {
                           <Phone size={10} />{ing.supplierPhone}
                         </span>
                       )}
-                      <button onClick={() => openEdit(ing)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
-                        Actualizar
-                      </button>
+                      {ing.supplierUrl && (
+                        <a href={ing.supplierUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(245,158,11,0.2)', color: '#fbbf24' }}>
+                          <ExternalLink size={11} />Ordenar
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
