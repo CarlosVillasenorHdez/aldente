@@ -43,6 +43,7 @@ export interface RecipeItem {
   quantity: number;
   unit: string;
   notes: string;
+  costPerUnit?: number;
 }
 
 const CATEGORIES: Category[] = [
@@ -861,7 +862,7 @@ function InlineRecipeEditor({ dish, onPriceUpdate }: { dish: Dish; onPriceUpdate
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>{r.quantity} {r.unit}</span>
                   <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace' }}>${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}</span>
-                  <button onClick={() => handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', padding: '2px' }}>✕</button>
+                  <button onClick={() => r.id && handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', padding: '2px' }}>✕</button>
                 </div>
               </div>
             ))}
