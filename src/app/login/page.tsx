@@ -1,12 +1,11 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
-type Step = 'restaurant' | 'user' | 'pin';
+type Step = 'restaurant' | 'user' | 'pin' | 'recover';
 
 interface LoginUser { id: string; fullName: string; appRole: string; }
 interface Restaurant { id: string; name: string; slug: string; }
@@ -16,14 +15,12 @@ const ROLE_LABELS: Record<string, string> = {
   mesero: 'Mesero', cocinero: 'Cocinero',
   ayudante_cocina: 'Ayudante de Cocina', repartidor: 'Repartidor',
 };
-
 const ROLE_ICONS: Record<string, string> = {
   admin: '👑', gerente: '🧑‍💼', cajero: '💰',
   mesero: '🍽️', cocinero: '👨‍🍳', ayudante_cocina: '🔪', repartidor: '🛵',
 };
-
 const ROLE_COLORS: Record<string, string> = {
-  admin: '#f59e0b', gerente: '#a78bfa', cajero: '#34d399',
+  admin: '#c9963a', gerente: '#a78bfa', cajero: '#34d399',
   mesero: '#60a5fa', cocinero: '#f97316', ayudante_cocina: '#fb923c', repartidor: '#e879f9',
 };
 
@@ -50,6 +47,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Recovery
+  const [recoverEmail, setRecoverEmail] = useState('');
+  const [recoverSent, setRecoverSent] = useState(false);
+  const [recoverLoading, setRecoverLoading] = useState(false);
+
   useEffect(() => {
     if (!loading && appUser) {
       const role = appUser.appRole ?? 'mesero';
@@ -66,7 +68,7 @@ export default function LoginPage() {
     if (saved) setSlugInput(saved);
   }, []);
 
-  async function handleFindRestaurant(e: React.FormEvent) {
+  async function handleFindRestaurant(e: { preventDefault(): void }) {
     e.preventDefault();
     setSearchError('');
     const query = slugInput.trim();
@@ -87,7 +89,6 @@ export default function LoginPage() {
 
     localStorage.setItem(SLUG_KEY, found.slug);
     setRestaurant(found);
-
     const { data: usersData } = await supabase.from('app_users').select('id, full_name, app_role').eq('tenant_id', found.id).eq('is_active', true).order('app_role').order('full_name');
     setUsers((usersData ?? []).map((u: Record<string, string>) => ({ id: u.id, fullName: u.full_name, appRole: u.app_role })));
     setStep('user');
@@ -100,7 +101,7 @@ export default function LoginPage() {
     setStep('pin');
   }
 
-  async function handleSignIn(e: React.FormEvent) {
+  async function handleSignIn(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!selectedUser || !pin) return;
     setError('');
@@ -118,164 +119,267 @@ export default function LoginPage() {
     router.replace(roleRedirects[role] ?? '/dashboard');
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f1e35 50%, #0a1628 100%)' }}>
-        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(245,158,11,0.2)', borderTopColor: '#f59e0b' }} />
-      </div>
-    );
+  async function handleRecover(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!recoverEmail.trim()) return;
+    setRecoverLoading(true);
+    await supabase.auth.resetPasswordForEmail(recoverEmail.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setRecoverLoading(false);
+    setRecoverSent(true);
   }
 
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07090f' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(201,150,58,0.2)', borderTopColor: '#c9963a', animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  const stepIndex = ['restaurant', 'user', 'pin'].indexOf(step);
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f1e35 50%, #0a1628 100%)', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#07090f', position: 'relative', overflow: 'hidden', fontFamily: "'Outfit', system-ui, sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.04) inset;-webkit-text-fill-color:#f0ece4;}
+      `}</style>
 
-      {/* Ambient glow */}
-      <div style={{ position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '400px', background: 'radial-gradient(ellipse, rgba(245,158,11,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      {/* Background grid */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,150,58,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,0.02) 1px,transparent 1px)', backgroundSize: '80px 80px', pointerEvents: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: '440px', position: 'relative' }}>
+      {/* Left panel — brand */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 'clamp(32px,5vw,64px)', position: 'relative', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+        {/* Glow */}
+        <div style={{ position: 'absolute', bottom: '10%', left: '20%', width: 500, height: 400, background: 'radial-gradient(ellipse,rgba(201,150,58,0.06) 0%,transparent 65%)', pointerEvents: 'none' }} />
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: '72px', height: '72px', objectFit: 'contain', marginBottom: '12px' }} />
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9', margin: '0 0 4px' }}>Aldente</h1>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>Sistema de Gestión para Restaurantes</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: '#c9963a', letterSpacing: '.03em' }}>Aldente</span>
         </div>
 
-        {/* Card */}
-        <div style={{ background: 'rgba(26,37,53,0.9)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', backdropFilter: 'blur(12px)', overflow: 'hidden' }}>
+        {/* Hero text */}
+        <div style={{ position: 'relative', maxWidth: 480 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#c9963a', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ display: 'block', width: 24, height: 1, background: 'rgba(201,150,58,0.4)' }} />
+            Sistema para restaurantes
+          </p>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(36px,4vw,56px)', fontWeight: 700, color: '#f0ece4', lineHeight: 1.08, marginBottom: 20 }}>
+            Sabes exactamente<br /><em style={{ color: '#c9963a', fontStyle: 'italic' }}>qué pasa</em><br />en tu restaurante.
+          </h1>
+          <p style={{ fontSize: 15, fontWeight: 300, color: 'rgba(240,236,228,0.5)', lineHeight: 1.8 }}>
+            P&L del día. Inventario vivo. Merma real.<br />Todo en tiempo real, sin esperar el corte.
+          </p>
 
-          {/* Progress indicator */}
-          {step !== 'restaurant' && (
-            <div style={{ display: 'flex', gap: '4px', padding: '16px 24px 0' }}>
-              {['restaurant', 'user', 'pin'].map((s, i) => (
-                <div key={s} style={{ flex: 1, height: '3px', borderRadius: '2px', background: ['restaurant', 'user', 'pin'].indexOf(step) >= i ? '#f59e0b' : 'rgba(255,255,255,0.08)', transition: 'background 0.3s' }} />
-              ))}
-            </div>
-          )}
-
-          <div style={{ padding: '28px 28px 32px' }}>
-
-            {/* STEP 1 — Find restaurant */}
-            {step === 'restaurant' && (
-              <>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#f1f5f9', margin: '0 0 6px' }}>¿En qué restaurante trabajas?</h2>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', margin: '0 0 24px' }}>Escribe el nombre o código de acceso</p>
-                <form onSubmit={handleFindRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text" value={slugInput}
-                      onChange={e => { setSlugInput(e.target.value); setSearchError(''); }}
-                      placeholder="Ej: Tacos El Güero"
-                      autoFocus autoComplete="off"
-                      style={{ width: '100%', padding: '13px 16px', borderRadius: '12px', border: searchError ? '1px solid rgba(248,113,113,0.5)' : '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#f1f5f9', fontSize: '15px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                      onFocus={e => { if (!searchError) e.target.style.borderColor = 'rgba(245,158,11,0.5)'; }}
-                      onBlur={e => { if (!searchError) e.target.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-                    />
-                  </div>
-                  {searchError && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>⚠️ {searchError}</p>}
-                  <button type="submit" disabled={searching || !slugInput.trim()}
-                    style={{ padding: '13px', borderRadius: '12px', border: 'none', background: searching || !slugInput.trim() ? 'rgba(245,158,11,0.3)' : '#f59e0b', color: '#1B3A6B', fontSize: '15px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
-                    {searching ? 'Buscando...' : 'Continuar →'}
-                  </button>
-                </form>
-              </>
-            )}
-
-            {/* STEP 2 — Select user (card-based, not dropdown) */}
-            {step === 'user' && restaurant && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                  <button onClick={() => { setStep('restaurant'); setRestaurant(null); setUsers([]); setSearchError(''); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', padding: '4px', display: 'flex', borderRadius: '6px', transition: 'color 0.2s' }}>
-                    <ArrowLeft size={16} />
-                  </button>
-                  <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{restaurant.name}</h2>
-                </div>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', margin: '0 0 20px', paddingLeft: '30px' }}>¿Quién eres? Toca tu nombre</p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '380px', overflowY: 'auto' }}>
-                  {users.map(u => (
-                    <button key={u.id} onClick={() => handleSelectUser(u)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', width: '100%' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLButtonElement).style.borderColor = `${ROLE_COLORS[u.appRole] ?? '#f59e0b'}40`; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `${ROLE_COLORS[u.appRole] ?? '#f59e0b'}15`, border: `1px solid ${ROLE_COLORS[u.appRole] ?? '#f59e0b'}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                        {ROLE_ICONS[u.appRole] ?? '👤'}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 2px' }}>{u.fullName}</p>
-                        <p style={{ fontSize: '12px', color: ROLE_COLORS[u.appRole] ?? 'rgba(255,255,255,0.4)', margin: 0 }}>{ROLE_LABELS[u.appRole] ?? u.appRole}</p>
-                      </div>
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '18px' }}>›</span>
-                    </button>
-                  ))}
-                  {users.length === 0 && (
-                    <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px', padding: '24px 0' }}>Sin usuarios activos en este restaurante</p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* STEP 3 — PIN entry */}
-            {step === 'pin' && selectedUser && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-                  <button onClick={() => { setStep('user'); setSelectedUser(null); setPin(''); setError(''); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', padding: '4px', display: 'flex', borderRadius: '6px' }}>
-                    <ArrowLeft size={16} />
-                  </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${ROLE_COLORS[selectedUser.appRole] ?? '#f59e0b'}15`, border: `1px solid ${ROLE_COLORS[selectedUser.appRole] ?? '#f59e0b'}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                      {ROLE_ICONS[selectedUser.appRole] ?? '👤'}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{selectedUser.fullName}</p>
-                      <p style={{ fontSize: '12px', color: ROLE_COLORS[selectedUser.appRole] ?? 'rgba(255,255,255,0.4)', margin: 0 }}>{ROLE_LABELS[selectedUser.appRole] ?? selectedUser.appRole}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: '0 0 16px', textAlign: 'center' }}>Ingresa tu PIN de acceso</p>
-
-                {/* Large PIN dots */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
-                  {[0,1,2,3,4,5].map(i => (
-                    <div key={i} style={{ width: '14px', height: '14px', borderRadius: '50%', background: i < pin.length ? (ROLE_COLORS[selectedUser.appRole] ?? '#f59e0b') : 'rgba(255,255,255,0.12)', border: i < pin.length ? 'none' : '1px solid rgba(255,255,255,0.2)', transition: 'all 0.15s', transform: i < pin.length ? 'scale(1.1)' : 'scale(1)' }} />
-                  ))}
-                </div>
-
-                <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPin ? 'text' : 'password'}
-                      value={pin}
-                      onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setError(''); }}
-                      maxLength={8} inputMode="numeric" pattern="[0-9]*"
-                      autoFocus autoComplete="off"
-                      style={{ width: '100%', padding: '14px 48px 14px 20px', borderRadius: '12px', border: error ? '1px solid rgba(248,113,113,0.5)' : '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#f1f5f9', fontSize: '28px', fontFamily: 'monospace', letterSpacing: '10px', textAlign: 'center', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                    />
-                    <button type="button" onClick={() => setShowPin(v => !v)}
-                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', display: 'flex' }}>
-                      {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-
-                  {error && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' }}>⚠️ {error}</p>}
-
-                  <button type="submit" disabled={submitting || pin.length < 4}
-                    style={{ padding: '14px', borderRadius: '12px', border: 'none', background: submitting || pin.length < 4 ? 'rgba(245,158,11,0.3)' : (ROLE_COLORS[selectedUser.appRole] ?? '#f59e0b'), color: '#1B3A6B', fontSize: '15px', fontWeight: 700, cursor: pin.length >= 4 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-                    {submitting ? 'Verificando...' : `Entrar como ${selectedUser.fullName.split(' ')[0]}`}
-                  </button>
-                </form>
-              </>
-            )}
+          {/* Micro-stats */}
+          <div style={{ display: 'flex', gap: 32, marginTop: 40 }}>
+            {[['30 seg', 'Corte de caja'], ['3 pasos', 'Configuración'], ['0 papel', 'En operación']].map(([v, l]) => (
+              <div key={l}>
+                <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: '#c9963a', lineHeight: 1 }}>{v}</p>
+                <p style={{ fontSize: 11, color: 'rgba(240,236,228,0.35)', marginTop: 4 }}>{l}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.15)', marginTop: '20px' }}>
-          ¿Eres el administrador?{' '}
-          <a href="/admin/login" style={{ color: 'rgba(255,255,255,0.25)', textDecoration: 'none' }}>Acceso admin</a>
-        </p>
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, position: 'relative' }}>
+          <a href="/" style={{ fontSize: 12, color: 'rgba(240,236,228,0.3)', textDecoration: 'none', transition: 'color .2s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.7)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.3)')}>
+            ← Volver al inicio
+          </a>
+          <span style={{ color: 'rgba(240,236,228,0.1)' }}>·</span>
+          <a href="/funcionalidades" style={{ fontSize: 12, color: 'rgba(240,236,228,0.3)', textDecoration: 'none', transition: 'color .2s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.7)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.3)')}>
+            Conocer el sistema
+          </a>
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div style={{ width: 'min(480px, 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(24px,4vw,48px)', position: 'relative' }}>
+        <div style={{ width: '100%', maxWidth: 380, animation: 'fadeUp .5s ease both' }}>
+
+          {/* RECOVER PASSWORD */}
+          {step === 'recover' && (
+            <>
+              <button onClick={() => { setStep('restaurant'); setRecoverSent(false); setRecoverEmail(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'rgba(240,236,228,0.4)', fontSize: 13, cursor: 'pointer', marginBottom: 32, padding: 0 }}>
+                <ArrowLeft size={15} /> Volver al acceso
+              </button>
+              {recoverSent ? (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(201,150,58,0.1)', border: '1px solid rgba(201,150,58,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 24 }}>✓</div>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: '#f0ece4', marginBottom: 12 }}>Revisa tu correo</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(240,236,228,0.5)', lineHeight: 1.7 }}>
+                    Si existe una cuenta con <strong style={{ color: '#f0ece4' }}>{recoverEmail}</strong>, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
+                  </p>
+                  <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.3)', marginTop: 16 }}>Revisa también tu carpeta de spam.</p>
+                </div>
+              ) : (
+                <>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: '#f0ece4', marginBottom: 8 }}>Recuperar acceso</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(240,236,228,0.5)', marginBottom: 28, lineHeight: 1.65 }}>
+                    Ingresa el correo electrónico de tu cuenta de administrador. Te enviaremos un enlace para restablecer tu contraseña.
+                  </p>
+                  <form onSubmit={handleRecover} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <input type="email" placeholder="correo@ejemplo.com" value={recoverEmail}
+                      onChange={e => setRecoverEmail(e.target.value)} autoFocus
+                      style={{ padding: '13px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#f0ece4', fontSize: 15, outline: 'none', width: '100%', fontFamily: 'inherit' }}
+                      onFocus={e => (e.target.style.borderColor = 'rgba(201,150,58,0.5)')}
+                      onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
+                    <button type="submit" disabled={recoverLoading || !recoverEmail.trim()}
+                      style={{ padding: 13, borderRadius: 12, border: 'none', background: recoverEmail.trim() ? '#c9963a' : 'rgba(201,150,58,0.25)', color: '#07090f', fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all .2s', fontFamily: 'inherit' }}>
+                      {recoverLoading ? 'Enviando...' : 'Enviar enlace →'}
+                    </button>
+                  </form>
+                </>
+              )}
+            </>
+          )}
+
+          {/* MAIN FLOW */}
+          {step !== 'recover' && (
+            <>
+              {/* Progress bar (steps 2 & 3) */}
+              {step !== 'restaurant' && (
+                <div style={{ display: 'flex', gap: 4, marginBottom: 28 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ flex: 1, height: 2, borderRadius: 1, background: stepIndex >= i ? '#c9963a' : 'rgba(255,255,255,0.08)', transition: 'background .3s' }} />
+                  ))}
+                </div>
+              )}
+
+              {/* STEP 1 */}
+              {step === 'restaurant' && (
+                <>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: '#f0ece4', marginBottom: 6 }}>Bienvenido</h2>
+                  <p style={{ fontSize: 14, color: 'rgba(240,236,228,0.45)', marginBottom: 28 }}>¿En qué restaurante trabajas?</p>
+                  <form onSubmit={handleFindRestaurant} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <input type="text" value={slugInput} onChange={e => { setSlugInput(e.target.value); setSearchError(''); }}
+                      placeholder="Nombre o código del restaurante" autoFocus autoComplete="off"
+                      style={{ padding: '13px 16px', borderRadius: 12, border: searchError ? '1px solid rgba(248,113,113,0.5)' : '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#f0ece4', fontSize: 15, outline: 'none', width: '100%', fontFamily: 'inherit', transition: 'border-color .2s' }}
+                      onFocus={e => { if (!searchError) e.target.style.borderColor = 'rgba(201,150,58,0.5)'; }}
+                      onBlur={e => { if (!searchError) e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }} />
+                    {searchError && <p style={{ fontSize: 12, color: '#f87171' }}>⚠ {searchError}</p>}
+                    <button type="submit" disabled={searching || !slugInput.trim()}
+                      style={{ padding: '13px', borderRadius: 12, border: 'none', background: searching || !slugInput.trim() ? 'rgba(201,150,58,0.25)' : '#c9963a', color: '#07090f', fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all .2s', fontFamily: 'inherit' }}>
+                      {searching ? 'Buscando...' : 'Continuar →'}
+                    </button>
+                  </form>
+                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button onClick={() => setStep('recover')}
+                      style={{ background: 'none', border: 'none', fontSize: 12, color: 'rgba(240,236,228,0.35)', cursor: 'pointer', fontFamily: 'inherit', padding: 0, transition: 'color .2s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.7)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.35)')}>
+                      ¿Olvidaste tu acceso?
+                    </button>
+                    <a href="/admin/login" style={{ fontSize: 12, color: 'rgba(240,236,228,0.35)', textDecoration: 'none', transition: 'color .2s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.7)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.35)')}>
+                      Acceso admin
+                    </a>
+                  </div>
+                </>
+              )}
+
+              {/* STEP 2 — Users */}
+              {step === 'user' && restaurant && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <button onClick={() => { setStep('restaurant'); setRestaurant(null); setUsers([]); setSearchError(''); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,236,228,0.35)', padding: 4, display: 'flex' }}>
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div>
+                      <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: '#f0ece4', margin: 0 }}>{restaurant.name}</h2>
+                      <p style={{ fontSize: 12, color: 'rgba(240,236,228,0.4)', margin: 0 }}>¿Quién eres?</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
+                    {users.map(u => (
+                      <button key={u.id} onClick={() => handleSelectUser(u)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all .15s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLButtonElement).style.borderColor = `${ROLE_COLORS[u.appRole] ?? '#c9963a'}50`; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ROLE_COLORS[u.appRole] ?? '#c9963a'}15`, border: `1px solid ${ROLE_COLORS[u.appRole] ?? '#c9963a'}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                          {ROLE_ICONS[u.appRole] ?? '👤'}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: '#f0ece4', margin: '0 0 1px' }}>{u.fullName}</p>
+                          <p style={{ fontSize: 11, color: ROLE_COLORS[u.appRole] ?? 'rgba(240,236,228,0.4)', margin: 0 }}>{ROLE_LABELS[u.appRole] ?? u.appRole}</p>
+                        </div>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 16 }}>›</span>
+                      </button>
+                    ))}
+                    {users.length === 0 && <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.3)', textAlign: 'center', padding: '24px 0' }}>Sin usuarios activos en este restaurante.</p>}
+                  </div>
+                </>
+              )}
+
+              {/* STEP 3 — PIN */}
+              {step === 'pin' && selectedUser && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+                    <button onClick={() => { setStep('user'); setSelectedUser(null); setPin(''); setError(''); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,236,228,0.35)', padding: 4, display: 'flex' }}>
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${ROLE_COLORS[selectedUser.appRole] ?? '#c9963a'}15`, border: `1px solid ${ROLE_COLORS[selectedUser.appRole] ?? '#c9963a'}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                        {ROLE_ICONS[selectedUser.appRole] ?? '👤'}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: '#f0ece4', margin: 0 }}>{selectedUser.fullName}</p>
+                        <p style={{ fontSize: 11, color: ROLE_COLORS[selectedUser.appRole] ?? 'rgba(240,236,228,0.4)', margin: 0 }}>{ROLE_LABELS[selectedUser.appRole] ?? selectedUser.appRole}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: 13, color: 'rgba(240,236,228,0.45)', textAlign: 'center', marginBottom: 16 }}>Ingresa tu PIN de acceso</p>
+
+                  {/* PIN dots */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18 }}>
+                    {[0,1,2,3,4,5].map(i => (
+                      <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: i < pin.length ? (ROLE_COLORS[selectedUser.appRole] ?? '#c9963a') : 'rgba(255,255,255,0.1)', border: i < pin.length ? 'none' : '1px solid rgba(255,255,255,0.18)', transition: 'all .12s', transform: i < pin.length ? 'scale(1.2)' : 'scale(1)' }} />
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ position: 'relative' }}>
+                      <input type={showPin ? 'text' : 'password'} value={pin}
+                        onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setError(''); }}
+                        maxLength={8} inputMode="numeric" pattern="[0-9]*" autoFocus autoComplete="off"
+                        style={{ width: '100%', padding: '14px 48px 14px 20px', borderRadius: 12, border: error ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#f0ece4', fontSize: 26, fontFamily: 'monospace', letterSpacing: 10, textAlign: 'center', outline: 'none', boxSizing: 'border-box', transition: 'border-color .2s' }} />
+                      <button type="button" onClick={() => setShowPin(v => !v)}
+                        style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', display: 'flex' }}>
+                        {showPin ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                    {error && <p style={{ fontSize: 12, color: '#f87171', textAlign: 'center' }}>⚠ {error}</p>}
+                    <button type="submit" disabled={submitting || pin.length < 4}
+                      style={{ padding: 14, borderRadius: 12, border: 'none', background: pin.length >= 4 ? (ROLE_COLORS[selectedUser.appRole] ?? '#c9963a') : 'rgba(201,150,58,0.2)', color: '#07090f', fontSize: 15, fontWeight: 700, cursor: pin.length >= 4 ? 'pointer' : 'not-allowed', transition: 'all .2s', fontFamily: 'inherit' }}>
+                      {submitting ? 'Verificando...' : `Entrar como ${selectedUser.fullName.split(' ')[0]}`}
+                    </button>
+                    <button type="button" onClick={() => setStep('recover')}
+                      style={{ background: 'none', border: 'none', fontSize: 12, color: 'rgba(240,236,228,0.3)', cursor: 'pointer', fontFamily: 'inherit', padding: '4px 0', transition: 'color .2s' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.6)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,0.3)')}>
+                      ¿Olvidaste tu PIN? Contacta a tu administrador
+                    </button>
+                  </form>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
