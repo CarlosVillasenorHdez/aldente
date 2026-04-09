@@ -214,6 +214,7 @@ CREATE POLICY "tenant_isolation_rh_permisos" ON public.rh_permisos
   );
 
 DROP POLICY IF EXISTS "rh_tiempos_extras_all" ON public.rh_tiempos_extras;
+DROP POLICY IF EXISTS "tenant_isolation_rh_tiempos_extras" ON public.rh_tiempos_extras;
 CREATE POLICY "tenant_isolation_rh_tiempos_extras" ON public.rh_tiempos_extras
   FOR ALL TO authenticated
   USING (
