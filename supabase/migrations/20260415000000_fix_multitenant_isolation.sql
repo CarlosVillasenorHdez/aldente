@@ -22,6 +22,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_tables_number_tenant_nobranch
   ON public.restaurant_tables (number, tenant_id)
   WHERE branch_id IS NULL;
 
+-- ─── 1b. Fix system_config config_key UNIQUE constraint ─────────────────────
+-- Remove global UNIQUE on config_key, replace with (tenant_id, config_key)
+-- This allows each tenant to have their own restaurant_name, currency, etc.
+
+ALTER TABLE public.system_config
+  DROP CONSTRAINT IF EXISTS system_config_config_key_key;
+
+ALTER TABLE public.system_config
+  ADD CONSTRAINT system_config_tenant_config_key_key UNIQUE (tenant_id, config_key);
+
+-- ─── 1c. Fix app_users username UNIQUE constraint ────────────────────────────
+-- Remove global UNIQUE on username, replace with (tenant_id, username)
+-- This allows each tenant to have their own 'admin', 'mesero', etc. usernames
+
+ALTER TABLE public.app_users
+  DROP CONSTRAINT IF EXISTS app_users_username_key;
+
+ALTER TABLE public.app_users
+  ADD CONSTRAINT app_users_tenant_username_key UNIQUE (tenant_id, username);
+
 -- ─── 2. Fix RLS policies — real tenant isolation ─────────────────────────────
 -- The auth_tenant_id() function already exists and returns the tenant for the
 -- current user. We just need to activate it in every USING clause.
