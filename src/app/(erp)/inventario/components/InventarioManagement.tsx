@@ -338,7 +338,7 @@ export default function InventarioManagement() {
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
           ...(form.purchaseUnit ? { purchase_unit: form.purchaseUnit } : {}),
-          ...(form.purchaseQty && form.purchaseQty !== 1 ? { purchase_qty_per_unit: form.purchaseQty } : {}),
+          ...(form.purchaseQtyPerUnit && form.purchaseQtyPerUnit !== 1 ? { purchase_qty_per_unit: form.purchaseQtyPerUnit } : {}),
           ...(form.purchasePrice ? { purchase_price: form.purchasePrice } : {}),
           updated_at: new Date().toISOString(),
         }).eq('id', editingId);
@@ -365,7 +365,7 @@ export default function InventarioManagement() {
         };
         // Purchase fields — only add if migration has been applied
         if (form.purchaseUnit) basePayload.purchase_unit = form.purchaseUnit;
-        if (form.purchaseQty && form.purchaseQty !== 1) basePayload.purchase_qty_per_unit = form.purchaseQty;
+        if (form.purchaseQtyPerUnit && form.purchaseQtyPerUnit !== 1) basePayload.purchase_qty_per_unit = form.purchaseQtyPerUnit;
         if (form.purchasePrice) basePayload.purchase_price = form.purchasePrice;
 
         let res = await supabase.from('ingredients').insert(basePayload).select().single();
@@ -1055,7 +1055,7 @@ export default function InventarioManagement() {
                     <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       Si compras por bolsas, cajas u otra presentación, configúralo aquí. El sistema calculará el costo unitario
                       y sabrá cuántas presentaciones quedan en stock.
-                      <strong style={{ color: 'rgba(255,255,255,0.6)' }}> La unidad de stock siempre es la mínima ({form.unit ? UNIT_LABELS[form.unit] || form.unit : '?'}).</strong>
+                      <strong style={{ color: 'rgba(255,255,255,0.6)' }}> La unidad de stock siempre es la mínima ({form.unit ? UNIT_LABELS[form.unit as UnitType] || form.unit : '?'}).</strong>
                     </p>
                   </div>
                 </div>
@@ -1086,11 +1086,11 @@ export default function InventarioManagement() {
                     <input type="number" min={1} step="1" placeholder="Ej: 8"
                       className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                       style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                      value={form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : ''}
+                      value={form.purchaseQtyPerUnit && form.purchaseQtyPerUnit > 1 ? form.purchaseQtyPerUnit : ''}
                       onChange={e => {
                         const pq = Number(e.target.value) || 1;
                         const pp = form.purchasePrice || 0;
-                        updateForm('purchaseQty', pq);
+                        updateForm('purchaseQtyPerUnit', pq);
                         if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
                       }} />
                     <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>¿Cuántas {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidades'} trae?</p>
@@ -1103,7 +1103,7 @@ export default function InventarioManagement() {
                       value={form.purchasePrice || ''}
                       onChange={e => {
                         const pp = Number(e.target.value);
-                        const pq = form.purchaseQty || 1;
+                        const pq = form.purchaseQtyPerUnit || 1;
                         updateForm('purchasePrice', pp);
                         if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
                       }} />
@@ -1114,11 +1114,11 @@ export default function InventarioManagement() {
                 <div style={{ display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap', background:'rgba(0,0,0,0.25)', borderRadius:'8px', padding:'10px 14px' }}>
                   <span style={{ fontSize:'18px' }}>📦</span>
                   <span style={{ color:'white', fontWeight:600, fontSize:'13px' }}>
-                    1 {form.purchaseUnit ? (UNIT_LABELS[form.purchaseUnit as UnitType] || form.purchaseUnit) : (form.unit ? UNIT_LABELS[form.unit as UnitType] : '—')}
+                    1 {form.purchaseUnit ? (UNIT_LABELS[form.purchaseUnit as UnitType] || form.purchaseUnit) : (form.unit ? UNIT_LABELS[form.unit as UnitType] : '?')}
                   </span>
                   <span style={{ color:'rgba(255,255,255,0.4)' }}>→</span>
                   <span style={{ color:'#f59e0b', fontWeight:700, fontSize:'13px' }}>
-                    {form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : 1} {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : '?'}
+                    {form.purchaseQtyPerUnit && form.purchaseQtyPerUnit > 1 ? form.purchaseQtyPerUnit : 1} {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : '?'}
                   </span>
                   {(form.purchasePrice || 0) > 0 && (
                     <>
@@ -1126,16 +1126,16 @@ export default function InventarioManagement() {
                       <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)' }}>
                         Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'u'}:{' '}
                         <strong style={{ color:'#4ade80' }}>
-                          ${((form.purchasePrice || 0) / Math.max(1, form.purchaseQty || 1)).toFixed(2)}
+                          ${((form.purchasePrice || 0) / Math.max(1, form.purchaseQtyPerUnit || 1)).toFixed(2)}
                         </strong>
                       </span>
                     </>
                   )}
-                  {form.stock > 0 && (form.purchaseQty || 1) > 1 && (
+                  {form.stock > 0 && (form.purchaseQtyPerUnit || 1) > 1 && (
                     <>
                       <span style={{ color:'rgba(255,255,255,0.3)' }}>·</span>
                       <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.45)' }}>
-                        Stock actual ({form.stock} {form.unit ? UNIT_LABELS[form.unit as UnitType] : ''}) ≈ {Math.floor(form.stock / (form.purchaseQty || 1))} {form.purchaseUnit || 'presentaciones'}
+                        Stock actual ({form.stock} {form.unit ? UNIT_LABELS[form.unit as UnitType] : ''}) ≈ {Math.floor(form.stock / (form.purchaseQtyPerUnit || 1))} {form.purchaseUnit || 'presentaciones'}
                       </span>
                     </>
                   )}
