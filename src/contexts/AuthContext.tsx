@@ -276,7 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const listUsers = useCallback(async (): Promise<AppUser[]> => {
-    const tenantId = currentSession?.tenantId;
+    const tenantId = appUser?.tenantId;
     if (!tenantId) return [];
     const { data, error } = await supabase
       .from('app_users')
