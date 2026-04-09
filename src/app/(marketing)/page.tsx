@@ -679,6 +679,20 @@ export default function LandingPage() {
           <p className="hero-sub">{t.hero.sub}</p>
           <div className="hero-actions">
             <a href="/registro" className="btn-primary">{t.hero.cta}</a>
+            <div style={{ display:'flex', alignItems:'center', gap:'16px', marginTop:'16px', flexWrap:'wrap' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Sin tarjeta de crédito
+              </span>
+              <span style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                14 días gratis
+              </span>
+              <span style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Cancela cuando quieras
+              </span>
+            </div>
             <a href="#funciones" className="btn-outline">{t.hero.ctaSecondary}</a>
           </div>
           <div className="hero-url">
@@ -721,6 +735,24 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* TRUST BAR */}
+      <section style={{ borderTop:'1px solid rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'20px 0', background:'rgba(255,255,255,0.02)' }}>
+        <div className="container" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'40px', flexWrap:'wrap' }}>
+          {[
+            { icon:'🔒', text:'Datos cifrados en tránsito y en reposo' },
+            { icon:'🇲🇽', text:'Servidores en México' },
+            { icon:'📱', text:'PWA — sin app store' },
+            { icon:'⚡', text:'Actualizaciones automáticas' },
+            { icon:'🎯', text:'Soporte en español' },
+          ].map(item => (
+            <div key={item.text} style={{ display:'flex', alignItems:'center', gap:'8px', color:'rgba(255,255,255,0.5)', fontSize:'13px' }}>
+              <span>{item.icon}</span>
+              <span>{item.text}</span>
+            </div>
+          ))}
         </div>
       </section>
 

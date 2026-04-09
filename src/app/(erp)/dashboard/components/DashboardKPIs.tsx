@@ -116,6 +116,8 @@ export default function DashboardKPIs() {
     ticketPromedio: 0,
     utilidadHoy: 0, mermaHoy: 0, margenHoy: 0,
     alertasInventario: [] as string[],
+    gastosPorPagar: [] as {nombre:string;monto:number;proximo_pago:string}[],
+    totalGastosPorPagar: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -140,25 +142,33 @@ export default function DashboardKPIs() {
 
         const [
           { data: cerradasHoy },
+          { data: mermaOrdersRaw },
           { data: cerradasAyer },
           { data: abiertas },
           { data: mesas },
           { data: topItems },
           { data: ingAlerta },
+          { data: gastosAlert },
         ] = await Promise.all([
           supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
+          supabase.from('orders').select('waste_cost').eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
           supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').in('status', ['abierta', 'preparacion', 'lista']),
           supabase.from('restaurant_tables').select('status'),
           supabase.from('order_items').select('name, qty').gte('created_at', todayUTC),
           supabase.from('ingredients').select('name, stock, min_stock'),
+          supabase.from('gastos_recurrentes')
+            .select('nombre, monto, proximo_pago, frecuencia')
+            .eq('activo', true)
+            .eq('estado', 'pendiente'),
         ]);
 
         const ventasHoy = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
         const ventasAyer = (cerradasAyer || []).reduce((s, o) => s + Number(o.total), 0);
         const ticketPromedio = cerradasHoy?.length ? ventasHoy / cerradasHoy.length : 0;
         const utilidadHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
-        const mermaHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
+        // Merma lives on cancelled comandas, NOT on closed orders
+        const mermaHoy = (mermaOrdersRaw || []).reduce((s: number, o: any) => s + Number(o.waste_cost ?? 0), 0);
         const margenHoy = ventasHoy > 0 ? (utilidadHoy / ventasHoy) * 100 : 0;
         const mesasOcupadas = (mesas || []).filter((m) => m.status === 'ocupada').length;
         const totalMesas = (mesas || []).length;
@@ -171,6 +181,15 @@ export default function DashboardKPIs() {
           .filter((i) => Number(i.stock) <= Number(i.min_stock))
           .map((i) => i.name);
 
+        const today = new Date();
+        const gastosPorPagar = (gastosAlert || []).filter((g: any) => {
+          if (!g.proximo_pago) return false;
+          const proxPago = new Date(g.proximo_pago);
+          const diffDias = Math.ceil((proxPago.getTime() - today.getTime()) / 86400000);
+          return diffDias <= 7; // due in 7 days or overdue
+        });
+        const totalGastosPorPagar = gastosPorPagar.reduce((s: number, g: any) => s + Number(g.monto), 0);
+
         setKpis({
           ventasHoy, ventasAyer,
           ordenesAbiertas: (abiertas || []).length,
@@ -180,6 +199,8 @@ export default function DashboardKPIs() {
           ticketPromedio,
           utilidadHoy, mermaHoy, margenHoy,
           alertasInventario,
+          gastosPorPagar: gastosPorPagar as {nombre:string;monto:number;proximo_pago:string}[],
+          totalGastosPorPagar,
         });
       } catch (err) {
         console.error('Dashboard KPI fetch error:', err);
@@ -275,6 +296,52 @@ export default function DashboardKPIs() {
         alert={kpis.mermaHoy > 0}
         loading={loading}
       />
+
+      {/* Gastos por pagar alert */}
+      {/* Gastos por pagar — prominent card with list */}
+      {kpis.gastosPorPagar.length > 0 && (
+        <div className="col-span-2 md:col-span-4">
+          <div className="kpi-card" style={{
+            backgroundColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fef2f2' : '#fffbeb',
+            borderColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fca5a5' : '#fde68a',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                <span style={{ fontSize:'18px' }}>💳</span>
+                <div>
+                  <p style={{ fontSize:'11px', fontWeight:600, color: '#92400e', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                    {kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '⚠️ Pagos vencidos' : 'Pagos próximos'}
+                  </p>
+                  <p style={{ fontSize:'18px', fontWeight:700, color: '#92400e' }}>
+                    ${kpis.totalGastosPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+              <a href="/gastos" style={{ fontSize:'12px', fontWeight:600, color:'#d97706', textDecoration:'none', padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)' }}>
+                Ver gastos →
+              </a>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+              {kpis.gastosPorPagar.slice(0, 4).map(g => {
+                const isOverdue = new Date(g.proximo_pago) < new Date();
+                return (
+                  <div key={g.nombre} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 10px', borderRadius:'8px', backgroundColor: isOverdue ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize:'13px', color: isOverdue ? '#dc2626' : '#92400e', fontWeight: isOverdue ? 600 : 400 }}>
+                      {isOverdue ? '🔴' : '🟡'} {g.nombre}
+                    </span>
+                    <div style={{ textAlign:'right' }}>
+                      <span style={{ fontSize:'13px', fontWeight:700, color: isOverdue ? '#dc2626' : '#92400e', fontFamily:'monospace' }}>
+                        ${Number(g.monto).toLocaleString('es-MX')}
+                      </span>
+                      <span style={{ fontSize:'11px', color:'#9ca3af', marginLeft:'6px' }}>{g.proximo_pago}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Inventory alert — gated for Estándar plan */}
       {/* Gate: basico has no alarmas/inventario features */}

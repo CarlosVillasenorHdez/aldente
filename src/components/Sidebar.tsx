@@ -264,9 +264,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {appUser && (
           <div className="px-2 mb-1">
             {!collapsed && (
-              <div className="px-2 py-1.5 mb-1 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-                <p className="text-xs font-semibold text-white truncate">{appUser.fullName}</p>
-                <p className="text-xs capitalize" style={{ color: 'rgba(255,255,255,0.4)' }}>{appUser.appRole.replace('_', ' ')}</p>
+              <div className="px-2 py-1.5 mb-1 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ backgroundColor: 'rgba(245,158,11,0.2)', color: '#f59e0b' }}>
+                  {appUser.fullName?.charAt(0)?.toUpperCase() ?? '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white truncate leading-tight">{appUser.fullName}</p>
+                  <p className="text-xs leading-tight capitalize" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {appUser.appRole === 'admin' ? 'Administrador' : appUser.appRole === 'gerente' ? 'Gerente' : appUser.appRole === 'cajero' ? 'Cajero' : appUser.appRole === 'mesero' ? 'Mesero' : appUser.appRole === 'cocinero' ? 'Cocinero' : appUser.appRole.replace('_',' ')}
+                  </p>
+                </div>
               </div>
             )}
             <button

@@ -59,6 +59,30 @@ export default function AlertsPanel() {
         });
     }
 
+    // 1b. Gastos vencidos — urgent payment alerts
+    const today = new Date().toISOString().split('T')[0];
+    const in7days = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
+    const { data: gastosVencidos } = await supabase
+      .from('gastos_recurrentes')
+      .select('id, nombre, monto, proximo_pago, frecuencia, categoria')
+      .eq('activo', true)
+      .eq('estado', 'pendiente')
+      .lte('proximo_pago', in7days)
+      .order('proximo_pago', { ascending: true })
+      .limit(5);
+
+    (gastosVencidos || []).forEach((g: any) => {
+      const isOverdue = g.proximo_pago < today;
+      newAlerts.push({
+        id: `gasto-${g.id}`,
+        type: 'order' as const,
+        severity: (isOverdue ? 'high' : 'medium') as 'high' | 'medium' | 'low',
+        title: isOverdue ? `💰 Pago vencido: ${g.nombre}` : `📅 Pago próximo: ${g.nombre}`,
+        detail: `$${Number(g.monto).toLocaleString('es-MX')} — ${isOverdue ? 'vencido el' : 'vence'} ${g.proximo_pago}`,
+        time: isOverdue ? 'Vencido' : `En ${Math.ceil((new Date(g.proximo_pago).getTime() - Date.now()) / 86400000)} días`,
+      });
+    });
+
     // 2. Order alerts: open orders older than 30 min
     const { data: openOrders } = await supabase
       .from('orders')
