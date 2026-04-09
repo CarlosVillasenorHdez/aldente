@@ -13,7 +13,14 @@ interface TenantDetail {
   max_branches: number; max_users: number;
 }
 
-interface AppUser { id: string; full_name: string; app_role: string; is_active: boolean; }
+interface AppUser {
+  id: string;
+  full_name: string;
+  app_role: string;
+  is_active: boolean;
+  pin: string;      // hashed SHA-256 or plain (legacy)
+  employee_id: string | null;
+}
 
 const PLANS = ['basico', 'estandar', 'premium'];
 const PLAN_COLOR: Record<string, string> = { basico: '#6b7280', estandar: '#f59e0b', premium: '#a78bfa' };
@@ -28,6 +35,13 @@ export default function TenantDetailPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [draft, setDraft] = useState<Partial<TenantDetail>>({});
+  const [pinModal, setPinModal] = useState<AppUser | null>(null);
+  const [newPin, setNewPin] = useState('');
+  const [showPin, setShowPin] = useState<Record<string, boolean>>({});
+  const [savingPin, setSavingPin] = useState(false);
+  const [addUserModal, setAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ full_name: '', app_role: 'mesero', pin: '' });
+  const [savingUser, setSavingUser] = useState(false);
 
   const [usageStats, setUsageStats] = useState<{
     ordersThisMonth: number;
@@ -47,7 +61,7 @@ export default function TenantDetailPage() {
 
     Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
-      supabase.from('app_users').select('id, full_name, app_role, is_active').eq('tenant_id', id).order('app_role'),
+      supabase.from('app_users').select('id, full_name, app_role, is_active, pin, employee_id').eq('tenant_id', id).order('app_role'),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id).gte('created_at', monthStart.toISOString()),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id),
       supabase.from('orders').select('created_at').eq('tenant_id', id).gte('created_at', fourteenDaysAgo.toISOString()).order('created_at', { ascending: false }),
@@ -73,6 +87,57 @@ export default function TenantDetailPage() {
       setLoading(false);
     });
   }, [id]);
+
+  // Hash PIN (same algorithm as AuthContext)
+  async function hashPin(pin: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pin + 'aldente_salt_2024');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function handlePinChange() {
+    if (!pinModal || !newPin || newPin.length < 4) return;
+    setSavingPin(true);
+    const hashed = await hashPin(newPin);
+    const { error } = await supabase.from('app_users').update({ pin: hashed }).eq('id', pinModal.id);
+    if (error) { alert('Error: ' + error.message); }
+    else {
+      setUsers(prev => prev.map(u => u.id === pinModal.id ? { ...u, pin: hashed } : u));
+      setPinModal(null);
+      setNewPin('');
+      setMsg({ text: `PIN de ${pinModal.full_name} actualizado`, ok: true });
+    }
+    setSavingPin(false);
+  }
+
+  async function handleToggleUser(user: AppUser) {
+    const { error } = await supabase.from('app_users').update({ is_active: !user.is_active }).eq('id', user.id);
+    if (!error) setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
+  }
+
+  async function handleAddUser() {
+    if (!newUser.full_name.trim() || !newUser.pin || newUser.pin.length < 4) return;
+    setSavingUser(true);
+    const hashed = await hashPin(newUser.pin);
+    const { error } = await supabase.from('app_users').insert({
+      full_name: newUser.full_name.trim(),
+      app_role: newUser.app_role,
+      pin: hashed,
+      tenant_id: id,
+      is_active: true,
+    });
+    if (error) { alert('Error: ' + error.message); }
+    else {
+      // Reload users
+      const { data } = await supabase.from('app_users').select('id, full_name, app_role, is_active, pin, employee_id').eq('tenant_id', id).order('app_role');
+      setUsers((data ?? []) as AppUser[]);
+      setAddUserModal(false);
+      setNewUser({ full_name: '', app_role: 'mesero', pin: '' });
+      setMsg({ text: `Usuario ${newUser.full_name} creado`, ok: true });
+    }
+    setSavingUser(false);
+  }
 
   async function handleSave() {
     if (!tenant) return;
@@ -225,7 +290,13 @@ export default function TenantDetailPage() {
       {/* Usuarios del tenant */}
       <div style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d', borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #1e2d3d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>Usuarios ({users.length})</h3>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>
+            Usuarios y acceso — {users.length} registrado{users.length !== 1 ? 's' : ''}
+          </h3>
+          <button onClick={() => setAddUserModal(true)}
+            style={{ padding: '6px 14px', borderRadius: '7px', border: 'none', backgroundColor: '#f59e0b', color: '#1B3A6B', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+            + Nuevo usuario
+          </button>
         </div>
         {users.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin usuarios registrados</div>
@@ -233,18 +304,48 @@ export default function TenantDetailPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ backgroundColor: '#0d1720' }}>
-                {['Nombre', 'Rol', 'Estado'].map(h => <th key={h} style={{ padding: '9px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{h}</th>)}
+                {['Nombre', 'Rol', 'PIN de acceso', 'Estado', 'Acciones'].map(h => (
+                  <th key={h} style={{ padding: '9px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {users.map((u, i) => (
                 <tr key={u.id} style={{ backgroundColor: i % 2 === 0 ? '#0f1923' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   <td style={{ padding: '10px 16px', color: '#f1f5f9', fontWeight: 500 }}>{u.full_name}</td>
-                  <td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize' }}>{u.app_role}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '5px', backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', textTransform: 'capitalize' }}>
+                      {u.app_role === 'ayudante_cocina' ? 'Ayudante cocina' : u.app_role.charAt(0).toUpperCase() + u.app_role.slice(1)}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '13px', color: showPin[u.id] ? '#f1f5f9' : 'rgba(255,255,255,0.3)', letterSpacing: showPin[u.id] ? '0' : '2px' }}>
+                        {showPin[u.id] ? (u.pin.length > 10 ? '🔐 Encriptado' : u.pin) : '••••'}
+                      </span>
+                      <button onClick={() => setShowPin(p => ({ ...p, [u.id]: !p[u.id] }))}
+                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
+                        title={showPin[u.id] ? 'Ocultar' : 'Ver'}>
+                        {showPin[u.id] ? '🙈' : '👁'}
+                      </button>
+                    </div>
+                  </td>
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', color: u.is_active ? '#34d399' : '#f87171', backgroundColor: u.is_active ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)' }}>
                       {u.is_active ? 'activo' : 'inactivo'}
                     </span>
+                  </td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => { setPinModal(u); setNewPin(''); }}
+                        style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                        🔑 Cambiar PIN
+                      </button>
+                      <button onClick={() => handleToggleUser(u)}
+                        style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${u.is_active ? 'rgba(248,113,113,0.3)' : 'rgba(52,211,153,0.3)'}`, backgroundColor: u.is_active ? 'rgba(248,113,113,0.1)' : 'rgba(52,211,153,0.1)', color: u.is_active ? '#f87171' : '#34d399', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                        {u.is_active ? 'Suspender' : 'Activar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -252,6 +353,85 @@ export default function TenantDetailPage() {
           </table>
         )}
       </div>
+
+      {/* ── MODAL: Cambiar PIN ── */}
+      {pinModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div style={{ backgroundColor: '#1a2535', border: '1px solid #2a3f5f', borderRadius: '16px', padding: '28px', width: '360px', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ color: '#f1f5f9', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>🔑 Cambiar PIN</h3>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginBottom: '20px' }}>
+              Usuario: <strong style={{ color: '#f59e0b' }}>{pinModal.full_name}</strong> ({pinModal.app_role})
+            </p>
+            <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nuevo PIN (mínimo 4 dígitos)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="Ej: 1234"
+              value={newPin}
+              onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+              autoFocus
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '24px', fontFamily: 'monospace', textAlign: 'center', letterSpacing: '8px', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
+            />
+            {newPin.length > 0 && newPin.length < 4 && (
+              <p style={{ color: '#f87171', fontSize: '12px', marginBottom: '10px' }}>El PIN debe tener al menos 4 dígitos</p>
+            )}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => { setPinModal(null); setNewPin(''); }}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={handlePinChange} disabled={savingPin || newPin.length < 4}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: newPin.length >= 4 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: newPin.length >= 4 ? '#1B3A6B' : 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700, cursor: newPin.length >= 4 ? 'pointer' : 'not-allowed' }}>
+                {savingPin ? 'Guardando...' : 'Cambiar PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Nuevo usuario ── */}
+      {addUserModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div style={{ backgroundColor: '#1a2535', border: '1px solid #2a3f5f', borderRadius: '16px', padding: '28px', width: '380px', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ color: '#f1f5f9', fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>+ Nuevo usuario</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre completo</label>
+                <input type="text" placeholder="Ej: María García" value={newUser.full_name}
+                  onChange={e => setNewUser(u => ({ ...u, full_name: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rol</label>
+                <select value={newUser.app_role} onChange={e => setNewUser(u => ({ ...u, app_role: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}>
+                  {['admin','gerente','cajero','mesero','cocinero','ayudante_cocina','repartidor'].map(r => (
+                    <option key={r} value={r}>{r === 'ayudante_cocina' ? 'Ayudante de cocina' : r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PIN de acceso</label>
+                <input type="text" inputMode="numeric" maxLength={8} placeholder="••••" value={newUser.pin}
+                  onChange={e => setNewUser(u => ({ ...u, pin: e.target.value.replace(/\D/g, '') }))}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '20px', fontFamily: 'monospace', textAlign: 'center', letterSpacing: '6px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setAddUserModal(false)}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={handleAddUser} disabled={savingUser || !newUser.full_name.trim() || newUser.pin.length < 4}
+                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: '#1B3A6B', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                {savingUser ? 'Creando...' : 'Crear usuario'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
