@@ -171,6 +171,7 @@ function Nav() {
 
 export default function FuncionalidadesPage() {
   const [activeModule, setActiveModule] = useState('pos');
+  const [filterPlan, setFilterPlan] = useState<string | null>(null);
   const mod = MODULES.find(m => m.id === activeModule) ?? MODULES[0];
 
   return (
@@ -204,24 +205,67 @@ export default function FuncionalidadesPage() {
           <p style={{ fontSize: 'clamp(15px,1.8vw,18px)', fontWeight: 300, color: 'rgba(240,236,228,.6)', maxWidth: 540, margin: '0 auto 40px', lineHeight: 1.75 }}>
             Cada módulo de Aldente nació de una pregunta real que algún dueño de restaurante se hizo sin poder responderla.
           </p>
-          {/* Plan badges */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[['Operación','#4a9eff'],['Negocio','#c9963a'],['Empresa','#a78bfa']].map(([p,c])=>(
-              <a key={p} href="/#planes" style={{ padding: '6px 16px', borderRadius: 100, background: `${c}15`, border: `1px solid ${c}30`, fontSize: 12, fontWeight: 600, color: c, letterSpacing: '.05em', textTransform: 'uppercase' }}>
+          {/* Plan filter buttons */}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+            {([['Operación','#4a9eff'],['Negocio','#c9963a'],['Empresa','#a78bfa']] as [string,string][]).map(([p,c])=>(
+              <button key={p} onClick={() => {
+                const newFilter = filterPlan === p ? null : p;
+                setFilterPlan(newFilter);
+                // Jump to modules section and select first module of this plan
+                const first = MODULES.find(m => !newFilter || m.plan === newFilter);
+                if (first) { setActiveModule(first.id); }
+                document.getElementById('modulos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+                style={{ padding: '8px 20px', borderRadius: 100, background: filterPlan === p ? `${c}22` : `${c}10`, border: `1.5px solid ${filterPlan === p ? c : c+'40'}`, fontSize: 12, fontWeight: 700, color: c, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', transform: filterPlan === p ? 'scale(1.05)' : 'scale(1)' }}>
                 Plan {p}
-              </a>
+              </button>
             ))}
           </div>
+          {filterPlan && (
+            <div style={{ marginTop: 12, padding: '10px 20px', borderRadius: 12, display: 'inline-block', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+              <p style={{ fontSize: 13, color: 'rgba(240,236,228,.55)', fontStyle: 'italic' }}>
+                {filterPlan === 'Operación' && 'Para el restaurante que quiere dejar el papel y empezar a operar de forma profesional.'}
+                {filterPlan === 'Negocio' && 'Para el restaurante que opera bien y necesita entender su rentabilidad real.'}
+                {filterPlan === 'Empresa' && 'Para el restaurante que quiere escalar sin perder el control de ninguna sucursal.'}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
       {/* MODULES — sidebar + detail */}
-      <section className="sec" style={{ background: '#0d0f17' }}>
+      <section id="modulos" className="sec" style={{ background: '#0d0f17', scrollMarginTop: '80px' }}>
         <div className="wrap">
+          {/* Plan context banner */}
+          {filterPlan && (() => {
+            const planModules = MODULES.filter(m => m.plan === filterPlan);
+            const planColors: Record<string, string> = { 'Operación': '#4a9eff', 'Negocio': '#c9963a', 'Empresa': '#a78bfa' };
+            const planDescriptions: Record<string, string> = {
+              'Operación': 'Estos 3 módulos resuelven el problema más urgente: eliminar el papel, los errores de comanda y la imprecisión del cobro. Con esto tu restaurante ya opera de forma profesional.',
+              'Negocio': 'Con la operación resuelta, la siguiente pregunta es: ¿gané dinero hoy? Estos módulos te dan la respuesta exacta — no estimada — con el costo real de cada platillo, los gastos prorrateados y la merma registrada.',
+              'Empresa': 'Cuando tienes más de una sucursal, el desafío no es operar — es mantener visibilidad sin perder autonomía. Estos módulos te permiten escalar sin que cada sucursal sea un mundo aparte.',
+            };
+            const c = planColors[filterPlan];
+            return (
+              <div style={{ marginBottom: 32, padding: '20px 28px', borderRadius: 16, background: `${c}07`, border: `1px solid ${c}25`, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: c }}>Plan {filterPlan}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(240,236,228,.3)' }}>· {planModules.length} módulos</span>
+                    <button onClick={() => setFilterPlan(null)}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(240,236,228,.3)', cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>
+                      × Ver todos
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 14, color: 'rgba(240,236,228,.65)', lineHeight: 1.7 }}>{planDescriptions[filterPlan]}</p>
+                </div>
+              </div>
+            );
+          })()}
           <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }} className="sidebar-layout">
             {/* Sidebar */}
             <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 4, position: 'sticky', top: 80 }} className="sidebar">
-              {MODULES.map(m => (
+              {MODULES.filter(m => !filterPlan || m.plan === filterPlan).map(m => (
                 <button key={m.id} className="mod-btn"
                   onClick={() => setActiveModule(m.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: activeModule === m.id ? `${m.color}10` : 'transparent', border: `1px solid ${activeModule === m.id ? m.color + '30' : 'rgba(255,255,255,0.05)'}`, textAlign: 'left', transition: 'all .2s', width: '100%' }}>
