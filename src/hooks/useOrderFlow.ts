@@ -255,7 +255,7 @@ export function useOrderFlow() {
           .map(item =>
             supabase
               .from('dish_recipes')
-              .select('ingredient_id, quantity, ingredients(stock, name, unit, cost)')
+              .select('ingredient_id, quantity, unit, ingredients(stock, name, unit, cost, purchase_unit, purchase_qty_per_unit)')
               .eq('dish_id', item.dishId)
               .then(res => ({ item, data: res.data }))
           )
@@ -275,11 +275,21 @@ export function useOrderFlow() {
           // Skip excluded ingredients — customer requested removal
           if (item.excludedIngredientIds?.includes(ri.ingredient_id)) continue;
 
-          const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number; cost?: number } | null;
+          const ingredient = (ri as Record<string, unknown>)['ingredients'] as { stock: number; cost?: number; purchase_unit?: string; purchase_qty_per_unit?: number } | null;
           if (!ingredient) continue;
 
-          // Base deduction
+          // Base deduction — convert from recipe unit to stock unit if needed
+          // If the recipe specifies a purchase unit (e.g. "bolsa") convert to stock unit
+          const recipeUnit = (ri as any).unit ?? '';
+          const stockUnit = (ingredient as any).unit ?? '';
+          const purchaseUnit = (ingredient as any).purchase_unit ?? '';
+          const purchaseQtyPerUnit = Number((ingredient as any).purchase_qty_per_unit ?? 1);
+          const isRecipeInPurchaseUnit = purchaseUnit && recipeUnit === purchaseUnit && stockUnit !== purchaseUnit;
           let deductQty = Number(ri.quantity) * item.qty;
+          if (isRecipeInPurchaseUnit && purchaseQtyPerUnit > 1) {
+            // Convert: recipe says "1 bolsa" → deduct 8 piezas from stock
+            deductQty = deductQty * purchaseQtyPerUnit;
+          }
 
           // Extra: customer requested double portion of this ingredient
           const extra = item.extras?.find(e => e.ingredientId === ri.ingredient_id);

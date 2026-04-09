@@ -869,8 +869,9 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe }: {
   recipeCount: number;
   onEdit: (d: Dish) => void;
   onDelete: (d: Dish) => void;
-  onToggle: (id: string) => void;
+  onToggle: (id: string) => void | Promise<void>;
   onRecipe: (d: Dish) => void;
+  [key: string]: unknown;
 }) {
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:translate-y-[-2px]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72', opacity: dish.available ? 1 : 0.65 }}>
@@ -1107,7 +1108,7 @@ export default function MenuManagement() {
           {filtered.map((dish) => (
             <DishCard
               key={dish.id}
-              dish={dish}
+              dish={dish as Dish}
               recipeCount={recipeCounts[dish.id] || 0}
               onEdit={openEdit}
               onDelete={setDeletingDish}
