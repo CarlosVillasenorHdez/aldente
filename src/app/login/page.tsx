@@ -102,7 +102,7 @@ export default function LoginPage() {
     const result = await signIn(selectedUser.id, pin);
     setSubmitting(false);
     if (result.error) { setError(result.error); setPin(''); return; }
-    const role = result.user?.appRole ?? 'mesero';
+    const role = selectedUser.appRole ?? 'mesero';
     const rd: Record<string, string> = {
       admin: '/dashboard', gerente: '/dashboard', cajero: '/corte-caja',
       mesero: '/mesero', cocinero: '/cocina', ayudante_cocina: '/cocina', repartidor: '/delivery',
