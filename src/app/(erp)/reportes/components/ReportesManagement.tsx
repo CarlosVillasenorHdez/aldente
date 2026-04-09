@@ -495,13 +495,163 @@ export default function ReportesManagement() {
     return `${customStart} — ${customEnd}`;
   }, [dateRange, customStart, customEnd]);
 
+  const [showPDFModal, setShowPDFModal] = useState(false);
+  const [pdfDateRange, setPdfDateRange] = useState<DateRange>(dateRange);
+  const [pdfStart, setPdfStart] = useState(customStart || new Date().toISOString().split('T')[0]);
+  const [pdfEnd, setPdfEnd] = useState(customEnd || new Date().toISOString().split('T')[0]);
+
   const handleExportPDF = useCallback(() => {
-    setExporting(true);
-    setTimeout(() => {
-      window.print();
-      setExporting(false);
-    }, 300);
+    setShowPDFModal(true);
   }, []);
+
+  const generateExecutivePDF = useCallback(() => {
+    const sortedForPDF = [...cogsData].sort((a: any, b: any) => b.contribucionTotal - a.contribucionTotal);
+    setShowPDFModal(false);
+    setExporting(true);
+
+    // Build executive report as a new print window
+    const ventas = realKpis?.ventas ?? 0;
+    const utilidad = realKpis ? realKpis.ventas - realKpis.costo : 0;
+    const merma = realKpis?.merma ?? 0;
+    const margen = realKpis?.margenPct ?? 0;
+    const descuentos = realKpis?.descuentos ?? 0;
+    const iva = realKpis?.iva ?? 0;
+    const ordenes = realKpis?.ordenes ?? 0;
+    const ticket = realKpis?.ticket ?? 0;
+    const periodoLabel = dateRangeLabel;
+
+    const topDishesHTML = topDishesToUse.slice(0, 8).map((d, i) =>
+      `<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:8px 12px;color:#6b7280;font-size:12px">${i+1}</td>
+        <td style="padding:8px 12px;font-weight:600;font-size:13px">${d.nombre}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:monospace;font-size:13px">${d.cantidad}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:monospace;font-size:13px;color:#16a34a">$${d.ingresos.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+      </tr>`
+    ).join('');
+
+    const cogsHTML = sortedForPDF.slice(0, 8).map((d: any) =>
+      `<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:8px 12px;font-weight:600;font-size:13px">${d.nombre}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:monospace;font-size:13px;color:#ef4444">$${d.costoIngredientes.toFixed(2)}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:monospace;font-size:13px;color:#16a34a">$${d.margenBruto.toFixed(2)}</td>
+        <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:${d.margenPct >= 70 ? '#16a34a' : d.margenPct >= 50 ? '#f59e0b' : '#ef4444'}">${d.margenPct.toFixed(1)}%</td>
+      </tr>`
+    ).join('');
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+      <title>Reporte Ejecutivo — ${periodoLabel}</title>
+      <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#1f2937; background:#fff; }
+        .page { max-width:800px; margin:0 auto; padding:40px; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #1B3A6B; padding-bottom:20px; margin-bottom:32px; }
+        .logo-area h1 { font-size:24px; color:#1B3A6B; font-weight:700; }
+        .logo-area p { color:#6b7280; font-size:13px; margin-top:4px; }
+        .period-badge { background:#1B3A6B; color:white; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; text-align:right; }
+        .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }
+        .kpi-card { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px; }
+        .kpi-label { font-size:11px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+        .kpi-value { font-size:22px; font-weight:700; font-family:monospace; }
+        .kpi-sub { font-size:11px; color:#9ca3af; margin-top:2px; }
+        .kpi-green .kpi-value { color:#16a34a; }
+        .kpi-red .kpi-value { color:#dc2626; }
+        .kpi-amber .kpi-value { color:#d97706; }
+        .kpi-blue .kpi-value { color:#1B3A6B; }
+        .section { margin-bottom:28px; }
+        .section-title { font-size:14px; font-weight:700; color:#1B3A6B; border-left:4px solid #f59e0b; padding-left:10px; margin-bottom:14px; }
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        thead tr { background:#f8fafc; }
+        th { padding:8px 12px; text-align:left; font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; }
+        .pl-row { display:flex; justify-content:space-between; padding:8px 12px; border-bottom:1px solid #f3f4f6; font-size:13px; }
+        .pl-total { display:flex; justify-content:space-between; padding:10px 12px; background:#f8fafc; border-radius:6px; font-weight:700; font-size:14px; margin-top:4px; }
+        .footer { margin-top:40px; padding-top:16px; border-top:1px solid #e5e7eb; display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; }
+        .merma-alert { background:#fef2f2; border:1px solid #fca5a5; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .merma-alert span { color:#dc2626; font-weight:600; font-size:13px; }
+        @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+      </style>
+    </head><body><div class="page">
+      <div class="header">
+        <div class="logo-area">
+          <h1>Reporte Ejecutivo</h1>
+          <p>Generado el ${new Date().toLocaleDateString('es-MX', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+        </div>
+        <div class="period-badge">📅 ${periodoLabel}</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Ventas Totales</div>
+          <div class="kpi-value">$${ventas.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">${ordenes} órdenes · Ticket prom. $${ticket.toFixed(2)}</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Utilidad Bruta</div>
+          <div class="kpi-value">$${utilidad.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">${margen.toFixed(1)}% margen bruto</div>
+        </div>
+        <div class="kpi-card ${merma > 0 ? 'kpi-red' : 'kpi-green'}">
+          <div class="kpi-label">⚠️ Merma</div>
+          <div class="kpi-value">$${merma.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">${merma > 0 ? 'Platillos cancelados con costo' : 'Sin mermas ✓'}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">IVA Generado</div>
+          <div class="kpi-value" style="color:#6b7280">$${iva.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">16% sobre ventas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Descuentos</div>
+          <div class="kpi-value" style="color:#6b7280">$${descuentos.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">Total aplicado</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Utilidad Neta Est.</div>
+          <div class="kpi-value">$${(utilidad - merma).toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <div class="kpi-sub">Después de merma</div>
+        </div>
+      </div>
+
+      ${merma > 0 ? `<div class="merma-alert">⚠️ <span>Merma registrada: $${merma.toLocaleString('es-MX',{minimumFractionDigits:2})} — revisar razones de cancelación para reducir pérdidas.</span></div>` : ''}
+
+      <div class="section">
+        <div class="section-title">Top Platillos del Período</div>
+        <table>
+          <thead><tr><th>#</th><th>Platillo</th><th style="text-align:right">Unidades</th><th style="text-align:right">Ingresos</th></tr></thead>
+          <tbody>${topDishesHTML}</tbody>
+        </table>
+      </div>
+
+      ${cogsHTML ? `<div class="section">
+        <div class="section-title">Análisis de Costos (COGS)</div>
+        <table>
+          <thead><tr><th>Platillo</th><th style="text-align:right">COGS</th><th style="text-align:right">Margen</th><th style="text-align:right">Margen %</th></tr></thead>
+          <tbody>${cogsHTML}</tbody>
+        </table>
+      </div>` : ''}
+
+      <div class="section">
+        <div class="section-title">Estado de Resultados (P&L)</div>
+        <div class="pl-row"><span>Ventas brutas</span><span style="font-family:monospace">+$${ventas.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+        <div class="pl-row"><span>Costo de ingredientes (COGS)</span><span style="font-family:monospace;color:#ef4444">-$${(realKpis?.costo??0).toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+        <div class="pl-total"><span>Utilidad Bruta</span><span style="font-family:monospace;color:#16a34a">$${utilidad.toLocaleString('es-MX',{minimumFractionDigits:2})} (${margen.toFixed(1)}%)</span></div>
+        ${merma > 0 ? `<div class="pl-row" style="margin-top:4px"><span>Merma (platillos cancelados)</span><span style="font-family:monospace;color:#dc2626">-$${merma.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+        <div class="pl-total"><span>Utilidad Neta (est.)</span><span style="font-family:monospace;color:${(utilidad-merma)>=0?'#16a34a':'#dc2626'}">$${(utilidad-merma).toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>` : ''}
+      </div>
+
+      <div class="footer">
+        <span>Aldente ERP — Reporte generado automáticamente</span>
+        <span>${new Date().toLocaleString('es-MX')}</span>
+      </div>
+    </div></body></html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => { win.print(); }, 500);
+    }
+    setExporting(false);
+  }, [realKpis, dateRangeLabel, topDishesToUse, cogsData]);
 
   const shortName = (name: string, max = 18) => name.length > max ? name.slice(0, max) + '…' : name;
 
@@ -616,6 +766,59 @@ export default function ReportesManagement() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+      {/* ── PDF Period Modal ── */}
+      {showPDFModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background:'white', borderRadius:'20px', padding:'28px', maxWidth:'420px', width:'100%', boxShadow:'0 25px 50px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ fontSize:'18px', fontWeight:700, color:'#1f2937', marginBottom:'6px' }}>📄 Reporte Ejecutivo PDF</h3>
+            <p style={{ fontSize:'13px', color:'#6b7280', marginBottom:'20px' }}>Genera un reporte completo con KPIs, top platillos, análisis de costos y P&L del período seleccionado.</p>
+            <div style={{ marginBottom:'16px' }}>
+              <p style={{ fontSize:'12px', fontWeight:600, color:'#374151', marginBottom:'8px' }}>Período del reporte</p>
+              <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                {(['hoy','semana','mes'] as const).map(r => (
+                  <button key={r} onClick={() => setPdfDateRange(r)}
+                    style={{ padding:'8px 14px', borderRadius:'8px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:600,
+                      background: pdfDateRange === r ? '#1B3A6B' : '#f3f4f6', color: pdfDateRange === r ? 'white' : '#374151' }}>
+                    {r === 'hoy' ? 'Hoy' : r === 'semana' ? 'Esta Semana' : 'Este Mes'}
+                  </button>
+                ))}
+                <button onClick={() => setPdfDateRange('personalizado')}
+                  style={{ padding:'8px 14px', borderRadius:'8px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:600,
+                    background: pdfDateRange === 'personalizado' ? '#1B3A6B' : '#f3f4f6', color: pdfDateRange === 'personalizado' ? 'white' : '#374151' }}>
+                  Personalizado
+                </button>
+              </div>
+              {pdfDateRange === 'personalizado' && (
+                <div style={{ display:'flex', gap:'8px', marginTop:'10px' }}>
+                  <div style={{ flex:1 }}>
+                    <label style={{ fontSize:'11px', color:'#6b7280', display:'block', marginBottom:'4px' }}>Desde</label>
+                    <input type="date" value={pdfStart} onChange={e => setPdfStart(e.target.value)}
+                      style={{ width:'100%', padding:'8px', border:'1px solid #e5e7eb', borderRadius:'8px', fontSize:'13px' }} />
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <label style={{ fontSize:'11px', color:'#6b7280', display:'block', marginBottom:'4px' }}>Hasta</label>
+                    <input type="date" value={pdfEnd} onChange={e => setPdfEnd(e.target.value)}
+                      style={{ width:'100%', padding:'8px', border:'1px solid #e5e7eb', borderRadius:'8px', fontSize:'13px' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{ background:'#f8fafc', borderRadius:'10px', padding:'12px', marginBottom:'20px', fontSize:'12px', color:'#6b7280' }}>
+              El reporte incluye: KPIs financieros · Top platillos · Análisis de costos (COGS) · Estado de resultados (P&L) · Merma registrada
+            </div>
+            <div style={{ display:'flex', gap:'10px' }}>
+              <button onClick={() => setShowPDFModal(false)}
+                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'1px solid #e5e7eb', background:'transparent', fontSize:'14px', cursor:'pointer', color:'#6b7280' }}>
+                Cancelar
+              </button>
+              <button onClick={generateExecutivePDF}
+                style={{ flex:1, padding:'11px', borderRadius:'11px', border:'none', background:'#1B3A6B', color:'white', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                📊 Generar Reporte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Header ── */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between" style={{ borderColor: '#e5e7eb' }}>
         <div>

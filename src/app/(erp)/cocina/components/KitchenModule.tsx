@@ -691,9 +691,9 @@ export default function KitchenModule() {
             </div>
           ) : (
             <div className={`grid gap-4 h-full ${
-                device.isMobile || (device.isTablet && device.orientation === 'portrait')
+                device.isMobile
                   ? 'grid-cols-1 overflow-y-auto'
-                  : device.isTablet && device.orientation === 'landscape' ?'grid-cols-2' :'grid-cols-3'
+                  : 'grid-cols-3'  // always 3 columns on tablet and desktop
               }`}>
               {COLUMNS.map((col) => {
                 const cfg = STATUS_CONFIG[col];
