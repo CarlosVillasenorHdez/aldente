@@ -128,6 +128,7 @@ CREATE POLICY "tenant_isolation_dish_recipes" ON public.dish_recipes
 
 -- unit_equivalences
 DROP POLICY IF EXISTS "open_access_unit_equivalences" ON public.unit_equivalences;
+DROP POLICY IF EXISTS "tenant_isolation_unit_equivalences" ON public.unit_equivalences;
 CREATE POLICY "tenant_isolation_unit_equivalences" ON public.unit_equivalences
   FOR ALL TO authenticated
   USING (
