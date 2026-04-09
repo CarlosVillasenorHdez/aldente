@@ -210,7 +210,7 @@ export default function POSClient() {
         const toInsert = [];
         for (let n = 1; n <= configuredCount; n++) {
           if (!existing.has(n)) {
-            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre' });
+            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre', branch_id: activeBranch ?? null });
           }
         }
         if (toInsert.length > 0) {
