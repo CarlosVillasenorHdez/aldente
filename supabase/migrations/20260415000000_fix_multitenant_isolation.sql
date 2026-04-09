@@ -194,6 +194,7 @@ CREATE POLICY "tenant_isolation_delivery_orders" ON public.delivery_orders
 
 -- rh tables
 DROP POLICY IF EXISTS "rh_vacaciones_all" ON public.rh_vacaciones;
+DROP POLICY IF EXISTS "tenant_isolation_rh_vacaciones" ON public.rh_vacaciones;
 CREATE POLICY "tenant_isolation_rh_vacaciones" ON public.rh_vacaciones
   FOR ALL TO authenticated
   USING (
