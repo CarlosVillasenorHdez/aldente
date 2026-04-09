@@ -167,9 +167,14 @@ export default function MarketingPage() {
             Aldente
           </div>
           <div className="hnav" style={{display:'flex',alignItems:'center',gap:28}}>
-            {[['#problema','El problema'],['#diferencia','Por qué nosotros'],['#demo','Demo'],['#planes','Planes'],['#','Entrar']].map(([h,l])=>(
+            {[['#problema','El problema'],['#diferencia','Por qué nosotros'],['#demo','Demo'],['#planes','Planes']].map(([h,l])=>(
               <a key={l} href={h} style={{fontSize:13,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='#f0ece4')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
+            <a href="/login" style={{fontSize:13,fontWeight:500,color:'rgba(240,236,228,.75)',padding:'8px 18px',borderRadius:100,border:'1px solid rgba(240,236,228,.2)',transition:'all .2s'}}
+              onMouseEnter={e=>{e.currentTarget.style.color='#f0ece4';e.currentTarget.style.borderColor='rgba(240,236,228,.5)';}}
+              onMouseLeave={e=>{e.currentTarget.style.color='rgba(240,236,228,.75)';e.currentTarget.style.borderColor='rgba(240,236,228,.2)';}}>
+              Iniciar sesión
+            </a>
             <a href="/registro" className="pill gold" style={{fontSize:13}}>14 días gratis →</a>
           </div>
         </div>
@@ -203,7 +208,7 @@ export default function MarketingPage() {
           </div>
           <div style={{display:'flex',gap:24,justifyContent:'center',flexWrap:'wrap',animation:'fadeUp .7s .36s ease both'}}>
             {['Sin tarjeta de crédito','14 días gratis','Cancela cuando quieras','Soporte en español'].map(s=>(
-              <span key={s} style={{fontSize:12,color:'rgba(240,236,228,.32)',display:'flex',alignItems:'center',gap:6}}>
+              <span key={s} style={{fontSize:12,color:'rgba(240,236,228,.65)',display:'flex',alignItems:'center',gap:6}}>
                 <span style={{color:'#c9963a',fontSize:10}}>✓</span> {s}
               </span>
             ))}
@@ -216,7 +221,7 @@ export default function MarketingPage() {
         <div style={{display:'flex',animation:'run 38s linear infinite',whiteSpace:'nowrap'}}>
           {[...Array(2)].map((_,r)=>
             ['POS mapa de mesas','KDS semáforo','Mesero móvil sin app store','P&L en tiempo real','Merma real por ingrediente','Inventario vivo','Gastos y depreciaciones','Nómina LFT Art.67/68/69','Reservaciones','Multi-sucursal','Lealtad','Punto de reorden inteligente'].map((item,i)=>(
-              <span key={`${r}-${i}`} style={{fontSize:11,color:'rgba(240,236,228,.3)',padding:'0 28px',letterSpacing:'.06em'}}>
+              <span key={`${r}-${i}`} style={{fontSize:11,color:'rgba(240,236,228,.55)',padding:'0 28px',letterSpacing:'.06em'}}>
                 {item}<span style={{color:'rgba(201,150,58,.4)',marginLeft:28}}>·</span>
               </span>
             ))
@@ -287,13 +292,13 @@ export default function MarketingPage() {
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:2}}>
             <div style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2,marginBottom:6}}>
-              <div/><div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.25)'}}>Otros sistemas</div>
+              <div/><div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.55)'}}>Otros sistemas</div>
               <div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a'}}>Aldente</div>
             </div>
             {DIFFS.map((d,i)=>(
               <div key={i} style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2}}>
                 <div style={{padding:'18px 16px',display:'flex',alignItems:'center',borderRadius:'10px 0 0 10px',background:'rgba(255,255,255,.02)',borderRight:'1px solid rgba(255,255,255,.04)'}}>
-                  <span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.3)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.6)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span>
                 </div>
                 <div style={{padding:'18px 22px',background:'rgba(255,255,255,.018)',display:'flex',alignItems:'center',gap:10}}>
                   <span style={{color:'rgba(239,68,68,.5)',fontSize:13,flexShrink:0}}>✗</span>
@@ -316,7 +321,7 @@ export default function MarketingPage() {
               {[['3.2x','ROI primer mes'],['30 seg','Corte de caja'],['~12%','Mejora de margen']].map(([v,l])=>(
                 <div key={l} style={{textAlign:'center'}}>
                   <p style={{fontSize:36,fontWeight:700,color:'#c9963a',lineHeight:1,fontFamily:'monospace'}}>{v}</p>
-                  <p style={{fontSize:11,color:'rgba(240,236,228,.35)',marginTop:4}}>{l}</p>
+                  <p style={{fontSize:11,color:'rgba(240,236,228,.6)',marginTop:4}}>{l}</p>
                 </div>
               ))}
             </div>
@@ -372,9 +377,9 @@ export default function MarketingPage() {
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',color:plan.color,marginBottom:16}}>{plan.name}</div>
                   <div style={{marginBottom:4}}>
                     <span style={{fontSize:52,fontWeight:700,color:'#f0ece4',lineHeight:1,fontFamily:"'Playfair Display',serif"}}>${fp.toLocaleString('es-MX')}</span>
-                    <span style={{fontSize:13,color:'rgba(240,236,228,.35)',marginLeft:6}}>/mes</span>
+                    <span style={{fontSize:13,color:'rgba(240,236,228,.6)',marginLeft:6}}>/mes</span>
                   </div>
-                  {annual&&<p style={{fontSize:11,color:'rgba(240,236,228,.3)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
+                  {annual&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
                   <p className="serif" style={{fontSize:15,color:plan.featured?plan.color:'rgba(240,236,228,.65)',fontStyle:'italic',marginBottom:8,lineHeight:1.4}}>{plan.tagline}</p>
                   <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:28,lineHeight:1.65}}>{plan.sub}</p>
                   <a href="/registro" style={{display:'block',padding:'12px',borderRadius:12,background:plan.featured?plan.color:'rgba(255,255,255,.06)',color:plan.featured?'#07090f':'#f0ece4',fontSize:14,fontWeight:600,textAlign:'center',border:plan.featured?'none':'1px solid rgba(255,255,255,.1)',marginBottom:28,transition:'all .2s'}}>
@@ -386,7 +391,7 @@ export default function MarketingPage() {
                         <span style={{color:plan.color,flexShrink:0,fontSize:12,marginTop:2,fontWeight:700}}>✓</span>
                         <div>
                           <span style={{fontSize:13,color:title.startsWith('Todo')?'rgba(240,236,228,.4)':'rgba(240,236,228,.8)',lineHeight:1.4,fontStyle:title.startsWith('Todo')?'italic':'normal'}}>{title}</span>
-                          {desc&&<p style={{fontSize:11,color:'rgba(240,236,228,.3)',lineHeight:1.5,marginTop:2}}>{desc}</p>}
+                          {desc&&<p style={{fontSize:11,color:'rgba(240,236,228,.55)',lineHeight:1.5,marginTop:2}}>{desc}</p>}
                         </div>
                       </div>
                     ))}
@@ -421,7 +426,7 @@ export default function MarketingPage() {
           </div>
           <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
             {[['soporte@aldente.app','mailto:soporte@aldente.app'],['Términos','#'],['Privacidad','#'],['Admin','/admin/login']].map(([l,h])=>(
-              <a key={l} href={h} style={{fontSize:12,color:'rgba(240,236,228,.28)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='rgba(240,236,228,.7)')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.28)')}>{l}</a>
+              <a key={l} href={h} style={{fontSize:12,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='rgba(240,236,228,.7)')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
           </div>
           <p style={{fontSize:11,color:'rgba(240,236,228,.18)'}}>© 2026 Aldente · México</p>
