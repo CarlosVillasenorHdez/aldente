@@ -248,18 +248,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* User info + collapse toggle */}
       <div className="flex-shrink-0 border-t p-2" style={{ borderColor: '#243f72' }}>
-        {!collapsed && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-700 flex-shrink-0" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-              AD
-            </div>
-            <div className="flex flex-col overflow-hidden flex-1">
-              <span className="text-xs font-600 truncate" style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>Administrador</span>
-              <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>Admin</span>
-            </div>
-            <Bell size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
-          </div>
-        )}
+
         {/* User info + logout */}
         {appUser && (
           <div className="px-2 mb-1">

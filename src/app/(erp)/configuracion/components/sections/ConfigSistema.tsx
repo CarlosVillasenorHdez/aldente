@@ -90,8 +90,9 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       config_key: key,
       config_value: features[feat as keyof Features] ? 'true' : 'false',
       description: `Feature: ${feat}`,
+      tenant_id: appUser?.tenantId,
     }));
-    await supabase.from('system_config').upsert(rows, { onConflict: 'config_key' });
+    await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
     invalidateFeaturesCache();
     setFeaturesSaving(false);
     setFeaturesSaved(true);
@@ -104,14 +105,14 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const handleSaveLoyalty = async () => {
     setLoyaltySaving(true);
     await supabase.from('system_config').upsert([
-      { config_key: 'loyalty_program_name',    config_value: loyaltyName },
-      { config_key: 'loyalty_pesos_per_point', config_value: String(loyaltyPesosPerPoint) },
-      { config_key: 'loyalty_point_value',     config_value: String(loyaltyPointValue) },
-      { config_key: 'loyalty_expiry_days',     config_value: String(loyaltyExpiryDays) },
-      { config_key: 'loyalty_min_redeem',      config_value: String(loyaltyMinRedeem) },
-      { config_key: 'loyalty_max_redeem_pct',  config_value: String(loyaltyMaxRedeemPct) },
-      { config_key: 'loyalty_levels',          config_value: JSON.stringify(loyaltyLevels) },
-    ], { onConflict: 'config_key' });
+      { config_key: 'loyalty_program_name',    config_value: loyaltyName,                           tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_pesos_per_point', config_value: String(loyaltyPesosPerPoint),           tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_point_value',     config_value: String(loyaltyPointValue),              tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_expiry_days',     config_value: String(loyaltyExpiryDays),              tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_min_redeem',      config_value: String(loyaltyMinRedeem),               tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_max_redeem_pct',  config_value: String(loyaltyMaxRedeemPct),            tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_levels',          config_value: JSON.stringify(loyaltyLevels),          tenant_id: appUser?.tenantId },
+    ], { onConflict: 'tenant_id,config_key' });
     setLoyaltySaving(false);
     setLoyaltySaved(true);
     setTimeout(() => setLoyaltySaved(false), 3000);
@@ -138,7 +139,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       // Reset system_config table_count
       await supabase.from('system_config').upsert(
         { config_key: 'table_count', config_value: '0' },
-        { onConflict: 'config_key' }
+        { onConflict: 'tenant_id,config_key' }
       );
 
       // Layout reset in DB — ConfigLayout reloads on next mount
