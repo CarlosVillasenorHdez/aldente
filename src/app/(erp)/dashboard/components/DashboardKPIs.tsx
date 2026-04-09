@@ -116,6 +116,8 @@ export default function DashboardKPIs() {
     ticketPromedio: 0,
     utilidadHoy: 0, mermaHoy: 0, margenHoy: 0,
     alertasInventario: [] as string[],
+    gastosPorPagar: [] as {nombre:string;monto:number;proximo_pago:string}[],
+    totalGastosPorPagar: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -145,6 +147,7 @@ export default function DashboardKPIs() {
           { data: mesas },
           { data: topItems },
           { data: ingAlerta },
+          { data: gastosAlert },
         ] = await Promise.all([
           supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
           supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
@@ -152,6 +155,10 @@ export default function DashboardKPIs() {
           supabase.from('restaurant_tables').select('status'),
           supabase.from('order_items').select('name, qty').gte('created_at', todayUTC),
           supabase.from('ingredients').select('name, stock, min_stock'),
+          supabase.from('gastos_recurrentes')
+            .select('nombre, monto, proximo_pago, frecuencia')
+            .eq('activo', true)
+            .eq('estado', 'pendiente'),
         ]);
 
         const ventasHoy = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
@@ -171,6 +178,15 @@ export default function DashboardKPIs() {
           .filter((i) => Number(i.stock) <= Number(i.min_stock))
           .map((i) => i.name);
 
+        const today = new Date();
+        const gastosPorPagar = (gastosAlert || []).filter((g: any) => {
+          if (!g.proximo_pago) return false;
+          const proxPago = new Date(g.proximo_pago);
+          const diffDias = Math.ceil((proxPago.getTime() - today.getTime()) / 86400000);
+          return diffDias <= 5; // due in 5 days or overdue
+        });
+        const totalGastosPorPagar = gastosPorPagar.reduce((s: number, g: any) => s + Number(g.monto), 0);
+
         setKpis({
           ventasHoy, ventasAyer,
           ordenesAbiertas: (abiertas || []).length,
@@ -180,6 +196,8 @@ export default function DashboardKPIs() {
           ticketPromedio,
           utilidadHoy, mermaHoy, margenHoy,
           alertasInventario,
+          gastosPorPagar: gastosPorPagar as {nombre:string;monto:number;proximo_pago:string}[],
+          totalGastosPorPagar,
         });
       } catch (err) {
         console.error('Dashboard KPI fetch error:', err);
@@ -275,6 +293,22 @@ export default function DashboardKPIs() {
         alert={kpis.mermaHoy > 0}
         loading={loading}
       />
+
+      {/* Gastos por pagar alert */}
+      {kpis.gastosPorPagar.length > 0 && (
+        <div className="col-span-2">
+          <KPICard
+            title={`💳 Pagos por vencer (${kpis.gastosPorPagar.length})`}
+            value={`$${kpis.totalGastosPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
+            subValue={kpis.gastosPorPagar.slice(0, 3).map(g => g.nombre).join(' · ')}
+            icon={AlertTriangle}
+            color="amber"
+            alert={kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date())}
+            span="wide"
+            loading={loading}
+          />
+        </div>
+      )}
 
       {/* Inventory alert — gated for Estándar plan */}
       {/* Gate: basico has no alarmas/inventario features */}

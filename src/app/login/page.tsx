@@ -59,7 +59,14 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (!loading && appUser) router.replace('/dashboard');
+    if (!loading && appUser) {
+      const role = appUser.appRole ?? 'mesero';
+      const roleRedirects: Record<string, string> = {
+        admin: '/dashboard', gerente: '/dashboard', cajero: '/corte-caja',
+        mesero: '/mesero', cocinero: '/cocina', ayudante_cocina: '/cocina', repartidor: '/delivery',
+      };
+      router.replace(roleRedirects[role] ?? '/dashboard');
+    }
   }, [appUser, loading, router]);
 
   // Pre-fill slug from last session
@@ -141,7 +148,18 @@ export default function LoginPage() {
       setError(result.error);
       setPin('');
     } else {
-      router.replace('/dashboard');
+      // Redirect based on role
+      const role = result.user?.appRole ?? 'mesero';
+      const roleRedirects: Record<string, string> = {
+        admin:           '/dashboard',
+        gerente:         '/dashboard',
+        cajero:          '/corte-caja',
+        mesero:          '/mesero',
+        cocinero:        '/cocina',
+        ayudante_cocina: '/cocina',
+        repartidor:      '/delivery',
+      };
+      router.replace(roleRedirects[role] ?? '/dashboard');
     }
   }
 
@@ -257,7 +275,7 @@ export default function LoginPage() {
                     <option value="" disabled>Selecciona tu nombre</option>
                     {Object.entries(grouped).map(([roleLabel, roleUsers]) => (
                       <optgroup key={roleLabel} label={`── ${roleLabel}`} style={{ color: '#f59e0b', backgroundColor: '#0f1923' }}>
-                        {roleUsers.map(u => (
+                        {(roleUsers as typeof grouped[string]).map(u => (
                           <option key={u.id} value={u.id} style={{ color: '#f1f5f9', backgroundColor: '#1a2535' }}>
                             {u.fullName}
                           </option>

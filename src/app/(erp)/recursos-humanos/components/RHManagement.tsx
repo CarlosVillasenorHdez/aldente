@@ -116,6 +116,33 @@ function hourlyRate(salary: number, freq: string): number {
   return toMonthlySalary(salary, freq) / (30 * 8);
 }
 
+// LFT Art. 76 — Vacation days by years of service (2023 reform)
+function diasVacacionesLFT(aniosServicio: number): number {
+  if (aniosServicio < 1) return 0;
+  if (aniosServicio === 1) return 12;
+  if (aniosServicio === 2) return 14;
+  if (aniosServicio === 3) return 16;
+  if (aniosServicio === 4) return 18;
+  if (aniosServicio >= 5 && aniosServicio <= 9) return 20;
+  if (aniosServicio >= 10 && aniosServicio <= 14) return 22;
+  if (aniosServicio >= 15 && aniosServicio <= 19) return 24;
+  if (aniosServicio >= 20 && aniosServicio <= 24) return 26;
+  if (aniosServicio >= 25 && aniosServicio <= 29) return 28;
+  return 30;
+}
+
+// LFT Art. 80 — Prima vacacional (25% sobre días de vacaciones)
+function primaVacacional(salary: number, freq: string, aniosServicio: number): number {
+  const dr = dailyRate(salary, freq);
+  const diasVac = diasVacacionesLFT(aniosServicio);
+  return dr * diasVac * 0.25;
+}
+
+// LFT Art. 87 — Aguinaldo (mínimo 15 días de salario)
+function aguinaldo(salary: number, freq: string): number {
+  return dailyRate(salary, freq) * 15;
+}
+
 // ─── Modal base ───────────────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -300,7 +327,14 @@ export default function RHManagement() {
     const hr = hourlyRate(emp.salary, emp.salary_frequency);
 
     const descuentoPermisos = horasPermSinGoce * hr;
-    const bonusTE = tes.reduce((s, t) => s + Number(t.horas) * hr * Number(t.factor_pago), 0);
+    // LFT Art. 67-68: first 9 hrs/week ×2.0, beyond ×3.0
+    // factor_pago in DB: 2.0 = doble tiempo (primeras 9h), 3.0 = triple tiempo (excedente)
+    const bonusTE = tes.reduce((s, t) => {
+      const factor = Number(t.factor_pago);
+      // If factor is still old 1.5, auto-correct to LFT minimum (2.0)
+      const lftFactor = factor < 2.0 ? 2.0 : factor;
+      return s + Number(t.horas) * hr * lftFactor;
+    }, 0);
     const salarioBase = toMonthlySalary(emp.salary, emp.salary_frequency);
     const salarioNeto = salarioBase - descuentoPermisos + bonusTE;
 
@@ -464,7 +498,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(vacaciones).length === 0 ? (
                       <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(vacaciones).map((v) => (
+                    ) : filterList(vacaciones).map((v: any) => (
                       <tr key={v.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{v.employees?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-300">{formatDate(v.fecha_inicio)}</td>
@@ -506,7 +540,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(permisos).length === 0 ? (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(permisos).map((p) => (
+                    ) : filterList(permisos).map((p: any) => (
                       <tr key={p.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{p.employees?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-300">{PERM_TIPO_LABELS[p.tipo]}</td>
@@ -553,7 +587,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(tiemposExtras).length === 0 ? (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(tiemposExtras).map((t) => {
+                    ) : filterList(tiemposExtras).map((t: any) => {
                       const hr = t.employees ? hourlyRate(t.employees.salary, t.employees.salary_frequency) : 0;
                       const costoExtra = Number(t.horas) * hr * Number(t.factor_pago);
                       return (
@@ -833,11 +867,12 @@ export default function RHManagement() {
               </div>
               <div>
                 <label className={labelCls}>Horas</label>
-                <input type="number" min="0.5" max="24" step="0.5" value={teForm.horas} onChange={(e) => setTeForm({ ...teForm, horas: e.target.value })} className={inputCls} style={inputStyle} />
+                <input type="number" min="0.5" max="3" step="0.5" value={teForm.horas} onChange={(e) => setTeForm({ ...teForm, horas: e.target.value })} className={inputCls} style={inputStyle} />
               </div>
             </div>
             <div>
               <label className={labelCls}>Factor de Pago</label>
+              <p className="text-xs" style={{ color: '#f59e0b' }}>⚖️ LFT: Las primeras 9 hrs/semana se pagan a 2x (Art.67). Más de 9 hrs/semana a 3x (Art.68). El sistema calcula automáticamente.</p>
               <select value={teForm.factor_pago} onChange={(e) => setTeForm({ ...teForm, factor_pago: e.target.value })} className={inputCls} style={inputStyle}>
                 <option value="1.5">1.5x — Tiempo extra normal</option>
                 <option value="2.0">2.0x — Día festivo</option>

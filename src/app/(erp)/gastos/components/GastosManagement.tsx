@@ -12,6 +12,17 @@ type GastoEstado = 'pendiente' | 'pagado';
 type GastoCategoria = 'servicios' | 'renta' | 'nomina' | 'marketing' | 'mantenimiento' | 'suministros' | 'financiero' | 'impuestos' | 'otro';
 type DepreciacionMetodo = 'linea_recta' | 'saldo_decreciente' | 'unidades_produccion';
 
+interface GastoPago {
+  id: string;
+  gasto_id: string;
+  fecha_pago: string;
+  monto_pagado: number;
+  periodo_inicio: string | null;
+  periodo_fin: string | null;
+  notas: string | null;
+  created_at: string;
+}
+
 interface GastoRecurrente {
   id: string;
   nombre: string;
@@ -41,7 +52,7 @@ interface Depreciacion {
   notas: string | null;
 }
 
-type ActiveTab = 'gastos' | 'depreciaciones';
+type ActiveTab = 'gastos' | 'depreciaciones' | 'calendario';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -434,6 +445,10 @@ export default function GastosManagement() {
   const [showDepModal, setShowDepModal] = useState(false);
   const [editingDep, setEditingDep] = useState<Depreciacion | null>(null);
   const [filterCategoria, setFilterCategoria] = useState<GastoCategoria | 'todas'>('todas');
+  const [gastosPagos, setGastosPagos] = useState<GastoPago[]>([]);
+  const [showPagoModal, setShowPagoModal] = useState<GastoRecurrente | null>(null);
+  const [pagoForm, setPagoForm] = useState({ fecha_pago: new Date().toISOString().split('T')[0], monto_pagado: 0, notas: '' });
+  const [savingPago, setSavingPago] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -443,6 +458,14 @@ export default function GastosManagement() {
       .select('*')
       .order('created_at', { ascending: false });
     if (data) setGastos(data as GastoRecurrente[]);
+  }
+
+  async function fetchGastosPagos() {
+    const { data } = await supabase
+      .from('gastos_pagos')
+      .select('*')
+      .order('fecha_pago', { ascending: false });
+    if (data) setGastosPagos(data as GastoPago[]);
   }
 
   async function fetchDepreciaciones() {
@@ -455,7 +478,7 @@ export default function GastosManagement() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchGastos(), fetchDepreciaciones()]).finally(() => setLoading(false));
+    Promise.all([fetchGastos(), fetchDepreciaciones(), fetchGastosPagos()]).finally(() => setLoading(false));
   }, []);
 
   // ── KPIs ───────────────────────────────────────────────────────────────────
@@ -500,11 +523,66 @@ export default function GastosManagement() {
     fetchGastos();
   }
 
-  async function handleToggleEstado(gasto: GastoRecurrente) {
-    const nuevoEstado: GastoEstado = gasto.estado === 'pendiente' ? 'pagado' : 'pendiente';
-    const { error } = await supabase.from('gastos_recurrentes').update({ estado: nuevoEstado }).eq('id', gasto.id);
-    if (error) { toast.error('Error al actualizar estado: ' + error.message); return; }
-    fetchGastos();
+  // Calculate how many payments are pending (overdue) for a gasto
+  function pagosPendientes(gasto: GastoRecurrente): number {
+    const pagos = gastosPagos.filter(p => p.gasto_id === gasto.id);
+    if (!gasto.proximo_pago) return 0;
+    const today = new Date();
+    const proximo = new Date(gasto.proximo_pago);
+    if (proximo > today) return 0; // not due yet
+    // Calculate months/periods overdue
+    const FREC_DIAS: Record<GastoFrecuencia, number> = {
+      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+    };
+    const diasVencido = Math.floor((today.getTime() - proximo.getTime()) / 86400000);
+    return Math.max(1, Math.ceil(diasVencido / FREC_DIAS[gasto.frecuencia]));
+  }
+
+  function ultimoPago(gastoId: string): GastoPago | null {
+    const pagos = gastosPagos.filter(p => p.gasto_id === gastoId);
+    if (!pagos.length) return null;
+    return pagos.sort((a, b) => b.fecha_pago.localeCompare(a.fecha_pago))[0];
+  }
+
+  function calcProximoPago(frecuencia: GastoFrecuencia, desde: Date): string {
+    const FREC_DIAS: Record<GastoFrecuencia, number> = {
+      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+    };
+    const next = new Date(desde);
+    next.setDate(next.getDate() + FREC_DIAS[frecuencia]);
+    return next.toISOString().split('T')[0];
+  }
+
+  async function handleRegistrarPago() {
+    if (!showPagoModal) return;
+    setSavingPago(true);
+    const gasto = showPagoModal;
+
+    // Insert into gastos_pagos
+    const { error } = await supabase.from('gastos_pagos').insert({
+      gasto_id: gasto.id,
+      fecha_pago: pagoForm.fecha_pago,
+      monto_pagado: pagoForm.monto_pagado || gasto.monto,
+      notas: pagoForm.notas || null,
+      periodo_inicio: gasto.proximo_pago || pagoForm.fecha_pago,
+      periodo_fin: calcProximoPago(gasto.frecuencia, new Date(gasto.proximo_pago || pagoForm.fecha_pago)),
+    });
+
+    if (error) { toast.error('Error al registrar pago: ' + error.message); setSavingPago(false); return; }
+
+    // Update gasto: next payment date + status
+    const nextPago = calcProximoPago(gasto.frecuencia, new Date(pagoForm.fecha_pago));
+    await supabase.from('gastos_recurrentes').update({
+      estado: 'pagado',
+      proximo_pago: nextPago,
+      updated_at: new Date().toISOString(),
+    }).eq('id', gasto.id);
+
+    toast.success(`Pago registrado. Próximo vencimiento: ${nextPago}`);
+    setSavingPago(false);
+    setShowPagoModal(null);
+    setPagoForm({ fecha_pago: new Date().toISOString().split('T')[0], monto_pagado: 0, notas: '' });
+    Promise.all([fetchGastos(), fetchGastosPagos()]);
   }
 
   // ── CRUD Depreciaciones ────────────────────────────────────────────────────
@@ -697,7 +775,7 @@ export default function GastosManagement() {
 
                         {/* Estado toggle */}
                         <button
-                          onClick={() => handleToggleEstado(gasto)}
+                          onClick={() => { setPagoForm({ fecha_pago: new Date().toISOString().split('T')[0], monto_pagado: gasto.monto, notas: '' }); setShowPagoModal(gasto); }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-600 transition-all flex-shrink-0"
                           style={{
                             fontWeight: 600,
@@ -705,8 +783,14 @@ export default function GastosManagement() {
                             color: gasto.estado === 'pagado' ? '#10b981' : '#ef4444',
                           }}
                         >
-                          {gasto.estado === 'pagado' ? <CheckCircle size={13} /> : <Clock size={13} />}
-                          {gasto.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                          {gasto.estado === 'pagado' ? <CheckCircle size={13} /> : pagosPendientes(gasto) > 1 ? <AlertTriangle size={13} /> : <Clock size={13} />}
+                          {gasto.estado === 'pagado'
+                            ? `Pagado ${ultimoPago(gasto.id)?.fecha_pago ? '· ' + ultimoPago(gasto.id)!.fecha_pago.slice(0,10) : ''}`
+                            : pagosPendientes(gasto) > 1
+                              ? `⚠️ ${pagosPendientes(gasto)} pagos vencidos`
+                              : gasto.proximo_pago && new Date(gasto.proximo_pago) < new Date()
+                                ? 'Vencido'
+                                : 'Pendiente'}
                         </button>
 
                         {/* Actions */}
@@ -855,6 +939,78 @@ export default function GastosManagement() {
       </div>
 
       {/* Modals */}
+      {/* ── Registrar Pago Modal ── */}
+      {showPagoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-gray-900">Registrar pago</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{showPagoModal.nombre}</p>
+              </div>
+              <button onClick={() => setShowPagoModal(null)} className="p-2 rounded-xl hover:bg-gray-100"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {pagosPendientes(showPagoModal) > 1 && (
+                <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+                  <AlertTriangle size={16} style={{ color: '#dc2626' }} />
+                  <p className="text-sm font-medium" style={{ color: '#dc2626' }}>
+                    Tienes <strong>{pagosPendientes(showPagoModal)} pagos vencidos</strong> de este gasto
+                  </p>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Monto pagado</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
+                  <input type="number" value={pagoForm.monto_pagado} min={0} step={0.01}
+                    onChange={e => setPagoForm(f => ({ ...f, monto_pagado: Number(e.target.value) }))}
+                    className="w-full pl-7 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Monto programado: ${showPagoModal.monto.toLocaleString('es-MX')}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Fecha de pago</label>
+                <input type="date" value={pagoForm.fecha_pago}
+                  onChange={e => setPagoForm(f => ({ ...f, fecha_pago: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Notas (opcional)</label>
+                <input type="text" value={pagoForm.notas} placeholder="Referencia bancaria, comprobante..."
+                  onChange={e => setPagoForm(f => ({ ...f, notas: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+              {/* Payment history */}
+              {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Historial de pagos</p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                    {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).slice(0, 6).map(p => (
+                      <div key={p.id} className="flex justify-between items-center text-xs py-1.5 px-2.5 rounded-lg" style={{ background: '#f9fafb' }}>
+                        <span className="text-gray-500">{p.fecha_pago}</span>
+                        <span className="font-mono font-semibold text-gray-800">${Number(p.monto_pagado).toLocaleString('es-MX')}</span>
+                        {p.notas && <span className="text-gray-400 truncate max-w-24">{p.notas}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 p-5 border-t border-gray-100">
+              <button onClick={() => setShowPagoModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button onClick={handleRegistrarPago} disabled={savingPago}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                style={{ backgroundColor: '#1B3A6B' }}>
+                {savingPago ? 'Guardando...' : 'Confirmar pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showGastoModal && (
         <GastoModal
           gasto={editingGasto ? { ...editingGasto } : null}
