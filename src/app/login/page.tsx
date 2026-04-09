@@ -149,7 +149,7 @@ export default function LoginPage() {
       setPin('');
     } else {
       // Redirect based on role
-      const role = result.user?.appRole ?? 'mesero';
+      const role = users.find(u => u.id === selectedUserId)?.appRole ?? 'mesero';
       const roleRedirects: Record<string, string> = {
         admin:           '/dashboard',
         gerente:         '/dashboard',
