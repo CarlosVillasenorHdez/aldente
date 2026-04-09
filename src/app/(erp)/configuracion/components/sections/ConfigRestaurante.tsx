@@ -76,12 +76,15 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   }, []);
 
   async function handleSaveSettings() {
-    const upsertRows = [
-      { config_key: 'restaurant_name', config_value: restaurantNameDraft },
-      { config_key: 'brand_primary_color', config_value: primaryColor },
-      { config_key: 'brand_theme', config_value: appTheme },
+    const upsertRows: {config_key:string;config_value:string;tenant_id:string|undefined}[] = [
+      { config_key: 'restaurant_name', config_value: restaurantNameDraft, tenant_id: appUser?.tenantId },
+      { config_key: 'brand_primary_color', config_value: primaryColor, tenant_id: appUser?.tenantId },
+      { config_key: 'brand_theme', config_value: appTheme, tenant_id: appUser?.tenantId },
     ];
-    await supabase.from('system_config').upsert(upsertRows, { onConflict: 'config_key' });
+    if (logoPreview) {
+      upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: appUser?.tenantId });
+    }
+    await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
     setRestaurantName(restaurantNameDraft);
     invalidateSysConfigCache();
     setSettingsSaved(true);
@@ -91,12 +94,12 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   async function handleSaveOperacion() {
     const rows = [
-      { config_key: 'iva_percent', config_value: String(ivaPercentDraft) },
-      { config_key: 'currency_symbol', config_value: currencySymbol },
-      { config_key: 'currency_code', config_value: currencyCode },
-      { config_key: 'currency_locale', config_value: currencyLocale },
+      { config_key: 'iva_percent', config_value: String(ivaPercentDraft), tenant_id: appUser?.tenantId },
+      { config_key: 'currency_symbol', config_value: currencySymbol, tenant_id: appUser?.tenantId },
+      { config_key: 'currency_code', config_value: currencyCode, tenant_id: appUser?.tenantId },
+      { config_key: 'currency_locale', config_value: currencyLocale, tenant_id: appUser?.tenantId },
     ];
-    await supabase.from('system_config').upsert(rows, { onConflict: 'config_key' });
+    await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
     setIvaPercent(ivaPercentDraft);
     invalidateSysConfigCache();
     setOperacionSaved(true);
