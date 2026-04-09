@@ -27,6 +27,9 @@ type Ingredient = {
   supplierUrl: string;
   supplierPhone: string;
   notes: string;
+  purchasePrice?: number;
+  purchaseQty?: number;
+  purchaseUnit?: string;
 };
 type StockMovement = {
   id: string;
@@ -55,6 +58,8 @@ type UnitEquivalence = {
 };
 const CATEGORIES: Category[] = ['Todas', 'Carnes', 'Verduras', 'Lácteos', 'Bebidas', 'Abarrotes', 'Especias'];
 const UNITS: UnitType[] = ['kg', 'lt', 'pz', 'g', 'ml', 'caja'];
+// Extended purchase units for display only (not in DB enum)
+const PURCHASE_UNIT_SUGGESTIONS = ['bolsa', 'caja', 'paquete', 'bandeja', 'costal', 'jaba', 'pieza', 'lata', 'botella'];
 const UNIT_LABELS: Record<UnitType, string> = {
   kg: 'Kilogramos (kg)', lt: 'Litros (lt)', pz: 'Piezas (pz)',
   g: 'Gramos (g)', ml: 'Mililitros (ml)', caja: 'Cajas (caja)',
@@ -75,6 +80,7 @@ const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: Re
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Abarrotes', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
+  purchasePrice: 0, purchaseQty: 1, purchaseUnit: '',
 });
 const emptyMovementForm = () => ({
   ingredientId: '',
@@ -533,7 +539,7 @@ export default function InventarioManagement() {
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => <RowSkeleton key={i} cols={9} />)
+                  Array.from({ length: 8 }).map((_, i) => <tr key={i}><RowSkeleton cols={9} /></tr>)
                 ) : ingredients.length === 0 ? (
                   <EmptyState onAdd={openAdd} />
                 ) : filtered.length === 0 ? (
@@ -653,7 +659,7 @@ export default function InventarioManagement() {
             </thead>
             <tbody>
               {loadingMovements ? (
-                Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} cols={8} />)
+                Array.from({ length: 6 }).map((_, i) => <tr key={i}><RowSkeleton cols={8} /></tr>)
               ) : movements.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-16 text-center">

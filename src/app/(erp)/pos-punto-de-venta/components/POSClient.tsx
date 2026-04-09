@@ -175,7 +175,9 @@ export default function POSClient() {
     setLoadingTables(true);
     const [{ data: configData }, { data, error }] = await Promise.all([
       supabase.from('system_config').select('config_value').eq('config_key', 'table_count').single(),
-      supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
+      activeBranch
+        ? supabase.from('restaurant_tables').select('*').gt('number', 0).eq('branch_id', activeBranch).order('number')
+        : supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
     ]);
 
     let layoutData: any = null;

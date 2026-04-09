@@ -18,6 +18,8 @@ interface Branch {
 interface BranchStats {
   branchId: string;
   branchName: string;
+  todayRevenue?: number;
+  todayOrders?: number;
   totalOrders: number;
   totalRevenue: number;
   avgTicket: number;
@@ -58,12 +60,14 @@ export default function SucursalesManagement() {
       }));
       setBranches(mapped);
 
-      // Load consolidated stats from orders
+      // Load consolidated stats from orders (last 30 days)
+      const since = new Date(); since.setDate(since.getDate() - 30);
       const { data: orders } = await supabase
         .from('orders')
-        .select('branch, total, status')
+        .select('branch, total, status, created_at')
         .eq('status', 'cerrada')
-        .eq('is_comanda', false);
+        .eq('is_comanda', false)
+        .gte('created_at', since.toISOString());
 
       const { data: ingredients } = await supabase
         .from('ingredients')
@@ -82,6 +86,9 @@ export default function SucursalesManagement() {
 
       const branchStats: BranchStats[] = mapped.map((b) => {
         const s = branchMap[b.name] || { total: 0, count: 0 };
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayOrders = (orders || []).filter((o: any) => o.branch === b.name && o.created_at?.startsWith(todayStr));
+        const todayRevenue = todayOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0);
         return {
           branchId: b.id,
           branchName: b.name,
@@ -89,6 +96,8 @@ export default function SucursalesManagement() {
           totalRevenue: s.total,
           avgTicket: s.count > 0 ? s.total / s.count : 0,
           lowStockItems: lowStock,
+          todayRevenue,
+          todayOrders: todayOrders.length,
         };
       });
       setStats(branchStats);
@@ -202,6 +211,7 @@ export default function SucursalesManagement() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800">Rendimiento por Sucursal</h3>
+              <p className="text-xs text-gray-400 mt-1">Ingresos acumulados de los últimos 30 días</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -209,7 +219,8 @@ export default function SucursalesManagement() {
                   <tr className="bg-gray-50">
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Sucursal</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Órdenes</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ingresos</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ventas hoy</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ingresos (30d)</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ticket Prom.</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Inventario Bajo</th>
                   </tr>
@@ -224,6 +235,12 @@ export default function SucursalesManagement() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right text-gray-700">{s.totalOrders}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-semibold" style={{ color: s.todayRevenue && s.todayRevenue > 0 ? '#16a34a' : '#9ca3af' }}>
+                          ${(s.todayRevenue ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </span>
+                        {s.todayOrders ? <span className="text-xs text-gray-400 ml-1">({s.todayOrders} órd.)</span> : null}
+                      </td>
                       <td className="px-6 py-4 text-right font-medium text-gray-800">
                         ${s.totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                       </td>

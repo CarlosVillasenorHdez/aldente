@@ -504,23 +504,74 @@ export default function ReportesManagement() {
     setShowPDFModal(true);
   }, []);
 
-  const generateExecutivePDF = useCallback(() => {
-    const sortedForPDF = [...cogsData].sort((a: any, b: any) => b.contribucionTotal - a.contribucionTotal);
+  const generateExecutivePDF = useCallback(async () => {
     setShowPDFModal(false);
     setExporting(true);
 
-    // Build executive report as a new print window
-    const ventas = realKpis?.ventas ?? 0;
-    const utilidad = realKpis ? realKpis.ventas - realKpis.costo : 0;
-    const merma = realKpis?.merma ?? 0;
-    const margen = realKpis?.margenPct ?? 0;
-    const descuentos = realKpis?.descuentos ?? 0;
-    const iva = realKpis?.iva ?? 0;
-    const ordenes = realKpis?.ordenes ?? 0;
-    const ticket = realKpis?.ticket ?? 0;
-    const periodoLabel = dateRangeLabel;
+    // Calculate date bounds for the PDF-selected period
+    const now = new Date();
+    let pdfStartDate: Date, pdfEndDate: Date;
+    if (pdfDateRange === 'hoy') {
+      pdfStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      pdfEndDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (pdfDateRange === 'semana') {
+      pdfStartDate = new Date(now); pdfStartDate.setDate(now.getDate() - 6); pdfStartDate.setHours(0,0,0,0);
+      pdfEndDate = new Date(now); pdfEndDate.setHours(23,59,59,999);
+    } else if (pdfDateRange === 'mes') {
+      pdfStartDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      pdfEndDate = new Date(now); pdfEndDate.setHours(23,59,59,999);
+    } else {
+      pdfStartDate = pdfStart ? new Date(pdfStart + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
+      pdfEndDate = pdfEnd ? new Date(pdfEnd + 'T23:59:59') : new Date();
+    }
+    const startISO = pdfStartDate.toISOString();
+    const endISO = pdfEndDate.toISOString();
 
-    const topDishesHTML = topDishesToUse.slice(0, 8).map((d, i) =>
+    // Fetch fresh data for PDF period
+    const supabasePDF = supabase;
+    const [{ data: pdfOrders }, { data: pdfMermaOrders }, { data: pdfItems }] = await Promise.all([
+      supabasePDF.from('orders').select('id, total, subtotal, cost_actual, margin_actual, discount, iva')
+        .eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', startISO).lte('created_at', endISO),
+      supabasePDF.from('orders').select('waste_cost')
+        .eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', startISO).lte('updated_at', endISO),
+      supabasePDF.from('order_items').select('name, qty, price, order_id'),
+    ]);
+
+    const orderIds = new Set((pdfOrders || []).map((o: any) => o.id));
+    const filteredItems = (pdfItems || []).filter((i: any) => orderIds.has(i.order_id));
+
+    // Compute KPIs
+    const ventas = (pdfOrders || []).reduce((s: number, o: any) => s + Number(o.total), 0);
+    const costo = (pdfOrders || []).reduce((s: number, o: any) => s + Number(o.cost_actual ?? 0), 0);
+    const merma = (pdfMermaOrders || []).reduce((s: number, o: any) => s + Number(o.waste_cost ?? 0), 0);
+    const iva = (pdfOrders || []).reduce((s: number, o: any) => s + Number(o.iva ?? 0), 0);
+    const descuentos = (pdfOrders || []).reduce((s: number, o: any) => s + Number(o.discount ?? 0), 0);
+    const ordenes = (pdfOrders || []).length;
+    const ticket = ordenes > 0 ? ventas / ordenes : 0;
+    const utilidad = ventas - costo;
+    const margen = ventas > 0 ? (utilidad / ventas) * 100 : 0;
+
+    // Top dishes for PDF period
+    const dishMap: Record<string, { qty: number; ingresos: number }> = {};
+    filteredItems.forEach((i: any) => {
+      if (!dishMap[i.name]) dishMap[i.name] = { qty: 0, ingresos: 0 };
+      dishMap[i.name].qty += Number(i.qty);
+      dishMap[i.name].ingresos += Number(i.qty) * Number(i.price);
+    });
+    const topDishesForPDF = Object.entries(dishMap)
+      .map(([nombre, v]) => ({ nombre, cantidad: v.qty, ingresos: v.ingresos }))
+      .sort((a, b) => b.ingresos - a.ingresos).slice(0, 8);
+
+    // Period label
+    const pdfLabel = pdfDateRange === 'hoy' ? now.toLocaleDateString('es-MX', {weekday:'long',day:'numeric',month:'long',year:'numeric'})
+      : pdfDateRange === 'semana' ? `Semana del ${pdfStartDate.toLocaleDateString('es-MX',{day:'numeric',month:'short'})} al ${pdfEndDate.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}`
+      : pdfDateRange === 'mes' ? now.toLocaleDateString('es-MX',{month:'long',year:'numeric'})
+      : `${pdfStart} — ${pdfEnd}`;
+
+    const sortedForPDF = [...cogsData].sort((a: any, b: any) => b.contribucionTotal - a.contribucionTotal);
+    const periodoLabel = pdfLabel;
+
+    const topDishesHTML = topDishesForPDF.slice(0, 8).map((d, i) =>
       `<tr style="border-bottom:1px solid #f3f4f6">
         <td style="padding:8px 12px;color:#6b7280;font-size:12px">${i+1}</td>
         <td style="padding:8px 12px;font-weight:600;font-size:13px">${d.nombre}</td>
