@@ -167,7 +167,7 @@ export default function MarketingPage() {
             Aldente
           </div>
           <div className="hnav" style={{display:'flex',alignItems:'center',gap:28}}>
-            {[['#problema','El problema'],['#diferencia','Por qué nosotros'],['#demo','Demo'],['#planes','Planes']].map(([h,l])=>(
+            {[['#problema','El problema'],['#diferencia','Por qué nosotros'],['#demo','Demo'],['#planes','Planes'],['\/funcionalidades','Funcionalidades']].map(([h,l])=>(
               <a key={l} href={h} style={{fontSize:13,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='#f0ece4')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
             <a href="/login" style={{fontSize:13,fontWeight:500,color:'rgba(240,236,228,.75)',padding:'8px 18px',borderRadius:100,border:'1px solid rgba(240,236,228,.2)',transition:'all .2s'}}
