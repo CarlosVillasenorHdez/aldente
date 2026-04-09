@@ -10,7 +10,7 @@ import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja';
+type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = 'Todas' | 'Carnes' | 'Verduras' | 'Lácteos' | 'Bebidas' | 'Abarrotes' | 'Especias';
 type MovementType = 'entrada' | 'salida' | 'ajuste';
 type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico';
@@ -57,12 +57,19 @@ type UnitEquivalence = {
   notes: string;
 };
 const CATEGORIES: Category[] = ['Todas', 'Carnes', 'Verduras', 'Lácteos', 'Bebidas', 'Abarrotes', 'Especias'];
-const UNITS: UnitType[] = ['kg', 'lt', 'pz', 'g', 'ml', 'caja'];
+// Units grouped by type for better UX
+const UNITS_WEIGHT: UnitType[] = ['kg', 'g', 'costal'];
+const UNITS_VOLUME: UnitType[] = ['lt', 'ml', 'botella', 'lata'];
+const UNITS_COUNT: UnitType[] = ['pz', 'pieza', 'par', 'bolsa', 'paquete', 'bandeja', 'caja', 'sobre'];
+const UNITS: UnitType[] = [...UNITS_WEIGHT, ...UNITS_VOLUME, ...UNITS_COUNT];
 // Extended purchase units for display only (not in DB enum)
 const PURCHASE_UNIT_SUGGESTIONS = ['bolsa', 'caja', 'paquete', 'bandeja', 'costal', 'jaba', 'pieza', 'lata', 'botella'];
 const UNIT_LABELS: Record<UnitType, string> = {
-  kg: 'Kilogramos (kg)', lt: 'Litros (lt)', pz: 'Piezas (pz)',
-  g: 'Gramos (g)', ml: 'Mililitros (ml)', caja: 'Cajas (caja)',
+  kg: 'Kilogramo (kg)', lt: 'Litro (lt)', pz: 'Pieza (pz)',
+  g: 'Gramo (g)', ml: 'Mililitro (ml)', caja: 'Caja',
+  bolsa: 'Bolsa', paquete: 'Paquete', bandeja: 'Bandeja',
+  lata: 'Lata', botella: 'Botella', costal: 'Costal',
+  sobre: 'Sobre', pieza: 'Pieza', par: 'Par',
 };
 const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
   Carnes: 'bg-red-900/40 text-red-300',
@@ -170,6 +177,8 @@ export default function InventarioManagement() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [movementForm, setMovementForm] = useState(emptyMovementForm());
+  const [movInputMode, setMovInputMode] = useState<'direct'|'purchase'>('direct');
+  const [movPurchaseQty, setMovPurchaseQty] = useState(1);
   const [historyIngredientId, setHistoryIngredientId] = useState<string | null>(null);
   // Equivalences state
   const [equivModalOpen, setEquivModalOpen] = useState(false);
@@ -198,6 +207,9 @@ export default function InventarioManagement() {
         supplier: i.supplier,
         supplierUrl: i.supplier_url ?? '',
         supplierPhone: i.supplier_phone ?? '',
+        purchaseUnit: i.purchase_unit ?? null,
+        purchaseQtyPerUnit: Number(i.purchase_qty_per_unit ?? 1),
+        purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
       })));
     }
@@ -321,7 +333,11 @@ export default function InventarioManagement() {
           name: form.name, category: form.category, stock: form.stock, unit: form.unit,
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
-          notes: form.notes, updated_at: new Date().toISOString(),
+          notes: form.notes,
+          purchase_unit: form.purchaseUnit || null,
+          purchase_qty_per_unit: form.purchaseQty || 1,
+          purchase_price: form.purchasePrice || null,
+          updated_at: new Date().toISOString(),
         }).eq('id', editingId);
         if (error) throw error;
         if (oldStock !== form.stock) {
@@ -342,6 +358,9 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          purchase_unit: form.purchaseUnit || null,
+          purchase_qty_per_unit: form.purchaseQty || 1,
+          purchase_price: form.purchasePrice || null,
         }).select().single();
         if (error) throw error;
         if (data && form.stock > 0) {
@@ -377,20 +396,33 @@ export default function InventarioManagement() {
     if (!movementForm.ingredientId || movementForm.quantity <= 0) return;
     const ing = ingredients.find((i) => i.id === movementForm.ingredientId);
     if (!ing) return;
-    const delta = movementForm.movementType === 'salida' ? -movementForm.quantity : movementForm.quantity;
+
+    // Convert purchase units to stock units if in purchase mode
+    let stockQty = movementForm.quantity;
+    let reasonSuffix = '';
+    if (movInputMode === 'purchase' && movementForm.movementType === 'entrada') {
+      const convFactor = ing.purchaseQtyPerUnit ?? 1;
+      stockQty = movPurchaseQty * convFactor;
+      reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/presentación = ${stockQty} ${ing.unit})`;
+    }
+
+    const delta = movementForm.movementType === 'salida' ? -stockQty : stockQty;
     const newStock = Math.max(0, ing.stock + delta);
+
     await supabase.from('stock_movements').insert({
       ingredient_id: movementForm.ingredientId,
       movement_type: movementForm.movementType,
-      quantity: movementForm.quantity,
+      quantity: stockQty,
       previous_stock: ing.stock,
       new_stock: newStock,
-      reason: movementForm.reason,
+      reason: (movementForm.reason || (movementForm.movementType === 'entrada' ? 'Compra' : 'Salida')) + reasonSuffix,
       created_by: movementForm.createdBy,
     });
     await supabase.from('ingredients').update({ stock: newStock, updated_at: new Date().toISOString() }).eq('id', movementForm.ingredientId);
     setMovementModalOpen(false);
     setMovementForm(emptyMovementForm());
+    setMovInputMode('direct');
+    setMovPurchaseQty(1);
     await fetchIngredients();
     if (activeTab === 'movimientos') await fetchMovements();
   }
@@ -966,7 +998,15 @@ export default function InventarioManagement() {
                 <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                   value={form.unit} onChange={e => updateForm('unit', e.target.value as any)}>
-                  {UNITS.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                    {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                  </optgroup>
+                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                    {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                  </optgroup>
+                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                    {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                  </optgroup>
                 </select>
               </div>
               {/* Stock actual */}
@@ -1082,20 +1122,47 @@ export default function InventarioManagement() {
                   ))}
                 </select>
               </div>
-              {/* Cantidad */}
+              {/* Cantidad — con toggle de presentación para entradas */}
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Cantidad *
-                  {movementForm.ingredientId && (
-                    <span className="ml-2 font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      ({ingredients.find(i => i.id === movementForm.ingredientId)?.unit})
-                    </span>
-                  )}
-                </label>
-                <input type="number" min={0} step="0.001" className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={movementForm.quantity || ''} onChange={e => setMovementForm(p => ({ ...p, quantity: Number(e.target.value) }))}
-                  placeholder="0.000" />
+                {(() => {
+                  const selIng = ingredients.find(i => i.id === movementForm.ingredientId);
+                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQtyPerUnit ?? 1) > 1;
+                  return (
+                    <>
+                      {hasPU && movementForm.movementType === 'entrada' && (
+                        <div className="flex gap-2 mb-2">
+                          <button type="button" onClick={() => { setMovInputMode('direct'); setMovPurchaseQty(1); }}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                            style={{ background: movInputMode === 'direct' ? '#f59e0b' : 'rgba(255,255,255,0.07)', color: movInputMode === 'direct' ? '#1B3A6B' : 'rgba(255,255,255,0.6)' }}>
+                            En {selIng!.unit}
+                          </button>
+                          <button type="button" onClick={() => setMovInputMode('purchase')}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                            style={{ background: movInputMode === 'purchase' ? '#f59e0b' : 'rgba(255,255,255,0.07)', color: movInputMode === 'purchase' ? '#1B3A6B' : 'rgba(255,255,255,0.6)' }}>
+                            En {selIng!.purchaseUnit}
+                          </button>
+                        </div>
+                      )}
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                        {movInputMode === 'purchase' && hasPU
+                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQtyPerUnit ?? 1)} ${selIng!.unit}`
+                          : `Cantidad * ${selIng ? `(${selIng.unit})` : ''}`}
+                      </label>
+                      {movInputMode === 'purchase' && hasPU ? (
+                        <input type="number" min={1} step={1} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                          style={{ backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.4)' }}
+                          value={movPurchaseQty || ''}
+                          onChange={e => setMovPurchaseQty(Number(e.target.value))}
+                          placeholder={`Cuántas ${selIng!.purchaseUnit}s`} />
+                      ) : (
+                        <input type="number" min={0} step="0.001" className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                          value={movementForm.quantity || ''} onChange={e => setMovementForm(p => ({ ...p, quantity: Number(e.target.value) }))}
+                          placeholder="0.000" />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {/* Motivo */}
               <div>
@@ -1146,11 +1213,21 @@ export default function InventarioManagement() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Unidad de compra */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Unidad de compra *</label>
-                  <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Presentación de compra *</label>
+                  <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                     style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                    value={equivForm.bulkUnit} onChange={e => setEquivForm(p => ({ ...p, bulkUnit: e.target.value }))}
-                    placeholder="Ej: caja, costal, cubeta" />
+                    value={equivForm.bulkUnit} onChange={e => setEquivForm(p => ({ ...p, bulkUnit: e.target.value }))}>
+                    <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
+                    <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                    <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                    <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                  </select>
                 </div>
                 {/* Descripción */}
                 <div>
@@ -1162,11 +1239,21 @@ export default function InventarioManagement() {
                 </div>
                 {/* Unidad de uso */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Unidad de uso *</label>
-                  <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Unidad de uso en cocina *</label>
+                  <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                     style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                    value={equivForm.subUnit} onChange={e => setEquivForm(p => ({ ...p, subUnit: e.target.value }))}
-                    placeholder="Ej: kg, lt, pz" />
+                    value={equivForm.subUnit} onChange={e => setEquivForm(p => ({ ...p, subUnit: e.target.value }))}>
+                    <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
+                    <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                    <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                    <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
+                      {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                    </optgroup>
+                  </select>
                 </div>
                 {/* Factor de conversión */}
                 <div>
