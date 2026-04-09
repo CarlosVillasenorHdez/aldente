@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import ModifierModal, { type ModifierLine } from '../../pos-punto-de-venta/components/ModifierModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranch } from '@/hooks/useBranch';
 import { ShoppingCart, Plus, Minus, Send, X, ChevronLeft, Search, MessageSquare, CreditCard } from 'lucide-react';
 import PaymentModal from '@/app/(erp)/pos-punto-de-venta/components/PaymentModal';
 import { useOrderFlow, type OrderFlowItem } from '@/hooks/useOrderFlow';
@@ -26,6 +27,7 @@ const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas',
 export default function MeseroMobileView() {
   const supabase = createClient();
   const { appUser } = useAuth();
+  const { branchId: activeBranch } = useBranch();
   const { ensureOpenOrder, syncItems, loadOrderItems, sendToKitchen, closeOrder, cancelOrder, cancelItemFromKDS } = useOrderFlow();
   const { features } = useFeatures();
 
@@ -83,7 +85,9 @@ export default function MeseroMobileView() {
     setLoading(true);
     try {
       const [{ data: tablesData }, { data: dishesData }] = await Promise.all([
-        supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
+        activeBranch
+        ? supabase.from('restaurant_tables').select('*').gt('number', 0).eq('branch_id', activeBranch).order('number')
+        : supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
         supabase.from('dishes').select('*').eq('available', true).order('category').order('name'),
       ]);
       setTables((tablesData || []).map((t: DbTable) => ({
