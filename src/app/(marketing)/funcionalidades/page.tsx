@@ -1,123 +1,177 @@
 'use client';
 import React, { useState } from 'react';
 
+// ─── BRAND CONSTANTS (shared philosophy across all pages) ─────────────────────
+// Mission: Dar a cada restaurantero la verdad de su negocio, en tiempo real.
+// Vision:  Que ningún restaurante en México tenga que adivinar si fue rentable.
+// Values:  Verdad sin filtros · Diseño que respeta · Crecer juntos · México primero
+// Forever Transaction principle: No vendemos software. Entramos a una relación.
+
 const MODULES = [
   {
-    id: 'pos', icon: '🗂️', name: 'Punto de venta',
+    id: 'pos',
+    icon: '🍽️',
+    name: 'Punto de venta',
+    tagline: 'La operación que tus meseros van a amar.',
+    pain: '¿Sigues con comandas en papel y errores al anotar?',
+    color: '#4a9eff',
     plan: 'Operación',
-    tagline: 'La primera orden sale bien. Y todas las demás también.',
-    body: 'El mapa de mesas es drag & drop — lo configuras igual que tu plano real. Unes mesas con un toque. Cobras en efectivo, tarjeta o mixto. El mesero no tiene que correr a la caja para saber si ya pagaron.',
-    details: ['Mapa de mesas drag & drop', 'Unión de mesas en tiempo real', 'Pagos mixtos: efectivo, tarjeta, transferencia', 'Descuentos por item o por total', 'Propinas registradas por mesero', 'Corte de caja en 30 segundos', 'Historial de órdenes por turno'],
-    insight: 'El error más caro en un restaurante no es el platillo mal preparado — es la comanda que nunca llegó a cocina.',
+    features: [
+      { title: 'Mapa de mesas drag & drop', body: 'Arrastra y suelta para organizar el salón. Ves el estado de cada mesa de un vistazo — ocupada, esperando cuenta, libre.' },
+      { title: 'Unión y división de mesas', body: 'Junta varias mesas para grupos grandes o divide la cuenta entre comensales con un toque.' },
+      { title: 'Pagos mixtos', body: 'Una mesa puede pagar mitad efectivo, mitad tarjeta. O tres personas pagan con tres métodos distintos.' },
+      { title: 'Modificadores y notas', body: 'Sin cebolla, extra picante, alergias — cada platillo acepta instrucciones específicas que van directo a cocina.' },
+      { title: 'Cancelaciones con trazabilidad', body: 'Cada cancelación registra la razón y al responsable. El costo del ingrediente se suma a merma automáticamente.' },
+      { title: 'Corte de caja en 30 segundos', body: 'El sistema totaliza ventas, propinas, descuentos y diferencias de efectivo. Imprime o exporta con un botón.' },
+    ],
   },
   {
-    id: 'kds', icon: '📺', name: 'Cocina digital (KDS)',
+    id: 'kds',
+    icon: '📺',
+    name: 'Cocina digital (KDS)',
+    tagline: 'Cero papel. Cero carreras. Cero comandas perdidas.',
+    pain: '¿Cuántas veces al día un mesero tiene que ir corriendo a la cocina?',
+    color: '#34d399',
     plan: 'Operación',
-    tagline: 'Cero papel en cocina. Cero comandas perdidas.',
-    body: 'Cada orden que manda el mesero aparece en la pantalla de cocina al instante. El semáforo verde/amarillo/rojo indica cuánto tiempo lleva cada platillo. El cocinero marca listo y el mesero recibe la señal.',
-    details: ['Órdenes en tiempo real sin papel', 'Semáforo: verde < 8 min, amarillo 8–15, rojo > 15', 'Alertas sonoras para órdenes nuevas', 'Kanban: pendiente → preparando → listo', 'Cancelaciones con razón y merma registrada', 'Vista separada por estación (cocina fría, parrilla)', 'Historial de tiempos por platillo y turno'],
-    insight: 'Una comanda en papel puede perderse. Una pantalla no.',
+    features: [
+      { title: 'Semáforo de tiempos', body: 'Verde si el platillo está a tiempo. Amarillo si se está tardando. Rojo si ya pasó el tiempo de preparación. El cocinero sabe sin mirar el reloj.' },
+      { title: 'FIFO automático', body: 'Los pedidos llegan en orden cronológico. El cocinero trabaja el más antiguo primero, sin tener que recordarlo.' },
+      { title: 'Alertas sonoras configurables', body: 'Nuevo pedido, platillo demorado, actualización de mesa — cada evento tiene su señal sonora.' },
+      { title: 'Vista por estación', body: 'Filtra por tipo de platillo: caliente, frío, bebidas. Cada estación ve solo lo que le corresponde.' },
+      { title: 'Historial de comandas', body: 'Consulta cualquier comanda de la sesión actual. Útil si el comensal pregunta cuánto tiempo lleva su pedido.' },
+    ],
   },
   {
-    id: 'mesero', icon: '📱', name: 'Mesero móvil',
+    id: 'mesero',
+    icon: '📱',
+    name: 'Mesero móvil',
+    tagline: 'Tu equipo ordena desde el celular. Sin app store. Sin instalación.',
+    pain: '¿Tu mesero tarda 3 minutos en cada orden porque tiene que ir a la caja?',
+    color: '#a78bfa',
     plan: 'Operación',
-    tagline: 'El mesero ordena desde su celular. Sin app store. Sin instalación.',
-    body: 'PWA — se instala como app desde el navegador en 10 segundos. El mesero navega el menú, agrega modificadores, envía a cocina y ve el estado de cada platillo. Funciona offline si se cae el internet.',
-    details: ['Instalación en 10 segundos desde el navegador', 'Sin App Store ni Google Play', 'Menú completo con fotos y modificadores', 'Envío a cocina desde la mesa', 'Estado de cada platillo en tiempo real', 'Funciona sin internet (offline-first)', 'Login por PIN — sin contraseñas'],
-    insight: 'Cada viaje del mesero a la barra que se elimina son 40 segundos de tiempo de servicio recuperados.',
+    features: [
+      { title: 'PWA — se instala desde el navegador', body: 'No requiere Google Play ni App Store. El mesero abre el link en su celular y lo guarda como app. Así de simple.' },
+      { title: 'Funciona sin conexión', body: 'Si el WiFi falla, el mesero sigue tomando órdenes. Se sincronizan automáticamente cuando regresa la conexión.' },
+      { title: 'Diff inteligente al enviar', body: 'Solo envía a cocina los platillos nuevos, no toda la orden. Evita duplicados y confusión en el KDS.' },
+      { title: 'Login por PIN por mesa', body: 'El mesero se identifica con su PIN. El sistema sabe qué mesa atiende quién y calcula propinas individuales.' },
+    ],
   },
   {
-    id: 'inventario', icon: '📦', name: 'Inventario vivo',
+    id: 'inventario',
+    icon: '📦',
+    name: 'Inventario inteligente',
+    tagline: 'El stock que sí refleja lo que tienes — no lo que crees que tienes.',
+    pain: '¿Cuántas veces te quedaste sin un ingrediente justo a la hora del servicio?',
+    color: '#f59e0b',
     plan: 'Negocio',
-    tagline: 'Cada platillo vendido descuenta su receta. Automáticamente.',
-    body: 'No actualizas el inventario manualmente. Cuando se vende una Hamburguesa, el sistema descuenta 200g de carne, 1 bolsa de pan, 20g de queso. Cuando se cancela, registra el ingrediente consumido como merma con costo real.',
-    details: ['Descuento automático por receta al vender', 'Merma real por ingrediente al cancelar', 'Alertas de stock bajo antes de quedarse sin nada', 'Punto de reorden calculado del historial real', 'Lista de compras automática en checklist', 'Exportación a PDF de lo que hay que comprar', 'Historial de entradas y salidas por ingrediente', 'Ficha por ingrediente con gráfica de consumo', 'Presentaciones de compra (bolsa, caja, costal)'],
-    insight: 'La merma no controlada es el gasto invisible más caro de un restaurante.',
+    features: [
+      { title: 'Descuento automático por receta', body: 'Cada platillo vendido descuenta los ingredientes exactos de su receta. Sin contar a mano, sin hojas de Excel.' },
+      { title: 'Unidades de compra vs almacenamiento', body: 'Compras por bolsa (50 piezas). El sistema convierte automáticamente y mantiene el stock en unidad mínima.' },
+      { title: 'Punto de reorden inteligente', body: 'Calcula el RoP basado en tu historial real de salidas. Te avisa antes de que se agote, no cuando ya no hay.' },
+      { title: 'Ficha por ingrediente', body: 'Historial de movimientos, costo unitario, valor en stock, proveedor, presentación de compra — todo en un panel.' },
+      { title: 'Lista de compras automática', body: 'Genera un checklist de lo que necesitas comprar esta semana. Marca lo que ya compraste. Exporta como PDF.' },
+      { title: 'Merma con razón y costo', body: 'Cada cancelación registra qué ingrediente se consumió, por qué se canceló y cuánto costó. Nada desaparece sin dejar rastro.' },
+    ],
   },
   {
-    id: 'pl', icon: '📊', name: 'P&L en tiempo real',
+    id: 'pl',
+    icon: '📊',
+    name: 'P&L en tiempo real',
+    tagline: 'Sabes si hoy fue rentable antes de cerrar la caja.',
+    pain: '¿Cuándo fue la última vez que supiste el margen real de tu restaurante?',
+    color: '#c9963a',
     plan: 'Negocio',
-    tagline: '¿Cuánto gané hoy? La respuesta exacta, no la estimada.',
-    body: 'El P&L no es un reporte para el contador. Es el número que el dueño necesita saber a las 11 de la noche antes de cerrar. Ventas menos COGS menos gastos del día prorrateados menos merma. Eso es la utilidad real.',
-    details: ['COGS real calculado desde recetas', 'Gastos prorrateados al período (día/semana/mes)', 'Merma incluida como línea separada', 'Punto de equilibrio dinámico en gráfica', 'Ticket promedio y órdenes por hora', 'Comparativa período anterior', 'Exportación a PDF ejecutivo por sucursal'],
-    insight: 'La diferencia entre "tuve un buen día de ventas" y "gané dinero hoy" vale más que cualquier reporte mensual.',
+    features: [
+      { title: 'P&L del día, semana o mes', body: 'Los gastos fijos se escalan al período que estás consultando. Si ves el día, ves la parte proporcional del alquiler, la nómina, los servicios.' },
+      { title: 'COGS real por platillo', body: 'No un estimado. El costo exacto de cada ingrediente que salió de la cocina para ese platillo, calculado desde la receta.' },
+      { title: 'Punto de equilibrio dinámico', body: 'La línea en la gráfica se mueve según tus gastos reales del período. Sabes exactamente cuánto tienes que vender para no perder.' },
+      { title: 'Merma en el P&L', body: 'La merma aparece como línea separada en el estado de resultados. No está escondida en el COGS — la ves aparte para poder atacarla.' },
+      { title: 'Reportes PDF ejecutivos', body: 'Genera un reporte por período con todos los KPIs: ventas, costos, merma, utilidad. Para ti, para tu contador o para tu socio.' },
+    ],
   },
   {
-    id: 'gastos', icon: '💳', name: 'Gastos y depreciaciones',
+    id: 'gastos',
+    icon: '💳',
+    name: 'Gastos y depreciaciones',
+    tagline: 'Tus gastos fijos registrados antes de que venzan.',
+    pain: '¿Sabes exactamente cuánto pagas de renta, luz, gas, internet este mes?',
+    color: '#f87171',
     plan: 'Negocio',
-    tagline: 'Los gastos que no controlas son los que te hunden.',
-    body: 'Renta, gas, luz, nómina fija — todos los gastos recurrentes registrados con su fecha de vencimiento y frecuencia. El sistema los proratea al día automáticamente para incluirlos en el P&L diario.',
-    details: ['Gastos recurrentes con fecha de vencimiento', 'Alertas de pagos próximos a vencer', 'Registro de pagos con comprobante', 'Prorrateado automático al período del P&L', 'Depreciaciones de equipo', 'Categorías de gasto personalizables', 'Historial completo de pagos'],
-    insight: 'Un gasto sin fecha de vencimiento es una deuda que ya olvidaste.',
+    features: [
+      { title: 'Gastos recurrentes', body: 'Registra cada gasto con su frecuencia — mensual, quincenal, anual. El sistema los prorratea automáticamente al calcular el P&L.' },
+      { title: 'Alertas de vencimiento', body: 'Te avisa 7 días antes de que venza un pago. Sin más multas por olvidar la renta o el servicio.' },
+      { title: 'Historial de pagos', body: 'Cada pago registrado queda en el historial con fecha, monto y comprobante opcional. Para tu contador y para ti.' },
+      { title: 'Depreciaciones', body: 'Registra tus activos (estufa, refrigerador, mobiliario) y el sistema calcula la depreciación mensual automáticamente.' },
+    ],
   },
   {
-    id: 'reservaciones', icon: '📅', name: 'Reservaciones',
-    plan: 'Negocio',
-    tagline: 'De la reservación a la mesa activa en un toque.',
-    body: 'El cliente llama, capturas la reservación con nombre, número de personas y hora. Cuando llegan, el botón "Sentar" abre la mesa directamente en el POS — sin pasos extra, sin buscar en papel.',
-    details: ['Registro de reservaciones con datos del cliente', 'Vista de calendario por día', 'Botón Sentar → POS directo', 'Control de capacidad por franja horaria', 'Notas de preferencias del cliente', 'Historial de asistencia y cancelaciones'],
-    insight: 'Una mesa reservada que no se activa en el POS es un ingreso que el sistema no puede medir.',
-  },
-  {
-    id: 'lealtad', icon: '⭐', name: 'Programa de lealtad',
-    plan: 'Negocio',
-    tagline: 'El cliente que regresa vale 5 veces más que el nuevo.',
-    body: 'Puntos por consumo, niveles de membresía, recompensas canjeables. Todo configurable sin programadores. El cliente acumula, el dueño ve quiénes son sus mejores clientes y qué los hace regresar.',
-    details: ['Puntos por monto o por visita', 'Niveles de membresía configurables', 'Recompensas canjeables en POS', 'Historial de transacciones por cliente', 'Perfil de cliente con preferencias', 'Análisis de frecuencia de visita'],
-    insight: 'El costo de retener a un cliente es 5 veces menor que el de adquirir uno nuevo.',
-  },
-  {
-    id: 'nomina', icon: '👥', name: 'Nómina y RH (LFT)',
+    id: 'nomina',
+    icon: '👥',
+    name: 'Nómina LFT',
+    tagline: 'La única nómina de restaurante que conoce la Ley Federal del Trabajo.',
+    pain: '¿Calculas las horas extra a mano cada quincena?',
+    color: '#e879f9',
     plan: 'Empresa',
-    tagline: 'El único POS de restaurantes con nómina LFT validada.',
-    body: 'Horas extra con factor 2x (Art. 67), horas en día de descanso 2x + prima dominical (Art. 73/75), séptimo día (Art. 69), vacaciones proporcionales (Art. 76). El sistema valida y calcula automáticamente.',
-    details: ['Horas extra Art. 67 — factor 2x/3x automático', 'Prima dominical Art. 75 — 25% adicional', 'Séptimo día Art. 69 — validación en DB', 'Vacaciones proporcionales Art. 76', 'Control de asistencias y permisos', 'Historial de nómina por período', 'Cálculo de ISR y percepciones'],
-    insight: 'Nadie más en el mercado de POS para restaurantes tiene nómina LFT integrada. Cero.',
+    featured: true,
+    features: [
+      { title: 'Horas extra Art. 67/68', body: 'Las primeras 9 horas extra semanales se pagan al doble (Art. 67). A partir de la décima, al triple (Art. 68). El sistema valida y calcula automáticamente.' },
+      { title: 'Prima dominical Art. 69/75', body: 'Si el trabajador descansa el domingo que le corresponde, recibe prima dominical del 25%. El sistema lo aplica sin que tengas que recordarlo.' },
+      { title: 'Factor de integración', body: 'Vacaciones, aguinaldo, prima vacacional — el factor de integración se calcula automáticamente según la antigüedad del trabajador.' },
+      { title: 'Registro de vacaciones y permisos', body: 'Controla los días disponibles por trabajador. Los permisos con y sin goce de sueldo se reflejan en la nómina.' },
+    ],
   },
   {
-    id: 'multi', icon: '🏢', name: 'Multi-sucursal',
+    id: 'multisucursal',
+    icon: '🏢',
+    name: 'Multi-sucursal',
+    tagline: 'Escala sin perder el control de ninguna ubicación.',
+    pain: '¿Tienes que visitar cada sucursal para saber cómo le fue?',
+    color: '#4a9eff',
     plan: 'Empresa',
-    tagline: 'Cada sucursal opera sola. Tú ves todo desde un lugar.',
-    body: 'Cada sucursal tiene sus propias mesas, su propio menú, su propio equipo. Los datos están aislados — un mesero de la Sucursal Norte no ve las órdenes de la Sur. Tú tienes el dashboard consolidado.',
-    details: ['Dashboard consolidado multi-sucursal', 'Aislamiento real de datos por sucursal (RLS)', 'Mesas independientes por sucursal', 'Menú compartido o independiente', 'Reportes comparativos entre sucursales', 'Gestión de usuarios por sucursal', 'P&L por sucursal y consolidado'],
-    insight: 'El error más caro de escalar: perder visibilidad cuando abres la segunda sucursal.',
+    features: [
+      { title: 'Dashboard consolidado', body: 'Ventas, COGS, merma y utilidad de todas las sucursales en una sola pantalla. Sin tener que abrir 3 tabs diferentes.' },
+      { title: 'Aislamiento real por sucursal', body: 'Cada sucursal tiene sus propias mesas, menú, empleados e inventario. La Mesa 1 del restaurante A no interfiere con la Mesa 1 del restaurante B.' },
+      { title: 'Menú unificado o por sucursal', body: 'Puedes tener el mismo menú en todas las ubicaciones o personalizar carta y precios por sucursal.' },
+      { title: 'Reportes por sucursal', body: 'Compara el rendimiento entre sucursales. Identifica qué ubicación tiene mejor margen y por qué.' },
+    ],
   },
 ];
 
-const PRINCIPLES = [
-  {
-    n: '01',
-    title: 'Cada función resuelve un problema real, no añade complejidad.',
-    body: 'Antes de agregar cualquier módulo, nos preguntamos: ¿qué pregunta del dueño resuelve esto? Si la respuesta no es clara en una oración, no va.',
-  },
-  {
-    n: '02',
-    title: 'El sistema crece con el restaurante, no al revés.',
-    body: 'Empiezas con lo esencial para operar. Cuando quieres entender tu rentabilidad, subes de plan. Cuando quieres escalar, subes de nuevo. Sin módulos sueltos, sin sorpresas.',
-  },
-  {
-    n: '03',
-    title: 'La rentabilidad es un número, no un reporte.',
-    body: 'El P&L no debería requerir a tu contador. Debe ser el número que ves en 30 segundos al final del turno. Con el costo real, no el estimado.',
-  },
-  {
-    n: '04',
-    title: 'Hecho en México, para México.',
-    body: 'LFT Art. 67/68/69/75. CFDI 4.0 en camino. Pesos mexicanos. Ingredientes en gramos y mililitros, no en onzas. El sistema habla el idioma real de tu operación.',
-  },
-];
-
-const PLAN_MAP: Record<string, { color: string; order: number }> = {
-  'Operación': { color: '#4a9eff', order: 1 },
-  'Negocio':   { color: '#c9963a', order: 2 },
-  'Empresa':   { color: '#a78bfa', order: 3 },
+const BRAND = {
+  mission: 'Dar a cada restaurantero la verdad de su negocio, en tiempo real.',
+  vision: 'Que ningún restaurante en México tenga que adivinar si fue rentable.',
+  values: [
+    { icon: '🔍', title: 'Verdad sin filtros', body: 'El P&L que mostramos incluye la merma, los gastos prorrateados y el costo real de los ingredientes. No hay números bonitos — hay números verdaderos.' },
+    { icon: '🤝', title: 'Crecer juntos', body: 'No vendemos módulos. Cuando tu restaurante crece, cambias de plan porque el valor creció contigo. Eso es la Forever Transaction.' },
+    { icon: '🇲🇽', title: 'México primero', body: 'Nómina LFT real. CFDI en camino. Precios en MXN. Diseñado para la realidad del restaurantero mexicano, no adaptado de otro mercado.' },
+    { icon: '⚡', title: 'Diseño que respeta', body: 'Un mesero en turno de 8 horas no puede perder 2 minutos aprendiendo a usar una pantalla. Cada flujo tiene máximo 3 pasos.' },
+  ],
 };
 
-export default function FuncionalidadesPage() {
-  const [active, setActive] = useState<string | null>(null);
-  const [filterPlan, setFilterPlan] = useState<string | null>(null);
+// ─── NAV (same as main marketing page) ───────────────────────────────────────
+function Nav() {
+  return (
+    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, height: 60, display: 'flex', alignItems: 'center', padding: '0 clamp(16px,5vw,60px)', background: 'rgba(7,9,15,.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,.045)' }}>
+      <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <a href="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: '#c9963a', letterSpacing: '.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+          Aldente
+        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <a href="/#problema" style={{ fontSize: 13, color: 'rgba(240,236,228,.5)' }}>El problema</a>
+          <a href="/funcionalidades" style={{ fontSize: 13, color: '#c9963a', fontWeight: 600 }}>Funcionalidades</a>
+          <a href="/#planes" style={{ fontSize: 13, color: 'rgba(240,236,228,.5)' }}>Planes</a>
+          <a href="/login" style={{ fontSize: 13, color: 'rgba(240,236,228,.7)', padding: '8px 16px', border: '1px solid rgba(240,236,228,.2)', borderRadius: 100 }}>Iniciar sesión</a>
+          <a href="/registro" style={{ fontSize: 13, fontWeight: 600, background: '#c9963a', color: '#07090f', padding: '9px 20px', borderRadius: 100 }}>14 días gratis →</a>
+        </div>
+      </div>
+    </nav>
+  );
+}
 
-  const filtered = filterPlan ? MODULES.filter(m => m.plan === filterPlan) : MODULES;
+export default function FuncionalidadesPage() {
+  const [activeModule, setActiveModule] = useState('pos');
+  const mod = MODULES.find(m => m.id === activeModule) ?? MODULES[0];
 
   return (
     <div style={{ background: '#07090f', color: '#f0ece4', fontFamily: "'Outfit', system-ui, sans-serif", minHeight: '100vh', overflowX: 'hidden' }}>
@@ -130,205 +184,193 @@ export default function FuncionalidadesPage() {
         .serif{font-family:'Playfair Display',Georgia,serif}
         .eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#c9963a;display:flex;align-items:center;gap:12px}
         .eyebrow::before,.eyebrow::after{content:'';width:24px;height:1px;background:rgba(201,150,58,.35)}
+        .wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,5vw,60px)}
+        .sec{padding:clamp(72px,9vw,120px) clamp(16px,5vw,60px)}
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        @media(max-width:800px){.module-grid{grid-template-columns:1fr!important}.detail-inner{flex-direction:column!important}}
+        @media(max-width:900px){.sidebar-layout{flex-direction:column!important}.sidebar{flex:none!important;width:100%!important;flex-direction:row!important;flex-wrap:wrap!important;gap:8px!important}.mod-btn{flex:0 0 auto!important;padding:8px 14px!important}.detail-panel{min-height:auto!important}}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, height: 60, display: 'flex', alignItems: 'center', padding: '0 clamp(16px,5vw,60px)', background: 'rgba(7,9,15,.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,.045)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: '#c9963a', letterSpacing: '.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/assets/images/logo_aldente.png" alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-            Aldente
-          </a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <a href="/#planes" style={{ fontSize: 13, color: 'rgba(240,236,228,.5)' }}>Planes y precios</a>
-            <a href="/login" style={{ fontSize: 13, color: 'rgba(240,236,228,.6)', padding: '8px 18px', borderRadius: 100, border: '1px solid rgba(255,255,255,.12)', transition: 'all .2s' }}>Iniciar sesión</a>
-            <a href="/registro" style={{ fontSize: 13, fontWeight: 600, padding: '9px 22px', borderRadius: 100, background: '#c9963a', color: '#07090f', border: 'none' }}>Prueba gratis</a>
-          </div>
-        </div>
-      </nav>
+      <Nav />
 
       {/* HERO */}
-      <section style={{ paddingTop: 60, padding: 'clamp(100px,12vw,160px) clamp(16px,5vw,60px) clamp(60px,7vw,100px)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,150,58,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,.02) 1px,transparent 1px)', backgroundSize: '80px 80px', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '20%', left: '60%', width: 600, height: 400, background: 'radial-gradient(ellipse,rgba(201,150,58,.06) 0%,transparent 65%)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative' }}>
-          <div className="eyebrow" style={{ marginBottom: 24 }}>Todo lo que hace Aldente</div>
-          <div style={{ display: 'flex', gap: 60, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{ flex: '0 0 520px', maxWidth: 520 }}>
-              <h1 className="serif" style={{ fontSize: 'clamp(40px,6vw,72px)', fontWeight: 700, lineHeight: 1.05, marginBottom: 20 }}>
-                Funcionalidades que<br /><em style={{ color: '#c9963a' }}>resuelven problemas.</em><br />No relleno.
-              </h1>
-              <p style={{ fontSize: 16, fontWeight: 300, color: 'rgba(240,236,228,.6)', lineHeight: 1.8, maxWidth: 440 }}>
-                Cada módulo nació de una pregunta real de un dueño de restaurante. Si no resuelve un problema concreto, no está aquí.
-              </p>
+      <section style={{ paddingTop: 60, background: '#07090f', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,150,58,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,.025) 1px,transparent 1px)', backgroundSize: '80px 80px', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 400, background: 'radial-gradient(ellipse,rgba(201,150,58,.06) 0%,transparent 65%)', pointerEvents: 'none' }} />
+        <div className="wrap" style={{ position: 'relative', padding: 'clamp(80px,10vw,130px) clamp(16px,5vw,60px)', textAlign: 'center' }}>
+          <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 24 }}>Funcionalidades</div>
+          <h1 className="serif" style={{ fontSize: 'clamp(40px,6vw,80px)', fontWeight: 700, lineHeight: 1.05, marginBottom: 20 }}>
+            No son funciones.<br /><em style={{ color: '#c9963a' }}>Son respuestas.</em>
+          </h1>
+          <p style={{ fontSize: 'clamp(15px,1.8vw,18px)', fontWeight: 300, color: 'rgba(240,236,228,.6)', maxWidth: 540, margin: '0 auto 40px', lineHeight: 1.75 }}>
+            Cada módulo de Aldente nació de una pregunta real que algún dueño de restaurante se hizo sin poder responderla.
+          </p>
+          {/* Plan badges */}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {[['Operación','#4a9eff'],['Negocio','#c9963a'],['Empresa','#a78bfa']].map(([p,c])=>(
+              <a key={p} href="/#planes" style={{ padding: '6px 16px', borderRadius: 100, background: `${c}15`, border: `1px solid ${c}30`, fontSize: 12, fontWeight: 600, color: c, letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                Plan {p}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* MODULES — sidebar + detail */}
+      <section className="sec" style={{ background: '#0d0f17' }}>
+        <div className="wrap">
+          <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }} className="sidebar-layout">
+            {/* Sidebar */}
+            <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 4, position: 'sticky', top: 80 }} className="sidebar">
+              {MODULES.map(m => (
+                <button key={m.id} className="mod-btn"
+                  onClick={() => setActiveModule(m.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: activeModule === m.id ? `${m.color}10` : 'transparent', border: `1px solid ${activeModule === m.id ? m.color + '30' : 'rgba(255,255,255,0.05)'}`, textAlign: 'left', transition: 'all .2s', width: '100%' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{m.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: activeModule === m.id ? 600 : 400, color: activeModule === m.id ? '#f0ece4' : 'rgba(240,236,228,.5)', lineHeight: 1.3 }}>{m.name}</p>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: activeModule === m.id ? m.color : 'rgba(240,236,228,.25)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>Plan {m.plan}</p>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              {PRINCIPLES.map(p => (
-                <div key={p.n} style={{ display: 'flex', gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#c9963a', fontWeight: 700, flexShrink: 0, marginTop: 2 }}>{p.n}</span>
+
+            {/* Detail panel */}
+            <div style={{ flex: 1, minWidth: 0, animation: 'fadeUp .3s ease both' }} key={activeModule} className="detail-panel">
+              {/* Header */}
+              <div style={{ padding: '32px 36px', borderRadius: 20, background: `linear-gradient(135deg,${mod.color}08,rgba(255,255,255,.02))`, border: `1px solid ${mod.color}20`, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                  <span style={{ fontSize: 36 }}>{mod.icon}</span>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: '#f0ece4', marginBottom: 4, lineHeight: 1.4 }}>{p.title}</p>
-                    <p style={{ fontSize: 13, color: 'rgba(240,236,228,.45)', lineHeight: 1.65 }}>{p.body}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <h2 className="serif" style={{ fontSize: 28, fontWeight: 700, color: '#f0ece4' }}>{mod.name}</h2>
+                      {mod.featured && <span style={{ fontSize: 10, fontWeight: 700, color: mod.color, padding: '3px 10px', background: `${mod.color}15`, border: `1px solid ${mod.color}30`, borderRadius: 100, letterSpacing: '.08em', textTransform: 'uppercase' }}>Único en México</span>}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: mod.color, letterSpacing: '.1em', textTransform: 'uppercase' }}>Plan {mod.plan}</span>
                   </div>
                 </div>
-              ))}
+                <p className="serif" style={{ fontSize: 20, fontStyle: 'italic', color: 'rgba(240,236,228,.85)', lineHeight: 1.4, marginBottom: 12 }}>{mod.tagline}</p>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 8 }}>
+                  <span style={{ fontSize: 12, color: '#f87171' }}>💬</span>
+                  <p style={{ fontSize: 13, color: 'rgba(240,236,228,.55)', fontStyle: 'italic' }}>{mod.pain}</p>
+                </div>
+              </div>
+
+              {/* Features grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12 }}>
+                {mod.features.map((f, i) => (
+                  <div key={i} style={{ padding: '20px 22px', borderRadius: 14, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', transition: 'border-color .2s' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = `${mod.color}30`)}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,.06)')}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                      <span style={{ color: mod.color, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>✓</span>
+                      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#f0ece4', lineHeight: 1.3 }}>{f.title}</h3>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'rgba(240,236,228,.55)', lineHeight: 1.7, paddingLeft: 20 }}>{f.body}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+                <a href="/registro" style={{ padding: '12px 28px', borderRadius: 12, background: mod.color, color: '#07090f', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all .2s' }}>
+                  Probar {mod.name} gratis →
+                </a>
+                <a href="/#planes" style={{ fontSize: 13, color: 'rgba(240,236,228,.45)', transition: 'color .2s' }}>Ver plan {mod.plan}</a>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PLAN FILTER */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '14px clamp(16px,5vw,60px)', background: 'rgba(255,255,255,.015)', position: 'sticky', top: 60, zIndex: 100, backdropFilter: 'blur(12px)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: 'rgba(240,236,228,.4)', marginRight: 4 }}>Filtrar por plan:</span>
-          {[null, 'Operación', 'Negocio', 'Empresa'].map(p => (
-            <button key={p ?? 'all'} onClick={() => setFilterPlan(p)}
-              style={{ padding: '5px 14px', borderRadius: 100, fontSize: 12, fontWeight: 600, border: `1px solid ${filterPlan === p ? (p ? PLAN_MAP[p].color : '#f0ece4') : 'rgba(255,255,255,.1)'}`, background: filterPlan === p ? (p ? `${PLAN_MAP[p].color}18` : 'rgba(255,255,255,.08)') : 'transparent', color: filterPlan === p ? (p ? PLAN_MAP[p].color : '#f0ece4') : 'rgba(240,236,228,.4)', transition: 'all .2s', cursor: 'pointer' }}>
-              {p ?? 'Todos'}
-            </button>
-          ))}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(240,236,228,.3)' }}>{filtered.length} módulo{filtered.length !== 1 ? 's' : ''}</span>
-        </div>
-      </div>
+      {/* BRAND FOUNDATION — Mission, Vision, Values */}
+      <section className="sec" style={{ background: '#07090f' }}>
+        <div className="wrap">
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 20 }}>Quiénes somos</div>
+            <h2 className="serif" style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 16 }}>
+              No somos un software.<br /><em style={{ color: '#c9963a' }}>Somos una relación.</em>
+            </h2>
+            <p style={{ fontSize: 15, color: 'rgba(240,236,228,.5)', maxWidth: 500, margin: '0 auto', lineHeight: 1.8 }}>
+              La Forever Transaction no es un concepto de marketing. Es la manera en que construimos Aldente: pensando en el restaurantero de dentro de 5 años, no en el MRR del próximo trimestre.
+            </p>
+          </div>
 
-      {/* MODULES GRID */}
-      <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,60px)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 12 }} className="module-grid">
-          {filtered.map(m => {
-            const planColor = PLAN_MAP[m.plan]?.color ?? '#c9963a';
-            const isActive = active === m.id;
-            return (
-              <div key={m.id}
-                style={{ borderRadius: 18, border: `1px solid ${isActive ? planColor + '40' : 'rgba(255,255,255,.07)'}`, background: isActive ? `${planColor}06` : 'rgba(255,255,255,.025)', overflow: 'hidden', transition: 'all .25s', cursor: 'pointer' }}
-                onClick={() => setActive(isActive ? null : m.id)}>
-                <div style={{ padding: '24px 24px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ fontSize: 28, width: 44, height: 44, borderRadius: 12, background: `${planColor}12`, border: `1px solid ${planColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{m.icon}</div>
-                      <div>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0ece4', margin: '0 0 2px' }}>{m.name}</h3>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: planColor, letterSpacing: '.08em', textTransform: 'uppercase' }}>Plan {m.plan}</span>
-                      </div>
-                    </div>
-                    <span style={{ color: isActive ? planColor : 'rgba(255,255,255,.2)', fontSize: 18, transition: 'all .2s', transform: isActive ? 'rotate(90deg)' : 'none' }}>›</span>
-                  </div>
-                  <p className="serif" style={{ fontSize: 15, fontStyle: 'italic', color: isActive ? '#f0ece4' : 'rgba(240,236,228,.65)', lineHeight: 1.4, marginBottom: 8 }}>{m.tagline}</p>
-                  <p style={{ fontSize: 13, color: 'rgba(240,236,228,.45)', lineHeight: 1.65 }}>{m.body}</p>
-                </div>
-
-                {/* Expanded detail */}
-                {isActive && (
-                  <div style={{ borderTop: `1px solid ${planColor}20`, padding: '20px 24px 24px', background: `${planColor}04` }}>
-                    <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }} className="detail-inner">
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: planColor, marginBottom: 12 }}>Incluye</p>
-                        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                          {m.details.map(d => (
-                            <li key={d} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                              <span style={{ color: planColor, flexShrink: 0, fontSize: 12, marginTop: 1, fontWeight: 700 }}>✓</span>
-                              <span style={{ fontSize: 13, color: 'rgba(240,236,228,.75)', lineHeight: 1.5 }}>{d}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div style={{ flex: '0 0 200px', maxWidth: 220 }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: planColor, marginBottom: 12 }}>El insight</p>
-                        <div style={{ padding: '16px', borderRadius: 12, background: `${planColor}10`, border: `1px solid ${planColor}25` }}>
-                          <p className="serif" style={{ fontSize: 14, color: '#f0ece4', lineHeight: 1.55, fontStyle: 'italic' }}>"{m.insight}"</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* MISSION / VISION / VALUES */}
-      <section style={{ padding: 'clamp(60px,8vw,110px) clamp(16px,5vw,60px)', background: '#0d0f17', borderTop: '1px solid rgba(255,255,255,.05)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 52 }}>Quiénes somos</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 2 }}>
+          {/* Mission + Vision */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 48 }}>
             {[
-              {
-                label: 'Misión',
-                icon: '◎',
-                text: 'Darle a cada dueño de restaurante la misma visibilidad financiera que tiene una cadena de 50 sucursales — sin importar si tiene 4 mesas o 40.',
-              },
-              {
-                label: 'Visión',
-                icon: '◈',
-                text: 'Ser el sistema de gestión que los restauranteros mexicanos elijan no porque son los únicos, sino porque son los que realmente entienden su negocio.',
-              },
-              {
-                label: 'Propuesta única',
-                icon: '◇',
-                text: 'La única plataforma que combina POS operativo, rentabilidad real en tiempo real y nómina LFT en un solo precio sin módulos adicionales.',
-              },
-            ].map((item, i) => (
-              <div key={item.label} style={{ padding: '36px 32px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: i === 0 ? '16px 0 0 16px' : i === 2 ? '0 16px 16px 0' : 0 }}>
-                <div style={{ fontSize: 22, color: '#c9963a', marginBottom: 16 }}>{item.icon}</div>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#c9963a', marginBottom: 12 }}>{item.label}</p>
-                <p style={{ fontSize: 15, color: 'rgba(240,236,228,.75)', lineHeight: 1.8, fontWeight: 300 }}>{item.text}</p>
+              { label: 'Misión', icon: '🎯', text: BRAND.mission, color: '#c9963a' },
+              { label: 'Visión', icon: '🔭', text: BRAND.vision, color: '#4a9eff' },
+            ].map(item => (
+              <div key={item.label} style={{ padding: '32px 36px', borderRadius: 20, background: `${item.color}06`, border: `1px solid ${item.color}20` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: 24 }}>{item.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.15em', textTransform: 'uppercase', color: item.color }}>{item.label}</span>
+                </div>
+                <p className="serif" style={{ fontSize: 22, fontWeight: 400, fontStyle: 'italic', color: '#f0ece4', lineHeight: 1.45 }}>"{item.text}"</p>
               </div>
             ))}
           </div>
 
           {/* Values */}
-          <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-            {[
-              { v: 'Honestidad radical', d: 'El P&L no miente. El sistema tampoco.' },
-              { v: 'Simplicidad operativa', d: 'Si el cocinero necesita 3 pasos para hacer algo, son 2 de más.' },
-              { v: 'Hecho en México', d: 'LFT, pesos, ingredientes en gramos. Sin traducciones forzadas.' },
-              { v: 'Forever Transaction', d: 'No vendemos software. Construimos una relación que crece con tu negocio.' },
-            ].map(item => (
-              <div key={item.v} style={{ padding: '20px 22px', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'rgba(255,255,255,.02)' }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#f0ece4', marginBottom: 6 }}>{item.v}</p>
-                <p style={{ fontSize: 12, color: 'rgba(240,236,228,.4)', lineHeight: 1.65 }}>{item.d}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+            {BRAND.values.map(v => (
+              <div key={v.title} style={{ padding: '24px 26px', borderRadius: 16, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)' }}>
+                <span style={{ fontSize: 28, display: 'block', marginBottom: 14 }}>{v.icon}</span>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f0ece4', marginBottom: 8 }}>{v.title}</h3>
+                <p style={{ fontSize: 13, color: 'rgba(240,236,228,.5)', lineHeight: 1.75 }}>{v.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={{ padding: 'clamp(72px,9vw,120px) clamp(16px,5vw,60px)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,150,58,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,.025) 1px,transparent 1px)', backgroundSize: '80px 80px', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 400, background: 'radial-gradient(ellipse,rgba(201,150,58,.06) 0%,transparent 65%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', maxWidth: 580, margin: '0 auto' }}>
-          <h2 className="serif" style={{ fontSize: 'clamp(36px,5vw,60px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 20 }}>
-            ¿Listo para saber<br /><em style={{ color: '#c9963a' }}>exactamente qué pasa</em><br />en tu restaurante?
-          </h2>
-          <p style={{ fontSize: 16, color: 'rgba(240,236,228,.5)', marginBottom: 40, lineHeight: 1.75 }}>14 días gratis. Sin tarjeta. Configurado el mismo día.</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/registro" style={{ padding: '14px 36px', borderRadius: 100, background: '#c9963a', color: '#07090f', fontSize: 15, fontWeight: 700, border: 'none', transition: 'all .2s' }}>
-              Empezar gratis →
-            </a>
-            <a href="/#planes" style={{ padding: '14px 28px', borderRadius: 100, background: 'transparent', color: 'rgba(240,236,228,.6)', fontSize: 15, border: '1px solid rgba(255,255,255,.12)', transition: 'all .2s' }}>
-              Ver planes y precios
+      {/* FOREVER TRANSACTION EXPLANATION */}
+      <section className="sec" style={{ background: '#0d0f17' }}>
+        <div className="wrap">
+          <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+            <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 24 }}>The Forever Transaction</div>
+            <h2 className="serif" style={{ fontSize: 'clamp(30px,4vw,48px)', fontWeight: 700, lineHeight: 1.12, marginBottom: 20 }}>
+              Cuando tu restaurante crece,<br /><em style={{ color: '#c9963a' }}>Aldente crece contigo.</em>
+            </h2>
+            <p style={{ fontSize: 15, color: 'rgba(240,236,228,.55)', lineHeight: 1.85, marginBottom: 48 }}>
+              No vendemos módulos por separado porque no creemos en esa relación. Un restaurante que digitalizó su operación tiene diferentes necesidades a los 6 meses que al principio — y queremos estar ahí para las dos etapas, no cobrarte cada vez que creces.
+            </p>
+            {/* Journey */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1 }}>
+              {[
+                { plan: 'Operación', price: '$799', trigger: 'Cuando decides dejar el papel', what: 'POS + KDS + Mesero Móvil + Caja', color: '#4a9eff' },
+                { plan: 'Negocio', price: '$1,499', trigger: 'Cuando quieres saber la verdad', what: '+ Inventario + P&L + Gastos + Lealtad', color: '#c9963a', featured: true },
+                { plan: 'Empresa', price: '$2,499', trigger: 'Cuando estás listo para escalar', what: '+ Multi-sucursal + Nómina LFT + RH', color: '#a78bfa' },
+              ].map((p, i) => (
+                <div key={p.plan} style={{ padding: '28px 24px', background: p.featured ? 'rgba(201,150,58,.06)' : 'rgba(255,255,255,.02)', border: `1px solid ${p.featured ? 'rgba(201,150,58,.25)' : 'rgba(255,255,255,.07)'}`, borderRadius: i === 0 ? '14px 0 0 14px' : i === 2 ? '0 14px 14px 0' : '0', position: 'relative' }}>
+                  {p.featured && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', padding: '3px 14px', borderRadius: 100, background: '#c9963a', fontSize: 9, fontWeight: 700, color: '#07090f', letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Más elegido</div>}
+                  <p style={{ fontSize: 10, fontWeight: 700, color: p.color, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 8 }}>{p.plan}</p>
+                  <p style={{ fontSize: 28, fontWeight: 700, color: '#f0ece4', fontFamily: "'Playfair Display',serif", marginBottom: 4 }}>{p.price}</p>
+                  <p style={{ fontSize: 11, color: 'rgba(240,236,228,.35)', marginBottom: 14 }}>/mes</p>
+                  <p style={{ fontSize: 12, color: p.color, fontStyle: 'italic', marginBottom: 10 }}>{p.trigger}</p>
+                  <p style={{ fontSize: 12, color: 'rgba(240,236,228,.5)', lineHeight: 1.6 }}>{p.what}</p>
+                </div>
+              ))}
+            </div>
+            <a href="/registro" style={{ display: 'inline-block', marginTop: 32, padding: '14px 36px', borderRadius: 12, background: '#c9963a', color: '#07090f', fontSize: 15, fontWeight: 700, transition: 'all .2s' }}>
+              Empieza con Operación — 14 días gratis →
             </a>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,.05)', padding: '32px clamp(16px,5vw,60px)', background: '#07090f' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#c9963a', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src="/assets/images/logo_aldente.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />Aldente
+      {/* FOOTER (same as main) */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,.05)', padding: '36px clamp(16px,5vw,60px)', background: '#07090f' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: '#c9963a', letterSpacing: '.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/assets/images/logo_aldente.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />Aldente
           </div>
-          <div style={{ display: 'flex', gap: 20 }}>
-            {[['Inicio', '/'], ['Funcionalidades', '/funcionalidades'], ['Planes', '/#planes'], ['Login', '/login']].map(([l, h]) => (
-              <a key={l} href={h} style={{ fontSize: 12, color: 'rgba(240,236,228,.35)', transition: 'color .2s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240,236,228,.7)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240,236,228,.35)')}>{l}</a>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            {[['soporte@aldente.app','mailto:soporte@aldente.app'],['Planes','/#planes'],['Privacidad','#'],['Acceso admin','/admin/login']].map(([l,h])=>(
+              <a key={l} href={h} style={{ fontSize: 12, color: 'rgba(240,236,228,.45)' }}>{l}</a>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: 'rgba(240,236,228,.18)' }}>© 2026 Aldente · México</p>
+          <p style={{ fontSize: 11, color: 'rgba(240,236,228,.2)' }}>© 2026 Aldente · México</p>
         </div>
       </footer>
     </div>
