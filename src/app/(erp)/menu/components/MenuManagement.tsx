@@ -848,7 +848,8 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
                     <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace', fontWeight: 600 }}>
                       ${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}
                     </span>
-                    <button onClick={() => handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}>✕</button>
+                    <button onClick={() => r.id && handleRemove(r.id)}
+                      style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}>✕</button>
                   </div>
                 </div>
               ))}
@@ -907,7 +908,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
             {finalPrice > 0 && totalIngCost > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                 <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Margen bruto real</span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: marginColor }}>{actualMargin.toFixed(1)}%</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: marginColor }}>{actualMargin.toFixed(1)}% margen</span>
               </div>
             )}
           </div>
