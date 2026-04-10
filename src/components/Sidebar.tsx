@@ -152,17 +152,24 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo + Branch */}
       <div className="flex items-center h-16 px-3 flex-shrink-0 border-b" style={{ borderColor: sidebarBorder }}>
         <div className="flex items-center gap-2 overflow-hidden">
+          {/* Show restaurant logo if configured, otherwise Aldente logo */}
           {brandConfig.logoUrl ? (
-            <img src={brandConfig.logoUrl} alt="Logo" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <img src={brandConfig.logoUrl} alt={brandConfig.restaurantName || 'Logo'} style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
           ) : (
-            <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <img src="/assets/images/logo_aldente.png" alt="Aldente" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
           )}
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-700 truncate" style={{ color: brandConfig.accentColor || '#f59e0b', fontWeight: 700 }}>
-                {brandConfig.restaurantName}
+              {/* Restaurant name — or Aldente if not configured */}
+              <span className="text-sm truncate" style={{ color: brandConfig.accentColor || '#f59e0b', fontWeight: 700, lineHeight: 1.2 }}>
+                {brandConfig.restaurantName || 'Mi Restaurante'}
               </span>
-              <span className="text-xs truncate" style={{ color: brandConfig.theme === 'light' ? '#64748b' : 'rgba(255,255,255,0.5)' }}>{branchName}</span>
+              {/* Branch name or powered-by */}
+              {branchName ? (
+                <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>{branchName}</span>
+              ) : (
+                <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.25)', lineHeight: 1.2 }}>powered by Aldente</span>
+              )}
             </div>
           )}
         </div>
