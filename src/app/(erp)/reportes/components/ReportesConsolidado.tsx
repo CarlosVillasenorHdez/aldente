@@ -399,7 +399,7 @@ export default function ReportesConsolidado() {
       supabase.from('employees').select('salary, salary_frequency, status, branch_id').eq('tenant_id', getTenantId()).eq('status', 'activo'),
       supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria, branch_id, activo').eq('tenant_id', getTenantId()).eq('activo', true),
       supabase.from('depreciaciones').select('valor_original, valor_residual, vida_util_anios, activo, branch_id').eq('tenant_id', getTenantId()).eq('activo', true),
-      supabase.from('dish_recipes').select('dish_id, quantity, ingredients(cost).eq('tenant_id', getTenantId()), dishes(price)'),
+      supabase.from('dish_recipes').select('dish_id, quantity, ingredients(cost), dishes(price)').eq('tenant_id', getTenantId()),
       supabase.from('order_items').select('dish_id, qty, order_id').eq('tenant_id', getTenantId()).limit(8000),
     ]);
 

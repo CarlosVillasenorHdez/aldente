@@ -189,10 +189,10 @@ export default function RHManagement() {
     try {
       const [empRes, vacRes, permRes, teRes] = await Promise.all([
         supabase.from('employees').select('id, name, role, salary, salary_frequency').eq('tenant_id', getTenantId()).eq('status', 'activo').order('name'),
-        supabase.from('rh_vacaciones').select('*, employees(name, role).eq('tenant_id', getTenantId())').order('created_at', { ascending: false }),
+        supabase.from('rh_vacaciones').select('*, employees(name, role)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
         supabase.from('rh_incapacidades').select('*, employees(name, role)').order('created_at', { ascending: false }),
-        supabase.from('rh_permisos').select('*, employees(name, role).eq('tenant_id', getTenantId())').order('created_at', { ascending: false }),
-        supabase.from('rh_tiempos_extras').select('*, employees(name, role, salary, salary_frequency).eq('tenant_id', getTenantId())').order('created_at', { ascending: false }),
+        supabase.from('rh_permisos').select('*, employees(name, role)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
+        supabase.from('rh_tiempos_extras').select('*, employees(name, role, salary, salary_frequency)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
       ]);
       if (empRes.data) setEmployees(empRes.data as Employee[]);
       if (vacRes.data) setVacaciones(vacRes.data as Vacacion[]);
