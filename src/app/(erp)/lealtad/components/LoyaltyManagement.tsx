@@ -104,7 +104,7 @@ export default function LoyaltyManagement() {
     if (!customerForm.name.trim()) { toast.error('El nombre es obligatorio'); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from('loyalty_customers').insert({
+      const { error } = await supabase.from('loyalty_customers').insert({ tenant_id: getTenantId(),
         name: customerForm.name.trim(), phone: customerForm.phone, email: customerForm.email,
       });
       if (error) throw error;
@@ -142,7 +142,7 @@ export default function LoyaltyManagement() {
         ? selectedCustomer.points + points
         : selectedCustomer.points - points;
 
-      await supabase.from('loyalty_transactions').insert({
+      await supabase.from('loyalty_transactions').insert({ tenant_id: getTenantId(),
         customer_id: selectedCustomer.id,
         type: showTransaction,
         points,

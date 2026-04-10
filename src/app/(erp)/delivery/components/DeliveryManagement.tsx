@@ -163,7 +163,7 @@ export default function DeliveryManagement() {
         .from('orders').select('id').eq('tenant_id', getTenantId()).eq('id', orderId).maybeSingle();
 
       if (!existing) {
-        const { error: insertErr } = await supabase.from('orders').insert({
+        const { error: insertErr } = await supabase.from('orders').insert({ tenant_id: getTenantId(),
           id: orderId,
           mesa: platformLabel,
           mesa_num: 0,

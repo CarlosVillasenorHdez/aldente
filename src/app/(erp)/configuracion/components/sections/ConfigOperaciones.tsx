@@ -155,7 +155,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     if (printerDraft.id) {
       await supabase.from('printer_config').update(payload).eq('id', printerDraft.id);
     } else {
-      const { data } = await supabase.from('printer_config').insert(payload).select().single();
+      const { data } = await supabase.from('printer_config').insert({ ...payload, tenant_id: getTenantId() }).select().single();
       if (data) setPrinterDraft((p) => ({ ...p, id: data.id }));
     }
     setPrinterConfig({ ...printerDraft });

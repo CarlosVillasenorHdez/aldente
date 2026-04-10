@@ -274,7 +274,7 @@ export default function InventarioManagement() {
   }, []);
   const fetchEquivalences = useCallback(async () => {
     setLoadingEquiv(true);
-    const { data } = await supabase.from('unit_equivalences').select('*, ingredients(name, unit).eq('tenant_id', getTenantId())').order('created_at');
+    const { data } = await supabase.from('unit_equivalences').select('*, ingredients(name, unit)').eq('tenant_id', getTenantId()).order('created_at');
     if (data) {
       setEquivalences(data.map((e: any) => ({
         id: e.id, ingredientId: e.ingredient_id,
@@ -367,7 +367,7 @@ export default function InventarioManagement() {
         }).eq('id', editingId);
         if (error) throw error;
         if (oldStock !== form.stock) {
-          await supabase.from('stock_movements').insert({
+          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
             ingredient_id: editingId,
             movement_type: 'ajuste',
             quantity: Math.abs(form.stock - oldStock),
@@ -385,6 +385,7 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          tenant_id: getTenantId(),
         };
         // Purchase fields — only add if migration has been applied
         if (form.purchaseUnit) basePayload.purchase_unit = form.purchaseUnit;
@@ -400,7 +401,7 @@ export default function InventarioManagement() {
         const { data, error } = res;
         if (error) throw error;
         if (data && form.stock > 0) {
-          await supabase.from('stock_movements').insert({
+          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
             ingredient_id: data.id,
             movement_type: 'entrada',
             quantity: form.stock,
@@ -445,7 +446,7 @@ export default function InventarioManagement() {
     const delta = movementForm.movementType === 'salida' ? -stockQty : stockQty;
     const newStock = Math.max(0, ing.stock + delta);
 
-    await supabase.from('stock_movements').insert({
+    await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
       ingredient_id: movementForm.ingredientId,
       movement_type: movementForm.movementType,
       quantity: stockQty,
@@ -502,7 +503,7 @@ export default function InventarioManagement() {
         notes: equivForm.notes, updated_at: new Date().toISOString(),
       }).eq('id', equivEditId);
     } else {
-      await supabase.from('unit_equivalences').insert({
+      await supabase.from('unit_equivalences').insert({ tenant_id: getTenantId(),
         ingredient_id: equivForm.ingredientId, bulk_unit: equivForm.bulkUnit,
         bulk_description: equivForm.bulkDescription, sub_unit: equivForm.subUnit,
         sub_unit_description: equivForm.subUnitDescription, conversion_factor: equivForm.conversionFactor,

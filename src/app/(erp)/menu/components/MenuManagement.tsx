@@ -261,7 +261,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     if (already) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('dish_recipes').insert({
+      const { error } = await supabase.from('dish_recipes').insert({ tenant_id: getTenantId(),
         dish_id: dish.id,
         ingredient_id: selectedIngId,
         quantity: addQty,
@@ -753,7 +753,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const handleAdd = async () => {
     if (!selectedIngId || addQty <= 0) return;
     setSaving(true);
-    const { error } = await supabase.from('dish_recipes').insert({
+    const { error } = await supabase.from('dish_recipes').insert({ tenant_id: getTenantId(),
       dish_id: dish.id, ingredient_id: selectedIngId, quantity: addQty, unit: selectedIng?.unit ?? '', notes: '',
     });
     if (!error) {
@@ -975,10 +975,11 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
     try {
       const { data, error } = await supabase.from('dishes').insert({
         name: form.name, description: form.description,
-        price: form.price || 0, // temporary price, will be set in step 2
+        price: form.price || 0,
         category: form.category, available: form.available, image: form.image,
         image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
         preparation_time_min: (form as any).preparationTimeMin ?? 15,
+        tenant_id: getTenantId(),
       }).select().single();
       if (error) throw error;
       setSavedDish(data as Dish);

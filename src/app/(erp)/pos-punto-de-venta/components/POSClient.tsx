@@ -557,7 +557,7 @@ export default function POSClient() {
     const now = new Date().toISOString();
     const waiterName = appUser?.fullName ?? 'Administrador';
 
-    const { error: orderErr } = await supabase.from('orders').insert({
+    const { error: orderErr } = await supabase.from('orders').insert({ tenant_id: getTenantId(),
       id: orderId,
       mesa: table.name,
       mesa_num: table.number,

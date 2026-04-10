@@ -80,7 +80,7 @@ export default function ConfigLayout() {
     if (layoutId) {
       await supabase.from('restaurant_layout').update(payload).eq('id', layoutId);
     } else {
-      const { data } = await supabase.from('restaurant_layout').insert({ ...payload, name: 'Planta Principal', width: 12, height: 8 }).select().single();
+      const { data } = await supabase.from('restaurant_layout').insert({ ...payload, name: 'Planta Principal', width: 12, height: 8, tenant_id: getTenantId() }).select().single();
       if (data) setLayoutId(data.id);
     }
 
@@ -93,11 +93,12 @@ export default function ConfigLayout() {
     // 1. Fetch existing rows to preserve order IDs and statuses for occupied tables
     const { data: existingRows } = await supabase
       .from('restaurant_tables')
-      .select('id, number, status, current_order_id, waiter');
+      .select('id, number, status, current_order_id, waiter')
+      .eq('tenant_id', getTenantId());
 
-    // 2. Delete ALL existing rows — clean slate
+    // 2. Delete ALL existing rows for this tenant — clean slate
     await supabase.from('restaurant_tables')
-      .delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      .delete().eq('tenant_id', getTenantId());
 
     // 3. Re-insert only real mesa entries, preserving operational state for occupied tables
     for (const lt of realTables) {
@@ -109,6 +110,7 @@ export default function ConfigLayout() {
         status: existing?.status ?? 'libre',
         current_order_id: existing?.current_order_id ?? null,
         waiter: existing?.waiter ?? null,
+        tenant_id: getTenantId(),
       });
     }
 

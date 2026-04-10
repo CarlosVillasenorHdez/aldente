@@ -250,7 +250,7 @@ export default function RHManagement() {
     const start = new Date(vacForm.fecha_inicio);
     const end = new Date(vacForm.fecha_fin);
     const dias = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
-    const { error: e } = await supabase.from('rh_vacaciones').insert({
+    const { error: e } = await supabase.from('rh_vacaciones').insert({ tenant_id: getTenantId(),
       employee_id: vacForm.employee_id,
       fecha_inicio: vacForm.fecha_inicio,
       fecha_fin: vacForm.fecha_fin,
@@ -268,7 +268,7 @@ export default function RHManagement() {
   async function savePermiso() {
     if (!permForm.employee_id || !permForm.fecha) return;
     setSaving(true);
-    const { error: e } = await supabase.from('rh_permisos').insert({
+    const { error: e } = await supabase.from('rh_permisos').insert({ tenant_id: getTenantId(),
       employee_id: permForm.employee_id,
       tipo: permForm.tipo,
       fecha: permForm.fecha,
@@ -287,7 +287,7 @@ export default function RHManagement() {
   async function saveTiempoExtra() {
     if (!teForm.employee_id || !teForm.fecha) return;
     setSaving(true);
-    const { error: e } = await supabase.from('rh_tiempos_extras').insert({
+    const { error: e } = await supabase.from('rh_tiempos_extras').insert({ tenant_id: getTenantId(),
       employee_id: teForm.employee_id,
       fecha: teForm.fecha,
       horas: parseFloat(teForm.horas) || 1,

@@ -252,7 +252,7 @@ export default function PersonalManagement() {
       }).eq('id', editingId);
       if (error) { toast.error('Error al actualizar empleado.'); return; }
     } else {
-      const { error } = await supabase.from('employees').insert({
+      const { error } = await supabase.from('employees').insert({ tenant_id: getTenantId(),
         name: form.name, role: form.role, phone: form.phone,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,

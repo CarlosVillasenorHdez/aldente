@@ -68,7 +68,7 @@ export default function SucursalesManagement() {
         await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, updated_at:new Date().toISOString() }).eq('id', editingId);
         toast.success('Sucursal actualizada');
       } else {
-        await supabase.from('branches').insert({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, tenant_id:appUser?.tenantId });
+        await supabase.from('branches').insert({ tenant_id: getTenantId(), name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, tenant_id:appUser?.tenantId });
         toast.success('Sucursal creada');
       }
       setShowForm(false); setEditingId(null); setForm(empty);
