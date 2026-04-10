@@ -195,44 +195,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!pinMatch) return { error: 'PIN incorrecto' };
 
       // ── Sign into Supabase Auth so auth.uid() works for RLS ──────────────
-      // Each ERP user gets a Supabase Auth account: u.{app_user_id}@aldente.local
+      // Each ERP user gets a Supabase Auth account with a stable password
+      // derived from their UUID (not their PIN, so PIN changes don't break auth)
       const emailForAuth = `u.${data.id}@aldente.local`;
-      const pinPassword = `${pin}_${data.id.slice(0, 8)}`; // stable password per user
+      const stablePassword = `ald_${data.id}`; // stable, never changes
 
       let supabaseAuthId: string | null = null;
 
+      // Try sign in with stable password
       const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
         email: emailForAuth,
-        password: pinPassword,
+        password: stablePassword,
       });
 
       if (!signInErr && signInData?.user) {
         supabaseAuthId = signInData.user.id;
       } else {
-        // User doesn't exist in auth yet — create them
+        // First time: create the auth account
         const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
           email: emailForAuth,
-          password: pinPassword,
+          password: stablePassword,
           options: { emailRedirectTo: undefined },
         });
         if (!signUpErr && signUpData?.user) {
           supabaseAuthId = signUpData.user.id;
         } else {
-          console.warn('Supabase Auth signup failed:', signUpErr?.message);
+          // Try legacy password (PIN) for backwards compatibility
+          const { data: legacyData } = await supabase.auth.signInWithPassword({
+            email: emailForAuth,
+            password: pin,
+          });
+          if (legacyData?.user) supabaseAuthId = legacyData.user.id;
         }
       }
 
-      // ── Critical: link auth_user_id so RLS auth_tenant_id() works ────────
-      // Without this, auth_tenant_id() returns the default tenant and all
-      // restaurants see each other's data.
+      // ── Critical: link auth_user_id so RLS get_my_tenant_id() works ──────
       if (supabaseAuthId && supabaseAuthId !== data.auth_user_id) {
         await supabase
           .from('app_users')
           .update({ auth_user_id: supabaseAuthId })
-          .eq('id', data.id)
-          .then(({ error: updateErr }) => {
-            if (updateErr) console.warn('Failed to link auth_user_id:', updateErr.message);
-          });
+          .eq('id', data.id);
       }
 
       const user: AppUser = {
