@@ -182,7 +182,7 @@ export default function POSClient() {
 
     let layoutData: any = null;
     try {
-      const res = await supabase.from('restaurant_layout').select('*').limit(1).single();
+      const res = await supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId()).limit(1).single();
       layoutData = res.data ?? null;
     } catch {
       layoutData = null;
@@ -241,7 +241,7 @@ export default function POSClient() {
 
   const fetchMenu = useCallback(async () => {
     setLoadingMenu(true);
-    const { data, error } = await supabase.from('dishes').select('*').eq('available', true).order('category').order('name');
+    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).eq('available', true).order('category').order('name');
     if (!error && data) {
       setMenuItems(data.map((d) => ({
         id: d.id, name: d.name, category: d.category,
@@ -503,8 +503,8 @@ export default function POSClient() {
     if (primary.currentOrderId) {
       // Fetch order status AND items in parallel — no race condition
       const [{ data: orderMeta }, { data: existingItems }] = await Promise.all([
-        supabase.from('orders').select('kitchen_status').eq('id', primary.currentOrderId).single(),
-        supabase.from('order_items').select('*').eq('order_id', primary.currentOrderId),
+        supabase.from('orders').select('kitchen_status').eq('tenant_id', getTenantId()).eq('id', primary.currentOrderId).single(),
+        supabase.from('order_items').select('*').eq('tenant_id', getTenantId()).eq('order_id', primary.currentOrderId),
       ]);
 
       const alreadySent = orderMeta?.kitchen_status != null && orderMeta.kitchen_status !== 'en_edicion';
@@ -514,7 +514,7 @@ export default function POSClient() {
         const dishIds = [...new Set(existingItems.map((i: any) => i.dish_id).filter(Boolean))];
         let dishMap: Record<string, MenuItem> = {};
         if (dishIds.length > 0) {
-          const { data: dishes } = await supabase.from('dishes').select('*').in('id', dishIds);
+          const { data: dishes } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).in('id', dishIds);
           (dishes || []).forEach((d: any) => {
             dishMap[d.id] = {
               id: d.id, name: d.name, category: d.category,
@@ -686,7 +686,7 @@ export default function POSClient() {
         const dishIds = [...new Set(freshItems.map((i: any) => i.dish_id).filter(Boolean))];
         let dishMap: Record<string, MenuItem> = {};
         if (dishIds.length > 0) {
-          const { data: dishes } = await supabase.from('dishes').select('*').in('id', dishIds);
+          const { data: dishes } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).in('id', dishIds);
           (dishes || []).forEach((d: any) => {
             dishMap[d.id] = { id: d.id, name: d.name, category: d.category,
               price: Number(d.price), description: d.description,

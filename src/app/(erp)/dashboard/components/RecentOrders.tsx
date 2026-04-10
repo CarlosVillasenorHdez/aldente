@@ -47,6 +47,7 @@ export default function RecentOrders() {
     setLoading(true);
     const { data, error } = await supabase
       .from('orders')
+      .eq('tenant_id', getTenantId())
       .select('id, mesa, mesero, status, total, opened_at, closed_at, duration_min, pay_method, order_items(qty)')
       .eq('is_comanda', false)
       .order('created_at', { ascending: false })

@@ -213,7 +213,7 @@ export default function InventarioManagement() {
     setLoading(true);
     const _session = JSON.parse(sessionStorage.getItem('aldente_session') || '{}');
     const _tenantId = _session?.tenantId;
-    const _q1 = supabase.from('ingredients').select('*');
+    const _q1 = supabase.from('ingredients').select('*').eq('tenant_id', getTenantId());
     const { data, error } = await (_tenantId ? _q1.eq('tenant_id', _tenantId) : _q1).order('category').order('name');
     if (error) {
       toast.error('Error al cargar inventario. Verifica tu conexión.');
@@ -274,7 +274,7 @@ export default function InventarioManagement() {
   }, []);
   const fetchEquivalences = useCallback(async () => {
     setLoadingEquiv(true);
-    const { data } = await supabase.from('unit_equivalences').select('*, ingredients(name, unit)').order('created_at');
+    const { data } = await supabase.from('unit_equivalences').select('*, ingredients(name, unit).eq('tenant_id', getTenantId())').order('created_at');
     if (data) {
       setEquivalences(data.map((e: any) => ({
         id: e.id, ingredientId: e.ingredient_id,

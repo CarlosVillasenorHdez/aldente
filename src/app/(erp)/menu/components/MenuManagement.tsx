@@ -183,7 +183,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   useEffect(() => {
     fetchRecipe();
     fetchCostBreakdown();
-    supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
+    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
     });
   }, [fetchRecipe]);
@@ -733,7 +733,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const [targetMargin, setTargetMargin] = useState(65); // % default target
 
   useEffect(() => {
-    supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
+    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       setLoading(false);
     });
@@ -1209,7 +1209,7 @@ export default function MenuManagement() {
     setLoading(true);
     const _session = JSON.parse(sessionStorage.getItem('aldente_session') || '{}');
     const _tenantId = _session?.tenantId;
-    const _q1 = supabase.from('dishes').select('*');
+    const _q1 = supabase.from('dishes').select('*').eq('tenant_id', getTenantId());
     const { data, error } = await (_tenantId ? _q1.eq('tenant_id', _tenantId) : _q1).order('category').order('name');
     if (error) {
       alert('Error al cargar el menú: ' + error.message);
@@ -1224,7 +1224,7 @@ export default function MenuManagement() {
       }));
       setDishes(mapped);
       // Fetch recipe counts
-      const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id');
+      const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id').eq('tenant_id', getTenantId());
       if (recipeData) {
         const counts: Record<string, number> = {};
         recipeData.forEach((r: any) => { counts[r.dish_id] = (counts[r.dish_id] || 0) + 1; });

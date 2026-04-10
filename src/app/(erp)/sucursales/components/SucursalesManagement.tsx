@@ -44,7 +44,7 @@ export default function SucursalesManagement() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: b }, { data: u }, { data: sysConf }] = await Promise.all([
-      supabase.from('branches').select('*').order('name'),
+      supabase.from('branches').select('*').eq('tenant_id', getTenantId()).order('name'),
       supabase.from('app_users').select('id,full_name,app_role,branch_id,username').eq('tenant_id', appUser?.tenantId).neq('app_role','superadmin').order('full_name'),
       supabase.from('system_config').select('config_key,config_value').eq('tenant_id', appUser?.tenantId).in('config_key',['restaurant_name','restaurant_address','restaurant_phone']),
     ]);

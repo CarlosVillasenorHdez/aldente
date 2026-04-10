@@ -153,7 +153,7 @@ export default function PersonalManagement() {
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('employees').select('*').order('name');
+    const { data, error } = await supabase.from('employees').select('*').eq('tenant_id', getTenantId()).order('name');
     if (error) {
       toast.error('Error al cargar personal. Verifica tu conexión.');
       setLoading(false);

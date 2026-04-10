@@ -343,7 +343,7 @@ export default function ReportesManagement() {
           });
 
           // Get dish prices from dishes table for revenue calc
-          const { data: dishes } = await supabase.from('dishes').select('name, price, category');
+          const { data: dishes } = await supabase.from('dishes').select('name, price, category').eq('tenant_id', getTenantId());
           const priceMap: Record<string, { price: number; category: string }> = {};
           (dishes || []).forEach((d: any) => { priceMap[d.name] = { price: Number(d.price), category: d.category }; });
 
@@ -410,7 +410,7 @@ export default function ReportesManagement() {
 
   // Fetch real payroll from employees table
   useEffect(() => {
-    supabase.from('employees').select('salary, salary_frequency, status').eq('status', 'activo').then(({ data }) => {
+    supabase.from('employees').select('salary, salary_frequency, status').eq('tenant_id', getTenantId()).eq('status', 'activo').then(({ data }) => {
       if (data && data.length > 0) {
         const total = data.reduce((sum: number, e: any) => {
           const salary = Number(e.salary ?? 0);
@@ -530,11 +530,11 @@ export default function ReportesManagement() {
     // Fetch fresh data for PDF period
     const supabasePDF = supabase;
     const [{ data: pdfOrders }, { data: pdfMermaOrders }, { data: pdfItems }] = await Promise.all([
-      supabasePDF.from('orders').select('id, total, subtotal, cost_actual, margin_actual, discount, iva')
+      supabasePDF.from('orders').select('id, total, subtotal, cost_actual, margin_actual, discount, iva').eq('tenant_id', getTenantId())
         .eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', startISO).lte('created_at', endISO),
-      supabasePDF.from('orders').select('waste_cost')
+      supabasePDF.from('orders').select('waste_cost').eq('tenant_id', getTenantId())
         .eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', startISO).lte('updated_at', endISO),
-      supabasePDF.from('order_items').select('name, qty, price, order_id'),
+      supabasePDF.from('order_items').select('name, qty, price, order_id').eq('tenant_id', getTenantId()),
     ]);
 
     const orderIds = new Set((pdfOrders || []).map((o: any) => o.id));

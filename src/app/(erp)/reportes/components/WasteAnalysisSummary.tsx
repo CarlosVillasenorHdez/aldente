@@ -39,7 +39,7 @@ export default function WasteAnalysisSummary() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: ingredients } = await supabase.from('ingredients').select('*').order('name');
+      const { data: ingredients } = await supabase.from('ingredients').select('*').eq('tenant_id', getTenantId()).order('name');
       const since = new Date();
       since.setDate(since.getDate() - 90);
       const { data: movements } = await supabase

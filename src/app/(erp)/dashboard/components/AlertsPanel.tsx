@@ -40,6 +40,7 @@ export default function AlertsPanel() {
     // 1. Inventory alerts: stock < min_stock
     const { data: ingredients } = await supabase
       .from('ingredients')
+      .eq('tenant_id', getTenantId())
       .select('id, name, stock, min_stock, unit, updated_at')
       .filter('min_stock', 'gt', 0);
 
@@ -64,6 +65,7 @@ export default function AlertsPanel() {
     const in7days = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
     const { data: gastosVencidos } = await supabase
       .from('gastos_recurrentes')
+      .eq('tenant_id', getTenantId())
       .select('id, nombre, monto, proximo_pago, frecuencia, categoria')
       .eq('activo', true)
       .eq('estado', 'pendiente')
@@ -86,6 +88,7 @@ export default function AlertsPanel() {
     // 2. Order alerts: open orders older than 30 min
     const { data: openOrders } = await supabase
       .from('orders')
+      .eq('tenant_id', getTenantId())
       .select('id, mesa, created_at, status')
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', false)

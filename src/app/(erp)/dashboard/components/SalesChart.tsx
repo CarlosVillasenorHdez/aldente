@@ -76,6 +76,7 @@ export default function SalesChart() {
 
       const { data: todayOrders, error: todayError } = await supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('total, created_at, closed_at')
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
@@ -128,6 +129,7 @@ export default function SalesChart() {
 
       const { data: weekOrders, error: weekError } = await supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('total, created_at')
         .eq('is_comanda', false)
         .eq('status', 'cerrada')

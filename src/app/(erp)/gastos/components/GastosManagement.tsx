@@ -1,5 +1,11 @@
 'use client';
 
+function getTenantId(): string | null {
+  try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; }
+  catch { return null; }
+}
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Edit2, Trash2, CheckCircle, Clock, AlertTriangle, X, Save, Zap, Home, Shield, Megaphone, Wrench, DollarSign, TrendingDown, RefreshCw, Calendar, Tag } from 'lucide-react';

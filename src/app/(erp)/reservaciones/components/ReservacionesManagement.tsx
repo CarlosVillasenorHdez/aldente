@@ -80,8 +80,8 @@ export default function ReservacionesManagement() {
     setLoading(true);
     try {
       const [{ data: resData }, { data: tablesData }] = await Promise.all([
-        supabase.from('reservations').select('*').order('reservation_date').order('reservation_time'),
-        supabase.from('restaurant_tables').select('id, name, capacity').order('name'),
+        supabase.from('reservations').select('*').eq('tenant_id', getTenantId()).order('reservation_date').order('reservation_time'),
+        supabase.from('restaurant_tables').select('id, name, capacity').eq('tenant_id', getTenantId()).order('name'),
       ]);
       setReservations((resData || []).map((r: any) => ({
         id: r.id,

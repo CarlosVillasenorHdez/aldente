@@ -160,7 +160,7 @@ export default function DeliveryManagement() {
 
       // Evitar duplicados si ya se envió este pedido a cocina
       const { data: existing } = await supabase
-        .from('orders').select('id').eq('id', orderId).maybeSingle();
+        .from('orders').select('id').eq('tenant_id', getTenantId()).eq('id', orderId).maybeSingle();
 
       if (!existing) {
         const { error: insertErr } = await supabase.from('orders').insert({

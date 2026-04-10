@@ -72,7 +72,7 @@ export default function LoyaltyManagement() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('loyalty_customers').select('*').order('points', { ascending: false });
+      const { data, error } = await supabase.from('loyalty_customers').select('*').eq('tenant_id', getTenantId()).order('points', { ascending: false });
       if (error) throw error;
       setCustomers((data || []).map((c: any) => ({
         id: c.id, name: c.name, phone: c.phone, email: c.email,

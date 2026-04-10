@@ -54,7 +54,7 @@ export default function ConfigLayout() {
   const loadLayout = useCallback(async () => {
     setLayoutLoading(true);
     try {
-      const { data } = await supabase.from('restaurant_layout').select('*').limit(1).single();
+      const { data } = await supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId()).limit(1).single();
       if (data) {
         setLayoutId(data.id);
         setLayoutTables((data.tables_layout as LayoutTable[]) || []);

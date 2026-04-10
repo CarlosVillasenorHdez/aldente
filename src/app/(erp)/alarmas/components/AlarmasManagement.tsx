@@ -109,6 +109,7 @@ export default function AlarmasManagement() {
       const { data: ingredientes } = await supabase
         .from('ingredients')
         .select('id, name, stock, min_stock, unit, updated_at')
+        .eq('tenant_id', getTenantId())
         .filter('min_stock', 'gt', 0);
 
       if (ingredientes) {
