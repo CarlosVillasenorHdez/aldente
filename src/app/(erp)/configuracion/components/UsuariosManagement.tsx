@@ -1,4 +1,9 @@
 'use client';
+function getTenantId(): string | null {
+  try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; }
+  catch { return null; }
+}
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Pencil, Shield, Eye, EyeOff, UserCheck, RefreshCw, AlertCircle, Lock, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react';
