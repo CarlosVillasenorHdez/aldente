@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
-      .insert({ name: restaurantName, slug, plan: 'basico', is_active: true, trial_ends_at: trialEnd.toISOString() })
+      .insert({ name: restaurantName, slug, plan: 'operacion', is_active: true, trial_ends_at: trialEnd.toISOString() })
       .select('id')
       .single();
 

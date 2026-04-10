@@ -15,15 +15,20 @@ interface KPIs {
   mrr: number; expiringSoon: number; churnRisk: number;
 }
 
-const PLAN_MXN: Record<string, number> = { basico: 800, estandar: 1500, premium: 2500 };
-const PLAN_COLOR: Record<string, string> = { basico: '#6b7280', estandar: '#f59e0b', premium: '#a78bfa' };
+const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
+const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
 
-function worldToSVG(lat: number, lng: number, w = 640, h = 320): [number, number] {
-  const x = ((lng + 180) / 360) * w;
-  const latRad = (lat * Math.PI) / 180;
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-  const y = (h / 2) - (w * mercN) / (2 * Math.PI);
-  return [x, Math.max(0, Math.min(h, y))];
+// Mexico bounding box: lat 14.5–32.7, lng -118.5 – -86.7
+const MX_BOUNDS = { latMin: 14.5, latMax: 32.7, lngMin: -118.5, lngMax: -86.7 };
+
+function worldToSVG(lat: number, lng: number, w = 720, h = 360): [number, number] {
+  const xFrac = (lng - MX_BOUNDS.lngMin) / (MX_BOUNDS.lngMax - MX_BOUNDS.lngMin);
+  const yFrac = 1 - (lat - MX_BOUNDS.latMin) / (MX_BOUNDS.latMax - MX_BOUNDS.latMin);
+  const pad = 20;
+  return [
+    Math.max(pad, Math.min(w - pad, pad + xFrac * (w - 2 * pad))),
+    Math.max(pad, Math.min(h - pad, pad + yFrac * (h - 2 * pad))),
+  ];
 }
 
 function daysUntil(dateStr: string): number {
@@ -174,29 +179,45 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         </div>
-        <svg viewBox="0 0 640 280" width="100%" style={{ display: 'block', borderRadius: '8px', background: '#0d1720' }}>
-          {[0,70,140,210,280].map(y => <line key={y} x1="0" y1={y} x2="640" y2={y} stroke="#1e2d3d" strokeWidth="0.5"/>)}
-          {[0,128,256,384,512,640].map(x => <line key={x} x1={x} y1="0" x2={x} y2="280" stroke="#1e2d3d" strokeWidth="0.5"/>)}
+        <svg viewBox="0 0 720 360" width="100%" style={{ display: 'block', borderRadius: '8px', background: '#0a1220' }}>
+          {/* Grid */}
+          {[0,90,180,270,360].map(y => <line key={y} x1="0" y1={y} x2="720" y2={y} stroke="#1e2d3d" strokeWidth="0.5" strokeDasharray="4,6"/>)}
+          {[0,144,288,432,576,720].map(x => <line key={x} x1={x} y1="0" x2={x} y2="360" stroke="#1e2d3d" strokeWidth="0.5" strokeDasharray="4,6"/>)}
+          {/* State labels — major cities */}
+          {[['CDMX', 19.43, -99.13], ['Monterrey', 25.67, -100.31], ['Guadalajara', 20.67, -103.35],
+            ['Tijuana', 32.53, -117.04], ['Mérida', 20.97, -89.62], ['Puebla', 19.05, -98.20],
+          ].map(([name, lat, lng]) => {
+            const [x, y] = worldToSVG(Number(lat), Number(lng));
+            return <text key={name as string} x={x} y={y} fontSize="9" fill="rgba(255,255,255,0.15)" textAnchor="middle">{name as string}</text>;
+          })}
+          {/* Mexico outline — simplified */}
+          <path d="M 45 28 L 88 22 L 132 38 L 155 55 L 170 72 L 185 65 L 198 80 L 210 75 L 225 90 L 235 88 L 248 100 L 258 95 L 272 108 L 280 120 L 295 115 L 310 130 L 318 148 L 325 162 L 335 178 L 348 192 L 360 205 L 368 220 L 375 235 L 385 248 L 395 255 L 408 268 L 418 278 L 430 285 L 445 290 L 458 296 L 472 302 L 482 315 L 490 328 L 498 340 L 508 338 L 515 325 L 522 312 L 530 300 L 538 290 L 546 280 L 552 268 L 558 258 L 562 248 L 568 238 L 572 228 L 576 218 L 578 208 L 580 198 L 582 188 L 582 178 L 580 168 L 578 158 L 575 148 L 570 138 L 565 128 L 558 118 L 550 110 L 540 102 L 528 95 L 515 90 L 500 85 L 488 78 L 478 68 L 468 58 L 458 50 L 448 42 L 435 35 L 420 28 L 405 22 L 388 18 L 370 15 L 350 14 L 330 15 L 310 18 L 290 22 L 270 26 L 250 28 L 228 28 L 205 26 L 182 22 L 158 18 L 135 16 L 112 16 L 88 18 L 65 22 L 45 28Z"
+            fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" strokeWidth="1"/>
+          {/* Dots — tenants with location */}
           {dots.map(d => {
-            const [x, y] = worldToSVG(d.lat!, d.lng!, 640, 280);
+            const [x, y] = worldToSVG(d.lat!, d.lng!);
             const color = PLAN_COLOR[d.plan] ?? '#6b7280';
             return (
               <g key={d.id} style={{ cursor: 'pointer' }}
                 onMouseEnter={() => setTooltip({ name: d.name, plan: d.plan, x, y })}
                 onMouseLeave={() => setTooltip(null)}>
-                <circle cx={x} cy={y} r="7" fill={color} fillOpacity={d.is_active ? 0.9 : 0.3} stroke="#0d1720" strokeWidth="1.5"/>
-                <circle cx={x} cy={y} r="12" fill={color} fillOpacity={0.15}/>
+                <circle cx={x} cy={y} r="14" fill={color} fillOpacity={0.08}/>
+                <circle cx={x} cy={y} r="7" fill={color} fillOpacity={d.is_active ? 0.95 : 0.3} stroke="#0a1220" strokeWidth="1.5"/>
+                <circle cx={x} cy={y} r="3" fill="#0a1220" fillOpacity="0.5"/>
               </g>
             );
           })}
+          {/* Tooltip */}
           {tooltip && (() => {
-            const tx = Math.min(tooltip.x + 12, 520);
-            const ty = Math.max(tooltip.y - 36, 8);
+            const tx = tooltip.x > 580 ? tooltip.x - 150 : tooltip.x + 14;
+            const ty = Math.max(tooltip.y - 40, 8);
+            const planName = { operacion:'Operación', negocio:'Negocio', empresa:'Empresa', profesional:'Profesional' }[tooltip.plan] ?? tooltip.plan;
             return (
               <g>
-                <rect x={tx} y={ty} width="130" height="38" rx="6" fill="#1a2535" stroke="#2a3f5f" strokeWidth="0.5"/>
-                <text x={tx+8} y={ty+15} fontSize="12" fill="#f1f5f9" fontWeight="500">{tooltip.name.slice(0,16)}</text>
-                <text x={tx+8} y={ty+29} fontSize="11" fill={PLAN_COLOR[tooltip.plan] ?? '#6b7280'}>{tooltip.plan}</text>
+                <rect x={tx} y={ty} width="148" height="44" rx="8" fill="#1a2535" stroke="#2a4f7f" strokeWidth="1"/>
+                <text x={tx+10} y={ty+17} fontSize="12" fill="#f1f5f9" fontWeight="600">{tooltip.name.slice(0,18)}</text>
+                <circle cx={tx+10} cy={ty+31} r="4" fill={PLAN_COLOR[tooltip.plan] ?? '#6b7280'}/>
+                <text x={tx+20} y={ty+35} fontSize="11" fill={PLAN_COLOR[tooltip.plan] ?? '#6b7280'}>{planName}</text>
               </g>
             );
           })()}
