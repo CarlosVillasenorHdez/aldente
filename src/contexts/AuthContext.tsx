@@ -137,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // ── Load brand config ────────────────────────────────────────────────────
   useEffect(() => {
+    const tenantId = appUser?.tenantId ?? DEFAULT_TENANT;
     const cacheKey = BRAND_CACHE_KEY + '_' + tenantId;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
