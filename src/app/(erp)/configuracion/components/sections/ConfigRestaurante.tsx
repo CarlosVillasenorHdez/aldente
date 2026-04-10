@@ -193,42 +193,6 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         </button>
       </div>
       {/* Address, Phone, RFC */}
-      <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
-        <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Dirección</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
-                placeholder="Av. Insurgentes Sur 123, Col. Roma, CDMX"
-                className="flex-1 rounded-lg px-3 py-2 text-sm"
-                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
-              <button type="button" onClick={() => geocodeAddress(address)} disabled={geocoding || !address.trim()}
-                title="Localizar en el mapa"
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #2a3f5f', background: '#0f1923', color: geoStatus==='ok'?'#34d399':geoStatus==='error'?'#f87171':'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap', transition: 'all .2s' }}>
-                {geocoding ? '⏳' : geoStatus==='ok' ? '✓ Ubicado' : geoStatus==='error' ? '✗ No encontrado' : '📍 Localizar'}
-              </button>
-            </div>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Se usa para el mapa del panel de administración. Se localiza automáticamente al guardar.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Teléfono</label>
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-                placeholder="55 1234 5678"
-                className="w-full rounded-lg px-3 py-2 text-sm"
-                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
-            </div>
-            <div>
-              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>RFC</label>
-              <input type="text" value={rfc} onChange={(e) => setRfc(e.target.value.toUpperCase())} maxLength={13}
-                placeholder="XAXX010101000"
-                className="w-full rounded-lg px-3 py-2 text-sm"
-                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none', fontFamily: 'monospace' }} />
-            </div>
-          </div>
-        </div>
-      </div>
       {/* Address, Phone, RFC */}
       <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
         <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
