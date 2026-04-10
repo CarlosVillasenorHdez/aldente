@@ -1,4 +1,6 @@
 'use client';
+function getTenantId(): string | null { try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; } catch { return null; } }
+
 
 /**
  * FirstStepsChecklist — visible during the first 14 days of trial.

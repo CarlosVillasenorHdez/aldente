@@ -1,4 +1,6 @@
 'use client';
+function getTenantId(): string | null { try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; } catch { return null; } }
+
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingCart, TrendingDown, CheckCircle, AlertTriangle, Info } from 'lucide-react';

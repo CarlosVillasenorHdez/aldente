@@ -304,7 +304,7 @@ export default function UsuariosManagement() {
     try {
       const rows: { role: string; page_key: string; can_access: boolean }[] = [];
       Object.entries(permissions).forEach(([role, pages]) => {
-        Object.entries(pages).forEach(([page_key, can_access]) => {
+        Object.entries(pages as RolePermissions).forEach(([page_key, can_access]) => {
           rows.push({ role, page_key, can_access: can_access as boolean });
         });
       });
