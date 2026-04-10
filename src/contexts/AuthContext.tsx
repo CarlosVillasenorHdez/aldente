@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     primaryColor: '#1B3A6B',
     accentColor: '#f59e0b',
     logoUrl: '',
-    restaurantName: 'Aldente',
+    restaurantName: '',
     theme: 'dark',
   });
 
@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           primaryColor: map.brand_primary_color || '#1B3A6B',
           accentColor: map.brand_accent_color || '#f59e0b',
           logoUrl: map.brand_logo_url || '',
-          restaurantName: map.restaurant_name || 'Aldente',
+          restaurantName: map.restaurant_name || 'Mi Restaurante',
           theme: (map.brand_theme as 'dark' | 'light') || 'dark',
         };
         setBrandConfig(config);
@@ -237,7 +237,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut().catch(() => { /* ignore */ });
     clearSession();
-    setAppUser(null);
+        setAppUser(null);
+    // Clear brand cache for all tenants
+    Object.keys(sessionStorage).filter(k => k.startsWith(BRAND_CACHE_KEY)).forEach(k => sessionStorage.removeItem(k));
+    setBrandConfig({ primaryColor: '#1B3A6B', accentColor: '#f59e0b', logoUrl: '', restaurantName: '', theme: 'dark' });
   }, [supabase]);
 
   // ── Admin functions (kept for compatibility) ──────────────────────────────
