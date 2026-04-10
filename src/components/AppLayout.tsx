@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useDevice } from '@/hooks/useDevice';
 import Sidebar from './Sidebar';
+import { BranchProvider } from '@/contexts/BranchContext';
 import Topbar from './Topbar';
 import OfflineIndicator from './OfflineIndicator';
 
@@ -71,6 +72,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
   }
 
   return (
+    <BranchProvider>
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <OfflineIndicator />
       {/* Mobile overlay */}
@@ -109,5 +111,6 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         </main>
       </div>
     </div>
+    </BranchProvider>
   );
 }

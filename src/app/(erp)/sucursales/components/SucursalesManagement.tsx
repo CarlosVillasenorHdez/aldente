@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import { Plus, Edit2, Trash2, X, Users, MapPin, Phone, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -27,6 +28,7 @@ const empty: Omit<Branch,'id'> = { name:'', address:'', phone:'', email:'', mana
 export default function SucursalesManagement() {
   const supabase = createClient();
   const { appUser } = useAuth();
+  const { activeBranchId, setActiveBranch, canSwitch } = useBranch();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function SucursalesManagement() {
     setEditingId(b.id); setShowForm(true);
   }
 
-  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.04)', color:'#f1f5f9', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s' } as React.CSSProperties;
+  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #2a3f5f', background:'#0f1923', color:'#f1f5f9', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
 
   if (loading) return <div style={{ textAlign:'center', padding:48, color:'rgba(255,255,255,.4)' }}>Cargando sucursales...</div>;
 
@@ -110,7 +112,7 @@ export default function SucursalesManagement() {
 
       {/* Form */}
       {showForm && (
-        <div style={{ padding:24, borderRadius:16, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)', marginBottom:20 }}>
+        <div style={{ padding:24, borderRadius:16, background:'#1a2535', border:'1px solid #243f72', marginBottom:20 }}>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
             <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
             <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'rgba(255,255,255,.4)', cursor:'pointer' }}><X size={16}/></button>
@@ -172,10 +174,11 @@ export default function SucursalesManagement() {
               <div key={b.id} style={{ borderRadius:16, border:`1px solid ${isExpanded?'rgba(201,150,58,.3)':'rgba(255,255,255,.07)'}`, background: isExpanded?'rgba(201,150,58,.04)':'rgba(255,255,255,.02)', overflow:'hidden', transition:'all .2s' }}>
                 {/* Branch header */}
                 <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px 20px' }}>
-                  <div style={{ width:44, height:44, borderRadius:12, background:'rgba(201,150,58,.12)', border:'1px solid rgba(201,150,58,.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏢</div>
+                  <div style={{ width:44, height:44, borderRadius:12, background: activeBranchId===b.id?'rgba(201,150,58,.25)':'rgba(201,150,58,.12)', border:`1px solid ${activeBranchId===b.id?'rgba(201,150,58,.6)':'rgba(201,150,58,.25)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏢</div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
                       <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{b.name}</h3>
+                      {activeBranchId===b.id && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Activa</span>}
                       <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: b.isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)', color: b.isActive?'#34d399':'#f87171', border: `1px solid ${b.isActive?'rgba(52,211,153,.2)':'rgba(248,113,113,.2)'}` }}>
                         {b.isActive?'Activa':'Inactiva'}
                       </span>
@@ -196,6 +199,12 @@ export default function SucursalesManagement() {
                       style={{ width:34, height:34, borderRadius:8, border:`1px solid ${b.isActive?'rgba(248,113,113,.2)':'rgba(52,211,153,.2)'}`, background: b.isActive?'rgba(248,113,113,.06)':'rgba(52,211,153,.06)', color: b.isActive?'#f87171':'#34d399', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       {b.isActive?<ToggleRight size={14}/>:<ToggleLeft size={14}/>}
                     </button>
+                    {canSwitch && activeBranchId !== b.id && (
+                      <button onClick={()=>setActiveBranch({ id:b.id, name:b.name })} title="Cambiar a esta sucursal"
+                        style={{ padding:'0 12px', height:34, borderRadius:8, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.1)', color:'#c9963a', cursor:'pointer', fontSize:11, fontWeight:700, whiteSpace:'nowrap' }}>
+                        Ir aquí →
+                      </button>
+                    )}
                     <button onClick={()=>handleDelete(b.id)} title="Eliminar"
                       style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(248,113,113,.15)', background:'rgba(248,113,113,.06)', color:'rgba(248,113,113,.7)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       <Trash2 size={13}/>
