@@ -12,25 +12,20 @@ import React, { useState, useEffect } from 'react';
 import { Lock, ArrowRight, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { PLAN_NAMES, PLAN_PRICES, PLAN_ORDER } from '@/hooks/useFeatures';
 
 interface UpgradeGateProps {
   feature: string;                    // feature key (e.g. 'inventario', 'reportes')
-  requiredPlan: 'estandar' | 'premium';
+  requiredPlan: string;
   title: string;                      // what is being unlocked
   description: string;                // benefit, not feature name
   children: React.ReactNode;          // the actual widget (will be blurred)
   blurAmount?: number;                // 0 = no blur (just lock overlay)
 }
 
-const PLAN_LABELS: Record<string, string> = {
-  estandar: 'Estándar',
-  premium: 'Premium',
-};
 
-const PLAN_PRICES: Record<string, string> = {
-  estandar: '$1,500',
-  premium: '$2,500',
-};
+
+
 
 export default function UpgradeGate({
   feature,
@@ -53,16 +48,14 @@ export default function UpgradeGate({
       .eq('id', appUser.tenantId)
       .single()
       .then(({ data }) => {
-        setCurrentPlan(data?.plan ?? 'basico');
+        setCurrentPlan(data?.plan ?? 'operacion');
         setLoading(false);
       });
   }, [appUser?.tenantId]);
 
   // Determine if feature is available
-  const planOrder = ['basico', 'estandar', 'premium'];
-  const currentIndex = planOrder.indexOf(currentPlan ?? 'basico');
-  const requiredIndex = planOrder.indexOf(requiredPlan);
-  const hasAccess = currentIndex >= requiredIndex;
+  
+  const hasAccess = PLAN_ORDER.indexOf(currentPlan ?? 'operacion') >= PLAN_ORDER.indexOf(requiredPlan);
 
   // While loading, render children normally (no flash)
   if (loading || hasAccess) return <>{children}</>;
@@ -106,7 +99,7 @@ export default function UpgradeGate({
           marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em',
         }}>
           <Sparkles size={10} />
-          Plan {PLAN_LABELS[requiredPlan]}
+          Plan {PLAN_NAMES[requiredPlan] ?? requiredPlan}
         </div>
 
         <h3 style={{
@@ -137,7 +130,7 @@ export default function UpgradeGate({
           onMouseEnter={e => (e.currentTarget.style.background = '#dfa03a')}
           onMouseLeave={e => (e.currentTarget.style.background = '#c8861f')}
         >
-          Ver plan {PLAN_LABELS[requiredPlan]} — {PLAN_PRICES[requiredPlan]}/mes
+          Ver plan {PLAN_NAMES[requiredPlan] ?? requiredPlan} — {`$${(PLAN_PRICES[requiredPlan] ?? 0).toLocaleString('es-MX')}`}/mes
           <ArrowRight size={13} />
         </a>
       </div>

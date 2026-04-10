@@ -9,8 +9,8 @@ interface TenantRow {
   plan_valid_until: string | null; trial_ends_at: string | null; created_at: string;
 }
 
-const PLAN_MXN: Record<string, number> = { basico: 800, estandar: 1500, premium: 2500 };
-const PLAN_COLOR: Record<string, string> = { basico: '#6b7280', estandar: '#f59e0b', premium: '#a78bfa' };
+const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
+const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
 
 export default function MRRPage() {
   const supabase = createClient();
@@ -29,7 +29,7 @@ export default function MRRPage() {
   const mrr = paid.reduce((sum, t) => sum + (PLAN_MXN[t.plan] ?? 0), 0);
   const arr = mrr * 12;
 
-  const byPlan = ['basico', 'estandar', 'premium'].map(plan => ({
+  const byPlan = ['operacion', 'negocio', 'empresa'].map(plan => ({
     plan,
     count: paid.filter(t => t.plan === plan).length,
     revenue: paid.filter(t => t.plan === plan).reduce((s, t) => s + (PLAN_MXN[t.plan] ?? 0), 0),

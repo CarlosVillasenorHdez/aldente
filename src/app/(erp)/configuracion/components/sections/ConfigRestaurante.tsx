@@ -38,6 +38,11 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   const [restaurantName, setRestaurantName] = useState(brandConfig?.restaurantName || 'Mi Restaurante');
   const [restaurantNameDraft, setRestaurantNameDraft] = useState(brandConfig?.restaurantName || 'Mi Restaurante');
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [rfc, setRfc] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoStatus, setGeoStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [settingsSaved, setSettingsSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [primaryColor, setPrimaryColor] = useState(brandConfig?.primaryColor || '#1B3A6B');
@@ -66,6 +71,9 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (map.restaurant_name) { setRestaurantName(map.restaurant_name); setRestaurantNameDraft(map.restaurant_name); }
       if (map.brand_primary_color) setPrimaryColor(map.brand_primary_color);
       if (map.brand_logo_url) setLogoPreview(map.brand_logo_url);
+      if (map.restaurant_address) setAddress(map.restaurant_address);
+      if (map.restaurant_phone) setPhone(map.restaurant_phone);
+      if (map.restaurant_rfc) setRfc(map.restaurant_rfc);
       if (map.brand_theme) setAppTheme(map.brand_theme as 'dark'|'light');
       if (map.iva_percent) { const v = parseFloat(map.iva_percent); setIvaPercent(v); setIvaPercentDraft(v); }
       if (map.currency_symbol) setCurrencySymbol(map.currency_symbol);
@@ -75,12 +83,35 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function geocodeAddress(addr: string) {
+    if (!addr.trim()) return;
+    setGeocoding(true); setGeoStatus('idle');
+    try {
+      const q = encodeURIComponent(addr + ', México');
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { 'Accept-Language': 'es', 'User-Agent': 'Aldente-ERP/1.0' }
+      });
+      const data = await r.json();
+      if (data?.[0]) {
+        const { lat, lon } = data[0];
+        // Save lat/lng to tenants table
+        const supaClient = createClient ? createClient() : supabase;
+        await supaClient.from('tenants').update({ lat: parseFloat(lat), lng: parseFloat(lon) }).eq('id', appUser?.tenantId);
+        setGeoStatus('ok');
+      } else { setGeoStatus('error'); }
+    } catch { setGeoStatus('error'); }
+    setGeocoding(false);
+  }
+
   async function handleSaveSettings() {
     const tenantId = appUser?.tenantId ?? undefined;
     const upsertRows: {config_key:string;config_value:string;tenant_id:string|undefined}[] = [
-      { config_key: 'restaurant_name', config_value: restaurantNameDraft ?? '', tenant_id: tenantId },
-      { config_key: 'brand_primary_color', config_value: primaryColor, tenant_id: tenantId },
-      { config_key: 'brand_theme', config_value: appTheme, tenant_id: tenantId },
+      { config_key: 'restaurant_name',    config_value: restaurantNameDraft, tenant_id: appUser?.tenantId },
+      { config_key: 'brand_primary_color',config_value: primaryColor,        tenant_id: appUser?.tenantId },
+      { config_key: 'brand_theme',        config_value: appTheme,            tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_address', config_value: address,             tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_phone',   config_value: phone,               tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: appUser?.tenantId },
     ];
     if (logoPreview) {
       upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: tenantId });
@@ -160,6 +191,78 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)', backgroundColor: 'transparent', color: '#f59e0b', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
           Copiar link
         </button>
+      </div>
+      {/* Address, Phone, RFC */}
+      <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
+        <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Dirección</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
+                placeholder="Av. Insurgentes Sur 123, Col. Roma, CDMX"
+                className="flex-1 rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+              <button type="button" onClick={() => geocodeAddress(address)} disabled={geocoding || !address.trim()}
+                title="Localizar en el mapa"
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #2a3f5f', background: '#0f1923', color: geoStatus==='ok'?'#34d399':geoStatus==='error'?'#f87171':'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap', transition: 'all .2s' }}>
+                {geocoding ? '⏳' : geoStatus==='ok' ? '✓ Ubicado' : geoStatus==='error' ? '✗ No encontrado' : '📍 Localizar'}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Se usa para el mapa del panel de administración. Se localiza automáticamente al guardar.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Teléfono</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+                placeholder="55 1234 5678"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>RFC</label>
+              <input type="text" value={rfc} onChange={(e) => setRfc(e.target.value.toUpperCase())} maxLength={13}
+                placeholder="XAXX010101000"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none', fontFamily: 'monospace' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Address, Phone, RFC */}
+      <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
+        <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Dirección</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
+                placeholder="Av. Insurgentes Sur 123, Col. Roma, CDMX"
+                className="flex-1 rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+              <button type="button" onClick={() => geocodeAddress(address)} disabled={geocoding || !address.trim()}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #2a3f5f', background: '#0f1923', color: geoStatus==='ok'?'#34d399':geoStatus==='error'?'#f87171':'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap' }}>
+                {geocoding ? '⏳ Buscando...' : geoStatus==='ok' ? '✓ Ubicado' : geoStatus==='error' ? '✗ No encontrado' : '📍 Localizar'}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Se localiza automáticamente al guardar y aparece en el mapa del panel de administración.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Teléfono</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="55 1234 5678"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>RFC</label>
+              <input type="text" value={rfc} onChange={(e) => setRfc(e.target.value.toUpperCase())} maxLength={13}
+                placeholder="XAXX010101000"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none', fontFamily: 'monospace' }} />
+            </div>
+          </div>
+        </div>
       </div>
       <SaveButton saved={settingsSaved} onClick={handleSaveSettings} />
       </div>}
