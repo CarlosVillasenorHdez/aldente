@@ -176,8 +176,8 @@ export default function POSClient() {
     const [{ data: configData }, { data, error }] = await Promise.all([
       supabase.from('system_config').select('config_value').eq('config_key', 'table_count').single(),
       activeBranch
-        ? supabase.from('restaurant_tables').select('*').gt('number', 0).eq('branch_id', activeBranch).order('number')
-        : supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
+        ? supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).eq('branch_id', activeBranch).order('number')
+        : supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).order('number'),
     ]);
 
     let layoutData: any = null;

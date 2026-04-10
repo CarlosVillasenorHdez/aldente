@@ -211,7 +211,10 @@ export default function InventarioManagement() {
   const supabase = createClient();
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('ingredients').select('*').order('category').order('name');
+    const _session = JSON.parse(sessionStorage.getItem('aldente_session') || '{}');
+    const _tenantId = _session?.tenantId;
+    const _q1 = supabase.from('ingredients').select('*');
+    const { data, error } = await (_tenantId ? _q1.eq('tenant_id', _tenantId) : _q1).order('category').order('name');
     if (error) {
       toast.error('Error al cargar inventario. Verifica tu conexión.');
       setLoading(false);
