@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const { data, error } = await supabase
         .from('app_users')
-        .select('id, full_name, app_role, employee_id, tenant_id, is_active, pin')
+        .select('id, full_name, app_role, employee_id, tenant_id, branch_id, is_active, pin, auth_user_id')
         .eq('id', userId)
         .single();
 
@@ -195,26 +195,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!pinMatch) return { error: 'PIN incorrecto' };
 
       // ── Sign into Supabase Auth so auth.uid() works for RLS ──────────────
-      // Use UUID-based email — stable, no encoding issues with special chars
+      // Each ERP user gets a Supabase Auth account: u.{app_user_id}@aldente.local
       const emailForAuth = `u.${data.id}@aldente.local`;
-      // Try sign in first, fall back to sign up if user doesn't exist in auth yet
-      let authError = null;
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
+      const pinPassword = `${pin}_${data.id.slice(0, 8)}`; // stable password per user
+
+      let supabaseAuthId: string | null = null;
+
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
         email: emailForAuth,
-        password: pin,  // use PIN as password — both are verified above
+        password: pinPassword,
       });
-      if (signInErr) {
-        // User doesn't exist in auth.users yet — create them
-        const { error: signUpErr } = await supabase.auth.signUp({
+
+      if (!signInErr && signInData?.user) {
+        supabaseAuthId = signInData.user.id;
+      } else {
+        // User doesn't exist in auth yet — create them
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
           email: emailForAuth,
-          password: pin,
+          password: pinPassword,
           options: { emailRedirectTo: undefined },
         });
-        if (signUpErr) {
-          authError = signUpErr.message;
-          // Non-fatal: session still works via sessionStorage, RLS will use fallback tenant
-          console.warn('Auth sign up failed (RLS will use fallback):', authError);
+        if (!signUpErr && signUpData?.user) {
+          supabaseAuthId = signUpData.user.id;
+        } else {
+          console.warn('Supabase Auth signup failed:', signUpErr?.message);
         }
+      }
+
+      // ── Critical: link auth_user_id so RLS auth_tenant_id() works ────────
+      // Without this, auth_tenant_id() returns the default tenant and all
+      // restaurants see each other's data.
+      if (supabaseAuthId && supabaseAuthId !== data.auth_user_id) {
+        await supabase
+          .from('app_users')
+          .update({ auth_user_id: supabaseAuthId })
+          .eq('id', data.id)
+          .then(({ error: updateErr }) => {
+            if (updateErr) console.warn('Failed to link auth_user_id:', updateErr.message);
+          });
       }
 
       const user: AppUser = {
@@ -225,7 +243,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         employeeId: data.employee_id,
         isActive: data.is_active,
         tenantId: data.tenant_id ?? DEFAULT_TENANT,
-        branchId: null,
+        branchId: data.branch_id ?? null,
         branchName: null,
       };
 
