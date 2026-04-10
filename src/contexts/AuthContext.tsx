@@ -31,6 +31,7 @@ interface AuthContextValue {
   appUser: AppUser | null;
   loading: boolean;
   brandConfig: BrandConfig;
+  reloadBrandConfig: () => Promise<void>;
   tenantId: string | null;
   branchId: string | null;
   signIn: (userId: string, pin: string) => Promise<{ error?: string }>;
@@ -60,6 +61,7 @@ const AuthContext = createContext<AuthContextValue>({
   appUser: null,
   loading: true,
   brandConfig: DEFAULT_BRAND_CONFIG,
+  reloadBrandConfig: async () => {},
   tenantId: null,
   branchId: null,
   signIn: async () => ({}),
@@ -135,13 +137,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // ── Load brand config ────────────────────────────────────────────────────
   useEffect(() => {
-    const cached = sessionStorage.getItem(BRAND_CACHE_KEY);
+    const cacheKey = BRAND_CACHE_KEY + '_' + tenantId;
+    const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
         setBrandConfig(JSON.parse(cached));
         return;
       } catch {
-        sessionStorage.removeItem(BRAND_CACHE_KEY);
+        sessionStorage.removeItem(cacheKey);
       }
     }
     supabase
@@ -168,7 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           theme: (map.brand_theme as 'dark' | 'light') || 'dark',
         };
         setBrandConfig(config);
-        sessionStorage.setItem(BRAND_CACHE_KEY, JSON.stringify(config));
+        sessionStorage.setItem(BRAND_CACHE_KEY + '_' + tenantId, JSON.stringify(config));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -323,6 +326,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [supabase]
   );
 
+  // ── Reload brand config (call after saving logo/name in Config) ─────────
+  const reloadBrandConfig = useCallback(async () => {
+    const tenantId = appUser?.tenantId;
+    if (!tenantId) return;
+    // Clear cache
+    Object.keys(sessionStorage)
+      .filter(k => k.startsWith(BRAND_CACHE_KEY))
+      .forEach(k => sessionStorage.removeItem(k));
+    // Reload from DB
+    const { data } = await supabase
+      .from('system_config')
+      .select('config_key, config_value')
+      .eq('tenant_id', tenantId)
+      .in('config_key', ['brand_primary_color','brand_accent_color','brand_logo_url','restaurant_name','brand_theme']);
+    if (!data || data.length === 0) return;
+    const map: Record<string,string> = {};
+    data.forEach((r: { config_key: string; config_value: string }) => { map[r.config_key] = r.config_value; });
+    const config: BrandConfig = {
+      primaryColor: map.brand_primary_color || '#1B3A6B',
+      accentColor: map.brand_accent_color || '#f59e0b',
+      logoUrl: map.brand_logo_url || '',
+      restaurantName: map.restaurant_name || '',
+      theme: (map.brand_theme as 'dark' | 'light') || 'dark',
+    };
+    setBrandConfig(config);
+    sessionStorage.setItem(BRAND_CACHE_KEY + '_' + tenantId, JSON.stringify(config));
+  }, [appUser?.tenantId, supabase]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -331,6 +362,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         brandConfig,
         tenantId: appUser?.tenantId ?? DEFAULT_TENANT,
         branchId: appUser?.branchId ?? null,
+        reloadBrandConfig,
         signIn,
         signOut,
         createUser,
