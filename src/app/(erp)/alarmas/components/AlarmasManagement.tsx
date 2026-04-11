@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -98,6 +99,7 @@ const FILTER_TABS: { key: AlertCategory | 'todas'; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlarmasManagement() {
+  const { activeBranchId } = useBranch();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<AlertCategory | 'todas'>('todas');
@@ -133,12 +135,9 @@ export default function AlarmasManagement() {
       }
 
       // ── 2. Órdenes abiertas con espera larga ──────────────────────────────────
-      const { data: ordenes } = await supabase
-        .from('orders')
-        .select('id, mesa, created_at, status')
-        .in('status', ['abierta', 'preparacion', 'lista'])
-        .eq('is_comanda', false)  // billing orders only
-        .order('created_at', { ascending: true })
+      let alarmasOrdersQ = supabase.from('orders').select('id, mesa, created_at, status').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']).eq('is_comanda', false);
+      if (activeBranchId) alarmasOrdersQ = alarmasOrdersQ.eq('branch_id', activeBranchId);
+      const { data: ordenes } = await alarmasOrdersQ        .order('created_at', { ascending: true })
         .limit(20);
 
       if (ordenes) {

@@ -23,6 +23,8 @@ export interface OrderRecord {
   mesa: string;
   mesaNum: number;
   mesero: string;
+  orderType?: 'mesa' | 'para_llevar';
+  customerName?: string;
   items: { name: string; qty: number; price: number; emoji: string }[];
   subtotal: number;
   iva: number;
@@ -148,12 +150,14 @@ export default function OrdersTable() {
     }
 
     if (ordersData) {
-      setOrders(ordersData.map((o): OrderRecord => ({
-        id: (o as any).id,
-        mesa: (o as any).mesa,
-        mesaNum: (o as any).mesa_num,
-        mesero: (o as any).mesero,
-        items: ((o as any).order_items || []).map((item: any) => ({
+      setOrders(ordersData.map((o) => ({
+        id: o.id,
+        mesa: o.mesa,
+        mesaNum: o.mesa_num,
+        mesero: o.mesero,
+        orderType: (o.order_type ?? 'mesa') as 'mesa' | 'para_llevar',
+        customerName: o.customer_name ?? undefined,
+        items: (o.order_items || []).map((item: any) => ({
           name: item.name,
           qty: item.qty,
           price: Number(item.price),
@@ -234,7 +238,7 @@ export default function OrdersTable() {
     let result = orders.filter((o) => {
       const matchStatus = statusFilter === 'todas' || o.status === statusFilter;
       const matchMesero = meseroFilter === 'todos' || o.mesero === meseroFilter;
-      const matchSearch = search === '' || o.id.toLowerCase().includes(search.toLowerCase()) || o.mesa.toLowerCase().includes(search.toLowerCase()) || o.mesero.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = search === '' || o.id.toLowerCase().includes(search.toLowerCase()) || o.mesa.toLowerCase().includes(search.toLowerCase()) || o.mesero.toLowerCase().includes(search.toLowerCase()) || (o.customerName ?? '').toLowerCase().includes(search.toLowerCase());
       const orderDate = o.openedAt ? o.openedAt.slice(0, 10) : '';
       const matchFrom = !dateFrom || orderDate >= dateFrom;
       const matchTo = !dateTo || orderDate <= dateTo;
@@ -583,11 +587,18 @@ export default function OrdersTable() {
                           )}
                         </div>
                       </td>
-                      {/* Mesa */}
+                      {/* Mesa / Para Llevar */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '9px' }}>{order.mesaNum}</div>
+                          {order.orderType === 'para_llevar' ? (
+                            <span style={{ fontSize: 16, flexShrink: 0 }}>🥡</span>
+                          ) : (
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '9px' }}>{order.mesaNum}</div>
+                          )}
                           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{order.mesa}</span>
+                          {order.orderType === 'para_llevar' && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: 10 }}>Llevar</span>
+                          )}
                         </div>
                       </td>
                       {/* Mesero */}

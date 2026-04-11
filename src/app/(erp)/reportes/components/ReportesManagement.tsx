@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -177,6 +178,7 @@ const PeakTooltip = ({ active, payload, label }: any) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ReportesManagement() {
+    const { activeBranchId } = useBranch();
   const [dateRange, setDateRange] = useState<DateRange>('semana');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -236,14 +238,17 @@ export default function ReportesManagement() {
       const { start, end } = getDateBounds();
 
       // Fetch closed orders in range — exclude comanda sub-orders (billing only)
-      const { data: orders, error: ordersError } = await supabase
+      let rmQ = supabase
         .from('orders')
         .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
+        .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
-        .eq('is_comanda', false)   // only billing orders, not comanda sub-orders
+        .eq('is_comanda', false)
         .gte('created_at', start)
         .lte('created_at', end)
         .limit(2000);
+      if (activeBranchId) rmQ = rmQ.eq('branch_id', activeBranchId);
+      const { data: orders, error: ordersError } = await rmQ;
 
       if (ordersError) throw ordersError;
 

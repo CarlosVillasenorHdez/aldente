@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield } from 'lucide-react';
+import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield , Layers } from 'lucide-react';
 import ConfigRestaurante  from './sections/ConfigRestaurante';
 import ConfigLayout       from './sections/ConfigLayout';
 import ConfigOperaciones  from './sections/ConfigOperaciones';
 import ConfigSistema      from './sections/ConfigSistema';
-import AuditLog          from './sections/AuditLog';
+import AuditLog              from './sections/AuditLog';
+import ConfigEstablecimiento  from './sections/ConfigEstablecimiento';
 import Icon from '@/components/ui/AppIcon';
 
 
 const SECTIONS = [
+  { id: 'establecimiento', label: 'Tipo de Negocio',   icon: Layers,     group: 'Configuración' },
   { id: 'restaurante',   label: 'Restaurante',        icon: Store,      group: 'Configuración' },
   { id: 'operacion',     label: 'Operación',           icon: Hash,       group: 'Configuración' },
   { id: 'layout',        label: 'Layout Mesas',        icon: LayoutGrid, group: 'Configuración' },
@@ -30,7 +32,8 @@ type SectionId = typeof SECTIONS[number]['id'];
 // ConfigLayout handles: layout
 // ConfigOperaciones handles: horarios + impresora
 // ConfigSistema handles: funcionalidades + lealtad + sistema + usuarios
-function resolveComponent(section: SectionId) {
+function resolveComponent(section: SectionId): string {
+  if (section === 'establecimiento') return 'establecimiento';
   if (section === 'restaurante' || section === 'operacion') return 'restaurante';
   if (section === 'layout') return 'layout';
   if (section === 'horarios' || section === 'impresora') return 'operaciones';
@@ -94,6 +97,7 @@ export default function ConfiguracionManagement() {
 
         {/* Content — mount once, let each sub-component manage its own scroll */}
         <div className="flex-1 overflow-y-auto p-6">
+          {activeComponent === 'establecimiento' && <ConfigEstablecimiento />}
           {activeComponent === 'restaurante' && <ConfigRestaurante activeSection={activeSection} />}
           {activeComponent === 'layout'      && <ConfigLayout />}
           {activeComponent === 'operaciones' && <ConfigOperaciones activeSection={activeSection} />}

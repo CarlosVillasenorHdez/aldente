@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -63,6 +64,7 @@ export default function SalesChart() {
   const [view, setView] = useState<'hoy' | 'semana'>('hoy');
   const [hourlyData, setHourlyData] = useState<HourlyPoint[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyPoint[]>([]);
+  const { activeBranchId } = useBranch();
   const [loading, setLoading] = useState(true);
   const [peakHour, setPeakHour] = useState<{ hora: string; ventas: number } | null>(null);
   const [totalAccum, setTotalAccum] = useState(0);
@@ -79,13 +81,14 @@ export default function SalesChart() {
       const todayEnd = new Date(nowMX);
       todayEnd.setHours(23, 59, 59, 999);
 
-      // Build query with explicit tenant filter (defense-in-depth alongside RLS)
-      let todayQuery = supabase
+      let ordersQ = supabase
         .from('orders')
         .select('total, created_at, closed_at')
         .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
-        .eq('status', 'cerrada')
+        .eq('status', 'cerrada');
+      if (activeBranchId) ordersQ = ordersQ.eq('branch_id', activeBranchId);
+      const { data: todayOrders, error: todayError } = await ordersQ
         .gte('created_at', todayStart.toISOString())
         .lte('created_at', todayEnd.toISOString());
 

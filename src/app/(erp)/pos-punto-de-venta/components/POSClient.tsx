@@ -98,10 +98,12 @@ export default function POSClient() {
   const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
 
   const { branch: activeBranch } = useBranch();
+  const [establishmentType, setEstablishmentType] = useState<'restaurante'|'cafeteria'|'bar'|'mixto'>('restaurante');
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loadingTables, setLoadingTables] = useState(true);
   const [loadingMenu, setLoadingMenu] = useState(true);
+  // View starts on tables for restaurants, but we'll switch to takeout-first for cafeterias
   const [view, setView] = useState<'tables' | 'menu' | 'order_mobile'>('tables');
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -272,7 +274,10 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'establishment_type').maybeSingle().then(({ data }) => {
+      if (data?.config_value) setEstablishmentType(data.config_value as any);
+    }),
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'business_hours').single()
       .then(({ data }) => {
         if (data?.config_value) {
           try {
@@ -1088,9 +1093,15 @@ export default function POSClient() {
               <button onClick={() => setView('tables')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'tables' ? '#f59e0b' : 'transparent', color: view === 'tables' ? '#d97706' : '#6b7280' }}>
                 Mapa de Mesas
               </button>
-              <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: '#1e3a5f', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
-                🥡 Para Llevar
-              </button>
+              {establishmentType === 'cafeteria' ? (
+                <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-2 ml-2 px-4 py-2 rounded-lg text-sm font-bold transition-all" style={{ backgroundColor: '#1e4080', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.45)', fontSize: 14 }}>
+                  🥡 Nuevo pedido para llevar
+                </button>
+              ) : (
+                <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: '#1e3a5f', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
+                  🥡 Para Llevar
+                </button>
+              )}
               <button onClick={() => setView('menu')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'menu' ? '#f59e0b' : 'transparent', color: view === 'menu' ? '#d97706' : '#6b7280' }}>
                 Menú
                 {selectedTable && (
@@ -1392,6 +1403,8 @@ export default function POSClient() {
           orderNumber={selectedTable?.currentOrderId ?? undefined}
           mesa={selectedTable?.name}
           mesero={selectedTable?.waiter || appUser?.fullName || 'Administrador'}
+          orderType={selectedTable?.number === 0 ? 'para_llevar' : 'mesa'}
+          customerName={selectedTable?.number === 0 ? selectedTable?.name : undefined}
           restaurantName={restaurantName || branchName}
           branchName={branchName}
           printerConfig={printerConfigData}

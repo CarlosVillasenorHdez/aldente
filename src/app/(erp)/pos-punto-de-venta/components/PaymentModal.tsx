@@ -25,6 +25,8 @@ interface PaymentModalProps {
   items?: OrderItemRef[];
   orderNumber?: string;
   mesa?: string;
+  orderType?: 'mesa' | 'para_llevar';
+  customerName?: string;
   mesero?: string;
   restaurantName?: string;
   branchName?: string;
@@ -64,6 +66,7 @@ function personSubtotal(person: Person, items: OrderItemRef[], ivaRate: number):
 
 export default function PaymentModal({
   total, onClose, onComplete, orderNumber, mesa, mesero, items, subtotal, iva, discount,
+  orderType, customerName,
   restaurantName, branchName, printerConfig,
 }: PaymentModalProps) {
 
@@ -152,6 +155,8 @@ export default function PaymentModal({
       headerLine2:  printerConfig?.headerLine2,
       orderNumber:  orderNumber || 'S/N',
       mesa:         mesa || '—',
+      orderType:    orderType,
+      customerName: customerName,
       mesero:       mesero || '—',
       items:        (items ?? []).map(i => ({ name: i.name, qty: i.quantity, price: i.price, emoji: i.emoji })),
       subtotal:     subtotal ?? total,

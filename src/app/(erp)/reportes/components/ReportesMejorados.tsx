@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -66,19 +67,24 @@ export default function ReportesMejorados() {
     return { start, end };
   }, []);
 
+  const { activeBranchId } = useBranch();
+
   const loadData = useCallback(async (p: Period) => {
     setLoading(true);
     try {
       const { start, end } = getDateRange(p);
 
       // Load closed orders
-      const { data: orders, error } = await supabase
+      let rpQ = supabase
         .from('orders')
         .select('id, mesero, total, subtotal, created_at, closed_at, cost_actual, margin_actual, waste_cost')
+        .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('created_at', start)
         .lte('created_at', end);
+      if (activeBranchId) rpQ = rpQ.eq('branch_id', activeBranchId);
+      const { data: orders, error } = await rpQ;
       if (error) throw error;
 
       const orderList = orders || [];
