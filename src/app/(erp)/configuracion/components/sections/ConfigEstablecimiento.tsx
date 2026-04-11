@@ -89,31 +89,33 @@ export default function ConfigEstablecimiento() {
   const supabase = createClient();
   const { appUser } = useAuth();
   const [selected, setSelected] = useState<EstablishmentType>('restaurante');
+  const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
+  const [savingOps, setSavingOps] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from('system_config')
-      .select('config_value')
-      .eq('tenant_id', getTenantId())
-      .eq('config_key', 'establishment_type')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.config_value) setSelected(data.config_value as EstablishmentType);
-        setLoaded(true);
+    (async () => {
+      const { data: rows } = await supabase
+        .from('system_config')
+        .select('config_key, config_value')
+        .eq('tenant_id', getTenantId())
+        .in('config_key', ['establishment_type', 'block_sale_no_stock']);
+      (rows || []).forEach((r: any) => {
+        if (r.config_key === 'establishment_type') setSelected(r.config_value as EstablishmentType);
+        if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
       });
+      setLoaded(true);
+    })();
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from('system_config')
-      .upsert({
-        tenant_id: getTenantId(),
-        config_key: 'establishment_type',
-        config_value: selected,
-      }, { onConflict: 'tenant_id,config_key' });
+    const rows = [
+      { tenant_id: getTenantId(), config_key: 'establishment_type', config_value: selected },
+      { tenant_id: getTenantId(), config_key: 'block_sale_no_stock', config_value: String(blockSaleNoStock) },
+    ];
+    const { error } = await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
 
     if (error) {
       toast.error('Error al guardar: ' + error.message);
@@ -191,6 +193,26 @@ export default function ConfigEstablecimiento() {
               <p style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, margin: 0 }}>{value}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Bloqueo de venta sin stock */}
+      <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>
+              🚫 Prohibir venta sin stock
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.5 }}>
+              Si está activo, los platillos sin ingredientes suficientes no se pueden agregar al pedido.
+              Requiere que los platillos tengan receta y el inventario esté actualizado.
+            </div>
+          </div>
+          <button
+            onClick={() => setBlockSaleNoStock(v => !v)}
+            style={{ width: 44, height: 24, borderRadius: 12, background: blockSaleNoStock ? '#c9963a' : 'rgba(255,255,255,.15)', border: 'none', position: 'relative', transition: 'all .3s', cursor: 'pointer', flexShrink: 0, marginLeft: 16 }}>
+            <span style={{ position: 'absolute', top: 3, left: blockSaleNoStock ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: 'white', transition: 'left .25s' }} />
+          </button>
         </div>
       </div>
 

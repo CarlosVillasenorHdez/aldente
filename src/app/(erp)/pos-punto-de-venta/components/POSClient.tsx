@@ -99,6 +99,7 @@ export default function POSClient() {
 
   const { branch: activeBranch } = useBranch();
   const [establishmentType, setEstablishmentType] = useState<'restaurante'|'cafeteria'|'bar'|'mixto'>('restaurante');
+  const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loadingTables, setLoadingTables] = useState(true);
@@ -115,6 +116,8 @@ export default function POSClient() {
 
   // Para llevar state
   const [showTakeoutModal, setShowTakeoutModal] = useState(false);
+  // Traslado entre mesas
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [takeoutCustomerName, setTakeoutCustomerName] = useState('');
   const [takeoutNameInput, setTakeoutNameInput] = useState('');
 
@@ -262,6 +265,34 @@ export default function POSClient() {
     setLoadingMenu(false);
   }, [supabase]);
 
+  // When blockSaleNoStock turns on, mark dishes unavailable if ingredients are low
+  // Uses functional setMenuItems(prev=>) so we don't need menuItems in deps
+  // (avoids infinite loop: setMenuItems → menuItems changes → effect re-runs)
+  const stockCheckDoneRef = useRef(false);
+  useEffect(() => {
+    if (!blockSaleNoStock) { stockCheckDoneRef.current = false; return; }
+    if (stockCheckDoneRef.current) return; // already checked this session
+    stockCheckDoneRef.current = true;
+    supabase.from('dish_recipes')
+      .select('dish_id, quantity, ingredients(id, stock, unit)')
+      .eq('tenant_id', getTenantId())
+      .then(({ data: recipes }) => {
+        if (!recipes) return;
+        const canMake: Record<string, boolean> = {};
+        recipes.forEach((r: any) => {
+          const ing = r.ingredients;
+          if (!ing) return;
+          if (Number(ing.stock) < Number(r.quantity)) {
+            canMake[r.dish_id] = false;
+          }
+        });
+        setMenuItems(prev => prev.map(m => ({
+          ...m,
+          available: canMake[m.id] === false ? false : m.available,
+        })));
+      });
+  }, [blockSaleNoStock, supabase]);
+
   useEffect(() => {
     fetchTables();
     fetchMenu();
@@ -274,8 +305,11 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'establishment_type').maybeSingle().then(({ data }) => {
-      if (data?.config_value) setEstablishmentType(data.config_value as any);
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').in('config_key', ['establishment_type','block_sale_no_stock']).then(({ data }) => {
+      (data || []).forEach((r: any) => {
+        if (r.config_key === 'establishment_type') setEstablishmentType(r.config_value as any);
+        if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
+      });
     }),
     supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
       .then(({ data }) => {
@@ -490,6 +524,49 @@ export default function POSClient() {
       }).in('id', tableIds);
     }, 400);
   }, [supabase]);
+
+  // ─── Table select ─────────────────────────────────────────────────────────
+
+  // ── Traslado de orden a otra mesa ──────────────────────────────────────────
+  const handleTransferTable = async (targetTable: Table) => {
+    if (!selectedTable?.currentOrderId || !targetTable.id) return;
+    if (targetTable.currentOrderId) {
+      toast.error(`${targetTable.name} ya tiene una orden activa`);
+      return;
+    }
+    try {
+      const orderId = selectedTable.currentOrderId;
+      const now = new Date().toISOString();
+      // Update order: new mesa
+      await supabase.from('orders').update({
+        mesa: targetTable.name,
+        mesa_num: targetTable.number,
+      }).eq('id', orderId).eq('tenant_id', getTenantId());
+      // Free old table
+      await supabase.from('restaurant_tables').update({
+        status: 'libre', current_order_id: null, waiter: null, opened_at: null,
+        item_count: 0, partial_total: 0, updated_at: now,
+      }).eq('id', selectedTable.id);
+      // Occupy new table
+      await supabase.from('restaurant_tables').update({
+        status: 'ocupada', current_order_id: orderId,
+        waiter: selectedTable.waiter ?? appUser?.fullName ?? '',
+        opened_at: selectedTable.openedAt ?? now,
+        updated_at: now,
+      }).eq('id', targetTable.id);
+      toast.success(`Orden trasladada a ${targetTable.name}`);
+      setShowTransferModal(false);
+      // Update local state
+      setSelectedTable({ ...targetTable, currentOrderId: orderId, waiter: selectedTable.waiter, openedAt: selectedTable.openedAt, status: 'ocupada', itemCount: selectedTable.itemCount, partialTotal: selectedTable.partialTotal });
+      setTables(prev => prev.map(t => {
+        if (t.id === selectedTable.id) return { ...t, status: 'libre' as any, currentOrderId: undefined, waiter: undefined };
+        if (t.id === targetTable.id) return { ...t, status: 'ocupada' as any, currentOrderId: orderId, waiter: selectedTable.waiter };
+        return t;
+      }));
+    } catch (err: any) {
+      toast.error('Error al trasladar: ' + err.message);
+    }
+  };
 
   // ── Para Llevar: create order without a physical table ────────────────────
   const handleCreateTakeout = async (customerName: string) => {
@@ -986,6 +1063,99 @@ export default function POSClient() {
     toast.success(`${selectedTable.name} liberada`);
   };
 
+  // ─── Partial payment — cobrar subset of items, keep table open ──────────────
+
+  const handlePartialCheckout = async (lineIds: string[]) => {
+    if (!selectedTable?.currentOrderId) return;
+    const selectedItems = orderItems.filter(i => lineIds.includes(i.lineId));
+    if (!selectedItems.length) return;
+
+    const partialSubtotal = selectedItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const ivaRate = 0.16;
+    const partialIva = partialSubtotal * ivaRate;
+    const partialTotal = partialSubtotal + partialIva;
+
+    // Create a separate "partial" order record for accounting
+    const partialId = `ORD-P-${Date.now()}`;
+    const now = new Date().toISOString();
+    const waiterName = appUser?.fullName ?? 'Administrador';
+
+    const { error } = await supabase.from('orders').insert({
+      id: partialId,
+      tenant_id: getTenantId(),
+      mesa: (selectedTable.name) + ' (parcial)',
+      mesa_num: selectedTable.number,
+      mesero: waiterName,
+      subtotal: partialSubtotal,
+      iva: partialIva,
+      discount: 0,
+      total: partialTotal,
+      status: 'cerrada',
+      pay_method: 'efectivo',
+      opened_at: selectedTable.openedAt ?? now,
+      closed_at: now,
+      branch: branchName,
+      is_comanda: false,
+      order_type: selectedTable.number === 0 ? 'para_llevar' : 'mesa',
+    });
+
+    if (error) { toast.error('Error en cobro parcial: ' + error.message); return; }
+
+    // Insert partial order items
+    await supabase.from('order_items').insert(
+      selectedItems.map(i => ({
+        order_id: partialId,
+        dish_id: i.menuItem.id,
+        name: i.menuItem.name,
+        qty: i.quantity,
+        price: i.menuItem.price,
+        emoji: i.menuItem.emoji,
+        tenant_id: getTenantId(),
+      }))
+    );
+
+    // Remove paid items from the active order
+    const remainingItems = orderItems.filter(i => !lineIds.includes(i.lineId));
+    setOrderItems(remainingItems);
+
+    // Update remaining total on the original order AND table item_count
+    const newSubtotal = remainingItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const newCount = remainingItems.reduce((s, i) => s + i.quantity, 0);
+    await Promise.all([
+      supabase.from('orders').update({
+        subtotal: newSubtotal,
+        iva: newSubtotal * ivaRate,
+        total: newSubtotal * (1 + ivaRate),
+        updated_at: now,
+      }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId()),
+      supabase.from('restaurant_tables').update({
+        item_count: newCount,
+        partial_total: newSubtotal * (1 + ivaRate),
+        updated_at: now,
+      }).eq('id', selectedTable.id),
+    ]);
+
+    // Delete the paid items from order_items
+    const lineIdsInDb = selectedItems.map(i => i.lineId);
+    await supabase.from('order_items').delete()
+      .in('id', lineIdsInDb)
+      .eq('order_id', selectedTable.currentOrderId);
+
+    toast.success(`Cobro parcial: $${partialTotal.toFixed(2)} — ${selectedItems.length} platillo${selectedItems.length > 1 ? 's' : ''}`);
+
+    // If no items left, close the table fully
+    if (remainingItems.length === 0) {
+      await supabase.from('restaurant_tables').update({
+        status: 'libre', current_order_id: null, waiter: null,
+        item_count: 0, partial_total: 0, updated_at: now,
+      }).in('id', [selectedTable.id]);
+      await supabase.from('orders').update({ status: 'cerrada', closed_at: now })
+        .eq('id', selectedTable.currentOrderId);
+      setSelectedTable(null); setOrderItems([]); setView('tables');
+      toast.success(`${selectedTable.name} liberada — cobro completo`);
+    }
+  };
+
   // ─── Payment ──────────────────────────────────────────────────────────────
 
   const handleSendKitchenNote = async (note: string) => {
@@ -1116,6 +1286,9 @@ export default function POSClient() {
                       <X size={12} />Separar mesas
                     </button>
                   )}
+                  <button onClick={() => setShowTransferModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }} title="Trasladar orden a otra mesa">
+                    ↔ Cambiar mesa
+                  </button>
                   <button onClick={handleCancelTable} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Cancelar y liberar mesa sin cobrar">
                     <X size={12} />Cancelar mesa
                   </button>
@@ -1211,6 +1384,7 @@ export default function POSClient() {
               setShowPaymentModal(true);
             }}
             onSendToKitchen={handleSendToKitchen}
+            onPartialCheckout={handlePartialCheckout}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
             kitchenSent={kitchenSent}
@@ -1250,6 +1424,37 @@ export default function POSClient() {
 
       {/* Spacer so content doesn't hide behind mobile tab bar */}
       <div className="h-14 md:hidden flex-shrink-0" />
+
+      {/* ── Traslado entre mesas Modal ── */}
+      {showTransferModal && selectedTable && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'480px', width:'100%' }}>
+            <div style={{ marginBottom:'20px' }}>
+              <h3 style={{ color:'#f1f5f9', fontSize:'18px', fontWeight:700, marginBottom:'6px' }}>↔ Cambiar mesa</h3>
+              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px' }}>
+                Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre
+              </p>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(80px, 1fr))', gap:8, maxHeight:'300px', overflowY:'auto', marginBottom:'16px' }}>
+              {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).map(t => (
+                <button key={t.id} onClick={() => handleTransferTable(t)}
+                  style={{ padding:'12px 8px', borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'#4ade80', fontSize:13, fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                  {t.name}
+                </button>
+              ))}
+              {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).length === 0 && (
+                <p style={{ color:'rgba(255,255,255,0.3)', fontSize:13, gridColumn:'1/-1', textAlign:'center', padding:'20px 0' }}>
+                  Sin mesas libres disponibles
+                </p>
+              )}
+            </div>
+            <button onClick={() => setShowTransferModal(false)}
+              style={{ width:'100%', padding:'11px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', fontSize:14, fontWeight:600, cursor:'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Para Llevar Modal ── */}
       {showTakeoutModal && (
