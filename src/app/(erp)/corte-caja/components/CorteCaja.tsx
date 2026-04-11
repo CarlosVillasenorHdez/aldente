@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -167,6 +170,7 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
       supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost')
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
@@ -174,6 +178,7 @@ export default function CorteCaja() {
         .order('closed_at', { ascending: false }),
       supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at, is_comanda, parent_order_id')
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
@@ -252,7 +257,7 @@ export default function CorteCaja() {
     const { error } = await supabase.from('cortes_caja').insert({
       fondo_inicial: fondo,
       apertura_por: aperturaPor.trim(),
-      tenant_id: DEFAULT_TENANT,
+      tenant_id: getTenantId(),
       status: 'abierto',
     });
     if (error) { toast.error('Error al abrir caja: ' + error.message); setAbriendo(false); return; }

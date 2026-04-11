@@ -63,7 +63,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    supabase.from('system_config').select('config_key, config_value').then(({ data }) => {
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').then(({ data }) => {
       if (!data) return;
       const map: Record<string, string> = {};
       data.forEach((r: any) => { map[r.config_key] = r.config_value; });

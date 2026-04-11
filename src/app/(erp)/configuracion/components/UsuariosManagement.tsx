@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Pencil, Shield, Eye, EyeOff, UserCheck, RefreshCw, AlertCircle, Lock, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react';
@@ -149,7 +152,7 @@ export default function UsuariosManagement() {
   const fetchEmployees = useCallback(async () => {
     setEmpLoading(true);
     try {
-      const { data } = await supabase.from('employees').select('id, name, role').order('name');
+      const { data } = await supabase.from('employees').select('id, name, role').eq('tenant_id', getTenantId()).order('name');
       if (data) setEmployees(data as Employee[]);
     } catch {
       // ignore
@@ -299,7 +302,7 @@ export default function UsuariosManagement() {
     try {
       const rows: { role: string; page_key: string; can_access: boolean }[] = [];
       Object.entries(permissions).forEach(([role, pages]) => {
-        Object.entries(pages).forEach(([page_key, can_access]) => {
+        Object.entries(pages as RolePermissions).forEach(([page_key, can_access]) => {
           rows.push({ role, page_key, can_access: can_access as boolean });
         });
       });

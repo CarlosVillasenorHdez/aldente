@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -160,10 +163,10 @@ export default function DeliveryManagement() {
 
       // Evitar duplicados si ya se envió este pedido a cocina
       const { data: existing } = await supabase
-        .from('orders').select('id').eq('id', orderId).maybeSingle();
+        .from('orders').select('id').eq('tenant_id', getTenantId()).eq('id', orderId).maybeSingle();
 
       if (!existing) {
-        const { error: insertErr } = await supabase.from('orders').insert({
+        const { error: insertErr } = await supabase.from('orders').insert({ tenant_id: getTenantId(),
           id: orderId,
           mesa: platformLabel,
           mesa_num: 0,

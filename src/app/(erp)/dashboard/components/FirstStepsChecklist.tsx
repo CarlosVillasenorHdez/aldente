@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 /**
  * FirstStepsChecklist — visible during the first 14 days of trial.
@@ -43,16 +46,16 @@ export default function FirstStepsChecklist() {
 
     Promise.all([
       // 1. First order sent
-      supabase.from('orders').select('id', { count: 'exact', head: true })
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', getTenantId())
         .eq('tenant_id', tenantId).limit(1),
       // 2. First cash register close
-      supabase.from('orders').select('id', { count: 'exact', head: true })
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', getTenantId())
         .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false).limit(1),
       // 3. Team member (non-admin) active
       supabase.from('app_users').select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId).neq('app_role', 'admin').eq('is_active', true).limit(1),
       // 4. 5 distinct days with orders (North Star)
-      supabase.from('orders').select('created_at')
+      supabase.from('orders').select('created_at').eq('tenant_id', getTenantId())
         .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false),
       // Trial info
       supabase.from('tenants').select('trial_ends_at, plan_valid_until, plan')

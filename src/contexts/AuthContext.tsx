@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '../lib/supabase/client';
+import { setCurrentTenantId } from '../lib/tenantStore';
 
 // AppRole is a string — supports both the 7 built-in roles and custom profiles
 export type AppRole = string;
@@ -131,14 +132,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // ── Load session on mount ────────────────────────────────────────────────
   useEffect(() => {
     const stored = loadSession();
+    if (stored?.tenantId) {
+      setCurrentTenantId(stored.tenantId); // restore into module store immediately
+    }
     setAppUser(stored);
     setLoading(false);
   }, []);
 
-  // ── Load brand config ────────────────────────────────────────────────────
+  // ── Load brand config — depends on appUser so tenant is correct ─────────
   useEffect(() => {
-    const tenantId = appUser?.tenantId ?? DEFAULT_TENANT;
-    const cacheKey = BRAND_CACHE_KEY + '_' + tenantId;
+    const realTenantId = appUser?.tenantId;
+    if (!realTenantId) return; // wait until user is logged in
+
+    const cacheKey = BRAND_CACHE_KEY + '_' + realTenantId;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -148,9 +154,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         sessionStorage.removeItem(cacheKey);
       }
     }
+
+    // Filter by tenant_id explicitly — never rely on RLS alone for brand config
     supabase
       .from('system_config')
       .select('config_key, config_value')
+      .eq('tenant_id', realTenantId)
       .in('config_key', [
         'brand_primary_color',
         'brand_accent_color',
@@ -159,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         'brand_theme',
       ])
       .then(({ data }) => {
-        if (!data) return;
+        if (!data || data.length === 0) return;
         const map: Record<string, string> = {};
         data.forEach((r: { config_key: string; config_value: string }) => {
           map[r.config_key] = r.config_value;
@@ -168,14 +177,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           primaryColor: map.brand_primary_color || '#1B3A6B',
           accentColor: map.brand_accent_color || '#f59e0b',
           logoUrl: map.brand_logo_url || '',
-          restaurantName: map.restaurant_name || 'Mi Restaurante',
+          restaurantName: map.restaurant_name || '',
           theme: (map.brand_theme as 'dark' | 'light') || 'dark',
         };
         setBrandConfig(config);
-        sessionStorage.setItem(BRAND_CACHE_KEY + '_' + tenantId, JSON.stringify(config));
+        sessionStorage.setItem(cacheKey, JSON.stringify(config));
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Re-run when tenant changes (e.g. switching restaurants)
+  }, [appUser?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sign in: verify PIN against app_users ────────────────────────────────
   const signIn = useCallback(
@@ -245,12 +254,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         appRole: data.app_role as AppRole,
         employeeId: data.employee_id,
         isActive: data.is_active,
-        tenantId: data.tenant_id ?? DEFAULT_TENANT,
+        tenantId: data.tenant_id,
         branchId: data.branch_id ?? null,
         branchName: null,
       };
 
       saveSession(user);
+      setCurrentTenantId(user.tenantId);
       setAppUser(user);
       return {};
     },
@@ -261,9 +271,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut().catch(() => { /* ignore */ });
     clearSession();
-        setAppUser(null);
-    // Clear brand cache for all tenants
-    Object.keys(sessionStorage).filter(k => k.startsWith(BRAND_CACHE_KEY)).forEach(k => sessionStorage.removeItem(k));
+        setCurrentTenantId(null);
+    setAppUser(null);
+    // Clear ALL caches on logout — next login gets fresh data for their tenant
+    Object.keys(sessionStorage).forEach(k => sessionStorage.removeItem(k));
     setBrandConfig({ primaryColor: '#1B3A6B', accentColor: '#f59e0b', logoUrl: '', restaurantName: '', theme: 'dark' });
   }, [supabase]);
 
@@ -283,7 +294,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           fullName,
           role,
           employeeId: employeeId || null,
-          tenantId: DEFAULT_TENANT,
+          tenantId: appUser?.tenantId,
         },
       });
       if (error) throw new Error(error.message || 'Error al crear usuario');
@@ -351,11 +362,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const reloadBrandConfig = useCallback(async () => {
     const tenantId = appUser?.tenantId;
     if (!tenantId) return;
-    // Clear cache
+    // Clear ALL brand caches to avoid stale data from other tenants
     Object.keys(sessionStorage)
       .filter(k => k.startsWith(BRAND_CACHE_KEY))
       .forEach(k => sessionStorage.removeItem(k));
-    // Reload from DB
+    // Reload from DB — always filter by tenant_id explicitly
     const { data } = await supabase
       .from('system_config')
       .select('config_key, config_value')
@@ -381,7 +392,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         appUser,
         loading,
         brandConfig,
-        tenantId: appUser?.tenantId ?? DEFAULT_TENANT,
+        tenantId: appUser?.tenantId ?? null,
         branchId: appUser?.branchId ?? null,
         reloadBrandConfig,
         signIn,

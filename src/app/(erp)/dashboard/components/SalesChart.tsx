@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -79,6 +82,7 @@ export default function SalesChart() {
       // Build query with explicit tenant filter (defense-in-depth alongside RLS)
       let todayQuery = supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('total, created_at, closed_at')
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
@@ -137,6 +141,7 @@ export default function SalesChart() {
 
       let weekQuery = supabase
         .from('orders')
+        .eq('tenant_id', getTenantId())
         .select('total, created_at')
         .eq('is_comanda', false)
         .eq('status', 'cerrada')

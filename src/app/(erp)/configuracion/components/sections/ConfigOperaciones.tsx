@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -155,7 +158,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     if (printerDraft.id) {
       await supabase.from('printer_config').update(payload).eq('id', printerDraft.id);
     } else {
-      const { data } = await supabase.from('printer_config').insert(payload).select().single();
+      const { data } = await supabase.from('printer_config').insert({ ...payload, tenant_id: getTenantId() }).select().single();
       if (data) setPrinterDraft((p) => ({ ...p, id: data.id }));
     }
     setPrinterConfig({ ...printerDraft });
@@ -225,7 +228,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
   useEffect(() => {
     loadPrinterConfig();
-    supabase.from('system_config').select('config_key,config_value').eq('config_key', 'business_hours').single()
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key,config_value').eq('config_key', 'business_hours').single()
       .then(({ data }) => { if (data?.config_value) { try { setHours(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
   }, [loadPrinterConfig, supabase]);
 

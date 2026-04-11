@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +47,7 @@ export default function SucursalesManagement() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: b }, { data: u }, { data: sysConf }] = await Promise.all([
-      supabase.from('branches').select('*').order('name'),
+      supabase.from('branches').select('*').eq('tenant_id', getTenantId()).order('name'),
       supabase.from('app_users').select('id,full_name,app_role,branch_id,username').eq('tenant_id', appUser?.tenantId).neq('app_role','superadmin').order('full_name'),
       supabase.from('system_config').select('config_key,config_value').eq('tenant_id', appUser?.tenantId).in('config_key',['restaurant_name','restaurant_address','restaurant_phone']),
     ]);
@@ -68,7 +71,7 @@ export default function SucursalesManagement() {
         await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, updated_at:new Date().toISOString() }).eq('id', editingId);
         toast.success('Sucursal actualizada');
       } else {
-        await supabase.from('branches').insert({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, tenant_id:appUser?.tenantId });
+        await supabase.from('branches').insert({ tenant_id: getTenantId(), name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive });
         toast.success('Sucursal creada');
       }
       setShowForm(false); setEditingId(null); setForm(empty);

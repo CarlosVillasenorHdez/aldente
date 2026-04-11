@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
@@ -153,7 +156,7 @@ export default function PersonalManagement() {
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('employees').select('*').order('name');
+    const { data, error } = await supabase.from('employees').select('*').eq('tenant_id', getTenantId()).order('name');
     if (error) {
       toast.error('Error al cargar personal. Verifica tu conexión.');
       setLoading(false);
@@ -252,7 +255,7 @@ export default function PersonalManagement() {
       }).eq('id', editingId);
       if (error) { toast.error('Error al actualizar empleado.'); return; }
     } else {
-      const { error } = await supabase.from('employees').insert({
+      const { error } = await supabase.from('employees').insert({ tenant_id: getTenantId(),
         name: form.name, role: form.role, phone: form.phone,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,

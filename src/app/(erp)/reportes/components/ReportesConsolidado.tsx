@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -395,12 +398,12 @@ export default function ReportesConsolidado() {
       { data: allRecipes },
       { data: allItems },
     ] = await Promise.all([
-      supabase.from('orders').select('id, total, branch_id').eq('status', 'cerrada').gte('created_at', start).lte('created_at', end).limit(5000),
-      supabase.from('employees').select('salary, salary_frequency, status, branch_id').eq('status', 'activo'),
-      supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria, branch_id, activo').eq('activo', true),
-      supabase.from('depreciaciones').select('valor_original, valor_residual, vida_util_anios, activo, branch_id').eq('activo', true),
-      supabase.from('dish_recipes').select('dish_id, quantity, ingredients(cost), dishes(price)'),
-      supabase.from('order_items').select('dish_id, qty, order_id').limit(8000),
+      supabase.from('orders').select('id, total, branch_id').eq('tenant_id', getTenantId()).eq('status', 'cerrada').gte('created_at', start).lte('created_at', end).limit(5000),
+      supabase.from('employees').select('salary, salary_frequency, status, branch_id').eq('tenant_id', getTenantId()).eq('status', 'activo'),
+      supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria, branch_id, activo').eq('tenant_id', getTenantId()).eq('activo', true),
+      supabase.from('depreciaciones').select('valor_original, valor_residual, vida_util_anios, activo, branch_id').eq('tenant_id', getTenantId()).eq('activo', true),
+      supabase.from('dish_recipes').select('dish_id, quantity, ingredients(cost), dishes(price)').eq('tenant_id', getTenantId()),
+      supabase.from('order_items').select('dish_id, qty, order_id').eq('tenant_id', getTenantId()).limit(8000),
     ]);
 
     const orders = allOrders || [];

@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingCart, TrendingDown, CheckCircle, AlertTriangle, Info } from 'lucide-react';
@@ -39,7 +42,7 @@ export default function WasteAnalysisSummary() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: ingredients } = await supabase.from('ingredients').select('*').order('name');
+      const { data: ingredients } = await supabase.from('ingredients').select('*').eq('tenant_id', getTenantId()).order('name');
       const since = new Date();
       since.setDate(since.getDate() - 90);
       const { data: movements } = await supabase

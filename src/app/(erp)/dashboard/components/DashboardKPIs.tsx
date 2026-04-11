@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -156,14 +159,14 @@ export default function DashboardKPIs() {
           { data: ingAlerta },
           { data: gastosAlert },
         ] = await Promise.all([
-          withTenant(supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
-          withTenant(supabase.from('orders').select('waste_cost').eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC)),
-          withTenant(supabase.from('orders').select('total, cost_actual, margin_actual').eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC)),
-          withTenant(supabase.from('orders').select('id').in('status', ['abierta', 'preparacion', 'lista'])),
-          withTenant(supabase.from('restaurant_tables').select('status')),
-          withTenant(supabase.from('order_items').select('name, qty').gte('created_at', todayUTC)),
-          withTenant(supabase.from('ingredients').select('name, stock, min_stock')),
-          withTenant(supabase.from('gastos_recurrentes')
+          supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
+          supabase.from('orders').select('waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
+          supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
+          supabase.from('orders').select('id').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']),
+          supabase.from('restaurant_tables').select('status').eq('tenant_id', getTenantId()),
+          supabase.from('order_items').select('name, qty').eq('tenant_id', getTenantId()).gte('created_at', todayUTC),
+          supabase.from('ingredients').select('name, stock, min_stock').eq('tenant_id', getTenantId()),
+          supabase.from('gastos_recurrentes')
             .select('nombre, monto, proximo_pago, frecuencia')
             .eq('activo', true)
             .eq('estado', 'pendiente')),

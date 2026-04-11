@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -114,8 +117,8 @@ export default function ReportesMejorados() {
         trendMap[key].ordenes += 1;
       });
       // Breakeven: sum fixed costs for the period
-      const { data: empData } = await supabase.from('employees').select('salary, salary_frequency').eq('status', 'activo');
-      const { data: gastosData } = await supabase.from('gastos_recurrentes').select('monto, frecuencia').eq('activo', true);
+      const { data: empData } = await supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', getTenantId()).eq('status', 'activo');
+      const { data: gastosData } = await supabase.from('gastos_recurrentes').select('monto, frecuencia').eq('tenant_id', getTenantId()).eq('activo', true);
       const monthlyPayroll = (empData || []).reduce((s: number, e: any) => {
         const sal = Number(e.salary ?? 0);
         const freq = e.salary_frequency ?? 'mensual';

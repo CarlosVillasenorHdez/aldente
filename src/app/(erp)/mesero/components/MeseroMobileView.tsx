@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -86,9 +89,9 @@ export default function MeseroMobileView() {
     try {
       const [{ data: tablesData }, { data: dishesData }] = await Promise.all([
         activeBranch
-        ? supabase.from('restaurant_tables').select('*').gt('number', 0).eq('branch_id', activeBranch).order('number')
-        : supabase.from('restaurant_tables').select('*').gt('number', 0).order('number'),
-        supabase.from('dishes').select('*').eq('available', true).order('category').order('name'),
+        ? supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).eq('branch_id', activeBranch).order('number')
+        : supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).order('number'),
+        supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).eq('available', true).order('category').order('name'),
       ]);
       setTables((tablesData || []).map((t: DbTable) => ({
         id: t.id, number: t.number, name: t.name, capacity: t.capacity,
@@ -233,7 +236,7 @@ export default function MeseroMobileView() {
 
       // Restore kitchen state
       const { data: orderMeta } = await supabase
-        .from('orders').select('kitchen_status')
+        .from('orders').select('kitchen_status').eq('tenant_id', getTenantId())
         .eq('id', table.currentOrderId).single();
 
       const alreadySent = orderMeta?.kitchen_status != null &&
@@ -485,13 +488,13 @@ export default function MeseroMobileView() {
 
       // Re-read DB items to sync lineIds with real UUIDs (same pattern as POS)
       const { data: freshItems } = await supabase
-        .from('order_items').select('*').eq('order_id', orderId);
+        .from('order_items').select('*').eq('tenant_id', getTenantId()).eq('order_id', orderId);
 
       if (freshItems && freshItems.length > 0) {
         const dishIds = [...new Set(freshItems.map((i: any) => i.dish_id).filter(Boolean))];
         let dishMap: Record<string, any> = {};
         if (dishIds.length > 0) {
-          const { data: dishes } = await supabase.from('dishes').select('*').in('id', dishIds);
+          const { data: dishes } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).in('id', dishIds);
           (dishes || []).forEach((d: any) => { dishMap[d.id] = d; });
         }
         const synced: OrderFlowItem[] = freshItems.map((i: any) => ({

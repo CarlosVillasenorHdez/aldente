@@ -98,6 +98,7 @@ export default function OnboardingFlow() {
             category: d.category,
             emoji: d.emoji,
             available: true,
+            tenant_id: appUser?.tenantId,
           }))
         );
       }
@@ -108,9 +109,10 @@ export default function OnboardingFlow() {
         name: `Mesa ${i + 1}`,
         capacity: tableCapacity,
         status: 'libre',
+        tenant_id: appUser?.tenantId,
       }));
-      // Delete existing tables first
-      await supabase.from('restaurant_tables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete existing tables for this tenant first
+      await supabase.from('restaurant_tables').delete().eq('tenant_id', appUser?.tenantId);
       if (tableInserts.length > 0) {
         await supabase.from('restaurant_tables').insert(tableInserts);
       }
@@ -124,6 +126,7 @@ export default function OnboardingFlow() {
             role: e.role,
             phone: e.phone,
             status: 'activo',
+            tenant_id: appUser?.tenantId,
           }))
         );
       }

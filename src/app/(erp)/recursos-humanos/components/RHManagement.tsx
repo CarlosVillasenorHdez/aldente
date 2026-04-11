@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Umbrella, Clock, FileText, Plus, X, Check, XCircle, Search, ChevronDown, Users, TrendingUp, AlertCircle,  } from 'lucide-react';
@@ -188,11 +191,11 @@ export default function RHManagement() {
     setLoading(true);
     try {
       const [empRes, vacRes, permRes, teRes] = await Promise.all([
-        supabase.from('employees').select('id, name, role, salary, salary_frequency').eq('status', 'activo').order('name'),
-        supabase.from('rh_vacaciones').select('*, employees(name, role)').order('created_at', { ascending: false }),
+        supabase.from('employees').select('id, name, role, salary, salary_frequency').eq('tenant_id', getTenantId()).eq('status', 'activo').order('name'),
+        supabase.from('rh_vacaciones').select('*, employees(name, role)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
         supabase.from('rh_incapacidades').select('*, employees(name, role)').order('created_at', { ascending: false }),
-        supabase.from('rh_permisos').select('*, employees(name, role)').order('created_at', { ascending: false }),
-        supabase.from('rh_tiempos_extras').select('*, employees(name, role, salary, salary_frequency)').order('created_at', { ascending: false }),
+        supabase.from('rh_permisos').select('*, employees(name, role)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
+        supabase.from('rh_tiempos_extras').select('*, employees(name, role, salary, salary_frequency)').eq('tenant_id', getTenantId()).order('created_at', { ascending: false }),
       ]);
       if (empRes.data) setEmployees(empRes.data as Employee[]);
       if (vacRes.data) setVacaciones(vacRes.data as Vacacion[]);
@@ -250,7 +253,7 @@ export default function RHManagement() {
     const start = new Date(vacForm.fecha_inicio);
     const end = new Date(vacForm.fecha_fin);
     const dias = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
-    const { error: e } = await supabase.from('rh_vacaciones').insert({
+    const { error: e } = await supabase.from('rh_vacaciones').insert({ tenant_id: getTenantId(),
       employee_id: vacForm.employee_id,
       fecha_inicio: vacForm.fecha_inicio,
       fecha_fin: vacForm.fecha_fin,
@@ -268,7 +271,7 @@ export default function RHManagement() {
   async function savePermiso() {
     if (!permForm.employee_id || !permForm.fecha) return;
     setSaving(true);
-    const { error: e } = await supabase.from('rh_permisos').insert({
+    const { error: e } = await supabase.from('rh_permisos').insert({ tenant_id: getTenantId(),
       employee_id: permForm.employee_id,
       tipo: permForm.tipo,
       fecha: permForm.fecha,
@@ -287,7 +290,7 @@ export default function RHManagement() {
   async function saveTiempoExtra() {
     if (!teForm.employee_id || !teForm.fecha) return;
     setSaving(true);
-    const { error: e } = await supabase.from('rh_tiempos_extras').insert({
+    const { error: e } = await supabase.from('rh_tiempos_extras').insert({ tenant_id: getTenantId(),
       employee_id: teForm.employee_id,
       fecha: teForm.fecha,
       horas: parseFloat(teForm.horas) || 1,

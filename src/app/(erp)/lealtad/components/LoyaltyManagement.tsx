@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -72,7 +75,7 @@ export default function LoyaltyManagement() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('loyalty_customers').select('*').order('points', { ascending: false });
+      const { data, error } = await supabase.from('loyalty_customers').select('*').eq('tenant_id', getTenantId()).order('points', { ascending: false });
       if (error) throw error;
       setCustomers((data || []).map((c: any) => ({
         id: c.id, name: c.name, phone: c.phone, email: c.email,
@@ -104,7 +107,7 @@ export default function LoyaltyManagement() {
     if (!customerForm.name.trim()) { toast.error('El nombre es obligatorio'); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from('loyalty_customers').insert({
+      const { error } = await supabase.from('loyalty_customers').insert({ tenant_id: getTenantId(),
         name: customerForm.name.trim(), phone: customerForm.phone, email: customerForm.email,
       });
       if (error) throw error;
@@ -142,7 +145,7 @@ export default function LoyaltyManagement() {
         ? selectedCustomer.points + points
         : selectedCustomer.points - points;
 
-      await supabase.from('loyalty_transactions').insert({
+      await supabase.from('loyalty_transactions').insert({ tenant_id: getTenantId(),
         customer_id: selectedCustomer.id,
         type: showTransaction,
         points,

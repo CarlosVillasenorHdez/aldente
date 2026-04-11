@@ -59,6 +59,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     const { data } = await supabase
       .from('branches')
       .select('id, name, address')
+      .eq('tenant_id', appUser.tenantId)
       .eq('is_active', true)
       .order('name');
 

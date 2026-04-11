@@ -1,4 +1,8 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
+
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -559,7 +563,7 @@ export default function GastosManagement() {
     const gasto = showPagoModal;
 
     // Insert into gastos_pagos
-    const { error } = await supabase.from('gastos_pagos').insert({
+    const { error } = await supabase.from('gastos_pagos').insert({ tenant_id: getTenantId(),
       gasto_id: gasto.id,
       fecha_pago: pagoForm.fecha_pago,
       monto_pagado: pagoForm.monto_pagado || gasto.monto,

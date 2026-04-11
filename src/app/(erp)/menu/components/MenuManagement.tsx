@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -6,6 +9,7 @@ import {
   ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus, Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -184,7 +188,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   useEffect(() => {
     fetchRecipe();
     fetchCostBreakdown();
-    supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
+    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
     });
   }, [fetchRecipe]);
@@ -262,7 +266,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     if (already) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('dish_recipes').insert({
+      const { error } = await supabase.from('dish_recipes').insert({ tenant_id: getTenantId(),
         dish_id: dish.id,
         ingredient_id: selectedIngId,
         quantity: addQty,
@@ -734,7 +738,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const [targetMargin, setTargetMargin] = useState(65); // % default target
 
   useEffect(() => {
-    supabase.from('ingredients').select('id, name, unit, category, cost').order('name').then(({ data }) => {
+    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       setLoading(false);
     });
@@ -754,7 +758,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const handleAdd = async () => {
     if (!selectedIngId || addQty <= 0) return;
     setSaving(true);
-    const { error } = await supabase.from('dish_recipes').insert({
+    const { error } = await supabase.from('dish_recipes').insert({ tenant_id: getTenantId(),
       dish_id: dish.id, ingredient_id: selectedIngId, quantity: addQty, unit: selectedIng?.unit ?? '', notes: '',
     });
     if (!error) {
@@ -977,10 +981,11 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
     try {
       const { data, error } = await supabase.from('dishes').insert({
         name: form.name, description: form.description,
-        price: form.price || 0, // temporary price, will be set in step 2
+        price: form.price || 0,
         category: form.category, available: form.available, image: form.image,
         image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
         preparation_time_min: (form as any).preparationTimeMin ?? 15,
+        tenant_id: getTenantId(),
       }).select().single();
       if (error) throw error;
       setSavedDish(data as Dish);
@@ -1205,11 +1210,14 @@ export default function MenuManagement() {
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
 
+  const { appUser } = useAuth();
   const supabase = createClient();
 
   const fetchDishes = useCallback(async () => {
+    const tenantId = getTenantId();
+    if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
     setLoading(true);
-    const { data, error } = await supabase.from('dishes').select('*').order('category').order('name');
+    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', tenantId).order('category').order('name');
     if (error) {
       alert('Error al cargar el menú: ' + error.message);
       setLoading(false);
@@ -1223,7 +1231,7 @@ export default function MenuManagement() {
       }));
       setDishes(mapped);
       // Fetch recipe counts
-      const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id');
+      const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id').eq('tenant_id', getTenantId());
       if (recipeData) {
         const counts: Record<string, number> = {};
         recipeData.forEach((r: any) => { counts[r.dish_id] = (counts[r.dish_id] || 0) + 1; });
@@ -1233,7 +1241,10 @@ export default function MenuManagement() {
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => { fetchDishes(); }, [fetchDishes]);
+  // Re-fetch when tenant becomes available (page load, or switching restaurant)
+  useEffect(() => { 
+    if (getTenantId()) fetchDishes(); 
+  }, [fetchDishes, appUser?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = dishes.filter((d) => {
     const matchCat = activeCategory === 'Todas' || d.category === activeCategory;

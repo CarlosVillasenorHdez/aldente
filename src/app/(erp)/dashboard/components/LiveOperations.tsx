@@ -1,4 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -30,6 +33,7 @@ export default function LiveOperations() {
     // Build query with explicit tenant filter (defense-in-depth alongside RLS)
     let query = supabase
       .from('orders')
+      .eq('tenant_id', getTenantId())
       .select('id, mesa, mesero, kitchen_status, created_at, parent_order_id')
       .eq('is_comanda', true)
       .in('kitchen_status', ['pendiente', 'preparacion', 'lista'])
