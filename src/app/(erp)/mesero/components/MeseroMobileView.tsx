@@ -63,6 +63,8 @@ export default function MeseroMobileView() {
   const [kitchenNote, setKitchenNote] = useState('');
   const [sendingNote, setSendingNote] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showTakeoutModal, setShowTakeoutModal] = useState(false);
+  const [takeoutNameInput, setTakeoutNameInput] = useState('');
 
   useEffect(() => {
     supabase
@@ -606,7 +608,63 @@ export default function MeseroMobileView() {
             </div>
           </div>
 
+          {/* Para Llevar quick button */}
+          <button
+            onClick={() => setShowTakeoutModal(true)}
+            className="w-full mb-3 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95"
+            style={{ backgroundColor: '#eff6ff', border: '2px solid #bfdbfe', color: '#1d4ed8' }}
+          >
+            <span style={{ fontSize: 20 }}>🥡</span>
+            Nueva orden para llevar
+          </button>
+
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {/* Takeout Modal */}
+            {showTakeoutModal && (
+              <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }} onClick={() => setShowTakeoutModal(false)}>
+                <div style={{ background:'#fff', borderRadius:20, padding:'24px', maxWidth:360, width:'100%' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ textAlign:'center', marginBottom:16 }}>
+                    <div style={{ fontSize:40, marginBottom:8 }}>🥡</div>
+                    <h3 style={{ fontSize:18, fontWeight:700, margin:'0 0 4px', color:'#111' }}>Para llevar</h3>
+                    <p style={{ fontSize:13, color:'#6b7280', margin:0 }}>Nombre del cliente (opcional)</p>
+                  </div>
+                  <input
+                    autoFocus
+                    value={takeoutNameInput}
+                    onChange={e => setTakeoutNameInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const displayName = takeoutNameInput.trim() || 'Para llevar';
+                        const virtualTable: Table = { id: `takeout-${Date.now()}`, number: 0, name: displayName, capacity: 0, status: 'libre' };
+                        setShowTakeoutModal(false);
+                        setTakeoutNameInput('');
+                        selectTable(virtualTable);
+                      }
+                      if (e.key === 'Escape') setShowTakeoutModal(false);
+                    }}
+                    placeholder="Nombre del cliente..."
+                    style={{ width:'100%', border:'1.5px solid #d1d5db', borderRadius:10, padding:'10px 14px', fontSize:15, outline:'none', marginBottom:14, boxSizing:'border-box' }}
+                  />
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => setShowTakeoutModal(false)} style={{ flex:1, padding:'10px', borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => {
+                        const displayName = takeoutNameInput.trim() || 'Para llevar';
+                        const virtualTable: Table = { id: `takeout-${Date.now()}`, number: 0, name: displayName, capacity: 0, status: 'libre' };
+                        setShowTakeoutModal(false);
+                        setTakeoutNameInput('');
+                        selectTable(virtualTable);
+                      }}
+                      style={{ flex:2, padding:'10px', borderRadius:10, background:'#1d4ed8', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+                      🥡 Crear pedido
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {tables.map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
               const isOtherTable = table.status === 'ocupada' && table.waiter && table.waiter !== myName;
