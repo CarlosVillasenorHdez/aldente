@@ -27,6 +27,26 @@ interface Table {
 
 const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas', 'Extras'];
 
+// QR canvas for mesero view
+function MeseroQRCanvas({ slug }: { slug: string }) {
+  const ref = React.useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!slug || !ref.current) return;
+    const url = `${window.location.origin}/menu/${slug}`;
+    const draw = () => {
+      const QRCode = (window as any).QRCode;
+      if (!QRCode) return;
+      QRCode.toCanvas(ref.current, url, { width: 260, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+    };
+    if ((window as any).QRCode) { draw(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = draw;
+    document.head.appendChild(s);
+  }, [slug]);
+  return <canvas ref={ref} style={{ borderRadius: 10, maxWidth: '100%' }} />;
+}
+
 export default function MeseroMobileView() {
   const supabase = createClient();
   const { appUser } = useAuth();
@@ -64,6 +84,8 @@ export default function MeseroMobileView() {
   const [sendingNote, setSendingNote] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showTakeoutModal, setShowTakeoutModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [takeoutNameInput, setTakeoutNameInput] = useState('');
 
   useEffect(() => {
@@ -73,6 +95,11 @@ export default function MeseroMobileView() {
       .eq('config_key', 'branch_name')
       .single()
       .then(({ data }) => { if (data?.config_value) setBranchName(data.config_value); });
+    // Also load tenant slug for QR menu card
+    if (getTenantId()) {
+      supabase.from('tenants').select('slug').eq('id', getTenantId()).single()
+        .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
+    }
   }, [supabase]);
 
   // Set name from authenticated session
@@ -608,15 +635,56 @@ export default function MeseroMobileView() {
             </div>
           </div>
 
-          {/* Para Llevar quick button */}
-          <button
-            onClick={() => setShowTakeoutModal(true)}
-            className="w-full mb-3 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95"
-            style={{ backgroundColor: '#eff6ff', border: '2px solid #bfdbfe', color: '#1d4ed8' }}
-          >
-            <span style={{ fontSize: 20 }}>🥡</span>
-            Nueva orden para llevar
-          </button>
+          {/* Para Llevar + QR quick buttons */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setShowTakeoutModal(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95"
+              style={{ backgroundColor: '#eff6ff', border: '2px solid #bfdbfe', color: '#1d4ed8' }}
+            >
+              <span style={{ fontSize: 18 }}>🥡</span>
+              Para llevar
+            </button>
+            {tenantSlug && (
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95"
+                style={{ backgroundColor: '#f0fdf4', border: '2px solid #bbf7d0', color: '#16a34a' }}
+                title="Mostrar carta QR a cliente"
+              >
+                <span style={{ fontSize: 18 }}>📷</span>
+                Carta QR
+              </button>
+            )}
+          </div>
+
+          {/* QR Modal */}
+          {showQRModal && tenantSlug && (
+            <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+              onClick={() => setShowQRModal(false)}>
+              <div style={{ background:'#fff', borderRadius:24, padding:32, maxWidth:340, width:'100%', textAlign:'center' }}
+                onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontSize:20, fontWeight:800, color:'#111', marginBottom:4 }}>🍽️ Carta digital</h3>
+                <p style={{ fontSize:13, color:'#6b7280', marginBottom:20 }}>Muestra este QR al cliente para ver el menú</p>
+                <MeseroQRCanvas slug={tenantSlug} />
+                <p style={{ fontSize:11, color:'#9ca3af', marginTop:12, wordBreak:'break-all' }}>
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/menu/{tenantSlug}
+                </p>
+                <div style={{ display:'flex', gap:8, marginTop:20 }}>
+                  <button onClick={() => {
+                    const link = `${window.location.origin}/menu/${tenantSlug}`;
+                    navigator.clipboard.writeText(link).catch(() => {});
+                    toast.success('Link copiado');
+                  }} style={{ flex:1, padding:'11px', borderRadius:12, background:'#16a34a', border:'none', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+                    Copiar link
+                  </button>
+                  <button onClick={() => setShowQRModal(false)} style={{ flex:1, padding:'11px', borderRadius:12, background:'#f3f4f6', border:'none', color:'#374151', fontSize:14, fontWeight:600, cursor:'pointer' }}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {/* Takeout Modal */}
