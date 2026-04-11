@@ -25,9 +25,13 @@ interface TenantRow {
 }
 
 const PLAN_COLORS: Record<string, { color: string; bg: string }> = {
-  starter:     { color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
-  profesional: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)'  },
-  enterprise:  { color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  operacion:   { color: '#4a9eff', bg: 'rgba(74,158,255,0.15)'   },
+  negocio:     { color: '#c9963a', bg: 'rgba(201,150,58,0.15)'   },
+  empresa:     { color: '#a78bfa', bg: 'rgba(167,139,250,0.15)'  },
+  // legacy fallbacks
+  basico:      { color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+  estandar:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)'  },
+  premium:     { color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
 };
 
 export default function TenantsPage() {
