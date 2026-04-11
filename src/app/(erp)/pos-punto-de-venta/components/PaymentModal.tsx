@@ -1,4 +1,5 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePrinter } from '@/hooks/usePrinter';
