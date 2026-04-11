@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare, Split } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare, Split } from 'lucide-react';
 import { Table, OrderItem } from './POSClient';
 
 interface OrderPanelProps {

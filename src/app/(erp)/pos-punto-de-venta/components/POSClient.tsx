@@ -305,7 +305,7 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').in('config_key', ['establishment_type','block_sale_no_stock']).then(({ data }) => {
+    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).in('config_key', ['establishment_type','block_sale_no_stock']).then(({ data }) => {
       (data || []).forEach((r: any) => {
         if (r.config_key === 'establishment_type') setEstablishmentType(r.config_value as any);
         if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
@@ -524,8 +524,6 @@ export default function POSClient() {
       }).in('id', tableIds);
     }, 400);
   }, [supabase]);
-
-  // ─── Table select ─────────────────────────────────────────────────────────
 
   // ── Traslado de orden a otra mesa ──────────────────────────────────────────
   const handleTransferTable = async (targetTable: Table) => {
@@ -1431,9 +1429,7 @@ export default function POSClient() {
           <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'480px', width:'100%' }}>
             <div style={{ marginBottom:'20px' }}>
               <h3 style={{ color:'#f1f5f9', fontSize:'18px', fontWeight:700, marginBottom:'6px' }}>↔ Cambiar mesa</h3>
-              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px' }}>
-                Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre
-              </p>
+              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px', margin:0 }}>Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre</p>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(80px, 1fr))', gap:8, maxHeight:'300px', overflowY:'auto', marginBottom:'16px' }}>
               {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).map(t => (
