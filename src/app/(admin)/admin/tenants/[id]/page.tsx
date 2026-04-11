@@ -22,9 +22,10 @@ interface AppUser {
   employee_id: string | null;
 }
 
-const PLANS = ['basico', 'estandar', 'premium'];
-const PLAN_COLOR: Record<string, string> = { basico: '#6b7280', estandar: '#f59e0b', premium: '#a78bfa' };
-const PLAN_MXN: Record<string, number> = { basico: 800, estandar: 1500, premium: 2500 };
+const PLANS = ['operacion', 'negocio', 'empresa'];
+const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
+const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
+const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
 
 export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -260,7 +261,7 @@ export default function TenantDetailPage() {
           <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '5px' }}>Plan</label>
           <select value={draft.plan ?? ''} onChange={e => setDraft(d => ({ ...d, plan: e.target.value }))}
             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '13px', marginBottom: '12px' }}>
-            {PLANS.map(p => <option key={p} value={p}>{p} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes</option>)}
+            {PLANS.map(p => <option key={p} value={p}>{PLAN_LABEL[p]} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes</option>)}
           </select>
 
           <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '5px' }}>Pago válido hasta</label>

@@ -48,7 +48,14 @@ export default function UpgradeGate({
       .eq('id', appUser.tenantId)
       .single()
       .then(({ data }) => {
-        setCurrentPlan(data?.plan ?? 'operacion');
+        // Normalize legacy plan names
+        const raw = data?.plan ?? 'operacion';
+        const LEGACY: Record<string, string> = {
+          basico: 'operacion', starter: 'operacion',
+          estandar: 'negocio', profesional: 'negocio',
+          premium: 'empresa', enterprise: 'empresa',
+        };
+        setCurrentPlan(LEGACY[raw] ?? raw);
         setLoading(false);
       });
   }, [appUser?.tenantId]);

@@ -73,7 +73,14 @@ export function useFeatures(): { features: Features; plan: string; loading: bool
     const supabase = createClient();
     supabase.from('tenants').select('plan').eq('id', appUser.tenantId).single()
       .then(({ data }) => {
-        const p = data?.plan ?? 'operacion';
+        // Normalize legacy plan names to current names
+        const rawPlan = data?.plan ?? 'operacion';
+        const PLAN_LEGACY: Record<string, string> = {
+          basico: 'operacion', starter: 'operacion',
+          estandar: 'negocio', profesional: 'negocio',
+          premium: 'empresa', enterprise: 'empresa',
+        };
+        const p = PLAN_LEGACY[rawPlan] ?? rawPlan;
         const f = planToFeatures(p);
         _cachedPlan = p;
         _cachedFeatures = f;
