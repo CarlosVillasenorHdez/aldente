@@ -128,7 +128,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       // ── Delete ALL operational/demo data ──────────────────────────────────
       // Orders and items
       await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('orders').delete().eq('tenant_id', appUser?.tenantId).neq('id', '00000000-0000-0000-0000-000000000000');
       // Tables and layout
       await supabase.from('restaurant_tables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('restaurant_layout').delete().neq('id', '00000000-0000-0000-0000-000000000000');
