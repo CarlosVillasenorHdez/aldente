@@ -1,9 +1,7 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
-function getTenantId(): string | null {
-  try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; }
-  catch { return null; }
-}
+
 
 
 import React, { useState, useEffect, useMemo } from 'react';

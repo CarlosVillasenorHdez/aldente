@@ -1,5 +1,6 @@
 'use client';
-function getTenantId(): string | null { try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; } catch { return null; } }
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
 
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -1210,10 +1211,7 @@ export default function MenuManagement() {
 
   const fetchDishes = useCallback(async () => {
     setLoading(true);
-    const _session = JSON.parse(sessionStorage.getItem('aldente_session') || '{}');
-    const _tenantId = _session?.tenantId;
-    const _q1 = supabase.from('dishes').select('*').eq('tenant_id', getTenantId());
-    const { data, error } = await (_tenantId ? _q1.eq('tenant_id', _tenantId) : _q1).order('category').order('name');
+    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).order('category').order('name');
     if (error) {
       alert('Error al cargar el menú: ' + error.message);
       setLoading(false);

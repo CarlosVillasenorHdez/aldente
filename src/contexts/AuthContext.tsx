@@ -256,6 +256,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
 
       saveSession(user);
+      setCurrentTenantId(user.tenantId);
       setAppUser(user);
       return {};
     },
@@ -266,7 +267,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut().catch(() => { /* ignore */ });
     clearSession();
-        setAppUser(null);
+        setCurrentTenantId(null);
+    setAppUser(null);
     // Clear ALL caches on logout — next login gets fresh data for their tenant
     Object.keys(sessionStorage).forEach(k => sessionStorage.removeItem(k));
     setBrandConfig({ primaryColor: '#1B3A6B', accentColor: '#f59e0b', logoUrl: '', restaurantName: '', theme: 'dark' });

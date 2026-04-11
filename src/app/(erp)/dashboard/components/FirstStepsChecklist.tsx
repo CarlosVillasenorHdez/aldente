@@ -1,5 +1,6 @@
 'use client';
-function getTenantId(): string | null { try { return JSON.parse(sessionStorage.getItem('aldente_session') || '{}')?.tenantId || null; } catch { return null; } }
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+
 
 
 /**
