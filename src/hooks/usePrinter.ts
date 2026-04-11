@@ -68,6 +68,8 @@ export interface TicketData {
   showOrderNumber?: boolean;
   showDate?:        boolean;
   showMesa?:        boolean;
+  orderType?:       'mesa' | 'para_llevar';
+  customerName?:    string;
   showMesero?:      boolean;
   showSubtotal?:    boolean;
   showIva?:         boolean;
@@ -145,9 +147,22 @@ export function buildTicket(data: TicketData): Uint8Array {
   const right1 = show(data.showDate)        ? `${dateStr} ${timeStr}`      : '';
   if (left1 || right1) add(twoCol(left1, right1, width));
 
-  const left2  = show(data.showMesa)   ? `Mesa: ${data.mesa}`     : '';
-  const right2 = show(data.showMesero) ? `Mesero: ${data.mesero}` : '';
-  if (left2 || right2) add(twoCol(left2, right2, width));
+  // ── Para Llevar banner ──────────────────────────────────────────────────────
+  if (data.orderType === 'para_llevar') {
+    add(bts(CMD.ALIGN_CENTER));
+    add(bts(CMD.BOLD_ON));
+    add(bts(CMD.DOUBLE_HEIGHT));
+    add(encode('* PARA LLEVAR *\n'));
+    add(bts([ESC, 0x21, 0x00])); // reset double height
+    add(bts(CMD.BOLD_OFF));
+    add(bts(CMD.ALIGN_LEFT));
+    if (data.customerName) add(encode(`Cliente: ${data.customerName}\n`));
+    add(sep(width, sepChar));
+  } else {
+    const left2  = show(data.showMesa)   ? `Mesa: ${data.mesa}`     : '';
+    const right2 = show(data.showMesero) ? `Mesero: ${data.mesero}` : '';
+    if (left2 || right2) add(twoCol(left2, right2, width));
+  }
 
   add(sep(width, sepChar));
 

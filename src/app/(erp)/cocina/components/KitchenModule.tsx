@@ -31,6 +31,7 @@ interface KitchenOrder {
   mesa: string;
   mesero: string;
   isComanda: boolean;
+  orderType: 'mesa' | 'para_llevar';
   parentOrderId: string | null;
   kitchenSentAt: string | null;   // timestamp when order was sent to kitchen
   items: KitchenOrderItem[];
@@ -149,6 +150,11 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
                 {order.isComanda && (
                   <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(168,85,247,0.15)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.3)', letterSpacing: '0.04em' }}>
                     COMANDA
+                  </span>
+                )}
+                {order.orderType === 'para_llevar' && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.35)', letterSpacing: '0.04em' }}>
+                    🥡 LLEVAR
                   </span>
                 )}
               {isCritical && (
@@ -360,6 +366,7 @@ export default function KitchenModule() {
         mesa: o.mesa,
         mesero: o.mesero,
         isComanda: Boolean(o.is_comanda),
+        orderType: (o.order_type ?? 'mesa') as 'mesa' | 'para_llevar',
         parentOrderId: o.parent_order_id ?? null,
         kitchenSentAt: o.kitchen_sent_at ?? null,
         items: (o.order_items || []).map((item: any) => ({
