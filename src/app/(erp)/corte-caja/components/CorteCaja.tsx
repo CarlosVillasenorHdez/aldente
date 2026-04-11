@@ -174,8 +174,8 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
       supabase
         .from('orders')
-        .eq('tenant_id', getTenantId())
         .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type')
+        .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('closed_at', desde)
