@@ -213,7 +213,7 @@ export default function POSClient() {
         const toInsert = [];
         for (let n = 1; n <= configuredCount; n++) {
           if (!existing.has(n)) {
-            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre', branch_id: activeBranch ?? null });
+            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre', branch_id: activeBranch ?? null, tenant_id: getTenantId() });
           }
         }
         if (toInsert.length > 0) {
@@ -466,6 +466,7 @@ export default function POSClient() {
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
             modifier: item.modifier ?? null,
+            tenant_id: getTenantId(),
             notes: item.notes ?? null,
           }))
         );
@@ -657,6 +658,7 @@ export default function POSClient() {
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
             modifier: item.modifier ?? null,
+            tenant_id: getTenantId(),
             notes: item.notes ?? null,
           }))
         );

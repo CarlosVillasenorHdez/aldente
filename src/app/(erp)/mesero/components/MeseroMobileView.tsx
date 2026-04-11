@@ -467,6 +467,7 @@ export default function MeseroMobileView() {
           price: item.price,
           emoji: item.emoji,
           modifier: item.modifier ?? null,
+          tenant_id: getTenantId(),
           notes: item.notes ?? null,
         }))
       );

@@ -52,7 +52,7 @@ export default function ReportesPage() {
         {activeView === 'avanzado' && (
           <UpgradeGate
             feature="reportes"
-            requiredPlan="estandar"
+            requiredPlan="negocio"
             title="Reportes avanzados: P&L, COGS y Market Basket"
             description="Descubre cuánto te cuesta realmente cada platillo, cuál es tu margen real y qué productos se venden juntos. El análisis que necesitas para tomar decisiones con números reales."
             blurAmount={8}
@@ -65,7 +65,7 @@ export default function ReportesPage() {
         {activeView === 'consolidado' && features.multiSucursal && (
           <UpgradeGate
             feature="multiSucursal"
-            requiredPlan="premium"
+            requiredPlan="empresa"
             title="Reportes consolidados por sucursal"
             description="Compara el rendimiento de todas tus sucursales en un solo lugar. Ventas, costos y márgenes lado a lado."
             blurAmount={8}

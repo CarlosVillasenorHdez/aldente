@@ -1,8 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-
-
-
+import { useBranch } from '@/hooks/useBranch';
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
@@ -153,7 +151,9 @@ export default function DashboardKPIs() {
           { data: ingAlerta },
           { data: gastosAlert },
         ] = await Promise.all([
-          supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC),
+          (activeBranchId
+            ? supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)
+            : supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
           supabase.from('orders').select('waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
           supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']),
