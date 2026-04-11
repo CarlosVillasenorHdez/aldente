@@ -92,12 +92,6 @@ export default function SalesChart() {
         .gte('created_at', todayStart.toISOString())
         .lte('created_at', todayEnd.toISOString());
 
-      if (tenantId) {
-        todayQuery = todayQuery.eq('tenant_id', tenantId);
-      }
-
-      const { data: todayOrders, error: todayError } = await todayQuery;
-
       if (todayError) throw todayError;
 
       // Build hourly buckets (08:00 – 23:00)

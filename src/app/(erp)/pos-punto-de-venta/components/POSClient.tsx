@@ -274,10 +274,10 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'establishment_type').maybeSingle().then(({ data }) => {
+    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'establishment_type').maybeSingle().then(({ data }) => {
       if (data?.config_value) setEstablishmentType(data.config_value as any);
     }),
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'business_hours').single()
+    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
       .then(({ data }) => {
         if (data?.config_value) {
           try {
@@ -490,8 +490,6 @@ export default function POSClient() {
       }).in('id', tableIds);
     }, 400);
   }, [supabase]);
-
-  // ─── Table select ─────────────────────────────────────────────────────────
 
   // ── Para Llevar: create order without a physical table ────────────────────
   const handleCreateTakeout = async (customerName: string) => {
