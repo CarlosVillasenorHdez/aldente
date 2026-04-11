@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare } from 'lucide-react';
+import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare, Split } from 'lucide-react';
 import { Table, OrderItem } from './POSClient';
 
 interface OrderPanelProps {
@@ -18,6 +18,7 @@ interface OrderPanelProps {
   discount: { type: 'pct' | 'fixed'; value: number };
   onDiscountChange: (d: { type: 'pct' | 'fixed'; value: number }) => void;
   onCheckout: () => void;
+  onPartialCheckout?: (itemIds: string[]) => void;
   onSendToKitchen: () => void;
   onShowMenu: () => void;
   onUpdateNote: (itemId: string, note: string) => void;
@@ -40,6 +41,7 @@ export default function OrderPanel({
   discount,
   onDiscountChange,
   onCheckout,
+  onPartialCheckout,
   onSendToKitchen,
   onShowMenu,
   onUpdateNote,
@@ -48,6 +50,8 @@ export default function OrderPanel({
   onSendKitchenNote,
 }: OrderPanelProps) {
   const [showDiscount, setShowDiscount] = useState(false);
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialSelected, setPartialSelected] = useState<Set<string>>(new Set());
   const [discountInput, setDiscountInput] = useState('');
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [showKitchenNote, setShowKitchenNote] = useState(false);
@@ -346,13 +350,79 @@ export default function OrderPanel({
             </div>
 
 
-            <button
-              onClick={onCheckout}
-              disabled={orderItems.length === 0}
-              className="btn-primary w-full justify-center py-3 text-base"
-            >
-              Cobrar ${total.toFixed(2)}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={onCheckout}
+                disabled={orderItems.length === 0}
+                className="btn-primary flex-1 justify-center py-3 text-sm font-bold"
+              >
+                Cobrar todo ${total.toFixed(2)}
+              </button>
+              {onPartialCheckout && kitchenSent && orderItems.length > 1 && (
+                <button
+                  onClick={() => { setShowPartial(true); setPartialSelected(new Set()); }}
+                  className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}
+                  title="Cobrar solo algunos platillos"
+                >
+                  <Split size={13} /> Parcial
+                </button>
+              )}
+            </div>
+
+            {/* Cierre parcial modal */}
+            {showPartial && (
+              <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+                <div style={{ background:'#fff', borderRadius:20, padding:24, maxWidth:400, width:'100%', maxHeight:'80vh', overflowY:'auto' }}>
+                  <h3 style={{ fontSize:17, fontWeight:700, color:'#111', marginBottom:4 }}>Cobro parcial</h3>
+                  <p style={{ fontSize:13, color:'#6b7280', marginBottom:16 }}>Selecciona los platillos a cobrar ahora. El resto queda en la mesa.</p>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
+                    {orderItems.map(item => {
+                      const sel = partialSelected.has(item.lineId);
+                      const price = item.menuItem.price * item.quantity;
+                      return (
+                        <button key={item.lineId} onClick={() => setPartialSelected(prev => {
+                          const next = new Set(prev);
+                          sel ? next.delete(item.lineId) : next.add(item.lineId);
+                          return next;
+                        })} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, cursor:'pointer', background:sel?'#eff6ff':'#f9fafb', border:`2px solid ${sel?'#3b82f6':'#e5e7eb'}` }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, textAlign:'left' }}>
+                            <span style={{ fontSize:18 }}>{item.menuItem.emoji}</span>
+                            <div>
+                              <div style={{ fontSize:13, fontWeight:600, color:'#111' }}>{item.quantity > 1 ? `${item.quantity}× ` : ''}{item.menuItem.name}</div>
+                              {item.modifier && <div style={{ fontSize:11, color:'#6b7280' }}>{item.modifier}</div>}
+                            </div>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                            <span style={{ fontFamily:'monospace', fontWeight:700, color:'#111' }}>${price.toFixed(2)}</span>
+                            <div style={{ width:20, height:20, borderRadius:'50%', background:sel?'#3b82f6':'transparent', border:'2px solid '+( sel?'#3b82f6':'#d1d5db'), display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              {sel && <span style={{ color:'#fff', fontSize:12, fontWeight:700 }}>✓</span>}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {partialSelected.size > 0 && (
+                    <div style={{ background:'#eff6ff', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', justifyContent:'space-between' }}>
+                      <span style={{ fontSize:13, color:'#1d4ed8', fontWeight:600 }}>A cobrar ahora</span>
+                      <span style={{ fontFamily:'monospace', fontWeight:700, color:'#1d4ed8' }}>
+                        ${orderItems.filter(i => partialSelected.has(i.lineId)).reduce((s,i) => s + i.menuItem.price * i.quantity, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => setShowPartial(false)} style={{ flex:1, padding:'10px', borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>Cancelar</button>
+                    <button
+                      disabled={partialSelected.size === 0}
+                      onClick={() => { onPartialCheckout!([...partialSelected]); setShowPartial(false); }}
+                      style={{ flex:2, padding:'10px', borderRadius:10, background:partialSelected.size>0?'#1d4ed8':'#e5e7eb', border:'none', fontSize:14, fontWeight:700, color:partialSelected.size>0?'#fff':'#9ca3af', cursor:partialSelected.size>0?'pointer':'default' }}>
+                      Cobrar seleccionados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <button

@@ -99,6 +99,7 @@ export default function POSClient() {
 
   const { branch: activeBranch } = useBranch();
   const [establishmentType, setEstablishmentType] = useState<'restaurante'|'cafeteria'|'bar'|'mixto'>('restaurante');
+  const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loadingTables, setLoadingTables] = useState(true);
@@ -264,6 +265,34 @@ export default function POSClient() {
     setLoadingMenu(false);
   }, [supabase]);
 
+  // When blockSaleNoStock is on, mark dishes as unavailable if ingredients are low
+  useEffect(() => {
+    if (!blockSaleNoStock || !menuItems.length) return;
+    // Load dish_recipes + ingredient stock for all menu items
+    const dishIds = menuItems.map(m => m.id);
+    supabase.from('dish_recipes')
+      .select('dish_id, quantity, ingredients(id, stock, unit)')
+      .eq('tenant_id', getTenantId())
+      .in('dish_id', dishIds)
+      .then(({ data: recipes }) => {
+        if (!recipes) return;
+        // Build map: dishId → can it be made?
+        const canMake: Record<string, boolean> = {};
+        dishIds.forEach(id => { canMake[id] = true; });
+        recipes.forEach((r: any) => {
+          const ing = r.ingredients;
+          if (!ing) return;
+          if (Number(ing.stock) < Number(r.quantity)) {
+            canMake[r.dish_id] = false;
+          }
+        });
+        setMenuItems(prev => prev.map(m => ({
+          ...m,
+          available: canMake[m.id] === false ? false : m.available,
+        })));
+      });
+  }, [blockSaleNoStock, menuItems.length, supabase]);
+
   useEffect(() => {
     fetchTables();
     fetchMenu();
@@ -276,8 +305,11 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'establishment_type').maybeSingle().then(({ data }) => {
-      if (data?.config_value) setEstablishmentType(data.config_value as any);
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').in('config_key', ['establishment_type','block_sale_no_stock']).then(({ data }) => {
+      (data || []).forEach((r: any) => {
+        if (r.config_key === 'establishment_type') setEstablishmentType(r.config_value as any);
+        if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
+      });
     }),
     supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'business_hours').single()
       .then(({ data }) => {
@@ -1031,6 +1063,91 @@ export default function POSClient() {
     toast.success(`${selectedTable.name} liberada`);
   };
 
+  // ─── Partial payment — cobrar subset of items, keep table open ──────────────
+
+  const handlePartialCheckout = async (lineIds: string[]) => {
+    if (!selectedTable?.currentOrderId) return;
+    const selectedItems = orderItems.filter(i => lineIds.includes(i.lineId));
+    if (!selectedItems.length) return;
+
+    const partialSubtotal = selectedItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const ivaRate = 0.16;
+    const partialIva = partialSubtotal * ivaRate;
+    const partialTotal = partialSubtotal + partialIva;
+
+    // Create a separate "partial" order record for accounting
+    const partialId = `ORD-P-${Date.now()}`;
+    const now = new Date().toISOString();
+    const waiterName = appUser?.fullName ?? 'Administrador';
+
+    const { error } = await supabase.from('orders').insert({
+      id: partialId,
+      tenant_id: getTenantId(),
+      mesa: (selectedTable.name) + ' (parcial)',
+      mesa_num: selectedTable.number,
+      mesero: waiterName,
+      subtotal: partialSubtotal,
+      iva: partialIva,
+      discount: 0,
+      total: partialTotal,
+      status: 'cerrada',
+      pay_method: 'efectivo',
+      opened_at: selectedTable.openedAt ?? now,
+      closed_at: now,
+      branch: branchName,
+      is_comanda: false,
+      order_type: selectedTable.number === 0 ? 'para_llevar' : 'mesa',
+    });
+
+    if (error) { toast.error('Error en cobro parcial: ' + error.message); return; }
+
+    // Insert partial order items
+    await supabase.from('order_items').insert(
+      selectedItems.map(i => ({
+        order_id: partialId,
+        dish_id: i.menuItem.id,
+        name: i.menuItem.name,
+        qty: i.quantity,
+        price: i.menuItem.price,
+        emoji: i.menuItem.emoji,
+        tenant_id: getTenantId(),
+      }))
+    );
+
+    // Remove paid items from the active order
+    const remainingItems = orderItems.filter(i => !lineIds.includes(i.lineId));
+    setOrderItems(remainingItems);
+
+    // Update remaining total on the original order
+    const newSubtotal = remainingItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    await supabase.from('orders').update({
+      subtotal: newSubtotal,
+      iva: newSubtotal * ivaRate,
+      total: newSubtotal * (1 + ivaRate),
+      updated_at: now,
+    }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId());
+
+    // Delete the paid items from order_items
+    const lineIdsInDb = selectedItems.map(i => i.lineId);
+    await supabase.from('order_items').delete()
+      .in('id', lineIdsInDb)
+      .eq('order_id', selectedTable.currentOrderId);
+
+    toast.success(`Cobro parcial: $${partialTotal.toFixed(2)} — ${selectedItems.length} platillo${selectedItems.length > 1 ? 's' : ''}`);
+
+    // If no items left, close the table fully
+    if (remainingItems.length === 0) {
+      await supabase.from('restaurant_tables').update({
+        status: 'libre', current_order_id: null, waiter: null,
+        item_count: 0, partial_total: 0, updated_at: now,
+      }).in('id', [selectedTable.id]);
+      await supabase.from('orders').update({ status: 'cerrada', closed_at: now })
+        .eq('id', selectedTable.currentOrderId);
+      setSelectedTable(null); setOrderItems([]); setView('tables');
+      toast.success(`${selectedTable.name} liberada — cobro completo`);
+    }
+  };
+
   // ─── Payment ──────────────────────────────────────────────────────────────
 
   const handleSendKitchenNote = async (note: string) => {
@@ -1259,6 +1376,7 @@ export default function POSClient() {
               setShowPaymentModal(true);
             }}
             onSendToKitchen={handleSendToKitchen}
+            onPartialCheckout={handlePartialCheckout}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
             kitchenSent={kitchenSent}

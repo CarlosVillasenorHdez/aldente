@@ -204,6 +204,32 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
           Copiar link
         </button>
       </div>
+      {/* Carta QR — link público del menú */}
+      <div style={{ marginTop: '12px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#60a5fa', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          🍽️ Carta QR — menú público para clientes
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f1f5f9', wordBreak: 'break-all', marginBottom: '10px' }}>
+          {typeof window !== 'undefined' && tenantSlug ? `${window.location.origin}/menu/${tenantSlug}` : 'Cargando...'}
+        </div>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '0 0 10px' }}>
+          Los clientes escanean el QR y ven tu menú completo sin necesidad de instalar nada. Sin login.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => {
+            const link = `${window.location.origin}/menu/${tenantSlug ?? ''}`;
+            navigator.clipboard.writeText(link).catch(() => {});
+          }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            Copiar link
+          </button>
+          <button onClick={() => {
+            if (tenantSlug) window.open(`/menu/${tenantSlug}`, '_blank');
+          }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            Ver menú ↗
+          </button>
+        </div>
+      </div>
+
       {/* Address, Phone, RFC */}
       <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
         <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
@@ -273,6 +299,32 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
           </div>
         </div>
       </div>
+      {/* Carta QR — link público del menú */}
+      <div style={{ marginTop: '12px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#60a5fa', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          🍽️ Carta QR — menú público para clientes
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f1f5f9', wordBreak: 'break-all', marginBottom: '10px' }}>
+          {typeof window !== 'undefined' && tenantSlug ? `${window.location.origin}/menu/${tenantSlug}` : 'Cargando...'}
+        </div>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: '0 0 10px' }}>
+          Los clientes escanean el QR y ven tu menú completo sin necesidad de instalar nada. Sin login.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => {
+            const link = `${window.location.origin}/menu/${tenantSlug ?? ''}`;
+            navigator.clipboard.writeText(link).catch(() => {});
+          }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            Copiar link
+          </button>
+          <button onClick={() => {
+            if (tenantSlug) window.open(`/menu/${tenantSlug}`, '_blank');
+          }} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            Ver menú ↗
+          </button>
+        </div>
+      </div>
+
       {/* Address, Phone, RFC */}
       <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
         <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Información de contacto</label>
