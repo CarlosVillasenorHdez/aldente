@@ -346,7 +346,6 @@ export default function KitchenModule() {
   const fetchOrders = useCallback(async () => {
     let ordersQuery = supabase
       .from('orders')
-      .eq('tenant_id', getTenantId())
       .select('*, kitchen_sent_at, order_items(*, dishes(category))')
       .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
