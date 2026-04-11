@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -116,6 +117,8 @@ export default function ConfigLayout() {
         tenant_id: getTenantId(),
       });
     }
+
+    toast.success(`Layout guardado · ${realTables.length} mesa${realTables.length !== 1 ? 's' : ''} configurada${realTables.length !== 1 ? 's' : ''}`);
 
     // 4. Sync real table count to system_config
     await supabase.from('system_config').upsert(

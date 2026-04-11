@@ -299,6 +299,7 @@ export default function PersonalManagement() {
       const { data, error } = await supabase
         .from('employee_attendance')
         .select('*, employees(name)')
+        .eq('tenant_id', getTenantId())
         .eq('date', date)
         .order('check_in', { ascending: true });
       if (error) throw error;
@@ -325,6 +326,7 @@ export default function PersonalManagement() {
     const timeStr = now.toTimeString().slice(0,5);
     const { error } = await supabase.from('employee_attendance').insert({
       employee_id: employeeId, date: dateStr, check_in: timeStr,
+      tenant_id: getTenantId(),
     });
     if (error) { toast.error('Error al registrar entrada: ' + error.message); return; }
     toast.success('Entrada registrada');
