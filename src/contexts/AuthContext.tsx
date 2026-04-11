@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '../lib/supabase/client';
+import { setCurrentTenantId } from '../lib/tenantStore';
 
 // AppRole is a string — supports both the 7 built-in roles and custom profiles
 export type AppRole = string;
