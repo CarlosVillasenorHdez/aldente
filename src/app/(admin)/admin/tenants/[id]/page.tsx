@@ -1,445 +1,540 @@
 'use client';
-import { toast } from 'sonner';
-
-import React, { useEffect, useState } from 'react';
+/**
+ * SuperAdmin — Tenant Detail
+ * Herramientas proactivas para apoyar el éxito del cliente.
+ * Forever Transaction: no solo reaccionamos — anticipamos.
+ */
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-
-interface TenantDetail {
-  id: string; name: string; slug: string; plan: string; is_active: boolean;
-  owner_email: string | null; country: string; city: string; address: string;
-  lat: number | null; lng: number | null; created_at: string;
-  trial_ends_at: string | null; plan_valid_until: string | null;
-  max_branches: number; max_users: number;
-}
-
-interface AppUser {
-  id: string;
-  full_name: string;
-  app_role: string;
-  is_active: boolean;
-  pin: string;      // hashed SHA-256 or plain (legacy)
-  employee_id: string | null;
-}
+import { toast } from 'sonner';
 
 const PLANS = ['operacion', 'negocio', 'empresa'];
 const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
 const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
 const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
+const PLAN_ETAPA: Record<string, string> = { operacion: 'Etapa 1 — Orden y control', negocio: 'Etapa 2 — Rentabilidad visible', empresa: 'Etapa 3 — Escala con control' };
+
+interface TenantDetail {
+  id: string; name: string; slug: string; plan: string; is_active: boolean;
+  trial_ends_at: string | null; plan_valid_until: string | null;
+  owner_email: string | null; country: string | null; city: string | null;
+  address: string | null; created_at: string;
+}
+interface AppUser {
+  id: string; full_name: string; app_role: string; is_active: boolean; pin: string;
+}
+interface UsageStats {
+  ordersThisMonth: number; ordersTotal: number; activeDaysLast14: number;
+  lastOrderAt: string | null; tablesCount: number; dishesCount: number;
+  employeesCount: number; branchesCount: number;
+}
+interface HealthSignal {
+  label: string; status: 'ok' | 'warn' | 'risk'; detail: string;
+}
+
+const card: React.CSSProperties = { background: '#1a2535', border: '1px solid #1e2d3d', borderRadius: 14, padding: '20px 22px', marginBottom: 16 };
+const label: React.CSSProperties = { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6, display: 'block' };
+const val: React.CSSProperties = { fontSize: 14, color: '#f1f5f9' };
+
+function daysFrom(d: string | null): number | null {
+  if (!d) return null;
+  return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+}
 
 export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const supabase = createClient();
-  const [tenant, setTenant] = useState<TenantDetail | null>(null);
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
-  const [draft, setDraft] = useState<Partial<TenantDetail>>({});
-  const [pinModal, setPinModal] = useState<AppUser | null>(null);
-  const [newPin, setNewPin] = useState('');
-  const [showPin, setShowPin] = useState<Record<string, boolean>>({});
-  const [savingPin, setSavingPin] = useState(false);
-  const [addUserModal, setAddUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({ full_name: '', app_role: 'mesero', pin: '' });
-  const [savingUser, setSavingUser] = useState(false);
 
-  const [usageStats, setUsageStats] = useState<{
-    ordersThisMonth: number;
-    totalOrders: number;
-    activeDays: number;       // distinct days with orders in last 14 days
-    lastOrderAt: string | null;
-    healthScore: 'green' | 'yellow' | 'red';
-    healthLabel: string;
-  } | null>(null);
+  const [tenant, setTenant]       = useState<TenantDetail | null>(null);
+  const [users, setUsers]         = useState<AppUser[]>([]);
+  const [draft, setDraft]         = useState<Partial<TenantDetail>>({});
+  const [usage, setUsage]         = useState<UsageStats | null>(null);
+  const [health, setHealth]       = useState<HealthSignal[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [pinModal, setPinModal]   = useState<AppUser | null>(null);
+  const [newPin, setNewPin]       = useState('');
+  const [showPins, setShowPins]   = useState<Record<string,boolean>>({});
+  const [activeTab, setActiveTab] = useState<'overview'|'users'|'health'|'notes'>('overview');
+  const [newUser, setNewUser]     = useState({ full_name: '', app_role: 'mesero', pin: '' });
+  const [adminNote, setAdminNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
-  useEffect(() => {
-    const monthStart = new Date();
-    monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-    Promise.all([
+  const load = useCallback(async () => {
+    const [{ data: t }, { data: u }] = await Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
-      supabase.from('app_users').select('id, full_name, app_role, is_active, pin, employee_id').eq('tenant_id', id).order('app_role'),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id).gte('created_at', monthStart.toISOString()),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', id),
-      supabase.from('orders').select('created_at').eq('tenant_id', id).gte('created_at', fourteenDaysAgo.toISOString()).order('created_at', { ascending: false }),
-    ]).then(([{ data: t }, { data: u }, { count: monthly }, { count: total }, { data: recent }]) => {
-      if (t) { setTenant(t as TenantDetail); setDraft(t as TenantDetail); }
-      setUsers((u ?? []) as AppUser[]);
+      supabase.from('app_users').select('id,full_name,app_role,is_active,pin').eq('tenant_id', id).order('app_role'),
+    ]);
+    if (!t) { setLoading(false); return; }
 
-      // Calculate health score
-      const dates = new Set((recent ?? []).map((o: Record<string, string>) => new Date(o.created_at).toDateString()));
-      const activeDays = dates.size;
-      const lastOrderAt = recent && recent.length > 0 ? (recent[0] as Record<string, string>).created_at : null;
-      const daysSinceLastOrder = lastOrderAt
-        ? Math.floor((Date.now() - new Date(lastOrderAt).getTime()) / 86400000)
-        : 999;
+    // Normalize legacy plan name
+    const LEGACY: Record<string,string> = { basico:'operacion', starter:'operacion', estandar:'negocio', profesional:'negocio', premium:'empresa', enterprise:'empresa' };
+    t.plan = LEGACY[t.plan] ?? t.plan;
 
-      let healthScore: 'green' | 'yellow' | 'red' = 'red';
-      let healthLabel = 'Sin actividad — contactar hoy';
-      if (activeDays >= 5) { healthScore = 'green'; healthLabel = 'Activo — adoptando bien'; }
-      else if (activeDays >= 2 && daysSinceLastOrder <= 3) { healthScore = 'yellow'; healthLabel = 'En proceso — guiar hacia más uso'; }
-      else if (daysSinceLastOrder > 3) { healthScore = 'red'; healthLabel = 'Inactivo +3 días — riesgo de churn'; }
+    setTenant(t as TenantDetail);
+    setDraft({ plan: t.plan, plan_valid_until: t.plan_valid_until, is_active: t.is_active });
+    setUsers((u || []) as AppUser[]);
 
-      setUsageStats({ ordersThisMonth: monthly ?? 0, totalOrders: total ?? 0, activeDays, lastOrderAt, healthScore, healthLabel });
-      setLoading(false);
-    });
+    // Load usage stats
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+
+    const [
+      { count: ordersMonth },
+      { count: ordersTotal },
+      { data: recentOrders },
+      { count: tables },
+      { count: dishes },
+      { count: employees },
+      { count: branches },
+      { data: noteData },
+    ] = await Promise.all([
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('tenant_id', id).eq('is_comanda', false).gte('created_at', monthStart),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('tenant_id', id).eq('is_comanda', false),
+      supabase.from('orders').select('created_at').eq('tenant_id', id).eq('is_comanda', false).gte('created_at', twoWeeksAgo).order('created_at', { ascending: false }),
+      supabase.from('restaurant_tables').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('dishes').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('employees').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('branches').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('system_config').select('config_value').eq('tenant_id', id).eq('config_key', 'admin_note').maybeSingle(),
+    ]);
+
+    // Count active days (distinct dates with orders)
+    const activeDays = new Set((recentOrders || []).map((o: any) => o.created_at.slice(0, 10))).size;
+    const lastOrder = recentOrders?.[0]?.created_at ?? null;
+
+    const stats: UsageStats = {
+      ordersThisMonth: ordersMonth ?? 0,
+      ordersTotal: ordersTotal ?? 0,
+      activeDaysLast14: activeDays,
+      lastOrderAt: lastOrder,
+      tablesCount: tables ?? 0,
+      dishesCount: dishes ?? 0,
+      employeesCount: employees ?? 0,
+      branchesCount: branches ?? 0,
+    };
+    setUsage(stats);
+    if (noteData?.config_value) setAdminNote(noteData.config_value);
+
+    // Health signals
+    const signals: HealthSignal[] = [];
+    const daysSinceOrder = lastOrder ? Math.floor((Date.now() - new Date(lastOrder).getTime()) / 86400000) : null;
+
+    if (daysSinceOrder === null || daysSinceOrder > 7)
+      signals.push({ label: 'Actividad', status: 'risk', detail: daysSinceOrder === null ? 'Sin órdenes registradas' : `Última orden hace ${daysSinceOrder} días — riesgo de churn` });
+    else if (daysSinceOrder > 3)
+      signals.push({ label: 'Actividad', status: 'warn', detail: `Última orden hace ${daysSinceOrder} días` });
+    else
+      signals.push({ label: 'Actividad', status: 'ok', detail: `Activo recientemente · ${activeDays}/14 días con órdenes` });
+
+    if ((dishes ?? 0) === 0)
+      signals.push({ label: 'Menú', status: 'risk', detail: 'Sin platillos — no puede usar el POS' });
+    else if ((dishes ?? 0) < 5)
+      signals.push({ label: 'Menú', status: 'warn', detail: `Solo ${dishes} platillos — menú incompleto` });
+    else
+      signals.push({ label: 'Menú', status: 'ok', detail: `${dishes} platillos cargados` });
+
+    if ((tables ?? 0) === 0)
+      signals.push({ label: 'Mesas', status: 'warn', detail: 'Sin mesas configuradas — solo para llevar' });
+    else
+      signals.push({ label: 'Mesas', status: 'ok', detail: `${tables} mesas configuradas` });
+
+    if ((employees ?? 0) === 0)
+      signals.push({ label: 'Equipo', status: 'warn', detail: 'Sin empleados registrados' });
+    else
+      signals.push({ label: 'Equipo', status: 'ok', detail: `${employees} empleados registrados` });
+
+    const trialDays = daysFrom(t.trial_ends_at);
+    const paidDays = daysFrom(t.plan_valid_until);
+    if (trialDays !== null && trialDays <= 3 && trialDays >= 0)
+      signals.push({ label: 'Trial', status: 'warn', detail: `Vence en ${trialDays} días — momento de convertir` });
+    else if (paidDays !== null && paidDays <= 5 && paidDays >= 0)
+      signals.push({ label: 'Suscripción', status: 'warn', detail: `Pago vence en ${paidDays} días` });
+
+    setHealth(signals);
+    setLoading(false);
   }, [id]);
 
-  // Hash PIN (same algorithm as AuthContext)
+  useEffect(() => { load(); }, [load]);
+
   async function hashPin(pin: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin + 'aldente_salt_2024');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
   async function handlePinChange() {
-    if (!pinModal || !newPin || newPin.length < 4) return;
-    setSavingPin(true);
+    if (!pinModal || newPin.length < 4) return;
     const hashed = await hashPin(newPin);
     const { error } = await supabase.from('app_users').update({ pin: hashed }).eq('id', pinModal.id);
-    if (error) { toast.error('Error: ' + error.message); }
-    else {
-      setUsers(prev => prev.map(u => u.id === pinModal.id ? { ...u, pin: hashed } : u));
-      setPinModal(null);
-      setNewPin('');
-      setMsg({ text: `PIN de ${pinModal.full_name} actualizado`, ok: true });
-    }
-    setSavingPin(false);
+    if (error) toast.error('Error: ' + error.message);
+    else { toast.success('PIN actualizado'); setPinModal(null); setNewPin(''); }
   }
 
   async function handleToggleUser(user: AppUser) {
     const { error } = await supabase.from('app_users').update({ is_active: !user.is_active }).eq('id', user.id);
-    if (!error) setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
+    if (error) toast.error(error.message);
+    else { toast.success(user.is_active ? 'Usuario suspendido' : 'Usuario activado'); load(); }
   }
 
   async function handleAddUser() {
-    if (!newUser.full_name.trim() || !newUser.pin || newUser.pin.length < 4) return;
-    setSavingUser(true);
+    if (!newUser.full_name.trim() || newUser.pin.length < 4) { toast.error('Nombre y PIN de 4+ dígitos requeridos'); return; }
     const hashed = await hashPin(newUser.pin);
     const { error } = await supabase.from('app_users').insert({
-      full_name: newUser.full_name.trim(),
-      app_role: newUser.app_role,
-      pin: hashed,
-      tenant_id: id,
-      is_active: true,
+      tenant_id: id, full_name: newUser.full_name, app_role: newUser.pin ? newUser.app_role : 'mesero',
+      pin: hashed, is_active: true,
     });
-    if (error) { toast.error('Error: ' + error.message); }
-    else {
-      // Reload users
-      const { data } = await supabase.from('app_users').select('id, full_name, app_role, is_active, pin, employee_id').eq('tenant_id', id).order('app_role');
-      setUsers((data ?? []) as AppUser[]);
-      setAddUserModal(false);
-      setNewUser({ full_name: '', app_role: 'mesero', pin: '' });
-      setMsg({ text: `Usuario ${newUser.full_name} creado`, ok: true });
-    }
-    setSavingUser(false);
+    if (error) toast.error(error.message);
+    else { toast.success('Usuario creado'); setNewUser({ full_name: '', app_role: 'mesero', pin: '' }); load(); }
   }
 
   async function handleSave() {
     if (!tenant) return;
-    setSaving(true); setMsg(null);
+    setSaving(true);
     const { error } = await supabase.from('tenants').update({
       plan: draft.plan,
       is_active: draft.is_active,
       plan_valid_until: draft.plan_valid_until || null,
     }).eq('id', id);
+    if (error) toast.error('Error al guardar: ' + error.message);
+    else { toast.success('Cambios guardados'); load(); }
     setSaving(false);
-    if (error) {
-      setMsg({ text: 'Error al guardar: ' + error.message, ok: false });
-      toast.error('Error al guardar: ' + error.message);
-    } else {
-      setMsg({ text: '✓ Cambios guardados', ok: true });
-      toast.success('Cambios guardados correctamente');
-    }
-    setTimeout(() => setMsg(null), 3000);
   }
 
   async function handleExtendTrial(days: number) {
     if (!tenant) return;
-    const newDate = new Date(tenant.trial_ends_at ? Math.max(new Date(tenant.trial_ends_at).getTime(), Date.now()) : Date.now());
-    newDate.setDate(newDate.getDate() + days);
-    await supabase.from('tenants').update({ trial_ends_at: newDate.toISOString() }).eq('id', id);
-    setTenant(t => t ? { ...t, trial_ends_at: newDate.toISOString() } : t);
-    setDraft(d => ({ ...d, trial_ends_at: newDate.toISOString() }));
-    setMsg({ text: `✓ Trial extendido ${days} días`, ok: true });
-    setTimeout(() => setMsg(null), 3000);
+    const base = tenant.trial_ends_at && new Date(tenant.trial_ends_at) > new Date()
+      ? new Date(tenant.trial_ends_at) : new Date();
+    base.setDate(base.getDate() + days);
+    const { error } = await supabase.from('tenants').update({ trial_ends_at: base.toISOString() }).eq('id', id);
+    if (error) toast.error(error.message);
+    else { toast.success(`+${days} días de trial`); load(); }
+  }
+
+  async function handleSaveNote() {
+    setSavingNote(true);
+    await supabase.from('system_config').upsert(
+      { tenant_id: id, config_key: 'admin_note', config_value: adminNote },
+      { onConflict: 'tenant_id,config_key' }
+    );
+    toast.success('Nota guardada');
+    setSavingNote(false);
   }
 
   async function toggleActive() {
     if (!tenant) return;
-    const newVal = !tenant.is_active;
-    await supabase.from('tenants').update({ is_active: newVal }).eq('id', id);
-    setTenant(t => t ? { ...t, is_active: newVal } : t);
-    setDraft(d => ({ ...d, is_active: newVal }));
-    setMsg({ text: `✓ Tenant ${newVal ? 'activado' : 'desactivado'}`, ok: newVal });
-    setTimeout(() => setMsg(null), 3000);
+    const { error } = await supabase.from('tenants').update({ is_active: !tenant.is_active }).eq('id', id);
+    if (error) toast.error(error.message);
+    else { toast.success(tenant.is_active ? 'Cuenta suspendida' : 'Cuenta activada'); load(); }
   }
 
-  if (loading) return <p style={{ color: 'rgba(255,255,255,0.4)', padding: '32px' }}>Cargando...</p>;
-  if (!tenant) return <p style={{ color: '#f87171', padding: '32px' }}>Tenant no encontrado.</p>;
+  if (loading) return <div style={{ color: 'rgba(255,255,255,0.4)', padding: 40 }}>Cargando…</div>;
+  if (!tenant) return <div style={{ color: '#f87171', padding: 40 }}>Tenant no encontrado.</div>;
 
   const now = new Date();
   const trialActive = tenant.trial_ends_at && new Date(tenant.trial_ends_at) > now;
-  const paidActive = tenant.plan_valid_until && new Date(tenant.plan_valid_until) > now;
+  const paidActive  = tenant.plan_valid_until && new Date(tenant.plan_valid_until) > now;
+  const planColor   = PLAN_COLOR[tenant.plan] ?? '#6b7280';
+  const riskCount   = health.filter(h => h.status === 'risk').length;
+  const warnCount   = health.filter(h => h.status === 'warn').length;
+
+  const statusColor = riskCount > 0 ? '#ef4444' : warnCount > 0 ? '#f59e0b' : '#22c55e';
+  const statusLabel = riskCount > 0 ? `${riskCount} riesgo${riskCount>1?'s':''}` : warnCount > 0 ? `${warnCount} alerta${warnCount>1?'s':''}` : 'Saludable';
+
+  const TAB_STYLE = (t: string): React.CSSProperties => ({
+    padding: '8px 16px', fontSize: 13, fontWeight: activeTab === t ? 600 : 400,
+    color: activeTab === t ? '#c9963a' : 'rgba(255,255,255,0.4)',
+    background: 'none', border: 'none',
+    borderBottom: activeTab === t ? '2px solid #c9963a' : '2px solid transparent',
+    cursor: 'pointer', transition: 'all .15s',
+  });
 
   return (
-    <div style={{ maxWidth: '960px' }}>
+    <div style={{ maxWidth: 920, margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <Link href="/admin/tenants" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>← Restaurantes</Link>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{tenant.name}</h1>
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>{tenant.slug}</span>
-          <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px', color: tenant.is_active ? '#34d399' : '#f87171', backgroundColor: tenant.is_active ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)' }}>
-            {tenant.is_active ? 'activo' : 'inactivo'}
-          </span>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <Link href="/admin/tenants" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>← Restaurantes</Link>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9', margin: '6px 0 4px' }}>{tenant.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{tenant.slug}</span>
+            <span style={{ padding: '2px 10px', borderRadius: 100, fontSize: 11, fontWeight: 700, background: tenant.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: tenant.is_active ? '#4ade80' : '#f87171' }}>
+              {tenant.is_active ? 'activo' : 'suspendido'}
+            </span>
+            <span style={{ padding: '2px 10px', borderRadius: 100, fontSize: 11, fontWeight: 700, background: `${planColor}20`, color: planColor }}>
+              {PLAN_LABEL[tenant.plan] ?? tenant.plan}
+            </span>
+            <span style={{ padding: '2px 10px', borderRadius: 100, fontSize: 11, fontWeight: 700, background: `${statusColor}15`, color: statusColor }}>
+              {statusLabel}
+            </span>
+          </div>
         </div>
-        {msg && (
-          <span style={{ fontSize: '13px', fontWeight: 600, color: msg.ok ? '#34d399' : '#f87171', backgroundColor: msg.ok ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', padding: '6px 14px', borderRadius: '8px' }}>
-            {msg.text}
-          </span>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={toggleActive} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {tenant.is_active ? 'Suspender' : 'Activar'}
+          </button>
+        </div>
       </div>
 
-      {/* Health Score */}
-      {usageStats && (
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '14px 16px', borderRadius: '12px', marginBottom: '10px',
-            background: usageStats.healthScore === 'green' ? 'rgba(52,211,153,0.07)' : usageStats.healthScore === 'yellow' ? 'rgba(251,191,36,0.07)' : 'rgba(248,113,113,0.07)',
-            border: `1px solid ${usageStats.healthScore === 'green' ? 'rgba(52,211,153,0.2)' : usageStats.healthScore === 'yellow' ? 'rgba(251,191,36,0.2)' : 'rgba(248,113,113,0.2)'}`,
-          }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, background: usageStats.healthScore === 'green' ? '#34d399' : usageStats.healthScore === 'yellow' ? '#fbbf24' : '#f87171' }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{usageStats.healthLabel}</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                {usageStats.activeDays} días activos en últimas 2 semanas · Meta: 5 turnos
-                {usageStats.lastOrderAt && ` · Última orden: ${new Date(usageStats.lastOrderAt).toLocaleDateString('es-MX')}`}
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            {[
-              { label: 'Días activos / 14d', value: `${usageStats.activeDays}/14`, color: usageStats.activeDays >= 5 ? '#34d399' : usageStats.activeDays >= 2 ? '#fbbf24' : '#f87171' },
-              { label: 'Órdenes este mes', value: String(usageStats.ordersThisMonth), color: '#f1f5f9' },
-              { label: 'Total histórico', value: String(usageStats.totalOrders), color: '#f1f5f9' },
-            ].map(m => (
-              <div key={m.label} style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d', borderRadius: '10px', padding: '12px' }}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{m.label}</div>
-                <div style={{ fontSize: '22px', fontWeight: 700, color: m.color, fontFamily: 'monospace' }}>{m.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-
-        {/* Info */}
-        <div style={{ backgroundColor: '#1a2535', borderRadius: '12px', padding: '18px', border: '1px solid #1e2d3d' }}>
-          <h3 style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 14px' }}>Información</h3>
+      {/* KPI strip */}
+      {usage && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 20 }}>
           {[
-            ['ID', tenant.id.slice(0, 8) + '...'],
-            ['Email dueño', tenant.owner_email ?? '—'],
-            ['País / Ciudad', [tenant.country, tenant.city].filter(Boolean).join(' · ') || '—'],
-            ['Dirección', tenant.address || '—'],
-            ['Registrado', new Date(tenant.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })],
-            ['Trial vence', tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString('es-MX') : '—'],
-            ['Pago válido hasta', tenant.plan_valid_until ? new Date(tenant.plan_valid_until).toLocaleDateString('es-MX') : '—'],
-          ].map(([l, v]) => (
-            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{l}</span>
-              <span style={{ fontSize: '12px', color: '#f1f5f9', textAlign: 'right', wordBreak: 'break-all' }}>{v}</span>
+            { label: 'Órdenes/mes', value: usage.ordersThisMonth, color: '#f59e0b' },
+            { label: 'Total histór.', value: usage.ordersTotal, color: '#60a5fa' },
+            { label: 'Días activos/14', value: `${usage.activeDaysLast14}/14`, color: usage.activeDaysLast14 >= 5 ? '#4ade80' : usage.activeDaysLast14 >= 2 ? '#f59e0b' : '#f87171' },
+            { label: 'Platillos', value: usage.dishesCount, color: usage.dishesCount > 0 ? '#a78bfa' : '#f87171' },
+            { label: 'Empleados', value: usage.employeesCount, color: 'rgba(255,255,255,0.4)' },
+          ].map(k => (
+            <div key={k.label} style={{ background: '#1a2535', border: '1px solid #1e2d3d', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: k.color, fontFamily: 'monospace' }}>{loading ? '…' : k.value}</div>
             </div>
           ))}
         </div>
+      )}
 
-        {/* Acciones */}
-        <div style={{ backgroundColor: '#1a2535', borderRadius: '12px', padding: '18px', border: '1px solid #1e2d3d' }}>
-          <h3 style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 14px' }}>Suscripción & Acciones</h3>
-
-          <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '5px' }}>Plan</label>
-          <select value={draft.plan ?? ''} onChange={e => setDraft(d => ({ ...d, plan: e.target.value }))}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '13px', marginBottom: '12px' }}>
-            {PLANS.map(p => <option key={p} value={p}>{PLAN_LABEL[p]} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes</option>)}
-          </select>
-
-          <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '5px' }}>Pago válido hasta</label>
-          <input type="date" value={draft.plan_valid_until ? draft.plan_valid_until.split('T')[0] : ''}
-            onChange={e => setDraft(d => ({ ...d, plan_valid_until: e.target.value || null }))}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '13px', marginBottom: '14px', boxSizing: 'border-box' }} />
-
-          <button onClick={handleSave} disabled={saving} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '13px', cursor: 'pointer', marginBottom: '10px' }}>
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+      {/* Tabs */}
+      <div style={{ borderBottom: '1px solid #1e2d3d', marginBottom: 20, display: 'flex', gap: 0 }}>
+        {(['overview','users','health','notes'] as const).map(t => (
+          <button key={t} style={TAB_STYLE(t)} onClick={() => setActiveTab(t)}>
+            {t === 'overview' ? 'Suscripción' : t === 'users' ? 'Usuarios' : t === 'health' ? `Salud del cliente${riskCount+warnCount>0?' ('+( riskCount+warnCount)+')':''}` : 'Notas'}
           </button>
+        ))}
+      </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-            {[7, 14, 30].map(d => (
-              <button key={d} onClick={() => handleExtendTrial(d)} style={{ flex: 1, padding: '7px', borderRadius: '7px', border: '1px solid #2a3f5f', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: '12px', cursor: 'pointer' }}>
-                +{d}d trial
-              </button>
+      {/* TAB: Suscripción */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {/* Info */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Información</div>
+            {[
+              ['ID', tenant.id.slice(0,8)+'…'],
+              ['Email dueño', tenant.owner_email ?? '—'],
+              ['País / Ciudad', [tenant.country, tenant.city].filter(Boolean).join(' / ') || '—'],
+              ['Registrado', new Date(tenant.created_at).toLocaleDateString('es-MX')],
+              ['Trial vence', tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString('es-MX') : '—'],
+              ['Pago válido hasta', tenant.plan_valid_until ? new Date(tenant.plan_valid_until).toLocaleDateString('es-MX') : '—'],
+              ['Mesas', usage?.tablesCount ?? '—'],
+              ['Sucursales', usage?.branchesCount ?? '—'],
+            ].map(([k, v]) => (
+              <div key={String(k)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{k}</span>
+                <span style={{ fontSize: 12, color: '#f1f5f9' }}>{v}</span>
+              </div>
             ))}
           </div>
 
-          <button onClick={toggleActive} style={{ width: '100%', padding: '9px', borderRadius: '8px', border: `1px solid ${tenant.is_active ? 'rgba(248,113,113,0.4)' : 'rgba(52,211,153,0.4)'}`, backgroundColor: 'transparent', color: tenant.is_active ? '#f87171' : '#34d399', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-            {tenant.is_active ? 'Suspender cuenta' : 'Reactivar cuenta'}
-          </button>
-        </div>
+          {/* Suscripción & acciones */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Suscripción & Acciones</div>
 
-      </div>
+            <span style={label}>Plan</span>
+            <select value={draft.plan ?? ''} onChange={e => setDraft(d => ({ ...d, plan: e.target.value }))}
+              style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 14 }}>
+              {PLANS.map(p => (
+                <option key={p} value={p}>{PLAN_LABEL[p]} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes · {PLAN_ETAPA[p]}</option>
+              ))}
+            </select>
 
-      {/* Usuarios del tenant */}
-      <div style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d', borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1e2d3d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>
-            Usuarios y acceso — {users.length} registrado{users.length !== 1 ? 's' : ''}
-          </h3>
-          <button onClick={() => setAddUserModal(true)}
-            style={{ padding: '6px 14px', borderRadius: '7px', border: 'none', backgroundColor: '#f59e0b', color: '#1B3A6B', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-            + Nuevo usuario
-          </button>
+            <span style={label}>Pago válido hasta</span>
+            <input type="date" value={draft.plan_valid_until ? draft.plan_valid_until.split('T')[0] : ''}
+              onChange={e => setDraft(d => ({ ...d, plan_valid_until: e.target.value || null }))}
+              style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 16, boxSizing: 'border-box' }} />
+
+            <button onClick={handleSave} disabled={saving}
+              style={{ width: '100%', padding: '11px', borderRadius: 10, background: '#c9963a', border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', marginBottom: 10 }}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              {[7, 14, 30].map(d => (
+                <button key={d} onClick={() => handleExtendTrial(d)}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  +{d}d trial
+                </button>
+              ))}
+            </div>
+
+            {/* MRR impact */}
+            <div style={{ background: 'rgba(201,150,58,0.08)', border: '1px solid rgba(201,150,58,0.2)', borderRadius: 10, padding: '12px 14px', marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: 'rgba(201,150,58,0.7)', marginBottom: 4 }}>IMPACTO MRR</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#c9963a', fontFamily: 'monospace' }}>
+                ${(PLAN_MXN[draft.plan ?? tenant.plan] ?? 0).toLocaleString('es-MX')}<span style={{ fontSize: 12, fontWeight: 400 }}>/mes</span>
+              </div>
+            </div>
+          </div>
         </div>
-        {users.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin usuarios registrados</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#0d1720' }}>
-                {['Nombre', 'Rol', 'PIN de acceso', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={{ padding: '9px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr key={u.id} style={{ backgroundColor: i % 2 === 0 ? '#0f1923' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '10px 16px', color: '#f1f5f9', fontWeight: 500 }}>{u.full_name}</td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '5px', backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', textTransform: 'capitalize' }}>
-                      {u.app_role === 'ayudante_cocina' ? 'Ayudante cocina' : u.app_role.charAt(0).toUpperCase() + u.app_role.slice(1)}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '13px', color: showPin[u.id] ? '#f1f5f9' : 'rgba(255,255,255,0.3)', letterSpacing: showPin[u.id] ? '0' : '2px' }}>
-                        {showPin[u.id] ? (u.pin.length > 10 ? '🔐 Encriptado' : u.pin) : '••••'}
+      )}
+
+      {/* TAB: Usuarios */}
+      {activeTab === 'users' && (
+        <div>
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Usuarios registrados — {users.length}</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {['Nombre','Rol','PIN','Estado','Acciones'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '6px 8px', fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '10px 8px', fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{u.full_name}</td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: u.app_role === 'admin' ? 'rgba(201,150,58,0.15)' : 'rgba(255,255,255,0.06)', color: u.app_role === 'admin' ? '#c9963a' : 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                        {u.app_role}
                       </span>
-                      <button onClick={() => setShowPin(p => ({ ...p, [u.id]: !p[u.id] }))}
-                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
-                        title={showPin[u.id] ? 'Ocultar' : 'Ver'}>
-                        {showPin[u.id] ? '🙈' : '👁'}
+                    </td>
+                    <td style={{ padding: '10px 8px', fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>
+                      {showPins[u.id] ? u.pin.slice(0,8)+'…' : '••••'}
+                      <button onClick={() => setShowPins(s => ({ ...s, [u.id]: !s[u.id] }))} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: 11, marginLeft: 4 }}>
+                        {showPins[u.id] ? 'ocultar' : 'ver'}
                       </button>
-                    </div>
-                  </td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', color: u.is_active ? '#34d399' : '#f87171', backgroundColor: u.is_active ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)' }}>
-                      {u.is_active ? 'activo' : 'inactivo'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => { setPinModal(u); setNewPin(''); }}
-                        style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
-                        🔑 Cambiar PIN
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: u.is_active ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', color: u.is_active ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                        {u.is_active ? 'activo' : 'inactivo'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 8px', display: 'flex', gap: 6 }}>
+                      <button onClick={() => { setPinModal(u); setNewPin(''); }} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(201,150,58,0.1)', border: '1px solid rgba(201,150,58,0.25)', color: '#c9963a', cursor: 'pointer' }}>
+                        🔑 PIN
                       </button>
-                      <button onClick={() => handleToggleUser(u)}
-                        style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${u.is_active ? 'rgba(248,113,113,0.3)' : 'rgba(52,211,153,0.3)'}`, backgroundColor: u.is_active ? 'rgba(248,113,113,0.1)' : 'rgba(52,211,153,0.1)', color: u.is_active ? '#f87171' : '#34d399', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+                      <button onClick={() => handleToggleUser(u)} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer' }}>
                         {u.is_active ? 'Suspender' : 'Activar'}
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-      {/* ── MODAL: Cambiar PIN ── */}
-      {pinModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div style={{ backgroundColor: '#1a2535', border: '1px solid #2a3f5f', borderRadius: '16px', padding: '28px', width: '360px', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ color: '#f1f5f9', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>🔑 Cambiar PIN</h3>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginBottom: '20px' }}>
-              Usuario: <strong style={{ color: '#f59e0b' }}>{pinModal.full_name}</strong> ({pinModal.app_role})
-            </p>
-            <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nuevo PIN (mínimo 4 dígitos)</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder="Ej: 1234"
-              value={newPin}
-              onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-              autoFocus
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '24px', fontFamily: 'monospace', textAlign: 'center', letterSpacing: '8px', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
-            />
-            {newPin.length > 0 && newPin.length < 4 && (
-              <p style={{ color: '#f87171', fontSize: '12px', marginBottom: '10px' }}>El PIN debe tener al menos 4 dígitos</p>
-            )}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => { setPinModal(null); setNewPin(''); }}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button onClick={handlePinChange} disabled={savingPin || newPin.length < 4}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: newPin.length >= 4 ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: newPin.length >= 4 ? '#1B3A6B' : 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700, cursor: newPin.length >= 4 ? 'pointer' : 'not-allowed' }}>
-                {savingPin ? 'Guardando...' : 'Cambiar PIN'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: Nuevo usuario ── */}
-      {addUserModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div style={{ backgroundColor: '#1a2535', border: '1px solid #2a3f5f', borderRadius: '16px', padding: '28px', width: '380px', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ color: '#f1f5f9', fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>+ Nuevo usuario</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre completo</label>
-                <input type="text" placeholder="Ej: María García" value={newUser.full_name}
-                  onChange={e => setNewUser(u => ({ ...u, full_name: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rol</label>
+            {/* Add user */}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>+ Nuevo usuario</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input value={newUser.full_name} onChange={e => setNewUser(u => ({ ...u, full_name: e.target.value }))} placeholder="Nombre completo"
+                  style={{ flex: 2, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13 }} />
                 <select value={newUser.app_role} onChange={e => setNewUser(u => ({ ...u, app_role: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}>
-                  {['admin','gerente','cajero','mesero','cocinero','ayudante_cocina','repartidor'].map(r => (
-                    <option key={r} value={r}>{r === 'ayudante_cocina' ? 'Ayudante de cocina' : r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                  ))}
+                  style={{ flex: 1, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
+                  {['admin','gerente','cajero','mesero','cocinero','ayudante_cocina','repartidor'].map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
+                <input value={newUser.pin} onChange={e => setNewUser(u => ({ ...u, pin: e.target.value }))} placeholder="PIN (4+ dígitos)" maxLength={6}
+                  style={{ flex: 1, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13 }} />
+                <button onClick={handleAddUser} style={{ padding: '8px 16px', borderRadius: 8, background: '#c9963a', border: 'none', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  Crear
+                </button>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PIN de acceso</label>
-                <input type="text" inputMode="numeric" maxLength={8} placeholder="••••" value={newUser.pin}
-                  onChange={e => setNewUser(u => ({ ...u, pin: e.target.value.replace(/\D/g, '') }))}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #2a3f5f', backgroundColor: '#0f1923', color: '#f1f5f9', fontSize: '20px', fontFamily: 'monospace', textAlign: 'center', letterSpacing: '6px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setAddUserModal(false)}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: '13px', cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button onClick={handleAddUser} disabled={savingUser || !newUser.full_name.trim() || newUser.pin.length < 4}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: '#1B3A6B', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                {savingUser ? 'Creando...' : 'Crear usuario'}
-              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* TAB: Salud del cliente */}
+      {activeTab === 'health' && (
+        <div>
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Señales de salud</div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
+              Indicadores proactivos para anticipar problemas y oportunidades antes de que el cliente lo pida.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {health.map((h, i) => {
+                const c = h.status === 'ok' ? '#22c55e' : h.status === 'warn' ? '#f59e0b' : '#ef4444';
+                const icon = h.status === 'ok' ? '✓' : h.status === 'warn' ? '⚠' : '✗';
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 10, background: `${c}08`, border: `1px solid ${c}25` }}>
+                    <span style={{ fontSize: 18, color: c, flexShrink: 0 }}>{icon}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{h.label}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{h.detail}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quick actions based on health */}
+            {riskCount + warnCount > 0 && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>ACCIONES RECOMENDADAS</div>
+                {health.some(h => h.status === 'risk' && h.label === 'Actividad') && (
+                  <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 14px', marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600, marginBottom: 4 }}>📞 Contactar al cliente</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Sin actividad reciente. Llamar para identificar bloqueos. Puede necesitar capacitación o tiene problemas técnicos.</div>
+                  </div>
+                )}
+                {health.some(h => h.label === 'Trial' && h.status === 'warn') && (
+                  <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10, padding: '12px 14px', marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, marginBottom: 4 }}>💰 Momento de conversión</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Trial próximo a vencer. Si está activo, es el momento ideal para ofrecer el plan. Si está inactivo, extender trial y re-enganchar primero.</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Usage timeline */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Métricas de uso</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+              {[
+                { label: 'Órdenes este mes', value: usage?.ordersThisMonth ?? '—', note: 'billing orders, excluye comandas' },
+                { label: 'Órdenes total histórico', value: usage?.ordersTotal ?? '—', note: 'toda la vida del tenant' },
+                { label: 'Días activos (últimos 14)', value: `${usage?.activeDaysLast14 ?? 0}/14`, note: 'días con al menos 1 orden' },
+                { label: 'Última orden', value: usage?.lastOrderAt ? new Date(usage.lastOrderAt).toLocaleDateString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Nunca', note: '' },
+                { label: 'Sucursales', value: usage?.branchesCount ?? '—', note: '' },
+                { label: 'Mesas configuradas', value: usage?.tablesCount ?? '—', note: '' },
+              ].map(m => (
+                <div key={m.label} style={{ background: '#0f1923', border: '1px solid #1e2d3d', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>{m.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#f1f5f9', fontFamily: 'monospace' }}>{usage ? m.value : '—'}</div>
+                  {m.note && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 4 }}>{m.note}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Notas */}
+      {activeTab === 'notes' && (
+        <div style={card}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Notas internas del equipo Aldente</div>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 16 }}>Visible solo en SuperAdmin. Úsalo para documentar conversaciones, compromisos, contexto del cliente.</p>
+          <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={12} placeholder="Ej: 2026-04-11 — Llamé a Carlos, está teniendo problemas para cargar el menú. Le mandé el tutorial. Trial extendido 7 días.&#10;&#10;2026-04-08 — Restaurante de alta rotación. Chef exige KDS sin delay. Monitorear latencia."
+            style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 10, padding: '12px 14px', fontSize: 13, lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box', outline: 'none', marginBottom: 12 }} />
+          <button onClick={handleSaveNote} disabled={savingNote}
+            style={{ padding: '10px 24px', borderRadius: 8, background: '#c9963a', border: 'none', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            {savingNote ? 'Guardando…' : 'Guardar nota'}
+          </button>
+        </div>
+      )}
+
+      {/* PIN Modal */}
+      {pinModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1a2535', border: '1px solid #2a3f5f', borderRadius: 16, padding: 28, width: 320 }}>
+            <h3 style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Cambiar PIN</h3>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 16 }}>{pinModal.full_name}</p>
+            <input value={newPin} onChange={e => setNewPin(e.target.value)} type="password" placeholder="Nuevo PIN (mín. 4 dígitos)"
+              onKeyDown={e => e.key === 'Enter' && handlePinChange()}
+              style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '10px 12px', fontSize: 15, marginBottom: 14, boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => { setPinModal(null); setNewPin(''); }} style={{ flex: 1, padding: '10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={handlePinChange} style={{ flex: 1, padding: '10px', borderRadius: 8, background: '#c9963a', border: 'none', color: '#000', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Guardar PIN</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
