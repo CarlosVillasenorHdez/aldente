@@ -215,8 +215,8 @@ export default function InventarioManagement() {
   const { appUser } = useAuth();
   const supabase = createClient();
   const fetchIngredients = useCallback(async () => {
-    const tenantId = getTenantId();
-    if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
+    const tenantId = appUser?.tenantId ?? getTenantId();
+    if (!tenantId) { setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase.from('ingredients').select('*').eq('tenant_id', tenantId).order('category').order('name');
     if (error) {
