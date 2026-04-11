@@ -254,7 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         appRole: data.app_role as AppRole,
         employeeId: data.employee_id,
         isActive: data.is_active,
-        tenantId: data.tenant_id ?? DEFAULT_TENANT,
+        tenantId: data.tenant_id,
         branchId: data.branch_id ?? null,
         branchName: null,
       };
@@ -294,7 +294,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           fullName,
           role,
           employeeId: employeeId || null,
-          tenantId: DEFAULT_TENANT,
+          tenantId: appUser?.tenantId,
         },
       });
       if (error) throw new Error(error.message || 'Error al crear usuario');
@@ -392,7 +392,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         appUser,
         loading,
         brandConfig,
-        tenantId: appUser?.tenantId ?? DEFAULT_TENANT,
+        tenantId: appUser?.tenantId ?? null,
         branchId: appUser?.branchId ?? null,
         reloadBrandConfig,
         signIn,

@@ -257,7 +257,7 @@ export default function CorteCaja() {
     const { error } = await supabase.from('cortes_caja').insert({
       fondo_inicial: fondo,
       apertura_por: aperturaPor.trim(),
-      tenant_id: DEFAULT_TENANT,
+      tenant_id: getTenantId(),
       status: 'abierto',
     });
     if (error) { toast.error('Error al abrir caja: ' + error.message); setAbriendo(false); return; }

@@ -177,7 +177,7 @@ export default function POSClient() {
   const fetchTables = useCallback(async () => {
     setLoadingTables(true);
     const [{ data: configData }, { data, error }] = await Promise.all([
-      supabase.from('system_config').select('config_value').eq('config_key', 'table_count').single(),
+      supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'table_count').single(),
       activeBranch
         ? supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).eq('branch_id', activeBranch).order('number')
         : supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).order('number'),
@@ -267,7 +267,7 @@ export default function POSClient() {
 
   useEffect(() => {
     // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').select('config_value').eq('config_key', 'business_hours').single()
+    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_value').eq('config_key', 'business_hours').single()
       .then(({ data }) => {
         if (data?.config_value) {
           try {

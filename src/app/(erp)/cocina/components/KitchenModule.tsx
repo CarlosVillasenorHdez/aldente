@@ -1,6 +1,6 @@
 'use client';
-
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+mport React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { createClient } from '@/lib/supabase/client';
@@ -342,7 +342,7 @@ export default function KitchenModule() {
 
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('orders').eq('tenant_id', getTenantId())
       .select('*, kitchen_sent_at, order_items(*, dishes(category))')
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', true)          // only show comanda cards — original order is billing only
@@ -546,7 +546,7 @@ export default function KitchenModule() {
     const now = new Date().toISOString();
 
     // Get parent_order_id of this comanda to find siblings
-    const { data: thisOrder } = await supabase.from('orders')
+    const { data: thisOrder } = await supabase.from('orders').eq('tenant_id', getTenantId())
       .select('parent_order_id').eq('id', orderId).single();
 
     // Cancel this comanda
@@ -565,7 +565,7 @@ export default function KitchenModule() {
     // If there's a parent, also cancel sibling comandas still in KDS
     // (other comandas of the same mesa that are active)
     if (thisOrder?.parent_order_id) {
-      const { data: siblings } = await supabase.from('orders')
+      const { data: siblings } = await supabase.from('orders').eq('tenant_id', getTenantId())
         .select('id, kitchen_status')
         .eq('parent_order_id', thisOrder.parent_order_id)
         .eq('is_comanda', true)
