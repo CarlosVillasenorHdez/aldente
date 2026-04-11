@@ -17,22 +17,113 @@ interface KPIs {
 
 const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
 const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
+const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
 
-// Mexico bounding box: lat 14.5–32.7, lng -118.5 – -86.7
-const MX_BOUNDS = { latMin: 14.5, latMax: 32.7, lngMin: -118.5, lngMax: -86.7 };
-
-function worldToSVG(lat: number, lng: number, w = 720, h = 360): [number, number] {
-  const xFrac = (lng - MX_BOUNDS.lngMin) / (MX_BOUNDS.lngMax - MX_BOUNDS.lngMin);
-  const yFrac = 1 - (lat - MX_BOUNDS.latMin) / (MX_BOUNDS.latMax - MX_BOUNDS.latMin);
-  const pad = 20;
-  return [
-    Math.max(pad, Math.min(w - pad, pad + xFrac * (w - 2 * pad))),
-    Math.max(pad, Math.min(h - pad, pad + yFrac * (h - 2 * pad))),
-  ];
-}
 
 function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+}
+
+
+// Leaflet map component — loads map tiles and places tenant markers
+function LeafletMap({ dots, planColors }: { dots: TenantRow[]; planColors: Record<string, string> }) {
+  const mapRef = React.useRef<HTMLDivElement>(null);
+  const mapInstanceRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Dynamically load Leaflet CSS
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    // Dynamically load Leaflet JS
+    const loadLeaflet = () => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => initMap();
+      document.head.appendChild(script);
+    };
+
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L || !mapRef.current || mapInstanceRef.current) return;
+
+      const map = L.map(mapRef.current, {
+        center: [23.6, -102.5],
+        zoom: 5,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      // Dark tile layer — CartoDB Dark Matter
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+
+      // Add markers
+      addMarkers(L, map, dots, planColors);
+    };
+
+    if ((window as any).L) {
+      initMap();
+    } else {
+      loadLeaflet();
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update markers when dots change
+  React.useEffect(() => {
+    if (!mapInstanceRef.current || !(window as any).L) return;
+    const L = (window as any).L;
+    const map = mapInstanceRef.current;
+    // Remove existing markers
+    map.eachLayer((layer: any) => { if (layer instanceof L.CircleMarker) map.removeLayer(layer); });
+    addMarkers(L, map, dots, planColors);
+  }, [dots]);
+
+  return (
+    <div ref={mapRef} style={{ height: '340px', borderRadius: '8px', overflow: 'hidden', background: '#0a1220' }} />
+  );
+}
+
+function addMarkers(L: any, map: any, dots: TenantRow[], planColors: Record<string, string>) {
+  const PLAN_NAMES: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
+  dots.filter(d => d.lat && d.lng).forEach(d => {
+    const color = planColors[d.plan] ?? '#6b7280';
+    const marker = L.circleMarker([d.lat!, d.lng!], {
+      radius: 8,
+      fillColor: color,
+      color: '#0a1220',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: d.is_active ? 0.9 : 0.3,
+    });
+    const planName = PLAN_NAMES[d.plan] ?? d.plan;
+    const statusDot = d.is_active ? '<span style="color:#4ade80">●</span>' : '<span style="color:#f87171">●</span>';
+    marker.bindPopup(`
+      <div style="font-family:system-ui;min-width:160px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${d.name}</div>
+        <div style="font-size:12px;color:${color};font-weight:600">${planName}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px">${statusDot} ${d.is_active ? 'Activo' : 'Inactivo'}</div>
+      </div>
+    `, { maxWidth: 200 });
+    marker.addTo(map);
+  });
 }
 
 export default function AdminDashboardPage() {
@@ -167,66 +258,21 @@ export default function AdminDashboardPage() {
 
       </div>
 
-      {/* Heatmap */}
+      {/* Mapa interactivo — Leaflet.js */}
       <div style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d', borderRadius: '12px', padding: '18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <span style={{ fontWeight: 600, fontSize: '13px', color: '#f1f5f9' }}>Distribución geográfica</span>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {Object.entries(PLAN_COLOR).map(([plan, color]) => (
               <span key={plan} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block' }} />{plan}
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, display: 'inline-block' }} />
+                {PLAN_LABEL[plan] ?? plan}
               </span>
             ))}
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{dots.length} ubicado{dots.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
-        <svg viewBox="0 0 720 360" width="100%" style={{ display: 'block', borderRadius: '8px', background: '#0a1220' }}>
-          {/* Grid */}
-          {[0,90,180,270,360].map(y => <line key={y} x1="0" y1={y} x2="720" y2={y} stroke="#1e2d3d" strokeWidth="0.5" strokeDasharray="4,6"/>)}
-          {[0,144,288,432,576,720].map(x => <line key={x} x1={x} y1="0" x2={x} y2="360" stroke="#1e2d3d" strokeWidth="0.5" strokeDasharray="4,6"/>)}
-          {/* State labels — major cities */}
-          {[['CDMX', 19.43, -99.13], ['Monterrey', 25.67, -100.31], ['Guadalajara', 20.67, -103.35],
-            ['Tijuana', 32.53, -117.04], ['Mérida', 20.97, -89.62], ['Puebla', 19.05, -98.20],
-          ].map(([name, lat, lng]) => {
-            const [x, y] = worldToSVG(Number(lat), Number(lng));
-            return <text key={name as string} x={x} y={y} fontSize="9" fill="rgba(255,255,255,0.15)" textAnchor="middle">{name as string}</text>;
-          })}
-          {/* Mexico outline — simplified */}
-          <path d="M 45 28 L 88 22 L 132 38 L 155 55 L 170 72 L 185 65 L 198 80 L 210 75 L 225 90 L 235 88 L 248 100 L 258 95 L 272 108 L 280 120 L 295 115 L 310 130 L 318 148 L 325 162 L 335 178 L 348 192 L 360 205 L 368 220 L 375 235 L 385 248 L 395 255 L 408 268 L 418 278 L 430 285 L 445 290 L 458 296 L 472 302 L 482 315 L 490 328 L 498 340 L 508 338 L 515 325 L 522 312 L 530 300 L 538 290 L 546 280 L 552 268 L 558 258 L 562 248 L 568 238 L 572 228 L 576 218 L 578 208 L 580 198 L 582 188 L 582 178 L 580 168 L 578 158 L 575 148 L 570 138 L 565 128 L 558 118 L 550 110 L 540 102 L 528 95 L 515 90 L 500 85 L 488 78 L 478 68 L 468 58 L 458 50 L 448 42 L 435 35 L 420 28 L 405 22 L 388 18 L 370 15 L 350 14 L 330 15 L 310 18 L 290 22 L 270 26 L 250 28 L 228 28 L 205 26 L 182 22 L 158 18 L 135 16 L 112 16 L 88 18 L 65 22 L 45 28Z"
-            fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" strokeWidth="1"/>
-          {/* Dots — tenants with location */}
-          {dots.map(d => {
-            const [x, y] = worldToSVG(d.lat!, d.lng!);
-            const color = PLAN_COLOR[d.plan] ?? '#6b7280';
-            return (
-              <g key={d.id} style={{ cursor: 'pointer' }}
-                onMouseEnter={() => setTooltip({ name: d.name, plan: d.plan, x, y })}
-                onMouseLeave={() => setTooltip(null)}>
-                <circle cx={x} cy={y} r="14" fill={color} fillOpacity={0.08}/>
-                <circle cx={x} cy={y} r="7" fill={color} fillOpacity={d.is_active ? 0.95 : 0.3} stroke="#0a1220" strokeWidth="1.5"/>
-                <circle cx={x} cy={y} r="3" fill="#0a1220" fillOpacity="0.5"/>
-              </g>
-            );
-          })}
-          {/* Tooltip */}
-          {tooltip && (() => {
-            const tx = tooltip.x > 580 ? tooltip.x - 150 : tooltip.x + 14;
-            const ty = Math.max(tooltip.y - 40, 8);
-            const planName = { operacion:'Operación', negocio:'Negocio', empresa:'Empresa', profesional:'Profesional' }[tooltip.plan] ?? tooltip.plan;
-            return (
-              <g>
-                <rect x={tx} y={ty} width="148" height="44" rx="8" fill="#1a2535" stroke="#2a4f7f" strokeWidth="1"/>
-                <text x={tx+10} y={ty+17} fontSize="12" fill="#f1f5f9" fontWeight="600">{tooltip.name.slice(0,18)}</text>
-                <circle cx={tx+10} cy={ty+31} r="4" fill={PLAN_COLOR[tooltip.plan] ?? '#6b7280'}/>
-                <text x={tx+20} y={ty+35} fontSize="11" fill={PLAN_COLOR[tooltip.plan] ?? '#6b7280'}>{planName}</text>
-              </g>
-            );
-          })()}
-        </svg>
-        {dots.length === 0 && !loading && (
-          <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(255,255,255,0.2)', fontSize: '13px' }}>
-            Sin tenants con coordenadas aún
-          </div>
-        )}
+        <LeafletMap dots={dots} planColors={PLAN_COLOR} />
       </div>
     </div>
   );

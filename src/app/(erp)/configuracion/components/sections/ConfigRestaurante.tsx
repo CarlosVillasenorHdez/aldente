@@ -40,6 +40,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   const [restaurantNameDraft, setRestaurantNameDraft] = useState(brandConfig?.restaurantName || 'Mi Restaurante');
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateRegion, setStateRegion] = useState('');
   const [phone, setPhone] = useState('');
   const [rfc, setRfc] = useState('');
   const [geocoding, setGeocoding] = useState(false);
@@ -73,6 +75,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (map.brand_primary_color) setPrimaryColor(map.brand_primary_color);
       if (map.brand_logo_url) setLogoPreview(map.brand_logo_url);
       if (map.restaurant_address) setAddress(map.restaurant_address);
+      if (map.restaurant_city) setCity(map.restaurant_city);
+      if (map.restaurant_state) setStateRegion(map.restaurant_state);
       if (map.restaurant_phone) setPhone(map.restaurant_phone);
       if (map.restaurant_rfc) setRfc(map.restaurant_rfc);
       if (map.brand_theme) setAppTheme(map.brand_theme as 'dark'|'light');
@@ -88,7 +92,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     if (!addr.trim()) return;
     setGeocoding(true); setGeoStatus('idle');
     try {
-      const q = encodeURIComponent(addr + ', México');
+      const fullAddr = [addr, city, stateRegion, 'México'].filter(Boolean).join(', ');
+      const q = encodeURIComponent(fullAddr);
       const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
         headers: { 'Accept-Language': 'es', 'User-Agent': 'Aldente-ERP/1.0' }
       });
@@ -97,7 +102,10 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         const { lat, lon } = data[0];
         // Save lat/lng to tenants table
         const supaClient = createClient ? createClient() : supabase;
-        await supaClient.from('tenants').update({ lat: parseFloat(lat), lng: parseFloat(lon) }).eq('id', appUser?.tenantId);
+        await supaClient.from('tenants').update({
+          lat: parseFloat(lat), lng: parseFloat(lon),
+          address: addr, city, state_region: stateRegion,
+        }).eq('id', appUser?.tenantId);
         setGeoStatus('ok');
       } else { setGeoStatus('error'); }
     } catch { setGeoStatus('error'); }
@@ -111,6 +119,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       { config_key: 'brand_theme',        config_value: appTheme,            tenant_id: appUser?.tenantId },
       { config_key: 'restaurant_address', config_value: address,             tenant_id: appUser?.tenantId },
       { config_key: 'restaurant_phone',   config_value: phone,               tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_city',    config_value: city,                tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_state',   config_value: stateRegion,         tenant_id: appUser?.tenantId },
       { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: appUser?.tenantId },
     ];
     if (logoPreview) {
@@ -119,6 +129,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
     setRestaurantName(restaurantNameDraft);
     invalidateSysConfigCache();
+    // Auto-geocode if address changed
+    if (address.trim()) geocodeAddress(address); // auto-geocode on save
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2500);
     toast.success('Configuración del restaurante guardada');
@@ -213,6 +225,38 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Ciudad</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
+                placeholder="Ciudad de México"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Estado</label>
+              <input type="text" value={stateRegion} onChange={(e) => setStateRegion(e.target.value)}
+                placeholder="CDMX"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+          </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Ciudad</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
+                placeholder="Ciudad de México"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Estado</label>
+              <input type="text" value={stateRegion} onChange={(e) => setStateRegion(e.target.value)}
+                placeholder="CDMX"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
               <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Teléfono</label>
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
                 placeholder="55 1234 5678"
@@ -246,6 +290,22 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
               </button>
             </div>
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Se localiza automáticamente al guardar y aparece en el mapa del panel de administración.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Ciudad</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
+                placeholder="Ciudad de México"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Estado</label>
+              <input type="text" value={stateRegion} onChange={(e) => setStateRegion(e.target.value)}
+                placeholder="CDMX"
+                className="w-full rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none' }} />
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
