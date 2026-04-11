@@ -33,6 +33,7 @@ export default function OnboardingFlow() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [establishmentType, setEstablishmentType] = useState<'restaurante' | 'cafeteria' | 'bar' | 'mixto'>('restaurante');
 
   // Step 1 data
   const [restaurantName, setRestaurantName] = useState('');
@@ -79,13 +80,13 @@ export default function OnboardingFlow() {
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      // Save restaurant name to system_config
-      if (restaurantName.trim()) {
-        await supabase.from('system_config').upsert({
-          config_key: 'restaurant_name',
-          config_value: restaurantName.trim(),
-          description: 'Nombre del restaurante',
-        }, { onConflict: 'config_key' });
+      // Save restaurant name and establishment type
+      const configRows = [
+        { config_key: 'restaurant_name', config_value: restaurantName.trim(), tenant_id: appUser?.tenantId },
+        { config_key: 'establishment_type', config_value: establishmentType, tenant_id: appUser?.tenantId },
+      ].filter(r => r.config_value);
+      if (configRows.length > 0) {
+        await supabase.from('system_config').upsert(configRows, { onConflict: 'tenant_id,config_key' });
       }
 
       // Save dishes
@@ -205,6 +206,32 @@ export default function OnboardingFlow() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   placeholder="555-0001"
                 />
+              </div>
+              {/* Establishment type selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de negocio</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { type: 'restaurante' as const, label: '🍽️ Restaurante', desc: 'Mesas y servicio' },
+                    { type: 'cafeteria' as const,   label: '☕ Cafetería',   desc: 'Para llevar principal' },
+                    { type: 'bar' as const,          label: '🍺 Bar/Cantina', desc: 'Bebidas y barra' },
+                    { type: 'mixto' as const,        label: '🏪 Mixto',       desc: 'Todo disponible' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.type}
+                      type="button"
+                      onClick={() => setEstablishmentType(opt.type)}
+                      className="p-3 rounded-xl text-left transition-all"
+                      style={{
+                        border: `2px solid ${establishmentType === opt.type ? '#f59e0b' : '#e5e7eb'}`,
+                        background: establishmentType === opt.type ? '#fffbeb' : '#fff',
+                      }}
+                    >
+                      <div className="text-sm font-semibold text-gray-800">{opt.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
