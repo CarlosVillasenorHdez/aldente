@@ -111,6 +111,11 @@ export default function POSClient() {
   const [sentItemsSnapshot, setSentItemsSnapshot] = useState<{id:string;qty:number}[]>([]);
   const [sendingToKitchen, setSendingToKitchen] = useState(false);
 
+  // Para llevar state
+  const [showTakeoutModal, setShowTakeoutModal] = useState(false);
+  const [takeoutCustomerName, setTakeoutCustomerName] = useState('');
+  const [takeoutNameInput, setTakeoutNameInput] = useState('');
+
   // Layout state
   const [layoutTables, setLayoutTables] = useState<LayoutTablePosition[]>([]);
   const [layoutId, setLayoutId] = useState<string | null>(null);
@@ -482,6 +487,59 @@ export default function POSClient() {
   }, [supabase]);
 
   // ─── Table select ─────────────────────────────────────────────────────────
+
+  // ── Para Llevar: create order without a physical table ────────────────────
+  const handleCreateTakeout = async (customerName: string) => {
+    const orderId = `ORD-${Date.now()}`;
+    const now = new Date().toISOString();
+    const waiterName = appUser?.fullName ?? 'Administrador';
+    const displayName = customerName.trim() || 'Para llevar';
+
+    const takeoutTable: Table = {
+      id: `takeout-${orderId}`,
+      number: 0,
+      name: displayName,
+      capacity: 0,
+      status: 'ocupada',
+      currentOrderId: orderId,
+      waiter: waiterName,
+      openedAt: now,
+      itemCount: 0,
+      partialTotal: 0,
+      mergeGroupId: undefined,
+    };
+
+    const { error: orderErr } = await supabase.from('orders').insert({
+      tenant_id: getTenantId(),
+      id: orderId,
+      mesa: displayName,
+      mesa_num: 0,
+      mesero: waiterName,
+      subtotal: 0, iva: 0, discount: 0, total: 0,
+      status: 'abierta',
+      kitchen_status: 'en_edicion',
+      opened_at: now,
+      branch: branchName,
+      order_type: 'para_llevar',
+      customer_name: customerName.trim() || null,
+    });
+
+    if (orderErr) {
+      toast.error('Error al crear orden para llevar: ' + orderErr.message);
+      return;
+    }
+
+    setSelectedTable(takeoutTable);
+    setOrderItems([]);
+    setKitchenSent(false);
+    setDeliveredLineIds(new Set());
+    setSentItemsSnapshot([]);
+    setDiscount({ type: 'pct', value: 0 });
+    setView('menu');
+    setShowTakeoutModal(false);
+    setTakeoutNameInput('');
+    toast.success(`🥡 Orden para llevar${customerName.trim() ? ` — ${customerName.trim()}` : ' creada'}`);
+  };
 
   const handleTableSelect = async (table: Table) => {
     if (mergeMode) {
@@ -1030,6 +1088,9 @@ export default function POSClient() {
               <button onClick={() => setView('tables')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'tables' ? '#f59e0b' : 'transparent', color: view === 'tables' ? '#d97706' : '#6b7280' }}>
                 Mapa de Mesas
               </button>
+              <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: '#1e3a5f', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
+                🥡 Para Llevar
+              </button>
               <button onClick={() => setView('menu')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'menu' ? '#f59e0b' : 'transparent', color: view === 'menu' ? '#d97706' : '#6b7280' }}>
                 Menú
                 {selectedTable && (
@@ -1180,6 +1241,40 @@ export default function POSClient() {
 
       {/* Spacer so content doesn't hide behind mobile tab bar */}
       <div className="h-14 md:hidden flex-shrink-0" />
+
+      {/* ── Para Llevar Modal ── */}
+      {showTakeoutModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'420px', width:'100%' }}>
+            <div style={{ textAlign:'center', marginBottom:'20px' }}>
+              <div style={{ fontSize:'40px', marginBottom:'10px' }}>🥡</div>
+              <h3 style={{ color:'#f1f5f9', fontSize:'19px', fontWeight:700, marginBottom:'6px' }}>Nueva orden para llevar</h3>
+              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'13px', margin:0 }}>Ingresa el nombre del cliente (opcional)</p>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              value={takeoutNameInput}
+              onChange={e => setTakeoutNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCreateTakeout(takeoutNameInput); if (e.key === 'Escape') setShowTakeoutModal(false); }}
+              placeholder="Nombre del cliente..."
+              style={{ width:'100%', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:'10px', padding:'12px 16px', color:'#f1f5f9', fontSize:'15px', outline:'none', marginBottom:'16px', boxSizing:'border-box' }}
+            />
+            <div style={{ display:'flex', gap:'10px' }}>
+              <button
+                onClick={() => { setShowTakeoutModal(false); setTakeoutNameInput(''); }}
+                style={{ flex:1, padding:'11px', borderRadius:'10px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleCreateTakeout(takeoutNameInput)}
+                style={{ flex:2, padding:'11px', borderRadius:'10px', background:'#1e3a5f', border:'1px solid rgba(96,165,250,0.4)', color:'#60a5fa', fontSize:'14px', fontWeight:700, cursor:'pointer' }}>
+                🥡 Crear orden para llevar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel item confirmation */}
       {cancelItemPending && (

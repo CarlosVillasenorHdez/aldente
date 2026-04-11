@@ -1216,7 +1216,9 @@ export default function MenuManagement() {
   const supabase = createClient();
 
   const fetchDishes = useCallback(async () => {
-    const tenantId = getTenantId();
+    // Prefer appUser.tenantId from React context (most reliable)
+    // Fall back to module store (for non-React async contexts)
+    const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
     setLoading(true);
     const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', tenantId).order('category').order('name');
@@ -1232,16 +1234,23 @@ export default function MenuManagement() {
         image: d.image, imageAlt: d.image_alt, emoji: d.emoji, popular: d.popular,
       }));
       setDishes(mapped);
-      // Fetch recipe counts
-      const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id').eq('tenant_id', getTenantId());
-      if (recipeData) {
-        const counts: Record<string, number> = {};
-        recipeData.forEach((r: any) => { counts[r.dish_id] = (counts[r.dish_id] || 0) + 1; });
-        setRecipeCounts(counts);
+      // Fetch recipe counts — only for dishes that actually exist in this tenant
+      const dishIds = new Set(mapped.map((d: any) => d.id));
+      if (dishIds.size > 0) {
+        const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id').eq('tenant_id', getTenantId());
+        if (recipeData) {
+          const counts: Record<string, number> = {};
+          // Only count recipes for dishes that exist
+          recipeData.filter((r: any) => dishIds.has(r.dish_id))
+            .forEach((r: any) => { counts[r.dish_id] = (counts[r.dish_id] || 0) + 1; });
+          setRecipeCounts(counts);
+        }
+      } else {
+        setRecipeCounts({}); // no dishes → no recipes to show
       }
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, appUser?.tenantId]);
 
   // Re-fetch when tenant becomes available (page load, or switching restaurant)
   useEffect(() => { 

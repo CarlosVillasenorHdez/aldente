@@ -139,6 +139,7 @@ export default function MultiSucursalAnalytics() {
   );
 
   return (
+    <div style={{ background: '#0b1827', borderRadius: 16, padding: '20px' }}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Period selector */}
@@ -280,6 +281,7 @@ export default function MultiSucursalAnalytics() {
           </table>
         </div>
       </div>
+    </div>
     </div>
   );
 }
