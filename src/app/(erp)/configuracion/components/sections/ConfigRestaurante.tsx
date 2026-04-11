@@ -64,7 +64,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
     }
 
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').then(({ data }) => {
+    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).then(({ data }) => {
       if (!data) return;
       const map: Record<string,string> = {};
       data.forEach((r: any) => { map[r.config_key] = r.config_value; });

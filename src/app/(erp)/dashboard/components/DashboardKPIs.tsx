@@ -169,7 +169,7 @@ export default function DashboardKPIs() {
           supabase.from('gastos_recurrentes')
             .select('nombre, monto, proximo_pago, frecuencia')
             .eq('activo', true)
-            .eq('estado', 'pendiente')),
+            .eq('estado', 'pendiente'),
         ]);
 
         const ventasHoy = (cerradasHoy || []).reduce((s: number, o: any) => s + Number(o.total), 0);

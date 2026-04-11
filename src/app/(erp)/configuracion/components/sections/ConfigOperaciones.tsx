@@ -228,7 +228,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
   useEffect(() => {
     loadPrinterConfig();
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key,config_value').eq('config_key', 'business_hours').single()
+    supabase.from('system_config').select('config_key,config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
       .then(({ data }) => { if (data?.config_value) { try { setHours(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
   }, [loadPrinterConfig, supabase]);
 

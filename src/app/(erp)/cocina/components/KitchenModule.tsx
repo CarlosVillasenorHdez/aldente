@@ -342,8 +342,9 @@ export default function KitchenModule() {
 
   const fetchOrders = useCallback(async () => {
     const { data, error } = await supabase
-      .from('orders').eq('tenant_id', getTenantId())
+      .from('orders')
       .select('*, kitchen_sent_at, order_items(*, dishes(category))')
+      .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', true)          // only show comanda cards — original order is billing only
       .order('created_at', { ascending: true });
@@ -546,8 +547,8 @@ export default function KitchenModule() {
     const now = new Date().toISOString();
 
     // Get parent_order_id of this comanda to find siblings
-    const { data: thisOrder } = await supabase.from('orders').eq('tenant_id', getTenantId())
-      .select('parent_order_id').eq('id', orderId).single();
+    const { data: thisOrder } = await supabase.from('orders')
+      .select('parent_order_id').eq('tenant_id', getTenantId()).eq('id', orderId).single();
 
     // Cancel this comanda
     const { error } = await supabase.from('orders').update({
@@ -565,8 +566,9 @@ export default function KitchenModule() {
     // If there's a parent, also cancel sibling comandas still in KDS
     // (other comandas of the same mesa that are active)
     if (thisOrder?.parent_order_id) {
-      const { data: siblings } = await supabase.from('orders').eq('tenant_id', getTenantId())
+      const { data: siblings } = await supabase.from('orders')
         .select('id, kitchen_status')
+        .eq('tenant_id', getTenantId())
         .eq('parent_order_id', thisOrder.parent_order_id)
         .eq('is_comanda', true)
         .neq('id', orderId)
@@ -692,8 +694,7 @@ export default function KitchenModule() {
           ) : (
             <div className={`grid gap-4 h-full ${
                 device.isMobile
-                  ? 'grid-cols-1 overflow-y-auto'
-                  : 'grid-cols-3'  // always 3 columns on tablet and desktop
+                  ? 'grid-cols-1 overflow-y-auto' :'grid-cols-3'  // always 3 columns on tablet and desktop
               }`}>
               {COLUMNS.map((col) => {
                 const cfg = STATUS_CONFIG[col];
