@@ -68,7 +68,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   const loadPrinterConfig = useCallback(async () => {
     setPrinterLoading(true);
     try {
-      const { data } = await supabase.from('printer_config').select('*').limit(1).single();
+      const { data } = await supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single();
       if (data) {
         const cfg: PrinterConfig = {
           id: data.id,

@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -154,9 +155,14 @@ export default function PersonalManagement() {
 
   const supabase = createClient();
 
+  const { activeBranchId } = useBranch();
+
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('employees').select('*').eq('tenant_id', getTenantId()).order('name');
+    const { data, error } = await (() => {
+      const q = supabase.from('employees').select('*').eq('tenant_id', getTenantId());
+      return activeBranchId ? q.eq('branch_id', activeBranchId) : q;
+    })().order('name');
     if (error) {
       toast.error('Error al cargar personal. Verifica tu conexión.');
       setLoading(false);

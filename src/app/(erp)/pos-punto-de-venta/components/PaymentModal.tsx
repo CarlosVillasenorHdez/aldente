@@ -3,6 +3,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePrinter } from '@/hooks/usePrinter';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useFeatures } from '@/hooks/useFeatures';
 import { X, CreditCard, Banknote, Check, Printer, Receipt, Split, Plus, Minus, Users, ChevronRight, ArrowLeft, Star, Search, UserCheck, XCircle } from 'lucide-react';
@@ -135,7 +136,7 @@ export default function PaymentModal({
 
   const handlePrint = useCallback(async () => {
     if (!printer.supported) {
-      alert('Impresión USB requiere Chrome o Edge. Conecta la impresora en Configuración → Impresora.');
+      toast.error('Impresión USB requiere Chrome o Edge. Conecta la impresora en Configuración → Impresora.');
       return;
     }
     if (printer.status !== 'connected') {
@@ -175,7 +176,7 @@ export default function PaymentModal({
       copies: 1,
     });
     setPrinting(false);
-    if (!ok && printer.error) alert('Error al imprimir: ' + printer.error);
+    if (!ok && printer.error) toast.error('Error al imprimir: ' + printer.error);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printer, cashInput, total, method, restaurantName, branchName, orderNumber,
       mesa, mesero, items, subtotal, iva, discount, printerConfig]);

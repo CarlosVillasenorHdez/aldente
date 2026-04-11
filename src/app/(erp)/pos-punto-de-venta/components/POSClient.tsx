@@ -299,7 +299,7 @@ export default function POSClient() {
       });
 
     // Cargar config de impresora
-    supabase.from('printer_config').select('*').limit(1).single()
+    supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single()
       .then(({ data }) => {
         if (data) setPrinterConfigData({
           headerLine1:     data.header_line1,

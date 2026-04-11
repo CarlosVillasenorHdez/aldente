@@ -509,7 +509,7 @@ export default function GastosManagement() {
         const { error } = await supabase.from('gastos_recurrentes').update(data).eq('id', editingGasto.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('gastos_recurrentes').insert([data]);
+        const { error } = await supabase.from('gastos_recurrentes').insert([{ ...data, tenant_id: getTenantId() }]);
         if (error) throw error;
       }
       setShowGastoModal(false);
@@ -597,7 +597,7 @@ export default function GastosManagement() {
         const { error } = await supabase.from('depreciaciones').update(data).eq('id', editingDep.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('depreciaciones').insert([data]);
+        const { error } = await supabase.from('depreciaciones').insert([{ ...data, tenant_id: getTenantId() }]);
         if (error) throw error;
       }
       setShowDepModal(false);

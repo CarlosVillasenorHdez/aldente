@@ -132,6 +132,7 @@ export default function DeliveryManagement() {
         notes: form.notes,
         status: 'recibido',
         received_at: new Date().toISOString(),
+        tenant_id: getTenantId(),
       };
       const { error } = await supabase.from('delivery_orders').insert(payload);
       if (error) throw error;
@@ -193,6 +194,7 @@ export default function DeliveryManagement() {
               price: i.price,
               emoji: '🛵',
               notes: null,
+              tenant_id: getTenantId(),
             }))
           );
         }

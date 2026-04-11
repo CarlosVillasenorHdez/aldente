@@ -9,6 +9,7 @@ import {
   ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus, Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
 
@@ -227,9 +228,9 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
         details: `Precio cambiado de $${dish.price.toFixed(2)} a $${simulatorPrice.toFixed(2)}`,
       });
       onPriceUpdate(dish.id, simulatorPrice);
-      alert(`Precio de ${dish.name} actualizado a $${simulatorPrice.toFixed(2)} en el menú.`);
+      toast.success(`Precio de ${dish.name} actualizado a $${simulatorPrice.toFixed(2)}`);
     } catch (err: any) {
-      alert('Error al actualizar precio: ' + (err?.message ?? 'Intenta de nuevo'));
+      toast.error('Error al actualizar precio: ' + (err?.message ?? 'Intenta de nuevo'));
     }
   };
 
@@ -279,7 +280,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
       await fetchRecipe();
     } catch (err: any) {
       // toast not available inside RecipeModal scope — use alert as fallback
-      alert('Error al agregar ingrediente: ' + (err?.message ?? 'Intenta de nuevo'));
+      toast.error('Error al agregar ingrediente: ' + (err?.message ?? 'Intenta de nuevo'));
     } finally {
       setSaving(false);
     }
@@ -288,7 +289,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   const handleUpdateQty = async (recipeId: string, qty: number) => {
     if (qty <= 0) return;
     const { error } = await supabase.from('dish_recipes').update({ quantity: qty, updated_at: new Date().toISOString() }).eq('id', recipeId);
-    if (error) { alert('Error al actualizar cantidad: ' + error.message); return; }
+    if (error) { toast.error('Error al actualizar cantidad: ' + error.message); return; }
     setRecipe((prev) => prev.map((r) => r.id === recipeId ? { ...r, quantity: qty } : r));
   };
 
@@ -296,17 +297,17 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     const { error } = await supabase.from('dish_recipes')
       .update({ is_required: !current })
       .eq('id', recipeId);
-    if (error) { alert('Error al actualizar ingrediente: ' + error.message); return; }
+    if (error) { toast.error('Error al actualizar ingrediente: ' + error.message); return; }
     setRecipe(prev => prev.map(r => r.id === recipeId ? { ...r, isRequired: !current } : r));
   };
 
   const handleRemove = async (recipeId: string, isRequired: boolean) => {
     if (isRequired) {
-      alert('Este ingrediente es requerido y no se puede eliminar de la receta. Primero desmárcalo como requerido.');
+      toast.error('Este ingrediente es requerido. Primero desmárcalo como requerido.');
       return;
     }
     const { error } = await supabase.from('dish_recipes').delete().eq('id', recipeId);
-    if (error) { alert('Error al eliminar ingrediente: ' + error.message); return; }
+    if (error) { toast.error('Error al eliminar ingrediente: ' + error.message); return; }
     setRecipe((prev) => prev.filter((r) => r.id !== recipeId));
   };
 
@@ -989,7 +990,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
       setSavedDish(data as Dish);
       setStep(2);
     } catch (err: any) {
-      alert('Error al guardar: ' + (err?.message ?? 'Intenta de nuevo'));
+      toast.error('Error al guardar: ' + (err?.message ?? 'Intenta de nuevo'));
     } finally { setSavingStep1(false); }
   };
 
@@ -997,6 +998,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
     if (savedDish) {
       await supabase.from('dishes').update({ price: finalPrice, updated_at: new Date().toISOString() }).eq('id', savedDish.id);
     }
+    toast.success('Platillo guardado correctamente');
     onSave({ ...form, price: finalPrice });
     onClose();
   };
@@ -1217,7 +1219,7 @@ export default function MenuManagement() {
     setLoading(true);
     const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', tenantId).order('category').order('name');
     if (error) {
-      alert('Error al cargar el menú: ' + error.message);
+      toast.error('Error al cargar el menú: ' + error.message);
       setLoading(false);
       return;
     }
@@ -1287,7 +1289,7 @@ export default function MenuManagement() {
       setEditingDish(null);
       await fetchDishes();
     } catch (err: any) {
-      alert('Error al actualizar platillo: ' + (err?.message ?? 'Intenta de nuevo'));
+      toast.error('Error al actualizar platillo: ' + (err?.message ?? 'Intenta de nuevo'));
     } finally {
       setSaving(false);
     }
@@ -1296,7 +1298,7 @@ export default function MenuManagement() {
   const handleDelete = async () => {
     if (!deletingDish) return;
     const { error } = await supabase.from('dishes').delete().eq('id', deletingDish.id);
-    if (error) { alert('Error al eliminar platillo: ' + error.message); return; }
+    if (error) { toast.error('Error al eliminar platillo: ' + error.message); return; }
     setDeletingDish(null);
     await fetchDishes();
   };
@@ -1312,7 +1314,7 @@ export default function MenuManagement() {
     if (error) {
       // Revert on failure
       setDishes((prev) => prev.map((d) => d.id === id ? { ...d, available: dish.available } : d));
-      alert('Error al cambiar disponibilidad: ' + error.message);
+      toast.error('Error al cambiar disponibilidad: ' + error.message);
     }
   };
 

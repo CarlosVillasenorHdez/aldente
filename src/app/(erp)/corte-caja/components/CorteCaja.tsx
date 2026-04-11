@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -90,7 +91,8 @@ export default function CorteCaja() {
   const { currencyCode, currencyLocale, currencySymbol } = useSysConfig();
   const denominaciones_activas = DENOMINACIONES_BY_CURRENCY[currencyCode] ?? DENOMINACIONES_MXN;
   const { tenantId } = useAuth();
-  const DEFAULT_TENANT = tenantId ?? '00000000-0000-0000-0000-000000000001';
+  const { activeBranchId } = useBranch();
+  // tenantId comes from useAuth(), getTenantId() from tenantStore for queries
 
   const [corteActivo, setCorteActivo] = useState<CorteCajaRecord | null>(null);
   const [historial, setHistorial] = useState<CorteCajaRecord[]>([]);
