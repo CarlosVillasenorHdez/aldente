@@ -1,4 +1,5 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Search, RefreshCw, ChevronDown } from 'lucide-react';
@@ -94,6 +95,7 @@ export default function AuditLog() {
     let query = supabase
       .from('audit_log')
       .select('id,created_at,user_name,user_role,action,entity,entity_name,old_value,new_value,details')
+      .eq('tenant_id', getTenantId())
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 

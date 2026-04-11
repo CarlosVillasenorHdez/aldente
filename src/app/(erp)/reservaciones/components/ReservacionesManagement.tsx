@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -79,11 +80,13 @@ export default function ReservacionesManagement() {
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  const { activeBranchId } = useBranch();
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [{ data: resData }, { data: tablesData }] = await Promise.all([
-        supabase.from('reservations').select('*').eq('tenant_id', getTenantId()).order('reservation_date').order('reservation_time'),
+        (() => { const q = supabase.from('reservations').select('*').eq('tenant_id', getTenantId()); return activeBranchId ? q.eq('branch_id', activeBranchId) : q; })().order('reservation_date').order('reservation_time'),
         supabase.from('restaurant_tables').select('id, name, capacity').eq('tenant_id', getTenantId()).order('name'),
       ]);
       setReservations((resData || []).map((r: any) => ({
@@ -177,6 +180,7 @@ export default function ReservacionesManagement() {
         status: form.status,
         notes: form.notes,
         updated_at: new Date().toISOString(),
+        tenant_id: getTenantId(),
       };
       if (editingId) {
         const { error } = await supabase.from('reservations').update(payload).eq('id', editingId);

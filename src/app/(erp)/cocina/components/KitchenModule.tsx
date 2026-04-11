@@ -1,5 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useBranch } from '@/hooks/useBranch';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -72,8 +73,8 @@ function calcElapsed(createdAt: string): number {
 
 interface OrderCardProps {
   order: KitchenOrder;
-  onAdvance: (id: string, next: KitchenStatus) => void;
-  onDeliver: (id: string) => void;
+  onAdvance: (id: string, next: KitchenStatus) => void | Promise<void>;
+  onDeliver: (id: string) => void | Promise<void>;
   onCancel: (id: string, mesa: string, kitchenStatus: string) => void;
   tick: number;
   isDragging: boolean;
@@ -340,14 +341,18 @@ export default function KitchenModule() {
     } catch { /* audio not available */ }
   }, []);
 
+  const { activeBranchId } = useBranch();
+
   const fetchOrders = useCallback(async () => {
-    const { data, error } = await supabase
+    let ordersQuery = supabase
       .from('orders')
+      .eq('tenant_id', getTenantId())
       .select('*, kitchen_sent_at, order_items(*, dishes(category))')
       .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
-      .eq('is_comanda', true)          // only show comanda cards — original order is billing only
-      .order('created_at', { ascending: true });
+      .eq('is_comanda', true);         // only show comanda cards — original order is billing only
+    if (activeBranchId) ordersQuery = ordersQuery.eq('branch_id', activeBranchId);
+    const { data, error } = await ordersQuery.order('created_at', { ascending: true });
     if (error) { toast.error('Error al cargar órdenes de cocina'); return; }
 
     if (!error && data) {

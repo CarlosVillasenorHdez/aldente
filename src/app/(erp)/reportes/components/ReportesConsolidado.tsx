@@ -257,6 +257,7 @@ export default function ReportesConsolidado() {
     supabase
       .from('branches')
       .select('id, name')
+      .eq('tenant_id', getTenantId())
       .eq('is_active', true)
       .order('name')
       .then(({ data }) => {
@@ -284,6 +285,7 @@ export default function ReportesConsolidado() {
         let query = supabase
           .from('orders')
           .select('id, total, created_at, closed_at, mesero')
+          .eq('tenant_id', getTenantId())
           .eq('status', 'cerrada')
           .gte('created_at', start)
           .lte('created_at', end)

@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Umbrella, Clock, FileText, Plus, X, Check, XCircle, Search, ChevronDown, Users, TrendingUp, AlertCircle,  } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -355,7 +356,7 @@ export default function RHManagement() {
 
   async function saveIncapacidad() {
     if (!incapForm.employee_id || !incapForm.fecha_inicio || !incapForm.fecha_fin) {
-      alert('Completa los campos obligatorios'); return;
+      toast.error('Completa los campos obligatorios'); return;
     }
     setSaving(true);
     const dias = Math.ceil((new Date(incapForm.fecha_fin).getTime() - new Date(incapForm.fecha_inicio).getTime()) / 86400000) + 1;
@@ -377,7 +378,7 @@ export default function RHManagement() {
       const res = await supabase.from('rh_incapacidades').select('*, employees(name, role)').order('created_at', { ascending: false });
       if (res.data) setIncapacidades(res.data.map((i: any) => ({ ...i, employeeName: i.employees?.name, employeeRole: i.employees?.role })));
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      toast.error('Error: ' + err.message);
     } finally {
       setSaving(false);
     }

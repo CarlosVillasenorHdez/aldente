@@ -40,7 +40,7 @@ export default function DashboardPage() {
             {/* Alerts panel — gated: stock alerts need inventario */}
             <UpgradeGate
               feature="alarmas"
-              requiredPlan="estandar"
+              requiredPlan="negocio"
               title="Alertas inteligentes"
               description="Stock bajo, órdenes demoradas, mesas sin atender. Recibe avisos en tiempo real antes de que afecten tu servicio."
               blurAmount={5}

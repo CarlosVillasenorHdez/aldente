@@ -213,7 +213,7 @@ export default function POSClient() {
         const toInsert = [];
         for (let n = 1; n <= configuredCount; n++) {
           if (!existing.has(n)) {
-            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre', branch_id: activeBranch ?? null });
+            toInsert.push({ number: n, name: `Mesa ${n}`, capacity: 4, status: 'libre', branch_id: activeBranch ?? null, tenant_id: getTenantId() });
           }
         }
         if (toInsert.length > 0) {
@@ -299,7 +299,7 @@ export default function POSClient() {
       });
 
     // Cargar config de impresora
-    supabase.from('printer_config').select('*').limit(1).single()
+    supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single()
       .then(({ data }) => {
         if (data) setPrinterConfigData({
           headerLine1:     data.header_line1,
@@ -466,6 +466,7 @@ export default function POSClient() {
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
             modifier: item.modifier ?? null,
+            tenant_id: getTenantId(),
             notes: item.notes ?? null,
           }))
         );
@@ -657,6 +658,7 @@ export default function POSClient() {
             price: item.menuItem.price,
             emoji: item.menuItem.emoji,
             modifier: item.modifier ?? null,
+            tenant_id: getTenantId(),
             notes: item.notes ?? null,
           }))
         );

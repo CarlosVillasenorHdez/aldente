@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -154,9 +155,14 @@ export default function PersonalManagement() {
 
   const supabase = createClient();
 
+  const { activeBranchId } = useBranch();
+
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('employees').select('*').eq('tenant_id', getTenantId()).order('name');
+    const { data, error } = await (() => {
+      const q = supabase.from('employees').select('*').eq('tenant_id', getTenantId());
+      return activeBranchId ? q.eq('branch_id', activeBranchId) : q;
+    })().order('name');
     if (error) {
       toast.error('Error al cargar personal. Verifica tu conexión.');
       setLoading(false);
@@ -293,6 +299,7 @@ export default function PersonalManagement() {
       const { data, error } = await supabase
         .from('employee_attendance')
         .select('*, employees(name)')
+        .eq('tenant_id', getTenantId())
         .eq('date', date)
         .order('check_in', { ascending: true });
       if (error) throw error;
@@ -319,6 +326,7 @@ export default function PersonalManagement() {
     const timeStr = now.toTimeString().slice(0,5);
     const { error } = await supabase.from('employee_attendance').insert({
       employee_id: employeeId, date: dateStr, check_in: timeStr,
+      tenant_id: getTenantId(),
     });
     if (error) { toast.error('Error al registrar entrada: ' + error.message); return; }
     toast.success('Entrada registrada');
