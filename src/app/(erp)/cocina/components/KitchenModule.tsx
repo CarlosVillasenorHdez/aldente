@@ -1,6 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-mport React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import { createClient } from '@/lib/supabase/client';
