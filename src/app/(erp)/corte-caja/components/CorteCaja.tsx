@@ -38,6 +38,7 @@ interface OrderSummary {
   ventas_efectivo: number;
   ventas_mesa?: number;
   ventas_para_llevar?: number;
+  propinas_total?: number;
   ventas_tarjeta: number;
   ventas_total: number;
   ordenes_count: number;
@@ -115,6 +116,9 @@ export default function CorteCaja() {
   );
   const [cerrando, setCerrando] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [movimientos, setMovimientos] = useState<{tipo:'ingreso'|'egreso'; monto:number; concepto:string; at:string}[]>([]);
+  const [showMovModal, setShowMovModal] = useState(false);
+  const [movForm, setMovForm] = useState({ tipo:'ingreso' as 'ingreso'|'egreso', monto:'', concepto:'' });
   const [showDenominaciones, setShowDenominaciones] = useState(true);
 
   // ── Load corte activo ───────────────────────────────────────────────────────
@@ -174,8 +178,8 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
       supabase
         .from('orders')
-        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type')
         .eq('tenant_id', getTenantId())
+        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type, tip')
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('closed_at', desde)
@@ -199,6 +203,7 @@ export default function CorteCaja() {
     const ventas_efectivo   = orders.filter(o => o.pay_method === 'efectivo').reduce((s, o) => s + Number(o.total), 0);
     const ventas_mesa       = orders.filter(o => !o.order_type || o.order_type === 'mesa').reduce((s, o) => s + Number(o.total), 0);
     const ventas_para_llevar = orders.filter(o => o.order_type === 'para_llevar').reduce((s, o) => s + Number(o.total), 0);
+    const propinas_total = orders.reduce((s, o) => s + Number((o as any).tip ?? 0), 0);
     const ventas_tarjeta  = orders.filter(o => o.pay_method === 'tarjeta').reduce((s, o) => s + Number(o.total), 0);
     const ventas_total    = orders.reduce((s, o) => s + Number(o.total), 0);
     const descuentos_total = orders.reduce((s, o) => s + Number(o.discount), 0);
@@ -230,7 +235,7 @@ export default function CorteCaja() {
 
     setSummary({
       ventas_efectivo,
-      ventas_mesa, ventas_para_llevar, ventas_tarjeta, ventas_total,
+      ventas_mesa, ventas_para_llevar, propinas_total, ventas_tarjeta, ventas_total,
       ordenes_count: orders.length,
       descuentos_total, iva_total,
       costo_total, utilidad_bruta, margen_pct,
@@ -275,13 +280,27 @@ export default function CorteCaja() {
     await loadCorte();
   };
 
+  // ── Movimientos de caja (ingresos/egresos extra) ────────────────────────────
+  const handleAddMovimiento = () => {
+    const monto = parseFloat(movForm.monto);
+    if (!monto || monto <= 0) { toast.error('Ingresa un monto válido'); return; }
+    if (!movForm.concepto.trim()) { toast.error('Ingresa un concepto'); return; }
+    const newMov = { tipo: movForm.tipo, monto, concepto: movForm.concepto.trim(), at: new Date().toISOString() };
+    setMovimientos(prev => [newMov, ...prev]);
+    setMovForm({ tipo: 'ingreso', monto: '', concepto: '' });
+    setShowMovModal(false);
+    toast.success(`${movForm.tipo === 'ingreso' ? '↓ Ingreso' : '↑ Egreso'} registrado: $${monto.toFixed(2)}`);
+  };
+
   // ── Efectivo contado (calculado desde denominaciones) ──────────────────────
   const efectivoContado = useMemo(() =>
     denominaciones_activas.reduce((s, d) => s + d.valor * (denominaciones[d.valor] || 0), 0),
     [denominaciones]
   );
 
-  const expectedEfectivo = (corteActivo?.fondoInicial ?? 0) + (summary?.ventas_efectivo ?? 0);
+  const ingresosExtra = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+  const egresosExtra  = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+  const expectedEfectivo = (corteActivo?.fondoInicial ?? 0) + (summary?.ventas_efectivo ?? 0) + ingresosExtra - egresosExtra;
   const diferencia = efectivoContado - expectedEfectivo;
 
   // ── Cierre de caja ──────────────────────────────────────────────────────────
@@ -377,6 +396,41 @@ export default function CorteCaja() {
           </div>
         </div>
 
+        {/* Movimientos de caja */}
+        {corteActivo && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-800">Movimientos de caja</h3>
+              <button onClick={() => setShowMovModal(true)} className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: '#1B3A6B', color: '#fff' }}>
+                + Movimiento
+              </button>
+            </div>
+            {movimientos.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">Sin movimientos extra registrados</p>
+            ) : (
+              <div className="space-y-2">
+                {movimientos.map((m, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">{m.concepto}</span>
+                      <span className="ml-2 text-xs text-gray-400">{new Date(m.at).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}</span>
+                    </div>
+                    <span className={`text-sm font-mono font-bold ${m.tipo === 'ingreso' ? 'text-green-600' : 'text-red-500'}`}>
+                      {m.tipo === 'ingreso' ? '+' : '-'}${m.monto.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-2 text-sm font-semibold">
+                  <span className="text-gray-600">Neto movimientos</span>
+                  <span className={ingresosExtra - egresosExtra >= 0 ? 'text-green-600' : 'text-red-500'}>
+                    {ingresosExtra - egresosExtra >= 0 ? '+' : ''}${(ingresosExtra - egresosExtra).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Historial */}
         {historial.length > 0 && (
           <div className="bg-white rounded-2xl border" style={{ borderColor: '#e5e7eb' }}>
@@ -457,7 +511,9 @@ export default function CorteCaja() {
             { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: '#fffbeb', sub: `${summary.ordenes_count} órdenes` },
             { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: '#ecfdf5', sub: null },
             { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: '#eff6ff', sub: null },
+            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total ?? 0)}`, icon: TrendingUp, color: '#34d399', bg: '#ecfdf5', sub: null }] : []),
             ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
+            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total)}`, icon: TrendingUp, color: '#34d399', bg: '#ecfdf5', sub: null }] : []),
             ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar ?? 0)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
             { label: 'Utilidad Bruta',  value: `$${fmt(summary.utilidad_bruta ?? 0)}`, icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4', sub: `${(summary.margen_pct ?? 0).toFixed(1)}% margen` },
             { label: '⚠️ Merma',       value: summary.merma_total > 0 ? `$${fmt(summary.merma_total)}` : '$0.00', icon: AlertTriangle, color: summary.merma_total > 0 ? '#dc2626' : '#9ca3af', bg: summary.merma_total > 0 ? '#fef2f2' : '#f9fafb', sub: summary.merma_total > 0 ? `${summary.ordenes_canceladas.length} cancelaciones` : 'Sin mermas ✓' },
@@ -683,6 +739,37 @@ export default function CorteCaja() {
           aside, header, .print\\:hidden { display: none !important; }
         }
       `}</style>
+
+      {/* Movimientos Modal */}
+      {showMovModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'#fff', borderRadius:20, padding:28, maxWidth:380, width:'100%' }}>
+            <h3 style={{ fontSize:17, fontWeight:700, marginBottom:16, color:'#111' }}>Nuevo movimiento de caja</h3>
+            <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+              {(['ingreso','egreso'] as const).map(t => (
+                <button key={t} onClick={() => setMovForm(f => ({ ...f, tipo: t }))}
+                  style={{ flex:1, padding:'9px', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer',
+                    background: movForm.tipo === t ? (t==='ingreso' ? '#dcfce7' : '#fee2e2') : '#f3f4f6',
+                    color: movForm.tipo === t ? (t==='ingreso' ? '#16a34a' : '#dc2626') : '#6b7280',
+                    border: movForm.tipo === t ? `1.5px solid ${t==='ingreso' ? '#4ade80' : '#f87171'}` : '1.5px solid transparent' }}>
+                  {t === 'ingreso' ? '↓ Ingreso' : '↑ Egreso'}
+                </button>
+              ))}
+            </div>
+            <input value={movForm.monto} onChange={e => setMovForm(f => ({ ...f, monto: e.target.value }))}
+              type="number" placeholder="Monto ($)"
+              style={{ width:'100%', border:'1.5px solid #d1d5db', borderRadius:10, padding:'10px 14px', fontSize:15, marginBottom:10, boxSizing:'border-box' }} />
+            <input value={movForm.concepto} onChange={e => setMovForm(f => ({ ...f, concepto: e.target.value }))}
+              placeholder="Concepto (ej: Compra urgente, Depósito banco...)"
+              onKeyDown={e => e.key === 'Enter' && handleAddMovimiento()}
+              style={{ width:'100%', border:'1.5px solid #d1d5db', borderRadius:10, padding:'10px 14px', fontSize:14, marginBottom:16, boxSizing:'border-box' }} />
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setShowMovModal(false)} style={{ flex:1, padding:10, borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>Cancelar</button>
+              <button onClick={handleAddMovimiento} style={{ flex:1, padding:10, borderRadius:10, background:'#1B3A6B', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>Registrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

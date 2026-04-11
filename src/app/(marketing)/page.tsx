@@ -9,12 +9,56 @@ const PAINS = [
 ];
 
 const PLANS = [
-  { key:'operacion', name:'Operación', price:799, tagline:'Ya no hay papel en tu restaurante.', sub:'Para el restaurante que da el primer paso digital serio.', color:'#4a9eff',
-    features:[['POS con mapa de mesas drag & drop','Unión, pagos mixtos, descuentos, propinas'],['Cocina digital KDS','Semáforo verde/amarillo/rojo por platillo'],['Mesero móvil sin app store','Se instala desde el navegador. Sin Google Play.'],['Menú digital','Categorías, fotos, modificadores'],['Corte de caja','Cierre en 30 segundos con resumen completo'],['Roles y acceso por PIN','Cada empleado entra directo a su herramienta']] },
-  { key:'negocio', name:'Negocio', price:1499, tagline:'Ya sé exactamente qué pasa en mi restaurante.', sub:'Para el restaurante que opera bien y quiere entender su rentabilidad.', color:'#c9963a', featured:true,
-    features:[['Todo lo de Operación',''],['Inventario vivo por receta','Cada venta descuenta ingredientes automáticamente'],['COGS real — no estimado','Costo por platillo calculado desde la receta exacta'],['P&L por día, semana o mes','Gastos escalados al período. Sin sorpresas.'],['Merma con costo y razón','Cada cancelación registra el costo del ingrediente'],['Gastos y depreciaciones','Pagos recurrentes con alertas de vencimiento'],['Lista de compras automática','Basada en punto de reorden y historial de salidas'],['Reservaciones → POS directo','Botón Sentar lleva la mesa al POS sin pasos extra'],['Programa de lealtad','Puntos, niveles y recompensas configurables']] },
-  { key:'empresa', name:'Empresa', price:2499, tagline:'Ya puedo escalar sin perder el control.', sub:'Para cadenas y grupos que necesitan visión centralizada.', color:'#a78bfa',
-    features:[['Todo lo de Negocio',''],['Multi-sucursal consolidado','Dashboard unificado. Mesas aisladas por sucursal.'],['Nómina LFT compliant','Art. 67/68/69/75. Horas extra calculadas y validadas.'],['Recursos humanos','Vacaciones, permisos, tiempos extra con factor 2x/3x'],['Delivery integrado','Asignación de repartidores, estados, historial'],['Reportes ejecutivos PDF','Por sucursal o consolidados, por período'],['Análisis avanzado de mermas','Por sucursal, por ingrediente, por turno']] },
+  { key:'operacion', name:'Operación', price:799,
+    etapa:'Etapa 1 — Orden y control',
+    tagline:'Ya no hay papel en tu restaurante.',
+    sub:'El restaurante que da el primer paso digital serio. Eliminas el caos antes de medir nada.',
+    promise:'Cuando estés listo para entender tu rentabilidad, el paso al siguiente plan es natural.',
+    color:'#4a9eff',
+    features:[
+      ['POS con mapa de mesas drag & drop','Unión de mesas, pagos mixtos, descuentos, propinas'],
+      ['Para llevar integrado al POS','Flujo completo — sin mesa física, con nombre del cliente'],
+      ['Cocina digital KDS','Semáforo verde/amarillo/rojo. Badge urgente. Realtime.'],
+      ['Mesero móvil sin app store','Se instala desde el navegador en 10 segundos.'],
+      ['Menú digital','Categorías, emojis, modificadores por platillo'],
+      ['Corte de caja','Cierre en 30 segundos. Mesa vs Para Llevar separados.'],
+      ['Roles y acceso por PIN','Cada empleado entra directo a su herramienta'],
+      ['Control de propinas','Registro y resumen por turno'],
+      ['Reservaciones','Con confirmación automática al mesero'],
+    ] },
+  { key:'negocio', name:'Negocio', price:1499,
+    etapa:'Etapa 2 — Rentabilidad visible',
+    tagline:'Ya sé exactamente qué pasa en mi restaurante.',
+    sub:'El restaurante que opera bien y quiere tomar decisiones con números, no con intuición.',
+    promise:'Cuando necesites escalar a más sucursales, el sistema ya está listo para acompañarte.',
+    color:'#c9963a',
+    features:[
+      ['Todo lo de Operación',''],
+      ['Inventario vivo por receta','Cada venta descuenta ingredientes automáticamente'],
+      ['COGS real — no estimado','Costo por platillo desde la receta exacta'],
+      ['P&L por día, semana o mes','Gastos escalados al período. Sin sorpresas.'],
+      ['Merma con costo y razón','Cada cancelación registra el costo del ingrediente'],
+      ['Gastos y depreciaciones','Pagos recurrentes con alertas de vencimiento'],
+      ['Lista de compras automática','Basada en punto de reorden e historial de salidas'],
+      ['Programa de lealtad','Puntos, niveles y recompensas configurables'],
+      ['Alertas inteligentes','Stock bajo, órdenes demoradas, mesas sin atender'],
+    ] },
+  { key:'empresa', name:'Empresa', price:2499,
+    etapa:'Etapa 3 — Escala con control',
+    tagline:'Ya puedo crecer sin perder el hilo.',
+    sub:'Cadenas y grupos que necesitan visión centralizada sin perder la autonomía de cada sucursal.',
+    promise:'Aldente crece contigo. Aquí no hay techo.',
+    color:'#a78bfa',
+    features:[
+      ['Todo lo de Negocio',''],
+      ['Multi-sucursal consolidado','Dashboard unificado. Mesas y operación aisladas por sucursal.'],
+      ['Analytics comparativo','P&L por sucursal. Ranking de desempeño. Márgenes en paralelo.'],
+      ['Nómina LFT compliant','Art. 67/68/69/75. Horas extra calculadas y validadas.'],
+      ['Recursos humanos','Vacaciones, permisos, tiempos extra con factor 2x/3x'],
+      ['Delivery integrado','Asignación de repartidores, estados, historial por sucursal'],
+      ['Reportes ejecutivos','Por sucursal o consolidados, por período'],
+      ['Análisis avanzado de mermas','Por sucursal, por ingrediente, por turno'],
+    ] },
 ];
 
 const DIFFS = [
@@ -370,11 +414,12 @@ export default function MarketingPage() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}} className="g3">
             {PLANS.map(plan=>{
               const fp=Math.round(plan.price*disc);
+              const p=plan as any;
               return(
                 <div key={plan.key} className="pcard"
-                  style={{background:plan.featured?`linear-gradient(145deg,${plan.color}0a,rgba(255,255,255,.03))`:'rgba(255,255,255,.025)',border:plan.featured?`1.5px solid ${plan.color}40`:'1px solid rgba(255,255,255,.07)',position:'relative'}}>
-                  {plan.featured&&<div style={{position:'absolute',top:-12,left:'50%',transform:'translateX(-50%)',padding:'4px 16px',borderRadius:100,background:plan.color,fontSize:10,fontWeight:700,color:'#07090f',letterSpacing:'.08em',textTransform:'uppercase',whiteSpace:'nowrap'}}>El más completo</div>}
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',color:plan.color,marginBottom:16}}>{plan.name}</div>
+                  style={{background:`linear-gradient(145deg,${plan.color}08,rgba(255,255,255,.02))`,border:`1px solid ${plan.color}25`,position:'relative'}}>
+                  <div style={{fontSize:10,fontWeight:600,letterSpacing:'.1em',textTransform:'uppercase',color:`${plan.color}88`,marginBottom:8}}>{p.etapa}</div>
+                  <div style={{fontSize:13,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:plan.color,marginBottom:16}}>{plan.name}</div>
                   <div style={{marginBottom:4}}>
                     <span style={{fontSize:52,fontWeight:700,color:'#f0ece4',lineHeight:1,fontFamily:"'Playfair Display',serif"}}>${fp.toLocaleString('es-MX')}</span>
                     <span style={{fontSize:13,color:'rgba(240,236,228,.6)',marginLeft:6}}>/mes</span>
@@ -382,8 +427,10 @@ export default function MarketingPage() {
                   {annual&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
                   <p className="serif" style={{fontSize:15,color:plan.featured?plan.color:'rgba(240,236,228,.65)',fontStyle:'italic',marginBottom:8,lineHeight:1.4}}>{plan.tagline}</p>
                   <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:28,lineHeight:1.65}}>{plan.sub}</p>
-                  <a href="/registro" style={{display:'block',padding:'12px',borderRadius:12,background:plan.featured?plan.color:'rgba(255,255,255,.06)',color:plan.featured?'#07090f':'#f0ece4',fontSize:14,fontWeight:600,textAlign:'center',border:plan.featured?'none':'1px solid rgba(255,255,255,.1)',marginBottom:28,transition:'all .2s'}}>
-                    Empezar con {plan.name} →
+                  <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:20,lineHeight:1.65}}>{plan.sub}</p>
+                  {p.promise&&<p style={{fontSize:11,color:`${plan.color}70`,marginBottom:20,lineHeight:1.6,fontStyle:'italic',borderLeft:`2px solid ${plan.color}25`,paddingLeft:10}}>{p.promise}</p>}
+                  <a href="/registro" style={{display:'block',padding:'12px',borderRadius:12,background:`${plan.color}18`,color:plan.color,fontSize:14,fontWeight:600,textAlign:'center',border:`1px solid ${plan.color}30`,marginBottom:28,transition:'all .2s'}}>
+                    Empezar en {plan.name} →
                   </a>
                   <div style={{display:'flex',flexDirection:'column',gap:11}}>
                     {plan.features.map(([title,desc],fi)=>(
