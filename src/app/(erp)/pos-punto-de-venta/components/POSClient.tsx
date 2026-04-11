@@ -265,20 +265,20 @@ export default function POSClient() {
     setLoadingMenu(false);
   }, [supabase]);
 
-  // When blockSaleNoStock is on, mark dishes as unavailable if ingredients are low
+  // When blockSaleNoStock turns on, mark dishes unavailable if ingredients are low
+  // Uses functional setMenuItems(prev=>) so we don't need menuItems in deps
+  // (avoids infinite loop: setMenuItems → menuItems changes → effect re-runs)
+  const stockCheckDoneRef = useRef(false);
   useEffect(() => {
-    if (!blockSaleNoStock || !menuItems.length) return;
-    // Load dish_recipes + ingredient stock for all menu items
-    const dishIds = menuItems.map(m => m.id);
+    if (!blockSaleNoStock) { stockCheckDoneRef.current = false; return; }
+    if (stockCheckDoneRef.current) return; // already checked this session
+    stockCheckDoneRef.current = true;
     supabase.from('dish_recipes')
       .select('dish_id, quantity, ingredients(id, stock, unit)')
       .eq('tenant_id', getTenantId())
-      .in('dish_id', dishIds)
       .then(({ data: recipes }) => {
         if (!recipes) return;
-        // Build map: dishId → can it be made?
         const canMake: Record<string, boolean> = {};
-        dishIds.forEach(id => { canMake[id] = true; });
         recipes.forEach((r: any) => {
           const ing = r.ingredients;
           if (!ing) return;
@@ -291,7 +291,7 @@ export default function POSClient() {
           available: canMake[m.id] === false ? false : m.available,
         })));
       });
-  }, [blockSaleNoStock, menuItems.length, supabase]);
+  }, [blockSaleNoStock, supabase]);
 
   useEffect(() => {
     fetchTables();
@@ -1118,14 +1118,22 @@ export default function POSClient() {
     const remainingItems = orderItems.filter(i => !lineIds.includes(i.lineId));
     setOrderItems(remainingItems);
 
-    // Update remaining total on the original order
+    // Update remaining total on the original order AND table item_count
     const newSubtotal = remainingItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
-    await supabase.from('orders').update({
-      subtotal: newSubtotal,
-      iva: newSubtotal * ivaRate,
-      total: newSubtotal * (1 + ivaRate),
-      updated_at: now,
-    }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId());
+    const newCount = remainingItems.reduce((s, i) => s + i.quantity, 0);
+    await Promise.all([
+      supabase.from('orders').update({
+        subtotal: newSubtotal,
+        iva: newSubtotal * ivaRate,
+        total: newSubtotal * (1 + ivaRate),
+        updated_at: now,
+      }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId()),
+      supabase.from('restaurant_tables').update({
+        item_count: newCount,
+        partial_total: newSubtotal * (1 + ivaRate),
+        updated_at: now,
+      }).eq('id', selectedTable.id),
+    ]);
 
     // Delete the paid items from order_items
     const lineIdsInDb = selectedItems.map(i => i.lineId);
