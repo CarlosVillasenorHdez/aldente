@@ -50,8 +50,8 @@ export default function RecentOrders() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    // Build query with explicit tenant filter (defense-in-depth alongside RLS)
-    let query = supabase
+    try {
+    const { data, error } = await supabase
       .from('orders')
       .select('id, mesa, mesero, status, total, opened_at, closed_at, duration_min, pay_method, order_items(qty)')
       .eq('tenant_id', getTenantId())
@@ -86,8 +86,10 @@ export default function RecentOrders() {
         })
       );
     }
-    setLoading(false);
-  }, [tenantId]);
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();

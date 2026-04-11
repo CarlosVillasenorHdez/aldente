@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -102,7 +103,7 @@ export default function TenantDetailPage() {
     setSavingPin(true);
     const hashed = await hashPin(newPin);
     const { error } = await supabase.from('app_users').update({ pin: hashed }).eq('id', pinModal.id);
-    if (error) { alert('Error: ' + error.message); }
+    if (error) { toast.error('Error: ' + error.message); }
     else {
       setUsers(prev => prev.map(u => u.id === pinModal.id ? { ...u, pin: hashed } : u));
       setPinModal(null);
@@ -128,7 +129,7 @@ export default function TenantDetailPage() {
       tenant_id: id,
       is_active: true,
     });
-    if (error) { alert('Error: ' + error.message); }
+    if (error) { toast.error('Error: ' + error.message); }
     else {
       // Reload users
       const { data } = await supabase.from('app_users').select('id, full_name, app_role, is_active, pin, employee_id').eq('tenant_id', id).order('app_role');
@@ -149,7 +150,13 @@ export default function TenantDetailPage() {
       plan_valid_until: draft.plan_valid_until || null,
     }).eq('id', id);
     setSaving(false);
-    setMsg(error ? { text: 'Error al guardar: ' + error.message, ok: false } : { text: '✓ Cambios guardados', ok: true });
+    if (error) {
+      setMsg({ text: 'Error al guardar: ' + error.message, ok: false });
+      toast.error('Error al guardar: ' + error.message);
+    } else {
+      setMsg({ text: '✓ Cambios guardados', ok: true });
+      toast.success('Cambios guardados correctamente');
+    }
     setTimeout(() => setMsg(null), 3000);
   }
 

@@ -313,7 +313,7 @@ export default function MeseroMobileView() {
 
     const waiter = myName || appUser?.fullName || 'Mesero';
     const flowTable = { id: selectedTable.id, number: selectedTable.number, name: selectedTable.name, currentOrderId: currentOrderId ?? undefined };
-    const orderId = await ensureOpenOrder(flowTable, waiter, branchName);
+    const orderId = await ensureOpenOrder(flowTable, waiter, branchName, { branchId: activeBranch ?? null });
     if (!currentOrderId) {
       setCurrentOrderId(orderId);
       setSelectedTable(prev => prev ? { ...prev, currentOrderId: orderId } : prev);
@@ -436,7 +436,7 @@ export default function MeseroMobileView() {
     try {
       const waiter = myName;
       const flowTable = { id: selectedTable.id, number: selectedTable.number, name: selectedTable.name, currentOrderId: currentOrderId ?? undefined };
-      const orderId = await ensureOpenOrder(flowTable, waiter, branchName);
+      const orderId = await ensureOpenOrder(flowTable, waiter, branchName, { branchId: activeBranch ?? null });
       if (!currentOrderId) setCurrentOrderId(orderId);
 
       // Build diff — only items NOT yet in the snapshot are new

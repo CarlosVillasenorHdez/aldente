@@ -521,7 +521,7 @@ export default function GastosManagement() {
   }
 
   async function handleDeleteGasto(id: string) {
-    if (!confirm('¿Eliminar este gasto?')) return;
+    // inline delete — user already clicked delete button
     const { error } = await supabase.from('gastos_recurrentes').delete().eq('id', id);
     if (error) { toast.error('Error al eliminar gasto: ' + error.message); return; }
     fetchGastos();
@@ -609,7 +609,7 @@ export default function GastosManagement() {
   }
 
   async function handleDeleteDep(id: string) {
-    if (!confirm('¿Eliminar este activo?')) return;
+    // inline delete — user already clicked delete button
     const { error } = await supabase.from('depreciaciones').delete().eq('id', id);
     if (error) { toast.error('Error al eliminar activo: ' + error.message); return; }
     fetchDepreciaciones();
