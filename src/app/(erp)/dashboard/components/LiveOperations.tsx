@@ -33,8 +33,8 @@ export default function LiveOperations() {
     // Build query with explicit tenant filter (defense-in-depth alongside RLS)
     let query = supabase
       .from('orders')
-      .eq('tenant_id', getTenantId())
       .select('id, mesa, mesero, kitchen_status, created_at, parent_order_id')
+      .eq('tenant_id', getTenantId())
       .eq('is_comanda', true)
       .in('kitchen_status', ['pendiente', 'preparacion', 'lista'])
       .neq('status', 'cancelada')
