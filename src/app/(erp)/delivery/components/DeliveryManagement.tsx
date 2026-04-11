@@ -23,6 +23,7 @@ interface DeliveryOrder {
   status: 'recibido' | 'preparacion' | 'listo' | 'en_camino' | 'entregado' | 'cancelado';
   notes: string;
   receivedAt: string;
+  etaMinutes: number | null;
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -63,6 +64,7 @@ const emptyForm = {
   customerAddress: '',
   customerPhone: '',
   notes: '',
+  etaMinutes: 30,
   items: [{ name: '', qty: 1, price: 0 }],
 };
 
@@ -98,6 +100,7 @@ export default function DeliveryManagement() {
         status: o.status,
         notes: o.notes,
         receivedAt: o.received_at,
+        etaMinutes: o.eta_minutes ?? null,
       })));
     } catch (err: any) {
       toast.error('Error: ' + err.message);
@@ -136,6 +139,7 @@ export default function DeliveryManagement() {
         received_at: new Date().toISOString(),
         tenant_id: getTenantId(),
         branch_id: activeBranchId ?? null,
+        eta_minutes: (form as any).etaMinutes ?? 30,
       };
       const { error } = await supabase.from('delivery_orders').insert(payload);
       if (error) throw error;
