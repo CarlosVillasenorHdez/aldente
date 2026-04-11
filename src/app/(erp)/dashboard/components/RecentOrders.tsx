@@ -48,6 +48,7 @@ export default function RecentOrders() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    try {
     const { data, error } = await supabase
       .from('orders')
       .eq('tenant_id', getTenantId())
@@ -77,7 +78,9 @@ export default function RecentOrders() {
         })
       );
     }
-    setLoading(false);
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

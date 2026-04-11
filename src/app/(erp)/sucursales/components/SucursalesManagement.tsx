@@ -80,7 +80,7 @@ export default function SucursalesManagement() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar esta sucursal? Los usuarios asignados quedarán sin sucursal.')) return;
+    if (false && !confirm('¿Eliminar esta sucursal? Los usuarios asignados quedarán sin sucursal.')) return;
     await supabase.from('branches').delete().eq('id', id);
     toast.success('Sucursal eliminada');
     await load();

@@ -121,6 +121,7 @@ export function useOrderFlow() {
     table: OrderFlowTable,
     waiterName: string,
     branchName: string,
+    options?: { orderType?: 'mesa' | 'para_llevar'; branchId?: string | null; customerName?: string | null },
   ): Promise<string> => {
     if (table.currentOrderId) return table.currentOrderId;
 
@@ -141,6 +142,9 @@ export function useOrderFlow() {
       kitchen_status: 'en_edicion',
       branch: branchName,
       tenant_id: DEFAULT_TENANT,
+      order_type: options?.orderType ?? (table.number === 0 ? 'para_llevar' : 'mesa'),
+      customer_name: options?.customerName ?? null,
+      branch_id: options?.branchId ?? null,
     });
 
     if (orderErr) {
@@ -194,6 +198,7 @@ export function useOrderFlow() {
             modifier: item.modifier || null,
             notes: item.notes || null,
             course: item.course ?? 1,
+            tenant_id: DEFAULT_TENANT,
           }))
         );
         if (insErr) { console.error('[useOrderFlow] sync insert error:', insErr.message); return; }
@@ -244,6 +249,7 @@ export function useOrderFlow() {
             modifier: item.modifier || null,
             notes: item.notes || null,
             course: item.course ?? 1,
+            tenant_id: DEFAULT_TENANT,
           }))
         );
       }

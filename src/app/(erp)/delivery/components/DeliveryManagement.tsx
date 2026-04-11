@@ -208,7 +208,7 @@ export default function DeliveryManagement() {
   };
 
   const cancelOrder = async (id: string) => {
-    if (!confirm('¿Cancelar este pedido?')) return;
+    // confirmed by button click — no modal needed for cancel
     const { error } = await supabase.from('delivery_orders').update({ status: 'cancelado' }).eq('id', id);
     if (error) { toast.error('Error: ' + error.message); return; }
     toast.success('Pedido cancelado');
