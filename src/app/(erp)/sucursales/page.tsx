@@ -28,7 +28,6 @@ export default function SucursalesPage() {
                 borderBottom: `2px solid ${tab === t.id ? '#c9963a' : 'transparent'}`,
                 color: tab === t.id ? '#c9963a' : 'rgba(255,255,255,.4)',
                 background: 'transparent', border: 'none',
-                borderBottom: `2px solid ${tab === t.id ? '#c9963a' : 'transparent'}`,
                 transition: 'all .15s',
               }}>
               {t.label}

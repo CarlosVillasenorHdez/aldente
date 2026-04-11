@@ -110,6 +110,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
 export default function DashboardKPIs() {
   const { features } = useFeatures();
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const [kpis, setKpis] = useState({
     ventasHoy: 0, ventasAyer: 0,
     ordenesAbiertas: 0, totalMesas: 0, mesasOcupadas: 0,
