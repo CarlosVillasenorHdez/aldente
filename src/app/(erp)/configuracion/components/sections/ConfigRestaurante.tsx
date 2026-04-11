@@ -1,4 +1,5 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
