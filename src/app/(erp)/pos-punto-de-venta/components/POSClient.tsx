@@ -115,6 +115,8 @@ export default function POSClient() {
 
   // Para llevar state
   const [showTakeoutModal, setShowTakeoutModal] = useState(false);
+  // Traslado entre mesas
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [takeoutCustomerName, setTakeoutCustomerName] = useState('');
   const [takeoutNameInput, setTakeoutNameInput] = useState('');
 
@@ -492,6 +494,47 @@ export default function POSClient() {
   }, [supabase]);
 
   // ─── Table select ─────────────────────────────────────────────────────────
+
+  // ── Traslado de orden a otra mesa ──────────────────────────────────────────
+  const handleTransferTable = async (targetTable: Table) => {
+    if (!selectedTable?.currentOrderId || !targetTable.id) return;
+    if (targetTable.currentOrderId) {
+      toast.error(`${targetTable.name} ya tiene una orden activa`);
+      return;
+    }
+    try {
+      const orderId = selectedTable.currentOrderId;
+      const now = new Date().toISOString();
+      // Update order: new mesa
+      await supabase.from('orders').update({
+        mesa: targetTable.name,
+        mesa_num: targetTable.number,
+      }).eq('id', orderId).eq('tenant_id', getTenantId());
+      // Free old table
+      await supabase.from('restaurant_tables').update({
+        status: 'libre', current_order_id: null, waiter: null, opened_at: null,
+        item_count: 0, partial_total: 0, updated_at: now,
+      }).eq('id', selectedTable.id);
+      // Occupy new table
+      await supabase.from('restaurant_tables').update({
+        status: 'ocupada', current_order_id: orderId,
+        waiter: selectedTable.waiter ?? appUser?.fullName ?? '',
+        opened_at: selectedTable.openedAt ?? now,
+        updated_at: now,
+      }).eq('id', targetTable.id);
+      toast.success(`Orden trasladada a ${targetTable.name}`);
+      setShowTransferModal(false);
+      // Update local state
+      setSelectedTable({ ...targetTable, currentOrderId: orderId, waiter: selectedTable.waiter, openedAt: selectedTable.openedAt, status: 'ocupada', itemCount: selectedTable.itemCount, partialTotal: selectedTable.partialTotal });
+      setTables(prev => prev.map(t => {
+        if (t.id === selectedTable.id) return { ...t, status: 'libre' as any, currentOrderId: undefined, waiter: undefined };
+        if (t.id === targetTable.id) return { ...t, status: 'ocupada' as any, currentOrderId: orderId, waiter: selectedTable.waiter };
+        return t;
+      }));
+    } catch (err: any) {
+      toast.error('Error al trasladar: ' + err.message);
+    }
+  };
 
   // ── Para Llevar: create order without a physical table ────────────────────
   const handleCreateTakeout = async (customerName: string) => {
@@ -1118,6 +1161,9 @@ export default function POSClient() {
                       <X size={12} />Separar mesas
                     </button>
                   )}
+                  <button onClick={() => setShowTransferModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }} title="Trasladar orden a otra mesa">
+                    ↔ Cambiar mesa
+                  </button>
                   <button onClick={handleCancelTable} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Cancelar y liberar mesa sin cobrar">
                     <X size={12} />Cancelar mesa
                   </button>
@@ -1252,6 +1298,37 @@ export default function POSClient() {
 
       {/* Spacer so content doesn't hide behind mobile tab bar */}
       <div className="h-14 md:hidden flex-shrink-0" />
+
+      {/* ── Traslado entre mesas Modal ── */}
+      {showTransferModal && selectedTable && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+          <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'480px', width:'100%' }}>
+            <div style={{ marginBottom:'20px' }}>
+              <h3 style={{ color:'#f1f5f9', fontSize:'18px', fontWeight:700, marginBottom:'6px' }}>↔ Cambiar mesa</h3>
+              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px' }}>
+                Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre
+              </p>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(80px, 1fr))', gap:8, maxHeight:'300px', overflowY:'auto', marginBottom:'16px' }}>
+              {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).map(t => (
+                <button key={t.id} onClick={() => handleTransferTable(t)}
+                  style={{ padding:'12px 8px', borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'#4ade80', fontSize:13, fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                  {t.name}
+                </button>
+              ))}
+              {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).length === 0 && (
+                <p style={{ color:'rgba(255,255,255,0.3)', fontSize:13, gridColumn:'1/-1', textAlign:'center', padding:'20px 0' }}>
+                  Sin mesas libres disponibles
+                </p>
+              )}
+            </div>
+            <button onClick={() => setShowTransferModal(false)}
+              style={{ width:'100%', padding:'11px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', fontSize:14, fontWeight:600, cursor:'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Para Llevar Modal ── */}
       {showTakeoutModal && (

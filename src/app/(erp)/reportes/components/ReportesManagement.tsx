@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
@@ -508,6 +509,49 @@ export default function ReportesManagement() {
   const [pdfStart, setPdfStart] = useState(customStart || new Date().toISOString().split('T')[0]);
   const [pdfEnd, setPdfEnd] = useState(customEnd || new Date().toISOString().split('T')[0]);
 
+  const handleExportExcel = useCallback(() => {
+    const NL = '\n';
+    const esc = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const toRow = (cells: unknown[]) => cells.map(esc).join(',');
+
+    const kpis = kpisToUse;
+    const kpiSection = [
+      'KPIs del período',
+      toRow(['Métrica', 'Valor']),
+      toRow(['Período', dateRangeLabel]),
+      toRow(['Ventas totales', '$' + (kpis?.ventas ?? 0).toFixed(2)]),
+      toRow(['Órdenes', kpis?.ordenes ?? 0]),
+      toRow(['Ticket promedio', '$' + (kpis?.ticket ?? 0).toFixed(2)]),
+      toRow(['COGS (costo)', '$' + (realKpis?.costo ?? 0).toFixed(2)]),
+      toRow(['Margen bruto %', (realKpis?.margenPct ?? 0).toFixed(1) + '%']),
+      toRow(['Merma total', '$' + (realKpis?.merma ?? 0).toFixed(2)]),
+      toRow(['Descuentos', '$' + (realKpis?.descuentos ?? 0).toFixed(2)]),
+      toRow(['IVA', '$' + (realKpis?.iva ?? 0).toFixed(2)]),
+    ].join(NL);
+
+    const dishSection = [
+      'Top Platillos',
+      toRow(['Platillo', 'Categoría', 'Cantidad vendida', 'Ingresos']),
+      ...topDishesToUse.map(d => toRow([d.nombre, d.categoria, d.cantidad, '$' + d.ingresos.toFixed(2)])),
+    ].join(NL);
+
+    const hourSection = [
+      'Ventas por Hora',
+      toRow(['Hora', 'Ventas', 'Órdenes']),
+      ...hourlyData.map((h: any) => toRow([h.hora, '$' + h.ventas.toFixed(2), h.ordenes])),
+    ].join(NL);
+
+    const content = '\uFEFF' + kpiSection + NL + NL + dishSection + NL + NL + hourSection;
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reporte_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Reporte exportado — ábrelo en Excel');
+  }, [kpisToUse, realKpis, topDishesToUse, hourlyData, dateRangeLabel]);
+
   const handleExportPDF = useCallback(() => {
     setShowPDFModal(true);
   }, []);
@@ -884,20 +928,30 @@ export default function ReportesManagement() {
           <h1 className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>Reportes y Análisis</h1>
           <p className="text-sm text-gray-500 mt-0.5">{dateRangeLabel}</p>
         </div>
-        <button
-          onClick={handleExportPDF}
-          disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all duration-150 print:hidden"
-          style={{
-            fontWeight: 600,
-            backgroundColor: exporting ? '#d97706' : '#f59e0b',
-            color: '#1B3A6B',
-            opacity: exporting ? 0.8 : 1,
-          }}
-        >
-          <Download size={16} />
-          {exporting ? 'Generando PDF…' : 'Exportar PDF'}
-        </button>
+        <div className="flex items-center gap-2 print:hidden">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all duration-150"
+            style={{ fontWeight: 600, backgroundColor: '#16a34a', color: '#fff' }}
+          >
+            <Download size={16} />
+            Excel / CSV
+          </button>
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all duration-150"
+            style={{
+              fontWeight: 600,
+              backgroundColor: exporting ? '#d97706' : '#f59e0b',
+              color: '#1B3A6B',
+              opacity: exporting ? 0.8 : 1,
+            }}
+          >
+            <Download size={16} />
+            {exporting ? 'Generando PDF…' : 'Exportar PDF'}
+          </button>
+        </div>
       </div>
 
       <div className="px-6 py-5 space-y-6">
