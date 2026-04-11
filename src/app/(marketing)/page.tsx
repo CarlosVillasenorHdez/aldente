@@ -425,7 +425,7 @@ export default function MarketingPage() {
                     <span style={{fontSize:13,color:'rgba(240,236,228,.6)',marginLeft:6}}>/mes</span>
                   </div>
                   {annual&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
-                  <p className="serif" style={{fontSize:15,color:plan.featured?plan.color:'rgba(240,236,228,.65)',fontStyle:'italic',marginBottom:8,lineHeight:1.4}}>{plan.tagline}</p>
+                  <p className="serif" style={{fontSize:15,color:'rgba(240,236,228,.65)',fontStyle:'italic',marginBottom:8,lineHeight:1.4}}>{plan.tagline}</p>
                   <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:28,lineHeight:1.65}}>{plan.sub}</p>
                   <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:20,lineHeight:1.65}}>{plan.sub}</p>
                   {p.promise&&<p style={{fontSize:11,color:`${plan.color}70`,marginBottom:20,lineHeight:1.6,fontStyle:'italic',borderLeft:`2px solid ${plan.color}25`,paddingLeft:10}}>{p.promise}</p>}
@@ -460,7 +460,7 @@ export default function MarketingPage() {
           <h2 className="serif" style={{fontSize:'clamp(40px,6vw,76px)',fontWeight:700,lineHeight:1.05,marginBottom:20}}>
             Tu restaurante merece<br/><em style={{color:'#c9963a'}}>saber la verdad.</em>
           </h2>
-          <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.<br/>El sistema queda configurado el mismo día.</p>
+          <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.&lt;br/&gt;El sistema queda configurado el mismo día.</p>
           <a href="/registro" className="pill gold" style={{fontSize:16,padding:'16px 40px'}}>Probar Aldente gratis →</a>
         </div>
       </section>
