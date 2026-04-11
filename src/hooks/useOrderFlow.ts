@@ -15,6 +15,7 @@
 
 import { useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { DbOrderItem, DbDish } from '@/lib/supabase/types';
@@ -75,7 +76,7 @@ export interface CloseOrderParams {
 export function useOrderFlow() {
   const supabase = createClient();
   const { tenantId } = useAuth();
-  const DEFAULT_TENANT = tenantId ?? '00000000-0000-0000-0000-000000000001';
+  const DEFAULT_TENANT = getTenantId() || tenantId || '00000000-0000-0000-0000-000000000001';
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Load existing order items when reopening a table ─────────────────────

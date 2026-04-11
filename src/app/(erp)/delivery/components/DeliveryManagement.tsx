@@ -1,4 +1,5 @@
 'use client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -67,6 +68,7 @@ const emptyForm = {
 
 export default function DeliveryManagement() {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -133,6 +135,7 @@ export default function DeliveryManagement() {
         status: 'recibido',
         received_at: new Date().toISOString(),
         tenant_id: getTenantId(),
+        branch_id: activeBranchId ?? null,
       };
       const { error } = await supabase.from('delivery_orders').insert(payload);
       if (error) throw error;

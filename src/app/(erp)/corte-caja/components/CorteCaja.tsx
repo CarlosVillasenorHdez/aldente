@@ -36,6 +36,8 @@ interface CorteCajaRecord {
 
 interface OrderSummary {
   ventas_efectivo: number;
+  ventas_mesa?: number;
+  ventas_para_llevar?: number;
   ventas_tarjeta: number;
   ventas_total: number;
   ordenes_count: number;
@@ -173,7 +175,7 @@ export default function CorteCaja() {
       supabase
         .from('orders')
         .eq('tenant_id', getTenantId())
-        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost')
+        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type')
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('closed_at', desde)
@@ -194,7 +196,9 @@ export default function CorteCaja() {
       return;
     }
 
-    const ventas_efectivo = orders.filter(o => o.pay_method === 'efectivo').reduce((s, o) => s + Number(o.total), 0);
+    const ventas_efectivo   = orders.filter(o => o.pay_method === 'efectivo').reduce((s, o) => s + Number(o.total), 0);
+    const ventas_mesa       = orders.filter(o => !o.order_type || o.order_type === 'mesa').reduce((s, o) => s + Number(o.total), 0);
+    const ventas_para_llevar = orders.filter(o => o.order_type === 'para_llevar').reduce((s, o) => s + Number(o.total), 0);
     const ventas_tarjeta  = orders.filter(o => o.pay_method === 'tarjeta').reduce((s, o) => s + Number(o.total), 0);
     const ventas_total    = orders.reduce((s, o) => s + Number(o.total), 0);
     const descuentos_total = orders.reduce((s, o) => s + Number(o.discount), 0);
@@ -225,7 +229,8 @@ export default function CorteCaja() {
     }, 0);
 
     setSummary({
-      ventas_efectivo, ventas_tarjeta, ventas_total,
+      ventas_efectivo,
+      ventas_mesa, ventas_para_llevar, ventas_tarjeta, ventas_total,
       ordenes_count: orders.length,
       descuentos_total, iva_total,
       costo_total, utilidad_bruta, margen_pct,
@@ -452,6 +457,8 @@ export default function CorteCaja() {
             { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: '#fffbeb', sub: `${summary.ordenes_count} órdenes` },
             { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: '#ecfdf5', sub: null },
             { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: '#eff6ff', sub: null },
+            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
+            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar ?? 0)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
             { label: 'Utilidad Bruta',  value: `$${fmt(summary.utilidad_bruta ?? 0)}`, icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4', sub: `${(summary.margen_pct ?? 0).toFixed(1)}% margen` },
             { label: '⚠️ Merma',       value: summary.merma_total > 0 ? `$${fmt(summary.merma_total)}` : '$0.00', icon: AlertTriangle, color: summary.merma_total > 0 ? '#dc2626' : '#9ca3af', bg: summary.merma_total > 0 ? '#fef2f2' : '#f9fafb', sub: summary.merma_total > 0 ? `${summary.ordenes_canceladas.length} cancelaciones` : 'Sin mermas ✓' },
             { label: 'Órdenes',         value: String(summary.ordenes_count),      icon: ShoppingBag,  color: '#8b5cf6', bg: '#f5f3ff' },
