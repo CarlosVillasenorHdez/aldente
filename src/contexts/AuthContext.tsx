@@ -131,6 +131,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // ── Load session on mount ────────────────────────────────────────────────
   useEffect(() => {
     const stored = loadSession();
+    if (stored?.tenantId) {
+      setCurrentTenantId(stored.tenantId); // restore into module store immediately
+    }
     setAppUser(stored);
     setLoading(false);
   }, []);

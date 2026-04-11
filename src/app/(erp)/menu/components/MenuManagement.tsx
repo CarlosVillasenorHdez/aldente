@@ -9,6 +9,7 @@ import {
   ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus, Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1207,11 +1208,14 @@ export default function MenuManagement() {
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
 
+  const { appUser } = useAuth();
   const supabase = createClient();
 
   const fetchDishes = useCallback(async () => {
+    const tenantId = getTenantId();
+    if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
     setLoading(true);
-    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).order('category').order('name');
+    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', tenantId).order('category').order('name');
     if (error) {
       alert('Error al cargar el menú: ' + error.message);
       setLoading(false);
@@ -1235,7 +1239,10 @@ export default function MenuManagement() {
     setLoading(false);
   }, [supabase]);
 
-  useEffect(() => { fetchDishes(); }, [fetchDishes]);
+  // Re-fetch when tenant becomes available (page load, or switching restaurant)
+  useEffect(() => { 
+    if (getTenantId()) fetchDishes(); 
+  }, [fetchDishes, appUser?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = dishes.filter((d) => {
     const matchCat = activeCategory === 'Todas' || d.category === activeCategory;

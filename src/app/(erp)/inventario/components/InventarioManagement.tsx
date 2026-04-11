@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
 import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart';
@@ -211,10 +212,13 @@ export default function InventarioManagement() {
   const [equivForm, setEquivForm] = useState(emptyEquivForm());
   const [equivEditId, setEquivEditId] = useState<string | null>(null);
   const [deleteEquivId, setDeleteEquivId] = useState<string | null>(null);
+  const { appUser } = useAuth();
   const supabase = createClient();
   const fetchIngredients = useCallback(async () => {
+    const tenantId = getTenantId();
+    if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
     setLoading(true);
-    const { data, error } = await supabase.from('ingredients').select('*').eq('tenant_id', getTenantId()).order('category').order('name');
+    const { data, error } = await supabase.from('ingredients').select('*').eq('tenant_id', tenantId).order('category').order('name');
     if (error) {
       toast.error('Error al cargar inventario. Verifica tu conexión.');
       setLoading(false);
@@ -287,7 +291,7 @@ export default function InventarioManagement() {
     }
     setLoadingEquiv(false);
   }, []);
-  useEffect(() => { fetchIngredients(); }, [fetchIngredients]);
+  useEffect(() => { fetchIngredients(); }, [fetchIngredients, appUser?.tenantId]); // eslint-disable-line
   useEffect(() => {
     if (activeTab === 'movimientos') fetchMovements(historyIngredientId ?? undefined);
     if (activeTab === 'equivalencias') fetchEquivalences();
