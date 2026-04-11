@@ -82,8 +82,8 @@ export default function SalesChart() {
       // Build query with explicit tenant filter (defense-in-depth alongside RLS)
       let todayQuery = supabase
         .from('orders')
-        .eq('tenant_id', getTenantId())
         .select('total, created_at, closed_at')
+        .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
         .gte('created_at', todayStart.toISOString())
@@ -141,8 +141,8 @@ export default function SalesChart() {
 
       let weekQuery = supabase
         .from('orders')
-        .eq('tenant_id', getTenantId())
         .select('total, created_at')
+        .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
         .gte('created_at', weekStart.toISOString());
