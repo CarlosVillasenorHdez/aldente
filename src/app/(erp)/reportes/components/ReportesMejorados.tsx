@@ -132,7 +132,7 @@ export default function ReportesMejorados() {
       }, 0);
       const FREC: Record<string, number> = { diario:1/30, semanal:1/4.33, quincenal:0.5, mensual:1, bimestral:2, trimestral:3, semestral:6, anual:12 };
       const monthlyGastos = (gastosData || []).reduce((s: number, g: any) => s + Number(g.monto) / (FREC[g.frecuencia] ?? 1), 0);
-      const days = period === 'hoy' ? 1 : period === 'semana' ? 7 : 30;
+      const days = (period as string) === 'hoy' ? 1 : (period as string) === 'semana' ? 7 : 30;
       const periodFactor = days / 30;
       const totalFixedCosts = Math.round((monthlyPayroll + monthlyGastos) * periodFactor);
       const avgCogsRatio = totalVentas > 0 ? (orderList.reduce((s,o)=>s+Number((o as any).cost_actual??0),0) / totalVentas) : 0.20;

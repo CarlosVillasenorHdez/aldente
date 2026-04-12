@@ -1004,7 +1004,7 @@ export default function ReportesManagement() {
             { label: 'Ventas', value: `$${kpisToUse.ventas.toLocaleString('es-MX')}`, sub: `${kpisToUse.ordenes} órdenes`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
             { label: 'Ticket prom.', value: `$${kpisToUse.ticket.toFixed(2)}`, sub: 'Por orden', icon: ShoppingCart, color: '#3b82f6', bg: '#eff6ff' },
             { label: 'Utilidad bruta', value: realKpis ? `$${(realKpis.ventas - (realKpis as any).costo || 0).toLocaleString('es-MX')}` : '—', sub: realKpis ? `${realKpis.margenPct.toFixed(1)}% margen` : 'Sin datos', icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4' },
-            { label: '⚠️ Merma', value: realKpis && realKpis.merma > 0 ? `$${realKpis.merma.toFixed(2)}` : '$0.00', sub: realKpis?.merma > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: realKpis?.merma > 0 ? '#dc2626' : '#9ca3af', bg: realKpis?.merma > 0 ? '#fef2f2' : '#f9fafb' },
+            { label: '⚠️ Merma', value: realKpis && (realKpis.merma ?? 0) > 0 ? `$${(realKpis.merma ?? 0).toFixed(2)}` : '$0.00', sub: (realKpis?.merma ?? 0) > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: (realKpis?.merma ?? 0) > 0 ? '#dc2626' : '#9ca3af', bg: (realKpis?.merma ?? 0) > 0 ? '#fef2f2' : '#f9fafb' },
             { label: 'Descuentos', value: realKpis ? `$${((realKpis as any).descuentos || 0).toFixed(2)}` : '—', sub: 'Total aplicado', icon: Tag, color: '#8b5cf6', bg: '#f5f3ff' },
             { label: 'IVA generado', value: realKpis ? `$${((realKpis as any).iva || 0).toFixed(2)}` : '—', sub: 'Por pagar', icon: Receipt, color: '#6b7280', bg: '#f9fafb' },
           ].map((kpi) => {
@@ -1265,6 +1265,114 @@ export default function ReportesManagement() {
             </div>
           )}
         </div>
+
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* ── SECCIÓN: BCG Matrix (Menu Engineering) ── */}
+        {cogsData.length > 0 && (() => {
+          // BCG: X = Popularidad (unidades vendidas), Y = Margen bruto %
+          const avgUnits = cogsData.reduce((s, d) => s + d.unidadesVendidas, 0) / cogsData.length;
+          const avgMargen = cogsData.reduce((s, d) => s + d.margenPct, 0) / cogsData.length;
+          const maxUnits = Math.max(...cogsData.map(d => d.unidadesVendidas), 1);
+          const maxMargen = Math.max(...cogsData.map(d => d.margenPct), 1);
+
+          const quadrant = (d: typeof cogsData[0]) => {
+            const hiPop = d.unidadesVendidas >= avgUnits;
+            const hiMar = d.margenPct >= avgMargen;
+            if (hiPop && hiMar) return { label: '⭐ Estrella', color: '#22c55e', bg: 'rgba(34,197,94,0.08)' };
+            if (!hiPop && hiMar) return { label: '🧩 Puzzle', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' };
+            if (hiPop && !hiMar) return { label: '🐄 Vaca', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)' };
+            return { label: '🐴 Burro', color: '#f87171', bg: 'rgba(248,113,113,0.08)' };
+          };
+
+          return (
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
+                    <span style={{ fontSize: 16 }}>📊</span>
+                  </div>
+                  <div>
+                    <h2 className="text-base text-gray-900" style={{ fontWeight: 700 }}>Menu Engineering — Matriz BCG</h2>
+                    <p className="text-xs text-gray-500">Popularidad vs Rentabilidad · {cogsData.length} platillos analizados</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                {[
+                  { q: '⭐ Estrella', desc: 'Alta popularidad, alto margen. Son tus oros. Protégelos.', color: '#22c55e', count: cogsData.filter(d => d.unidadesVendidas >= avgUnits && d.margenPct >= avgMargen).length },
+                  { q: '🧩 Puzzle', desc: 'Baja popularidad, alto margen. Promociónalo más.', color: '#f59e0b', count: cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct >= avgMargen).length },
+                  { q: '🐄 Vaca', desc: 'Alta popularidad, bajo margen. Sube el precio o baja el costo.', color: '#60a5fa', count: cogsData.filter(d => d.unidadesVendidas >= avgUnits && d.margenPct < avgMargen).length },
+                  { q: '🐴 Burro', desc: 'Baja popularidad, bajo margen. Evalúa eliminarlo.', color: '#f87171', count: cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct < avgMargen).length },
+                ].map(s => (
+                  <div key={s.q} className="rounded-xl p-3" style={{ border: `1px solid ${s.color}30`, background: `${s.color}08` }}>
+                    <div className="font-bold text-sm mb-1" style={{ color: s.color }}>{s.q}</div>
+                    <div className="text-xs font-mono font-bold mb-1" style={{ color: s.color }}>{s.count} platillos</div>
+                    <div className="text-xs text-gray-500 leading-snug">{s.desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* SVG scatter plot */}
+              <div style={{ position: 'relative', width: '100%', paddingBottom: '56%', background: '#fafafa', borderRadius: 12, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                <svg viewBox="0 0 500 280" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                  {/* Quadrant lines */}
+                  <line x1="250" y1="10" x2="250" y2="270" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
+                  <line x1="10" y1="140" x2="490" y2="140" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
+                  {/* Quadrant labels */}
+                  <text x="130" y="30" textAnchor="middle" fontSize="9" fill="#9ca3af">⭐ ESTRELLA</text>
+                  <text x="370" y="30" textAnchor="middle" fontSize="9" fill="#9ca3af">🧩 PUZZLE</text>
+                  <text x="130" y="275" textAnchor="middle" fontSize="9" fill="#9ca3af">🐄 VACA</text>
+                  <text x="370" y="275" textAnchor="middle" fontSize="9" fill="#9ca3af">🐴 BURRO</text>
+                  {/* Axis labels */}
+                  <text x="250" y="275" textAnchor="middle" fontSize="8" fill="#6b7280">← Menor popularidad · Mayor popularidad →</text>
+                  <text x="8" y="140" textAnchor="middle" fontSize="8" fill="#6b7280" transform="rotate(-90 8 140)">Margen %</text>
+                  {/* Dots */}
+                  {cogsData.slice(0, 40).map((d, i) => {
+                    const x = 15 + ((d.unidadesVendidas / maxUnits) * 460);
+                    const y = 270 - ((d.margenPct / Math.max(maxMargen, 1)) * 250);
+                    const q = quadrant(d);
+                    const r = Math.max(4, Math.min(12, 4 + (d.unidadesVendidas / maxUnits) * 8));
+                    return (
+                      <g key={i}>
+                        <circle cx={x} cy={y} r={r} fill={q.color} fillOpacity={0.75} stroke="white" strokeWidth={1.5} />
+                        {d.unidadesVendidas / maxUnits > 0.5 && (
+                          <text x={x} y={y - r - 3} textAnchor="middle" fontSize="7" fill="#374151" fontWeight="600">
+                            {d.nombre.slice(0, 14)}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                  {/* Avg crosshair labels */}
+                  <text x="252" y="138" fontSize="7" fill="#9ca3af">prom.</text>
+                </svg>
+              </div>
+
+              {/* Recommendations */}
+              <div className="mt-5 space-y-2">
+                {cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct < avgMargen).slice(0, 3).map(d => (
+                  <div key={d.nombre} className="flex items-center gap-3 text-xs p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
+                    <span style={{ color: '#f87171' }}>🐴</span>
+                    <span className="font-semibold text-gray-700">{d.nombre}</span>
+                    <span className="text-gray-500">{d.unidadesVendidas} vendidos · {d.margenPct.toFixed(0)}% margen</span>
+                    <span className="ml-auto text-gray-400">Considera eliminarlo o reformularlo</span>
+                  </div>
+                ))}
+                {cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct >= avgMargen).slice(0, 2).map(d => (
+                  <div key={d.nombre} className="flex items-center gap-3 text-xs p-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                    <span style={{ color: '#f59e0b' }}>🧩</span>
+                    <span className="font-semibold text-gray-700">{d.nombre}</span>
+                    <span className="text-gray-500">{d.margenPct.toFixed(0)}% margen · poco pedido</span>
+                    <span className="ml-auto text-gray-400">Promociónalo o ponlo en lugar visible</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Desempeño del Personal ── */}
