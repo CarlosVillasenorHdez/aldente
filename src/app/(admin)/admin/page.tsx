@@ -8,6 +8,7 @@ interface TenantRow {
   id: string; name: string; plan: string; is_active: boolean;
   trial_ends_at: string | null; plan_valid_until: string | null;
   lat: number | null; lng: number | null; created_at: string;
+  address?: string; colonia?: string; city?: string; state_region?: string; postal_code?: string;
 }
 
 interface KPIs {
@@ -115,13 +116,24 @@ function addMarkers(L: any, map: any, dots: TenantRow[], planColors: Record<stri
     });
     const planName = PLAN_NAMES[d.plan] ?? d.plan;
     const statusDot = d.is_active ? '<span style="color:#4ade80">●</span>' : '<span style="color:#f87171">●</span>';
+    // Build full address string
+    const addrParts = [d.address, d.colonia, d.postal_code, d.city, d.state_region].filter(Boolean);
+    const addrHtml = addrParts.length
+      ? `<div style="font-size:11px;color:#6b7280;margin-top:6px;line-height:1.5">${addrParts.join('<br>')}</div>`
+      : '';
+    // Coordinates for precision indicator
+    const coordHtml = d.lat && d.lng
+      ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px;font-family:monospace">${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</div>`
+      : '';
     marker.bindPopup(`
-      <div style="font-family:system-ui;min-width:160px">
-        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${d.name}</div>
-        <div style="font-size:12px;color:${color};font-weight:600">${planName}</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:4px">${statusDot} ${d.is_active ? 'Activo' : 'Inactivo'}</div>
+      <div style="font-family:system-ui;min-width:180px;max-width:240px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:2px">${d.name}</div>
+        <div style="font-size:12px;color:${color};font-weight:600;margin-bottom:2px">${planName}</div>
+        <div style="font-size:11px;color:#6b7280">${statusDot} ${d.is_active ? 'Activo' : 'Inactivo'}</div>
+        ${addrHtml}
+        ${coordHtml}
       </div>
-    `, { maxWidth: 200 });
+    `, { maxWidth: 260 });
     marker.addTo(map);
   });
 }
@@ -135,7 +147,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     supabase.from('v_tenant_map')
-      .select('id, name, plan, is_active, trial_ends_at, plan_valid_until, lat, lng, created_at')
+      .select('id, name, plan, is_active, trial_ends_at, plan_valid_until, lat, lng, created_at, address, colonia, city, state_region, postal_code')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         const rows = (data ?? []) as TenantRow[];
