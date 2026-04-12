@@ -256,7 +256,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: appUser?.tenantId },
     ];
     if (logoPreview) {
-      upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: tenantId });
+      upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: appUser?.tenantId });
     }
     await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
     setRestaurantName(restaurantNameDraft);

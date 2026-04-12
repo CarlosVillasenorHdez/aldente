@@ -238,7 +238,7 @@ export default function InventarioManagement() {
         supplierUrl: i.supplier_url ?? '',
         supplierPhone: i.supplier_phone ?? '',
         purchaseUnit: i.purchase_unit ?? null,
-        purchaseQty: Number(i.purchase_qty_per_unit ?? 1),
+        purchaseQtyPerUnit: Number(i.purchase_qty_per_unit ?? 1),
         purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
       })) as Ingredient[]);
@@ -510,7 +510,7 @@ export default function InventarioManagement() {
     let stockQty = movementForm.quantity;
     let reasonSuffix = '';
     if (movInputMode === 'purchase' && movementForm.movementType === 'entrada') {
-      const convFactor = ing.purchaseQty ?? 1;
+      const convFactor = ing.purchaseQtyPerUnit ?? 1;
       stockQty = movPurchaseQty * convFactor;
       reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/presentación = ${stockQty} ${ing.unit})`;
     }
@@ -884,7 +884,7 @@ export default function InventarioManagement() {
                 ✅ Ningún ingrediente en stock crítico
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-6">
                 {lowStockItems.map((ing) => (
                   <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                     <div className="flex items-center gap-3">
@@ -924,7 +924,7 @@ export default function InventarioManagement() {
                 ✅ Ningún ingrediente requiere reorden
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-6">
                 {reorderItems.map((ing) => (
                   <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                     <div className="flex items-center gap-3">
@@ -1147,8 +1147,8 @@ export default function InventarioManagement() {
         const handlePDF = () => {
           const rows = allItems.map(ing => {
             const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-            const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
-              ? Math.ceil(suggest / ing.purchaseQty) : null;
+            const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+              ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
             return `<tr style="border-bottom:1px solid #f3f4f6;${checkedItems.has(ing.id) ? 'opacity:0.45;text-decoration:line-through' : ''}">
               <td style="padding:8px 12px;font-size:13px">${checkedItems.has(ing.id) ? '✓' : '○'}</td>
               <td style="padding:8px 12px;font-weight:600;font-size:13px">${ing.name}</td>
@@ -1202,8 +1202,8 @@ export default function InventarioManagement() {
                   const checked = checkedItems.has(ing.id);
                   const isLow = ing.stock < ing.minStock;
                   const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-                  const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
-                    ? Math.ceil(suggest / ing.purchaseQty) : null;
+                  const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+                    ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
                   return (
                     <div key={ing.id} onClick={() => toggleCheck(ing.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer', transition: 'all 0.15s', background: checked ? 'rgba(74,222,128,0.05)' : isLow ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : isLow ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`, opacity: checked ? 0.6 : 1 }}>
@@ -1330,9 +1330,9 @@ export default function InventarioManagement() {
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Historial de movimientos</p>
                 {detailLoading ? (
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Cargando...</p>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', padding: '12px', fontSize: '12px', textAlign: 'center' }}>Cargando...</p>
                 ) : detailMovements.length === 0 ? (
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Sin movimientos registrados</p>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', padding: '12px', fontSize: '12px', textAlign: 'center' }}>Sin movimientos registrados</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {detailMovements.map(m => (
@@ -1366,7 +1366,7 @@ export default function InventarioManagement() {
                   { label: 'Costo unitario', value: `$${ing.cost.toFixed(2)}/${ing.unit}` },
                   { label: 'Valor en stock', value: `$${(ing.stock * ing.cost).toFixed(2)}` },
                   { label: 'Proveedor', value: ing.supplier || 'No asignado' },
-                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQty} ${ing.unit})` : 'Misma unidad' },
+                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQtyPerUnit} ${ing.unit})` : 'Misma unidad' },
                 ].map(item => (
                   <div key={item.label}>
                     <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{item.label}</p>
@@ -1451,7 +1451,7 @@ export default function InventarioManagement() {
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría *</label>
                 <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.category} onChange={e => updateForm('category', e.target.value as any)}>
+                  value={form.category} onChange={e => updateForm('category', e.target.value)}>
                   {CATEGORIES.filter(c => c !== 'Todas').map(c => <option key={c} value={c} style={{ backgroundColor: '#162d55' }}>{c}</option>)}
                 </select>
               </div>
@@ -1462,14 +1462,15 @@ export default function InventarioManagement() {
                 </label>
                 <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.unit} onChange={e => updateForm('unit', e.target.value as any)}>
-                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  value={form.unit} onChange={e => updateForm('unit', e.target.value as UnitType)}>
+                  <option value="" style={{ backgroundColor: '#162d55' }}>Seleccionar unidad</option>
+                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
-                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
-                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
                 </select>
