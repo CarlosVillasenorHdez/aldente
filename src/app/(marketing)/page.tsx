@@ -111,7 +111,7 @@ export default function MarketingPage() {
   const pain = PAINS[activePain];
   const disc = annual ? 0.85 : 1;
 
-  useEffect(() => { const t = setInterval(() => setActivePain(p => (p+1)%PAINS.length), 4500); return () => clearInterval(t); }, []);
+  useEffect(() => { const t = setInterval(() => setActivePain(p => (p+1)%PAINS.length), 8000); return () => clearInterval(t); }, []);
   useEffect(() => { const f = () => setNavScrolled(window.scrollY > 20); window.addEventListener('scroll', f, {passive:true}); return () => window.removeEventListener('scroll', f); }, []);
   useEffect(() => {
     const el = statsRef.current; if (!el) return;
@@ -129,6 +129,7 @@ export default function MarketingPage() {
         @keyframes pulse{0%,100%{opacity:.07}50%{opacity:.15}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
         @keyframes tick-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes progress-fill{from{width:0%}to{width:100%}}
         .serif{font-family:'Playfair Display',Georgia,serif}
         .nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;align-items:center;padding:0 clamp(16px,5vw,60px);backdrop-filter:blur(24px);transition:background .3s,border-color .3s,box-shadow .3s;border-bottom:1px solid transparent}
         .nav.s{background:rgba(7,9,15,.95);border-bottom-color:rgba(255,255,255,.05);box-shadow:0 4px 40px rgba(0,0,0,.5)}
@@ -142,7 +143,7 @@ export default function MarketingPage() {
         .pcard{border-radius:22px;padding:36px 30px;transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s}.pcard:hover{transform:translateY(-10px);box-shadow:0 28px 64px rgba(0,0,0,.45)}
         .pain-btn{transition:all .3s cubic-bezier(.22,1,.36,1)}.pain-btn:hover{transform:translateX(5px)}
         .diff-row{transition:transform .2s}.diff-row:hover{transform:scaleX(1.006)}
-        @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}}
+        @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}.prob-grid{grid-template-columns:1fr!important;gap:36px!important}}
       `}</style>
 
       {/* NAV */}
@@ -224,33 +225,69 @@ export default function MarketingPage() {
       {/* PROBLEM */}
       <section className="sec" id="problema" style={{background:'#07090f'}}>
         <div className="wrap">
-          <div style={{display:'flex',gap:80,alignItems:'flex-start',flexWrap:'wrap'}} className="hcols">
+          <div style={{display:'grid',gridTemplateColumns:'380px 1fr',gap:64,alignItems:'start'}} className="prob-grid">
+            {/* Left col: título + lista de preguntas */}
             <FadeUp>
-              <div style={{flex:'0 0 340px',maxWidth:340}}>
+              <div>
                 <div className="eyebrow" style={{marginBottom:24}}>El problema real</div>
-                <h2 className="serif" style={{fontSize:'clamp(32px,4vw,50px)',fontWeight:700,lineHeight:1.1,marginBottom:20}}>
+                <h2 className="serif" style={{fontSize:'clamp(32px,3.5vw,48px)',fontWeight:700,lineHeight:1.08,marginBottom:20}}>
                   No importa el tamaño.<br/><em style={{color:'#c9963a'}}>Las preguntas son las mismas.</em>
                 </h2>
-                <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.8,marginBottom:32}}>4 mesas o 40. Tacos o mariscos. Familiar o cadena. Cada dueño de restaurante se va a dormir con las mismas preguntas sin respuesta.</p>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.8,marginBottom:32}}>
+                  4 mesas o 40. Tacos o mariscos. Familiar o cadena. Cada dueño de restaurante se va a dormir con las mismas preguntas sin respuesta.
+                </p>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   {PAINS.map((p,i)=>(
-                    <button key={i} onClick={()=>setActivePain(i)} className="pain-btn" style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderRadius:10,background:activePain===i?`${p.color}10`:'transparent',border:`1px solid ${activePain===i?p.color+'35':'rgba(255,255,255,.06)'}`,textAlign:'left'}}>
-                      <span style={{fontFamily:'monospace',fontSize:10,color:activePain===i?p.color:'rgba(240,236,228,.25)',fontWeight:600}}>{p.n}</span>
-                      <span style={{fontSize:13,color:activePain===i?'#f0ece4':'rgba(240,236,228,.45)'}}>{p.q.replace(/[¿?]/g,'').trim()}</span>
+                    <button key={i} onClick={()=>{setActivePain(i);}} className="pain-btn"
+                      style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',borderRadius:12,
+                        background:activePain===i?`${p.color}12`:'rgba(255,255,255,.025)',
+                        border:`1px solid ${activePain===i?p.color+'40':'rgba(255,255,255,.07)'}`,
+                        textAlign:'left',width:'100%',cursor:'pointer',transition:'all .3s cubic-bezier(.22,1,.36,1)'}}>
+                      <span style={{fontFamily:'monospace',fontSize:11,color:activePain===i?p.color:'rgba(240,236,228,.2)',fontWeight:700,flexShrink:0,width:24}}>{p.n}</span>
+                      <span style={{fontSize:14,color:activePain===i?'#f0ece4':'rgba(240,236,228,.4)',fontWeight:activePain===i?600:400,lineHeight:1.4}}>
+                        {p.q.replace(/[¿?]/g,'').trim()}
+                      </span>
+                      {activePain===i&&<span style={{marginLeft:'auto',color:p.color,fontSize:18,flexShrink:0}}>→</span>}
                     </button>
                   ))}
                 </div>
+                {/* Progress bar */}
+                <div style={{marginTop:20,height:2,borderRadius:2,background:'rgba(255,255,255,.06)',overflow:'hidden'}}>
+                  <div key={activePain} style={{height:'100%',borderRadius:2,background:pain.color,
+                    animation:'progress-fill 8s linear forwards'}}/>
+                </div>
               </div>
             </FadeUp>
-            <FadeUp delay={0.15}>
-              <div style={{flex:1,minWidth:280}}>
-                <div style={{padding:'40px 44px',borderRadius:24,background:`linear-gradient(135deg,${pain.color}08,rgba(255,255,255,.02))`,border:`1px solid ${pain.color}25`,transition:'all .5s cubic-bezier(.22,1,.36,1)',minHeight:300}}>
-                  <div style={{fontSize:48,fontFamily:'Playfair Display,serif',fontWeight:700,color:pain.color,lineHeight:1,marginBottom:20,opacity:.5}}>"</div>
-                  <h3 key={activePain} className="serif" style={{fontSize:'clamp(22px,3vw,34px)',fontWeight:700,color:'#f0ece4',lineHeight:1.2,marginBottom:20,fontStyle:'italic',animation:'tick-in .35s ease both'}}>{pain.q}</h3>
-                  <p style={{fontSize:15,color:'rgba(240,236,228,.55)',lineHeight:1.8,marginBottom:28,transition:'all .4s'}}>{pain.body}</p>
-                  <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'10px 18px',borderRadius:10,background:`${pain.color}12`,border:`1px solid ${pain.color}30`,transition:'all .5s'}}>
-                    <span style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:pain.color}}>Solución Aldente</span>
-                    <span style={{fontSize:13,color:'#f0ece4',fontWeight:500}}>{pain.answer}</span>
+
+            {/* Right col: detalle de la pregunta activa */}
+            <FadeUp delay={0.12}>
+              <div style={{position:'sticky',top:80}}>
+                <div style={{padding:'44px 48px',borderRadius:24,
+                  background:`linear-gradient(135deg,${pain.color}09 0%,rgba(255,255,255,.018) 100%)`,
+                  border:`1px solid ${pain.color}28`,
+                  transition:'background .6s,border-color .6s',
+                  minHeight:360,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{fontSize:56,fontFamily:'Playfair Display,serif',fontWeight:700,
+                      color:pain.color,lineHeight:1,marginBottom:24,opacity:.4,transition:'color .5s'}}>"</div>
+                    <h3 key={activePain} className="serif"
+                      style={{fontSize:'clamp(24px,2.8vw,36px)',fontWeight:700,color:'#f0ece4',
+                        lineHeight:1.15,marginBottom:20,fontStyle:'italic',
+                        animation:'tick-in .4s cubic-bezier(.22,1,.36,1) both'}}>
+                      {pain.q}
+                    </h3>
+                    <p key={activePain+'b'} style={{fontSize:15,color:'rgba(240,236,228,.6)',lineHeight:1.85,
+                      animation:'tick-in .4s .06s cubic-bezier(.22,1,.36,1) both'}}>
+                      {pain.body}
+                    </p>
+                  </div>
+                  <div style={{marginTop:32,display:'inline-flex',alignItems:'center',gap:12,
+                    padding:'12px 20px',borderRadius:12,
+                    background:`${pain.color}15`,border:`1px solid ${pain.color}35`,
+                    transition:'all .5s',alignSelf:'flex-start'}}>
+                    <span style={{fontSize:10,fontWeight:700,letterSpacing:'.12em',textTransform:'uppercase',
+                      color:pain.color,flexShrink:0}}>Solución Aldente</span>
+                    <span style={{fontSize:14,color:'#f0ece4',fontWeight:600}}>{pain.answer}</span>
                   </div>
                 </div>
               </div>
