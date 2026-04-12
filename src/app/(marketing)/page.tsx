@@ -287,35 +287,39 @@ export default function MarketingPage() {
     return () => obs.disconnect();
   }, []);
 
-  // Anime.js: hero words stagger entrance
+  // Hero words: CSS animation with JS-controlled stagger (no Anime.js needed, more reliable)
   useEffect(() => {
-    if (!anime) return;
-    const words = document.querySelectorAll('.hero-word');
+    const words = Array.from(document.querySelectorAll('.hero-word')) as HTMLElement[];
     if (!words.length) return;
-    anime({
-      targets: words,
-      opacity: [0, 1],
-      translateY: [24, 0],
-      skewY: [3, 0],
-      delay: anime.stagger(80, { start: 300 }),
-      duration: 900,
-      easing: 'cubicBezier(0.16, 1, 0.3, 1)',
+    words.forEach((el, i) => {
+      el.style.transition = `opacity 0.7s ${300 + i * 70}ms cubic-bezier(0.16,1,0.3,1), transform 0.7s ${300 + i * 70}ms cubic-bezier(0.16,1,0.3,1)`;
+      requestAnimationFrame(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0) skewY(0deg)';
+      });
     });
-  }, [anime]);
+  }, []); // No anime dependency — pure CSS transition
 
-  // Anime.js: SVG hero line draw on mount
+  // Anime.js: SVG hero line draw — with RAF guard
   useEffect(() => {
     if (!anime || !svgLineRef.current) return;
     const path = svgLineRef.current;
-    const len = path.getTotalLength?.() || 800;
-    path.style.strokeDasharray = String(len);
-    path.style.strokeDashoffset = String(len);
-    anime({
-      targets: path,
-      strokeDashoffset: [len, 0],
-      duration: 2200,
-      delay: 600,
-      easing: 'cubicBezier(0.16, 1, 0.3, 1)',
+    requestAnimationFrame(() => {
+      try {
+        const len = path.getTotalLength?.() || 800;
+        path.style.strokeDasharray = String(len);
+        path.style.strokeDashoffset = String(len);
+        anime({
+          targets: [path],
+          strokeDashoffset: [len, 0],
+          duration: 2200,
+          delay: 600,
+          easing: 'cubicBezier(0.16, 1, 0.3, 1)',
+        });
+      } catch (e) {
+        // SVG not ready — fallback: CSS animation
+        if (path) path.style.animation = 'draw 2.2s 0.6s ease both forwards';
+      }
     });
   }, [anime]);
 
@@ -326,17 +330,19 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = pricingRef.current?.querySelectorAll('.pcard');
-      if (!cards?.length) return;
-      anime({
-        targets: cards,
-        opacity: [0, 1],
-        translateY: [48, 0],
-        scale: [0.95, 1],
-        delay: anime.stagger(120),
-        duration: 800,
-        easing: 'cubicBezier(0.34, 1.56, 0.64, 1)',
-      });
+      const cards = Array.from(pricingRef.current?.querySelectorAll('.pcard') ?? []) as HTMLElement[];
+      if (!cards.length) return;
+      try {
+        anime({
+          targets: cards,
+          opacity: [0, 1],
+          translateY: [48, 0],
+          scale: [0.95, 1],
+          delay: anime.stagger(120),
+          duration: 800,
+          easing: 'cubicBezier(0.34, 1.56, 0.64, 1)',
+        });
+      } catch { cards.forEach((el, i) => { el.style.transition = `opacity 0.6s ${i*120}ms ease, transform 0.6s ${i*120}ms ease`; el.style.opacity='1'; el.style.transform='none'; }); }
     }, { threshold: 0.15 });
     obs.observe(pricingRef.current);
     return () => obs.disconnect();
@@ -349,16 +355,18 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const rows = diffsRef.current?.querySelectorAll('.diff-row');
-      if (!rows?.length) return;
-      anime({
-        targets: rows,
-        opacity: [0, 1],
-        translateX: [-20, 0],
-        delay: anime.stagger(90),
-        duration: 600,
-        easing: 'cubicBezier(0.16, 1, 0.3, 1)',
-      });
+      const rows = Array.from(diffsRef.current?.querySelectorAll('.diff-row') ?? []) as HTMLElement[];
+      if (!rows.length) return;
+      try {
+        anime({
+          targets: rows,
+          opacity: [0, 1],
+          translateX: [-20, 0],
+          delay: anime.stagger(90),
+          duration: 600,
+          easing: 'cubicBezier(0.16, 1, 0.3, 1)',
+        });
+      } catch { rows.forEach((el, i) => { el.style.transition = `opacity 0.5s ${i*90}ms ease`; el.style.opacity='1'; }); }
     }, { threshold: 0.1 });
     obs.observe(diffsRef.current);
     return () => obs.disconnect();
@@ -371,35 +379,43 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = stepsRef.current?.querySelectorAll('.step-card');
-      if (!cards?.length) return;
-      anime({
-        targets: cards,
-        opacity: [0, 1],
-        translateY: [36, 0],
-        delay: anime.stagger(150),
-        duration: 700,
-        easing: 'cubicBezier(0.34, 1.56, 0.64, 1)',
-      });
+      const cards = Array.from(stepsRef.current?.querySelectorAll('.step-card') ?? []) as HTMLElement[];
+      if (!cards.length) return;
+      try {
+        anime({
+          targets: cards,
+          opacity: [0, 1],
+          translateY: [36, 0],
+          delay: anime.stagger(150),
+          duration: 700,
+          easing: 'cubicBezier(0.34, 1.56, 0.64, 1)',
+        });
+      } catch { cards.forEach((el, i) => { el.style.transition = `opacity 0.6s ${i*150}ms ease, transform 0.6s ${i*150}ms ease`; el.style.opacity='1'; el.style.transform='none'; }); }
     }, { threshold: 0.2 });
     obs.observe(stepsRef.current);
     return () => obs.disconnect();
   }, [anime]);
 
-  // Anime.js: CTA particle dots floating
+  // Anime.js: CTA particle dots — with try/catch + delayed querySelectorAll
   useEffect(() => {
     if (!anime) return;
-    const dots = document.querySelectorAll('.cta-dot');
-    if (!dots.length) return;
-    anime({
-      targets: dots,
-      opacity: [0, 0.6, 0],
-      scale: [0.5, 1.5, 0.5],
-      delay: anime.stagger(200, { grid: [6, 4], from: 'center' }),
-      duration: 3000,
-      loop: true,
-      easing: 'easeInOutSine',
-    });
+    // Delay to ensure DOM is fully painted
+    const timer = setTimeout(() => {
+      try {
+        const dots = Array.from(document.querySelectorAll('.cta-dot')) as HTMLElement[];
+        if (!dots.length) return;
+        anime({
+          targets: dots,
+          opacity: [0, 0.5, 0],
+          scale: [0.5, 1.4, 0.5],
+          delay: anime.stagger(200, { grid: [6, 4], from: 'center' }),
+          duration: 3000,
+          loop: true,
+          easing: 'easeInOutSine',
+        });
+      } catch { /* silent — particles are decorative only */ }
+    }, 500);
+    return () => clearTimeout(timer);
   }, [anime]);
 
   return (
@@ -444,7 +460,7 @@ export default function MarketingPage() {
         .shimmer-text{background:linear-gradient(90deg,#c9963a 0%,#f0d070 40%,#c9963a 80%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s linear infinite}
         .plan-cta{position:relative;overflow:hidden}.plan-cta::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 50%,transparent 100%);transform:translateX(-100%);transition:transform .6s}.plan-cta:hover::after{transform:translateX(100%)}
         .nav-link{position:relative}.nav-link::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:#c9963a;transition:width .25s ease}.nav-link:hover::after{width:100%}
-        .hero-word{display:inline-block;opacity:0;transform:translateY(20px) skewY(2deg)}
+        .hero-word{display:inline-block;opacity:0;transform:translateY(20px) skewY(2deg);will-change:opacity,transform}
         .stat-num{font-variant-numeric:tabular-nums}
         @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}}
       `}</style>
