@@ -556,7 +556,7 @@ export default function GastosManagement() {
     if (proximo > today) return 0; // not due yet
     // Calculate months/periods overdue
     const FREC_DIAS: Record<GastoFrecuencia, number> = {
-      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+      unico:0, diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
     };
     const diasVencido = Math.floor((today.getTime() - proximo.getTime()) / 86400000);
     return Math.max(1, Math.ceil(diasVencido / FREC_DIAS[gasto.frecuencia]));
@@ -570,7 +570,7 @@ export default function GastosManagement() {
 
   function calcProximoPago(frecuencia: GastoFrecuencia, desde: Date): string {
     const FREC_DIAS: Record<GastoFrecuencia, number> = {
-      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+      unico:0, diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
     };
     const next = new Date(desde);
     next.setDate(next.getDate() + FREC_DIAS[frecuencia]);
