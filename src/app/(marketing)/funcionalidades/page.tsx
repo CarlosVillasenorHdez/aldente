@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 // Mission: Dar a cada restaurantero la verdad de su negocio, en tiempo real.
 // Vision:  Que ningún restaurante en México tenga que adivinar si fue rentable.
 // Values:  Verdad sin filtros · Diseño que respeta · Crecer juntos · México primero
-// Forever Transaction principle: No vendemos software. Entramos a una relación.
 
 const MODULES = [
   {
@@ -142,7 +141,7 @@ const BRAND = {
   vision: 'Que ningún restaurante en México tenga que adivinar si fue rentable.',
   values: [
     { icon: '🔍', title: 'Verdad sin filtros', body: 'El P&L que mostramos incluye la merma, los gastos prorrateados y el costo real de los ingredientes. No hay números bonitos — hay números verdaderos.' },
-    { icon: '🤝', title: 'Crecer juntos', body: 'No vendemos módulos. Cuando tu restaurante crece, cambias de plan porque el valor creció contigo. Eso es la Forever Transaction.' },
+    { icon: '🤝', title: 'Crecer juntos', body: 'No vendemos módulos. Cuando tu restaurante crece, cambias de plan porque el sistema ya está listo para acompañarte. El software que crece contigo.' },
     { icon: '🇲🇽', title: 'México primero', body: 'Nómina LFT real. CFDI en camino. Precios en MXN. Diseñado para la realidad del restaurantero mexicano, no adaptado de otro mercado.' },
     { icon: '⚡', title: 'Diseño que respeta', body: 'Un mesero en turno de 8 horas no puede perder 2 minutos aprendiendo a usar una pantalla. Cada flujo tiene máximo 3 pasos.' },
   ],
@@ -317,7 +316,7 @@ export default function FuncionalidadesPage() {
               {/* CTA */}
               <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
                 <a href="/registro" style={{ padding: '12px 28px', borderRadius: 12, background: mod.color, color: '#07090f', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all .2s' }}>
-                  Probar {mod.name} gratis →
+                  Probar {mod.name} 14 días →
                 </a>
                 <a href="/#planes" style={{ fontSize: 13, color: 'rgba(240,236,228,.45)', transition: 'color .2s' }}>Ver plan {mod.plan}</a>
               </div>
@@ -335,7 +334,7 @@ export default function FuncionalidadesPage() {
               No somos un software.<br /><em style={{ color: '#c9963a' }}>Somos una relación.</em>
             </h2>
             <p style={{ fontSize: 15, color: 'rgba(240,236,228,.5)', maxWidth: 500, margin: '0 auto', lineHeight: 1.8 }}>
-              La Forever Transaction no es un concepto de marketing. Es la manera en que construimos Aldente: pensando en el restaurantero de dentro de 5 años, no en el MRR del próximo trimestre.
+              Aldente no es un software que instalas y olvidas. Es el sistema que construimos Aldente: pensando en el restaurantero de dentro de 5 años, no en el MRR del próximo trimestre.
             </p>
           </div>
 
@@ -372,7 +371,7 @@ export default function FuncionalidadesPage() {
       <section className="sec" style={{ background: '#0d0f17' }}>
         <div className="wrap">
           <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-            <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 24 }}>The Forever Transaction</div>
+            <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 24 }}>Aldente crece contigo</div>
             <h2 className="serif" style={{ fontSize: 'clamp(30px,4vw,48px)', fontWeight: 700, lineHeight: 1.12, marginBottom: 20 }}>
               Cuando tu restaurante crece,<br /><em style={{ color: '#c9963a' }}>Aldente crece contigo.</em>
             </h2>
@@ -397,7 +396,7 @@ export default function FuncionalidadesPage() {
               ))}
             </div>
             <a href="/registro" style={{ display: 'inline-block', marginTop: 32, padding: '14px 36px', borderRadius: 12, background: '#c9963a', color: '#07090f', fontSize: 15, fontWeight: 700, transition: 'all .2s' }}>
-              Empieza con Operación — 14 días gratis →
+              Empezar ahora — 14 días sin costo →
             </a>
           </div>
         </div>

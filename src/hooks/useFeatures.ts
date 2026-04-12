@@ -20,7 +20,6 @@ export interface Features {
 // Plan → features incluidas
 // Cada plan incluye las del anterior (acumulativo)
 const PLAN_FEATURES: Record<string, (keyof Features)[]> = {
-  gratis:    [],
   operacion: ['meseroMovil'],
   negocio:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','reportes','alarmas'],
   empresa:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','reportes','alarmas','multiSucursal','recursosHumanos','delivery'],
@@ -77,7 +76,6 @@ export function useFeatures(): { features: Features; plan: string; loading: bool
         // Normalize legacy plan names to current names
         const rawPlan = data?.plan ?? 'operacion';
         const PLAN_LEGACY: Record<string, string> = {
-          free: 'gratis',
           basico: 'operacion', starter: 'operacion',
           estandar: 'negocio', profesional: 'negocio',
           premium: 'empresa', enterprise: 'empresa',
@@ -105,19 +103,19 @@ export const FEATURE_KEYS: Record<keyof Features, string> = {
 };
 
 export const PLAN_NAMES: Record<string, string> = {
-  gratis: 'Gratis', operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa',
+  operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa',
 };
 
 export const PLAN_PRICES: Record<string, number> = {
-  gratis: 0, operacion: 699, negocio: 1299, empresa: 2199,
+  operacion: 699, negocio: 1299, empresa: 2199,
 };
 
 export const PLAN_COLORS: Record<string, string> = {
-  gratis: '#34d399', operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa',
+  operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa',
 };
 
 // Plan order for comparisons
-export const PLAN_ORDER = ['gratis', 'operacion', 'negocio', 'empresa'];
+export const PLAN_ORDER = ['operacion', 'negocio', 'empresa'];
 export function planMeetsRequirement(currentPlan: string, requiredPlan: string): boolean {
   return PLAN_ORDER.indexOf(currentPlan) >= PLAN_ORDER.indexOf(requiredPlan);
 }
