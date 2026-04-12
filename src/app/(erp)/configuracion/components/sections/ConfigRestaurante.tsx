@@ -267,25 +267,40 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         PAB: 'Panamá', CRC: 'Costa Rica', DOP: 'República Dominicana',
       };
       const countryName = COUNTRY_NAMES[currencyCode] ?? 'México';
-      // Use Nominatim structured search for much better precision
-      const params = new URLSearchParams({
-        format: 'json',
-        limit: '3',
-        addressdetails: '1',
-        'accept-language': 'es',
-      });
-      // Structured fields give better results than free-text
-      if (addr) params.append('street', addr);
-      if (colonia) params.append('neighbourhood', colonia);
-      if (postalCode) params.append('postalcode', postalCode);
-      if (city) params.append('city', city);
-      if (stateRegion) params.append('state', stateRegion);
-      params.append('country', countryName);
+      // Strategy: try structured first (most precise), fallback to free-text
+      // Nominatim structured: street MUST be just the street name+number, not full address
+      const buildQuery = (mode: 'structured' | 'freetext') => {
+        const p = new URLSearchParams({ format: 'json', limit: '3', addressdetails: '1', 'accept-language': 'es' });
+        if (mode === 'structured') {
+          if (addr) p.append('street', addr);
+          if (colonia) p.append('neighbourhood', colonia);
+          if (postalCode) p.append('postalcode', postalCode);
+          if (city) p.append('city', city);
+          if (stateRegion) p.append('state', stateRegion);
+          p.append('country', countryName);
+        } else {
+          // Free-text: full address as single query — works better for MX addresses
+          const parts = [addr, colonia, postalCode, city, stateRegion, countryName].filter(Boolean);
+          p.append('q', parts.join(', '));
+        }
+        return p;
+      };
 
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-        headers: { 'Accept-Language': 'es', 'User-Agent': 'Aldente-ERP/1.0 (restaurante management)' }
-      });
-      const data = await r.json();
+      const headers = { 'Accept-Language': 'es' };
+      // Try structured first
+      let data: any[] = [];
+      try {
+        const r1 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('structured').toString()}`, { headers });
+        data = await r1.json();
+      } catch { /* ignore */ }
+      // Fallback to free-text if structured returned nothing
+      if (!data?.length) {
+        try {
+          const r2 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('freetext').toString()}`, { headers });
+          data = await r2.json();
+        } catch { /* ignore */ }
+      }
+
       if (data?.[0]) {
         const { lat, lon } = data[0];
         // Save lat/lng to tenants table
