@@ -36,7 +36,7 @@ function SaveButton({ saved, onClick }: { saved: boolean; onClick: () => void })
 // and provides download + share functionality
 
 function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const canvasRef = React.useRef<HTMLDivElement>(null);
   const [qrReady, setQrReady] = React.useState(false);
   const [showModal, setShowModal] = React.useState(false);
 
@@ -53,11 +53,15 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
       const QRCode = (window as any).QRCode;
       if (!QRCode) return;
       try {
-        QRCode.toCanvas(canvasRef.current, menuUrl, {
-          width: 220, margin: 2,
-          color: { dark: '#0f1923', light: '#ffffff' },
-        }, (err: any) => { if (!err && !destroyed) setQrReady(true); });
-      } catch { /* canvas not ready */ }
+        canvasRef.current.innerHTML = '';
+        new QRCode(canvasRef.current, {
+          text: menuUrl!,
+          width: 200, height: 200,
+          colorDark: '#0f1923', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel?.M ?? 0,
+        });
+        if (!destroyed) setQrReady(true);
+      } catch { /* not ready */ }
     };
     if ((window as any).QRCode) { loadQR(); }
     else {
@@ -75,9 +79,16 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
 
   const handleDownload = () => {
     if (!canvasRef.current) return;
+    // qrcodejs renders an <img> inside the container div
+    const img = canvasRef.current.querySelector('img') as HTMLImageElement | null;
+    const canvas = canvasRef.current.querySelector('canvas') as HTMLCanvasElement | null;
     const link = document.createElement('a');
     link.download = `carta-qr-${tenantSlug ?? 'menu'}.png`;
-    link.href = canvasRef.current.toDataURL('image/png');
+    if (img) {
+      link.href = img.src;
+    } else if (canvas) {
+      link.href = canvas.toDataURL('image/png');
+    } else return;
     link.click();
   };
 
@@ -92,7 +103,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
           {/* QR preview */}
           <div style={{ flexShrink: 0, background: '#fff', borderRadius: 10, padding: 8, width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <canvas ref={canvasRef} style={{ width: 56, height: 56, display: qrReady ? 'block' : 'none' }} />
+            <div ref={canvasRef} style={{ width: 56, height: 56, display: qrReady ? 'block' : 'none', overflow:'hidden' }} />
             {!qrReady && <span style={{ fontSize: 28 }}>🍽️</span>}
           </div>
           {/* Info */}
@@ -153,7 +164,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
 
 // Large QR for the modal — separate canvas to avoid conflicts
 function QRBigCanvas({ url }: { url: string }) {
-  const ref = React.useRef<HTMLCanvasElement>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (!url) return;
     let destroyed = false;
@@ -162,7 +173,14 @@ function QRBigCanvas({ url }: { url: string }) {
       const QRCode = (window as any).QRCode;
       if (!QRCode) return;
       try {
-        QRCode.toCanvas(ref.current, url, { width: 280, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+        // qrcodejs API: new QRCode(element, options)
+        ref.current!.innerHTML = '';
+        new QRCode(ref.current, {
+          text: url,
+          width: 280, height: 280,
+          colorDark: '#111827', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M,
+        });
       } catch { /* canvas not ready */ }
     };
     if ((window as any).QRCode) { draw(); }
@@ -172,7 +190,7 @@ function QRBigCanvas({ url }: { url: string }) {
     }
     return () => { destroyed = true; };
   }, [url]);
-  return <canvas ref={ref} style={{ borderRadius: 12, maxWidth: '100%' }} />;
+  return <div ref={ref} style={{ borderRadius: 12, maxWidth: '100%', overflow:'hidden', display:'inline-block' }} />;
 }
 
 export default function ConfigRestaurante({ activeSection }: { activeSection: string }) {
@@ -249,10 +267,23 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         PAB: 'Panamá', CRC: 'Costa Rica', DOP: 'República Dominicana',
       };
       const countryName = COUNTRY_NAMES[currencyCode] ?? 'México';
-      const fullAddr = [addr, colonia, postalCode, city, stateRegion, countryName].filter(Boolean).join(', ');
-      const q = encodeURIComponent(fullAddr);
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
-        headers: { 'Accept-Language': 'es', 'User-Agent': 'Aldente-ERP/1.0' }
+      // Use Nominatim structured search for much better precision
+      const params = new URLSearchParams({
+        format: 'json',
+        limit: '3',
+        addressdetails: '1',
+        'accept-language': 'es',
+      });
+      // Structured fields give better results than free-text
+      if (addr) params.append('street', addr);
+      if (colonia) params.append('neighbourhood', colonia);
+      if (postalCode) params.append('postalcode', postalCode);
+      if (city) params.append('city', city);
+      if (stateRegion) params.append('state', stateRegion);
+      params.append('country', countryName);
+
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: { 'Accept-Language': 'es', 'User-Agent': 'Aldente-ERP/1.0 (restaurante management)' }
       });
       const data = await r.json();
       if (data?.[0]) {

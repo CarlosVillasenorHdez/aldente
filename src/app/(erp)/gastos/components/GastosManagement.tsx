@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type GastoFrecuencia = 'diario' | 'semanal' | 'quincenal' | 'mensual' | 'bimestral' | 'trimestral' | 'semestral' | 'anual';
+type GastoFrecuencia = 'diario' | 'semanal' | 'quincenal' | 'mensual' | 'bimestral' | 'trimestral' | 'semestral' | 'anual' | 'unico';
 type GastoEstado = 'pendiente' | 'pagado';
 type GastoCategoria = 'servicios' | 'renta' | 'nomina' | 'marketing' | 'mantenimiento' | 'suministros' | 'financiero' | 'impuestos' | 'otro';
 type DepreciacionMetodo = 'linea_recta' | 'saldo_decreciente' | 'unidades_produccion';
@@ -60,14 +60,14 @@ type ActiveTab = 'gastos' | 'depreciaciones' | 'calendario';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const FRECUENCIA_LABELS: Record<GastoFrecuencia, string> = {
-  diario: 'Diario', semanal: 'Semanal', quincenal: 'Quincenal',
+const FRECUENCIA_LABELS: Partial<Record<GastoFrecuencia, string>> & Record<string,string> = {
+  unico: 'Único (extraordinario)', diario: 'Diario', semanal: 'Semanal', quincenal: 'Quincenal',
   mensual: 'Mensual', bimestral: 'Bimestral', trimestral: 'Trimestral',
   semestral: 'Semestral', anual: 'Anual',
 };
 
-const FRECUENCIA_MESES: Record<GastoFrecuencia, number> = {
-  diario: 1/30, semanal: 1/4.33, quincenal: 0.5,
+const FRECUENCIA_MESES: Partial<Record<GastoFrecuencia, number>> & Record<string,number> = {
+  unico: 0, diario: 1/30, semanal: 1/4.33, quincenal: 0.5,
   mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
 };
 
@@ -131,7 +131,8 @@ function diasParaProximoPago(fecha: string | null): number | null {
 }
 
 function montoMensual(gasto: GastoRecurrente): number {
-  const meses = FRECUENCIA_MESES[gasto.frecuencia];
+  if (gasto.frecuencia === 'unico') return 0; // unique expenses don't contribute to monthly total
+  const meses = FRECUENCIA_MESES[gasto.frecuencia] ?? 1;
   return gasto.monto / meses;
 }
 
@@ -141,10 +142,11 @@ interface GastoModalProps {
   gasto: Omit<GastoRecurrente, 'id' | 'created_at'> | null;
   onClose: () => void;
   onSave: (data: Omit<GastoRecurrente, 'id' | 'created_at'>) => void;
+  isUnico?: boolean;
 }
 
-function GastoModal({ gasto, onClose, onSave }: GastoModalProps) {
-  const [form, setForm] = useState<Omit<GastoRecurrente, 'id' | 'created_at'>>(gasto ?? { ...EMPTY_GASTO });
+function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps) {
+  const [form, setForm] = useState<Omit<GastoRecurrente, 'id' | 'created_at'>>(gasto ?? { ...EMPTY_GASTO, ...(isUnico ? { frecuencia: 'unico' as GastoFrecuencia, dia_pago: 0, proximo_pago: new Date().toISOString().split('T')[0] } : {}) });
 
   function handleChange(field: string, value: any) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -173,6 +175,13 @@ function GastoModal({ gasto, onClose, onSave }: GastoModalProps) {
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
+          {isUnico && (
+            <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px' }}>
+              <p style={{ fontSize: 12, color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+                <strong>Gasto extraordinario:</strong> Ocurre una sola vez. No se repite automáticamente. Ideal para reparaciones, compras especiales o imprevistos.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Categoría</label>
@@ -214,21 +223,30 @@ function GastoModal({ gasto, onClose, onSave }: GastoModalProps) {
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
-            <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Día de Pago</label>
+            {!isUnico && <div>
+              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Día del mes para pagar</label>
               <input
                 type="number"
                 min="1"
                 max="31"
                 value={form.dia_pago}
-                onChange={e => handleChange('dia_pago', parseInt(e.target.value) || 1)}
+                onChange={e => {
+                  const dia = parseInt(e.target.value) || 1;
+                  handleChange('dia_pago', dia);
+                  // Auto-calculate próximo pago based on día
+                  const now = new Date();
+                  const d = new Date(now.getFullYear(), now.getMonth(), dia);
+                  if (d <= now) d.setMonth(d.getMonth() + 1);
+                  handleChange('proximo_pago', d.toISOString().split('T')[0]);
+                }}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
-            </div>
+              <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Ej: 1 = cada primero · 15 = quincena · 31 = fin de mes</p>
+            </div>}
           </div>
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Próximo Pago</label>
+            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>{isUnico ? 'Fecha del gasto' : 'Fecha del próximo pago'}</label>
             <input
               type="date"
               value={form.proximo_pago ?? ''}
@@ -236,6 +254,7 @@ function GastoModal({ gasto, onClose, onSave }: GastoModalProps) {
               className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
+            <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Se actualiza automáticamente al cambiar el día de pago</p>
           </div>
           <div>
             <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Notas</label>
@@ -445,6 +464,7 @@ export default function GastosManagement() {
   const [depreciaciones, setDepreciaciones] = useState<Depreciacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGastoModal, setShowGastoModal] = useState(false);
+  const [showGastoUnicoModal, setShowGastoUnicoModal] = useState(false);
   const [editingGasto, setEditingGasto] = useState<GastoRecurrente | null>(null);
   const [showDepModal, setShowDepModal] = useState(false);
   const [editingDep, setEditingDep] = useState<Depreciacion | null>(null);
@@ -632,14 +652,26 @@ export default function GastosManagement() {
           <h1 className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>Gastos y Depreciaciones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de gastos recurrentes, depreciaciones y amortizaciones</p>
         </div>
-        <button
-          onClick={() => activeTab === 'gastos' ? setShowGastoModal(true) : setShowDepModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all"
-          style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#1B3A6B' }}
-        >
-          <Plus size={16} />
-          {activeTab === 'gastos' ? 'Nuevo Gasto' : 'Nuevo Activo'}
-        </button>
+        <div className="flex items-center gap-2">
+          {activeTab === 'gastos' && (
+            <button
+              onClick={() => setShowGastoUnicoModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all"
+              style={{ fontWeight: 600, backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
+            >
+              <Zap size={16} />
+              Gasto Extraordinario
+            </button>
+          )}
+          <button
+            onClick={() => activeTab === 'gastos' ? setShowGastoModal(true) : setShowDepModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all"
+            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#1B3A6B' }}
+          >
+            <Plus size={16} />
+            {activeTab === 'gastos' ? 'Nuevo Gasto Recurrente' : 'Nuevo Activo'}
+          </button>
+        </div>
       </div>
 
       <div className="px-6 py-5 space-y-5">
@@ -1027,6 +1059,19 @@ export default function GastosManagement() {
           dep={editingDep ? { ...editingDep } : null}
           onClose={() => { setShowDepModal(false); setEditingDep(null); }}
           onSave={handleSaveDep}
+        />
+      )}
+
+      {/* Gasto Extraordinario / Único modal */}
+      {showGastoUnicoModal && (
+        <GastoModal
+          gasto={{ ...EMPTY_GASTO, frecuencia: 'unico', dia_pago: 0, proximo_pago: new Date().toISOString().split('T')[0] }}
+          onClose={() => setShowGastoUnicoModal(false)}
+          onSave={async (data) => {
+            await handleSaveGasto(data);
+            setShowGastoUnicoModal(false);
+          }}
+          isUnico
         />
       )}
     </div>

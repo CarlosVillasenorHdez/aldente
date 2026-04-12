@@ -153,13 +153,13 @@ export default function DashboardKPIs() {
           { data: gastosAlert },
         ] = await Promise.all([
           (activeBranchId
-            ? supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)
-            : supabase.from('orders').select('total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
+            ? supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)
+            : supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
           supabase.from('orders').select('waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
           supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']),
           supabase.from('restaurant_tables').select('status').eq('tenant_id', getTenantId()),
-          supabase.from('order_items').select('name, qty').eq('tenant_id', getTenantId()).gte('created_at', todayUTC),
+          supabase.from('order_items').select('name, qty, order_id').eq('tenant_id', getTenantId()).gte('created_at', todayUTC),
           supabase.from('ingredients').select('name, stock, min_stock').eq('tenant_id', getTenantId()),
           supabase.from('gastos_recurrentes')
             .select('nombre, monto, proximo_pago, frecuencia')
@@ -177,8 +177,12 @@ export default function DashboardKPIs() {
         const mesasOcupadas = (mesas || []).filter((m) => m.status === 'ocupada').length;
         const totalMesas = (mesas || []).length;
 
+        // Only count items from closed billing orders (not comandas)
+        const closedOrderIds = new Set((cerradasHoy || []).map((o: any) => o.id));
         const itemMap: Record<string, number> = {};
-        (topItems || []).forEach((i) => { itemMap[i.name] = (itemMap[i.name] || 0) + i.qty; });
+        (topItems || [])
+          .filter((i: any) => closedOrderIds.has(i.order_id))
+          .forEach((i: any) => { itemMap[i.name] = (itemMap[i.name] || 0) + Number(i.qty); });
         const topEntry = Object.entries(itemMap).sort((a, b) => b[1] - a[1])[0] ?? ['—', 0];
 
         const alertasInventario = (ingAlerta || [])
