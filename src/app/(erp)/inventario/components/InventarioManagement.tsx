@@ -1731,7 +1731,7 @@ export default function InventarioManagement() {
               <div>
                 {(() => {
                   const selIng = ingredients.find(i => i.id === movementForm.ingredientId);
-                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQty ?? 1) > 1;
+                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQtyPerUnit ?? 1) > 1;
                   return (
                     <>
                       {hasPU && movementForm.movementType === 'entrada' && (
@@ -1750,7 +1750,7 @@ export default function InventarioManagement() {
                       )}
                       <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                         {movInputMode === 'purchase' && hasPU
-                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQty ?? 1)} ${selIng!.unit}`
+                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQtyPerUnit ?? 1)} ${selIng!.unit}`
                           : `Cantidad * ${selIng ? `(${selIng.unit})` : ''}`}
                       </label>
                       {movInputMode === 'purchase' && hasPU ? (

@@ -306,11 +306,12 @@ export default function MarketingPage() {
     const path = svgLineRef.current;
     requestAnimationFrame(() => {
       try {
+        if (!path || !document.contains(path)) return;
         const len = path.getTotalLength?.() || 800;
         path.style.strokeDasharray = String(len);
         path.style.strokeDashoffset = String(len);
         anime({
-          targets: [path],
+          targets: path,
           strokeDashoffset: [len, 0],
           duration: 2200,
           delay: 600,
@@ -330,7 +331,7 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = Array.from(pricingRef.current?.querySelectorAll('.pcard') ?? []) as HTMLElement[];
+      const cards = Array.from(pricingRef.current?.querySelectorAll('.pcard') ?? []).filter(Boolean) as HTMLElement[];
       if (!cards.length) return;
       try {
         anime({
@@ -355,7 +356,7 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const rows = Array.from(diffsRef.current?.querySelectorAll('.diff-row') ?? []) as HTMLElement[];
+      const rows = Array.from(diffsRef.current?.querySelectorAll('.diff-row') ?? []).filter(Boolean) as HTMLElement[];
       if (!rows.length) return;
       try {
         anime({
@@ -379,7 +380,7 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = Array.from(stepsRef.current?.querySelectorAll('.step-card') ?? []) as HTMLElement[];
+      const cards = Array.from(stepsRef.current?.querySelectorAll('.step-card') ?? []).filter(Boolean) as HTMLElement[];
       if (!cards.length) return;
       try {
         anime({
@@ -402,7 +403,7 @@ export default function MarketingPage() {
     // Delay to ensure DOM is fully painted
     const timer = setTimeout(() => {
       try {
-        const dots = Array.from(document.querySelectorAll('.cta-dot')) as HTMLElement[];
+        const dots = Array.from(document.querySelectorAll('.cta-dot')).filter(Boolean) as HTMLElement[];
         if (!dots.length) return;
         anime({
           targets: dots,
@@ -738,7 +739,7 @@ export default function MarketingPage() {
                     <div style={{display:'flex',flexDirection:'column',gap:11}}>
                       {plan.features.map(([title,desc],fi)=>(
                         <div key={fi} className="feat-check" style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                          <span style={{color:plan.color,flexShrink:0,fontSize:12,marginTop:2,fontWeight:700}}>✓</span>
+                          <span style={{color:plan.color,flexShrink:0,fontSize:13,marginTop:2,fontWeight:700}}>✓</span>
                           <div>
                             <span style={{fontSize:13,color:title.startsWith('Todo')?'rgba(240,236,228,.38)':'rgba(240,236,228,.82)',lineHeight:1.4,fontStyle:title.startsWith('Todo')?'italic':'normal'}}>{title}</span>
                             {desc&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',lineHeight:1.5,marginTop:2}}>{desc}</p>}
