@@ -9,8 +9,8 @@ interface TenantRow {
   plan_valid_until: string | null; trial_ends_at: string | null; created_at: string;
 }
 
-const PLAN_MXN: Record<string, number> = { operacion: 799, negocio: 1499, empresa: 2499 };
-const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
+const PLAN_MXN: Record<string, number> = { gratis: 0, operacion: 699, negocio: 1299, empresa: 2199 };
+const PLAN_COLOR: Record<string, string> = { gratis: '#34d399', operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
 
 export default function MRRPage() {
   const supabase = createClient();

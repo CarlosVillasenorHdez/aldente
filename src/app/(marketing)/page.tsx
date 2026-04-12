@@ -9,13 +9,73 @@ const PAINS = [
 ];
 
 const PLANS = [
-  { key:'operacion', name:'Operación', price:799, etapa:'Etapa 1 — Orden y control', tagline:'Ya no hay papel en tu restaurante.', sub:'El restaurante que da el primer paso digital serio. Eliminas el caos antes de medir nada.', promise:'Cuando estés listo para entender tu rentabilidad, el paso al siguiente plan es natural.', color:'#4a9eff',
-    features:[['POS con mapa de mesas drag & drop','Unión de mesas, pagos mixtos, descuentos, propinas'],['Para llevar integrado al POS','Flujo completo — sin mesa física, con nombre del cliente'],['Cocina digital KDS','Semáforo verde/amarillo/rojo. Badge urgente. Realtime.'],['Mesero móvil sin app store','Se instala desde el navegador en 10 segundos.'],['Corte de caja','Cierre en 30 segundos. Mesa vs Para Llevar separados.'],['Roles y acceso por PIN','Cada empleado entra directo a su herramienta'],['Control de propinas','Registro y resumen por turno'],['Reservaciones','Con confirmación automática al mesero']] },
-  { key:'negocio', name:'Negocio', price:1499, etapa:'Etapa 2 — Rentabilidad visible', tagline:'Ya sé exactamente qué pasa en mi restaurante.', sub:'El restaurante que opera bien y quiere tomar decisiones con números, no con intuición.', promise:'Cuando necesites escalar a más sucursales, el sistema ya está listo para acompañarte.', color:'#c9963a',
-    features:[['Todo lo de Operación',''],['Inventario vivo por receta','Cada venta descuenta ingredientes automáticamente'],['COGS real — no estimado','Costo por platillo desde la receta exacta'],['P&L por día, semana o mes','Gastos escalados al período. Sin sorpresas.'],['Merma con costo y razón','Cada cancelación registra el costo del ingrediente'],['Gastos y depreciaciones','Pagos recurrentes con alertas de vencimiento'],['Lista de compras automática','Basada en punto de reorden e historial de salidas'],['Programa de lealtad','Puntos, niveles y recompensas configurables'],['Alertas inteligentes','Stock bajo, órdenes demoradas, mesas sin atender']] },
-  { key:'empresa', name:'Empresa', price:2499, etapa:'Etapa 3 — Escala con control', tagline:'Ya puedo crecer sin perder el hilo.', sub:'Cadenas y grupos que necesitan visión centralizada sin perder la autonomía de cada sucursal.', promise:'Aldente crece contigo. Aquí no hay techo.', color:'#a78bfa',
-    features:[['Todo lo de Negocio',''],['Multi-sucursal consolidado','Dashboard unificado. Mesas y operación aisladas por sucursal.'],['Analytics comparativo','P&L por sucursal. Ranking de desempeño. Márgenes en paralelo.'],['Nómina LFT compliant','Art. 67/68/69/75. Horas extra calculadas y validadas.'],['Recursos humanos','Vacaciones, permisos, tiempos extra con factor 2x/3x'],['Delivery integrado','Asignación de repartidores, estados, historial por sucursal'],['Reportes ejecutivos','Por sucursal o consolidados, por período'],['Análisis avanzado de mermas','Por sucursal, por ingrediente, por turno']] },
+  { key:'gratis', name:'Gratis', price:0,
+    etapa:'Empieza aquí — sin costo',
+    tagline:'Prueba sin tarjeta. Sin fecha de vencimiento.',
+    sub:'Para el restaurante que quiere ver si esto es para él antes de comprometerse.',
+    promise:'Cuando veas el valor en tu primera semana, subir de plan es natural.',
+    color:'#34d399',
+    features:[
+      ['POS con mapa de mesas','Hasta 5 mesas · 2 usuarios · 1 sucursal'],
+      ['Cocina digital KDS','Semáforo en tiempo real'],
+      ['Corte de caja básico','Cierre del turno en 30 segundos'],
+      ['Carta QR con watermark','Menú digital público para tus clientes'],
+    ] },
+  { key:'operacion', name:'Operación', price:699,
+    etapa:'Etapa 1 — Orden y control',
+    tagline:'Ya no hay papel en tu restaurante.',
+    sub:'El restaurante que da el primer paso digital serio. Eliminas el caos antes de medir nada.',
+    promise:'Cuando estés listo para entender tu rentabilidad, el paso al siguiente plan es natural.',
+    color:'#4a9eff',
+    features:[
+      ['POS completo sin límite de mesas','Unión de mesas, pagos mixtos, descuentos, propinas'],
+      ['Para llevar integrado al POS','Flujo completo — sin mesa física, con nombre del cliente'],
+      ['Cocina digital KDS','Semáforo + aviso al mesero cuando listo'],
+      ['Mesero móvil sin app store','Se instala desde el navegador en 10 segundos'],
+      ['Traslado entre mesas','Mueve la orden en 2 clics sin perder nada'],
+      ['Cierre parcial de venta','Cobra solo algunos platillos sin cerrar la mesa'],
+      ['Corte de caja completo','Mesa vs Para Llevar · Propinas · Movimientos extra'],
+      ['Carta QR sin watermark','Tu menú digital — tu marca, sin mencionar Aldente'],
+      ['Roles y acceso por PIN','Cada empleado entra directo a su herramienta'],
+      ['Reservaciones','Con confirmación automática al mesero'],
+    ] },
+  { key:'negocio', name:'Negocio', price:1299,
+    etapa:'Etapa 2 — Rentabilidad visible',
+    tagline:'Ya sé exactamente qué pasa en mi restaurante.',
+    sub:'El restaurante que opera bien y quiere tomar decisiones con números, no con intuición.',
+    promise:'Cuando necesites escalar a más sucursales, el sistema ya está listo para acompañarte.',
+    color:'#c9963a',
+    features:[
+      ['Todo lo de Operación',''],
+      ['Inventario vivo por receta','Cada venta descuenta ingredientes automáticamente'],
+      ['COGS real — no estimado','Costo por platillo desde la receta exacta'],
+      ['P&L por día, semana o mes','Gastos escalados al período. Sin sorpresas.'],
+      ['Merma con costo y razón','Cada cancelación registra el costo del ingrediente'],
+      ['Lista de compras inteligente','Predice cuántos días te queda cada ingrediente'],
+      ['BCG Matrix de platillos','Estrella / Puzzle / Vaca / Burro — decide con datos'],
+      ['Gastos y depreciaciones','Pagos recurrentes con alertas de vencimiento'],
+      ['Programa de lealtad','Puntos, niveles y recompensas configurables'],
+      ['Alertas inteligentes','Stock bajo, órdenes demoradas, mesas sin atender'],
+    ] },
+  { key:'empresa', name:'Empresa', price:2199,
+    etapa:'Etapa 3 — Escala con control',
+    tagline:'Ya puedo crecer sin perder el hilo.',
+    sub:'Cadenas y grupos que necesitan visión centralizada sin perder la autonomía de cada sucursal.',
+    promise:'Aldente crece contigo. Aquí no hay techo.',
+    color:'#a78bfa',
+    features:[
+      ['Todo lo de Negocio',''],
+      ['Multi-sucursal consolidado','Dashboard unificado. Mesas y operación aisladas por sucursal'],
+      ['Analytics comparativo','P&L por sucursal. Ranking de desempeño. Márgenes en paralelo'],
+      ['Nómina LFT compliant','Art. 67/68/69/75. Horas extra calculadas y validadas'],
+      ['Recursos humanos','Vacaciones, permisos, tiempos extra con factor 2x/3x'],
+      ['Delivery integrado','Asignación de repartidores, ETA, estados, historial'],
+      ['Reportes ejecutivos','Por sucursal o consolidados, por período'],
+      ['Análisis avanzado de mermas','Por sucursal, por ingrediente, por turno'],
+    ] },
 ];
+
+
 
 const DIFFS = [
   { label:'Precio', them:'Módulos por separado. KDS +$200/mes. Mesas +$100/mes.', us:'Un precio. Todo incluido. Sin sorpresas al final del mes.' },
@@ -142,7 +202,7 @@ export default function MarketingPage() {
         .pcard{border-radius:22px;padding:36px 30px;transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s}.pcard:hover{transform:translateY(-10px);box-shadow:0 28px 64px rgba(0,0,0,.45)}
         .pain-btn{transition:all .3s cubic-bezier(.22,1,.36,1)}.pain-btn:hover{transform:translateX(5px)}
         .diff-row{transition:transform .2s}.diff-row:hover{transform:scaleX(1.006)}
-        @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}}
+        @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g4{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}}@media(min-width:901px)and(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)!important}}
       `}</style>
 
       {/* NAV */}
@@ -308,6 +368,92 @@ export default function MarketingPage() {
         </div>
       </section>
 
+
+      {/* COMPETITIVE TABLE */}
+      <section className="sec" style={{background:'#07090f'}}>
+        <div className="wrap">
+          <FadeUp>
+            <div style={{maxWidth:640,marginBottom:48}}>
+              <div className="eyebrow" style={{marginBottom:20}}>Comparativa directa</div>
+              <h2 className="serif" style={{fontSize:'clamp(30px,4vw,48px)',fontWeight:700,lineHeight:1.1}}>
+                Aldente vs la competencia.<br/><em style={{color:'#c9963a'}}>Número a número.</em>
+              </h2>
+            </div>
+          </FadeUp>
+          <FadeUp delay={0.1}>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'separate',borderSpacing:0,fontSize:13}}>
+                <thead>
+                  <tr>
+                    {[
+                      {label:'', sub:''},
+                      {label:'Aldente', sub:'Nuestro precio', highlight:true},
+                      {label:'FUDO', sub:'LATAM'},
+                      {label:'Poster POS', sub:'LATAM'},
+                      {label:'Toast', sub:'USA'},
+                      {label:'Bind ERP', sub:'México'},
+                    ].map((col, i) => (
+                      <th key={i} style={{padding:'14px 18px',textAlign:i===0?'left':'center',fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:col.highlight?'#c9963a':'rgba(240,236,228,.45)',background:col.highlight?'rgba(201,150,58,.07)':'rgba(255,255,255,.025)',borderBottom:'1px solid rgba(255,255,255,.08)',borderTop:'1px solid rgba(255,255,255,.06)',borderLeft:i===0?'1px solid rgba(255,255,255,.06)':'none',borderRight:'1px solid rgba(255,255,255,.06)',borderRadius:i===0?'12px 0 0 0':i===5?'0 12px 0 0':'0'}}>
+                        {col.label && <div>{col.label}</div>}
+                        {col.sub && <div style={{fontSize:10,fontWeight:400,color:'rgba(240,236,228,.3)',marginTop:2}}>{col.sub}</div>}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['Precio entrada', '$0 gratis / $699', '$499', '$299', '$110 USD', '$800'],
+                    ['Plan completo', '$2,199/mes', '$1,999+módulos', '$899/mes', '$165 USD', '$2,500'],
+                    ['P&L real con merma', '✓ Por ingrediente', '✗ Número general', '✗', '✗', '✗'],
+                    ['Inventario vivo', '✓ Por receta', '✓ Básico', '✗', '✓ Básico', '✗'],
+                    ['Nómina LFT', '✓ Art.67/68/69', '✗', '✗', '✗', 'Parcial'],
+                    ['Multi-sucursal', '✓ Aislamiento real', '✓', '✗', '✓ Caro', '✗'],
+                    ['Mesero móvil (PWA)', '✓ Sin app store', '✓ App nativa', '✗', '✓', '✗'],
+                    ['Aviso mesero listo', '✓ Broadcast real', '✗', '✗', '✗', '✗'],
+                    ['BCG Matrix menú', '✓ Scatter + recom.', '✗', '✗', '✗', '✗'],
+                    ['Lista compras IA', '✓ Predicción días', '✗', '✗', '✗', '✗'],
+                    ['Carta QR pública', '✓ Mobile-first', '✓', '✗', '✗', '✗'],
+                    ['Listas de precios', '✓ Múltiples', '✓', '✗', '✗', '✗'],
+                    ['SuperAdmin SaaS', '✓ Health signals', '✗ Single-tenant', '✗', '✗', '✗'],
+                    ['Soporte en español', '✓', '✓', '✓', '✗ Inglés', '✓'],
+                    ['Sin módulos extra', '✓ Todo incluido', '✗ +$200/módulo', '✓', '✗ Hardware', '✗'],
+                  ].map(([feature, aldente, fudo, poster, toast, bind], ri) => (
+                    <tr key={ri}>
+                      {[feature, aldente, fudo, poster, toast, bind].map((cell, ci) => {
+                        const isAldente = ci === 1;
+                        const isCheck = typeof cell === 'string' && cell.startsWith('✓');
+                        const isX = typeof cell === 'string' && (cell === '✗' || cell.startsWith('✗'));
+                        return (
+                          <td key={ci} style={{
+                            padding:'11px 18px',
+                            textAlign:ci===0?'left':'center',
+                            background:isAldente?'rgba(201,150,58,.04)':'rgba(255,255,255,.012)',
+                            borderBottom:'1px solid rgba(255,255,255,.05)',
+                            borderLeft:ci===0?'1px solid rgba(255,255,255,.06)':'none',
+                            borderRight:'1px solid rgba(255,255,255,.06)',
+                            color:ci===0?'rgba(240,236,228,.7)':isCheck?'#4ade80':isX?'rgba(239,68,68,.5)':isAldente?'#c9963a':'rgba(240,236,228,.5)',
+                            fontWeight:ci===0?400:isCheck||isX?600:500,
+                            fontSize:ci===0?13:12,
+                          }}>
+                            {cell}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={6} style={{padding:0,borderLeft:'1px solid rgba(255,255,255,.06)',borderRight:'1px solid rgba(255,255,255,.06)',borderBottom:'1px solid rgba(255,255,255,.06)',borderRadius:'0 0 12px 12px',height:1}} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p style={{textAlign:'center',fontSize:11,color:'rgba(240,236,228,.2)',marginTop:16}}>
+              Precios en MXN aproximados · Agosto 2025 · Sujetos a cambio · Toast en USD ~$20/USD tipo cambio
+            </p>
+          </FadeUp>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section className="sec" style={{background:'#0d0f17'}}>
         <div className="wrap">
@@ -344,9 +490,9 @@ export default function MarketingPage() {
               <span style={{fontSize:13,color:annual?'#f0ece4':'rgba(240,236,228,.35)'}}>Anual <span style={{color:'#c9963a',fontSize:11,fontWeight:700}}>−15%</span></span>
             </div>
           </div></FadeUp>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}} className="g3">
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,alignItems:'start'}} className="g4">
             {PLANS.map((plan,pi)=>{
-              const fp=Math.round(plan.price*disc);
+              const fp=plan.price===0?0:Math.round(plan.price*disc);
               const p=plan as any;
               return(
                 <FadeUp key={plan.key} delay={pi*.1}>
@@ -354,15 +500,21 @@ export default function MarketingPage() {
                     <div style={{fontSize:10,fontWeight:600,letterSpacing:'.1em',textTransform:'uppercase',color:`${plan.color}88`,marginBottom:8}}>{p.etapa}</div>
                     <div style={{fontSize:13,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:plan.color,marginBottom:16}}>{plan.name}</div>
                     <div style={{marginBottom:4}}>
-                      <span style={{fontSize:52,fontWeight:700,color:'#f0ece4',lineHeight:1,fontFamily:"'Playfair Display',serif"}}>${fp.toLocaleString('es-MX')}</span>
-                      <span style={{fontSize:13,color:'rgba(240,236,228,.6)',marginLeft:6}}>/mes</span>
+                      {plan.price === 0 ? (
+                      <span style={{fontSize:48,fontWeight:700,color:plan.color,lineHeight:1,fontFamily:"'Playfair Display',serif"}}>Gratis</span>
+                    ) : (
+                      <>
+                        <span style={{fontSize:52,fontWeight:700,color:'#f0ece4',lineHeight:1,fontFamily:"'Playfair Display',serif"}}>${fp.toLocaleString('es-MX')}</span>
+                        <span style={{fontSize:13,color:'rgba(240,236,228,.6)',marginLeft:6}}>/mes</span>
+                      </>
+                    )}
                     </div>
-                    {annual&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
+                    {annual&&plan.price>0&&<p style={{fontSize:11,color:'rgba(240,236,228,.5)',marginBottom:6}}>Antes ${plan.price.toLocaleString('es-MX')}/mes</p>}
                     <p className="serif" style={{fontSize:15,color:'rgba(240,236,228,.65)',fontStyle:'italic',marginBottom:8,lineHeight:1.4}}>{plan.tagline}</p>
                     <p style={{fontSize:12,color:'rgba(240,236,228,.4)',marginBottom:16,lineHeight:1.65}}>{plan.sub}</p>
                     {p.promise&&<p style={{fontSize:11,color:`${plan.color}70`,marginBottom:20,lineHeight:1.6,fontStyle:'italic',borderLeft:`2px solid ${plan.color}25`,paddingLeft:10}}>{p.promise}</p>}
-                    <a href="/registro" style={{display:'block',padding:'12px',borderRadius:12,background:`${plan.color}18`,color:plan.color,fontSize:14,fontWeight:600,textAlign:'center',border:`1px solid ${plan.color}30`,marginBottom:28,transition:'all .2s'}} onMouseEnter={e=>(e.currentTarget.style.background=`${plan.color}30`)} onMouseLeave={e=>(e.currentTarget.style.background=`${plan.color}18`)}>
-                      Empezar en {plan.name} →
+                    <a href="/registro" style={{display:'block',padding:'12px',borderRadius:12,background:plan.price===0?plan.color:`${plan.color}18`,color:plan.price===0?'#07090f':plan.color,fontSize:14,fontWeight:700,textAlign:'center',border:`1px solid ${plan.color}30`,marginBottom:28,transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background=plan.price===0?'#4ade80':`${plan.color}30`;}} onMouseLeave={e=>{e.currentTarget.style.background=plan.price===0?plan.color:`${plan.color}18`;}}>
+                      {plan.price===0?'Empezar gratis →':'Empezar en '+plan.name+' →'}
                     </a>
                     <div style={{display:'flex',flexDirection:'column',gap:11}}>
                       {plan.features.map(([title,desc],fi)=>(

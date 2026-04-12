@@ -382,9 +382,9 @@ export default function FuncionalidadesPage() {
             {/* Journey */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1 }}>
               {[
-                { plan: 'Operación', price: '$799', trigger: 'Cuando decides dejar el papel', what: 'POS + KDS + Mesero Móvil + Caja', color: '#4a9eff' },
-                { plan: 'Negocio', price: '$1,499', trigger: 'Cuando quieres saber la verdad', what: '+ Inventario + P&L + Gastos + Lealtad', color: '#c9963a', featured: true },
-                { plan: 'Empresa', price: '$2,499', trigger: 'Cuando estás listo para escalar', what: '+ Multi-sucursal + Nómina LFT + RH', color: '#a78bfa' },
+                { plan: 'Operación', price: '$699', trigger: 'Cuando decides dejar el papel', what: 'POS + KDS + Mesero Móvil + Caja', color: '#4a9eff' },
+                { plan: 'Negocio', price: '$1,299', trigger: 'Cuando quieres saber la verdad', what: '+ Inventario + P&L + Gastos + Lealtad', color: '#c9963a', featured: true },
+                { plan: 'Empresa', price: '$2,199', trigger: 'Cuando estás listo para escalar', what: '+ Multi-sucursal + Nómina LFT + RH', color: '#a78bfa' },
               ].map((p, i) => (
                 <div key={p.plan} style={{ padding: '28px 24px', background: p.featured ? 'rgba(201,150,58,.06)' : 'rgba(255,255,255,.02)', border: `1px solid ${p.featured ? 'rgba(201,150,58,.25)' : 'rgba(255,255,255,.07)'}`, borderRadius: i === 0 ? '14px 0 0 14px' : i === 2 ? '0 14px 14px 0' : '0', position: 'relative' }}>
                   {p.featured && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', padding: '3px 14px', borderRadius: 100, background: '#c9963a', fontSize: 9, fontWeight: 700, color: '#07090f', letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Más elegido</div>}
