@@ -853,8 +853,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
                     <span style={{ color: '#f87171', fontSize: '12px', fontFamily: 'monospace', fontWeight: 600 }}>
                       ${((r.costPerUnit ?? 0) * r.quantity).toFixed(2)}
                     </span>
-                    <button onClick={() => r.id && handleRemove(r.id)}
-                      style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}>✕</button>
+                    <button onClick={() => r.id && handleRemove(r.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}>✕</button>
                   </div>
                 </div>
               ))}
@@ -1140,9 +1139,10 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
 // ─── Dish Card ────────────────────────────────────────────────────────────────
 
-function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe }: {
+function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, priceMultiplier = 1 }: {
   dish: Dish;
   recipeCount: number;
+  priceMultiplier?: number;
   onEdit: (d: Dish) => void;
   onDelete: (d: Dish) => void;
   onToggle: (id: string) => void | Promise<void>;
@@ -1174,7 +1174,14 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe }: {
       <div className="flex flex-col flex-1 p-4">
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <h3 className="font-bold text-white text-sm leading-snug flex-1">{dish.name}</h3>
-          <span className="font-bold flex-shrink-0" style={{ color: '#f59e0b', fontSize: '15px' }}>${dish.price.toFixed(0)}</span>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            {priceMultiplier !== 1 && (
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>${dish.price.toFixed(0)}</div>
+            )}
+            <span className="font-bold" style={{ color: priceMultiplier !== 1 ? '#60a5fa' : '#f59e0b', fontSize: '15px' }}>
+              ${(dish.price * priceMultiplier).toFixed(0)}
+            </span>
+          </div>
         </div>
         <p className="text-xs leading-relaxed flex-1 mb-3 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{dish.description}</p>
         {/* Recipe button */}
@@ -1214,6 +1221,14 @@ export default function MenuManagement() {
 
   const { appUser } = useAuth();
   const supabase = createClient();
+  const [priceLists, setPriceLists] = useState<{
+    id: string; name: string; multiplier: number; active: boolean;
+  }[]>([
+    { id: 'normal', name: 'Normal', multiplier: 1, active: true },
+  ]);
+  const [activePriceList, setActivePriceList] = useState('normal');
+  const [showPriceListModal, setShowPriceListModal] = useState(false);
+  const [priceListDraft, setPriceListDraft] = useState({ name: '', multiplier: 1 });
 
   const fetchDishes = useCallback(async () => {
     // Prefer appUser.tenantId from React context (most reliable)
@@ -1355,9 +1370,24 @@ export default function MenuManagement() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.35)' }} />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar platillo..." className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: '#162d55', border: '1px solid #243f72', color: 'white' }} />
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110 flex-shrink-0" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-          <Plus size={16} />Agregar platillo
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <select value={activePriceList} onChange={e => setActivePriceList(e.target.value)}
+            className="px-3 py-2.5 rounded-xl text-sm font-semibold outline-none"
+            style={{ backgroundColor: '#162d55', border: '1px solid #243f72', color: 'rgba(255,255,255,0.8)' }}>
+            {priceLists.map(pl => (
+              <option key={pl.id} value={pl.id}>{pl.name}{pl.multiplier !== 1 ? ` (×${pl.multiplier})` : ''}</option>
+            ))}
+          </select>
+          <button onClick={() => setShowPriceListModal(true)}
+            className="px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}
+            title="Gestionar listas de precios">
+            🏷 Listas
+          </button>
+          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
+            <Plus size={16} />Agregar platillo
+          </button>
+        </div>
       </div>
 
       {/* Category tabs */}
@@ -1397,6 +1427,7 @@ export default function MenuManagement() {
             <DishCard
               key={dish.id}
               dish={dish as Dish}
+              priceMultiplier={priceLists.find(pl => pl.id === activePriceList)?.multiplier ?? 1}
               recipeCount={recipeCounts[dish.id] || 0}
               onEdit={openEdit}
               onDelete={setDeletingDish}
@@ -1404,6 +1435,70 @@ export default function MenuManagement() {
               onRecipe={setRecipeDish}
             />
           ))}
+        </div>
+      )}
+
+      {/* Price Lists Modal */}
+      {showPriceListModal && (
+        <div style={{ position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}
+          onClick={() => setShowPriceListModal(false)}>
+          <div style={{ background:'#162d55',border:'1px solid #243f72',borderRadius:20,padding:28,maxWidth:480,width:'100%' }}
+            onClick={e => e.stopPropagation()}>
+            <h3 style={{ color:'#f1f5f9',fontSize:18,fontWeight:700,marginBottom:4 }}>🏷 Listas de precios</h3>
+            <p style={{ color:'rgba(255,255,255,0.4)',fontSize:13,marginBottom:20 }}>
+              Aplica multiplicadores por canal o turno. Los precios originales del menú no cambian.
+            </p>
+            <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:20 }}>
+              {priceLists.map(pl => (
+                <div key={pl.id} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderRadius:10,background:'rgba(255,255,255,0.04)',border:`1px solid ${activePriceList===pl.id?'rgba(201,150,58,0.4)':'rgba(255,255,255,0.08)'}` }}>
+                  <div>
+                    <span style={{ fontSize:13,fontWeight:600,color:'#f1f5f9' }}>{pl.name}</span>
+                    {pl.multiplier!==1&&<span style={{ fontSize:11,color:'#60a5fa',marginLeft:8 }}>×{pl.multiplier} ({pl.multiplier>1?'+':''}{((pl.multiplier-1)*100).toFixed(0)}%)</span>}
+                  </div>
+                  <div style={{ display:'flex',gap:6 }}>
+                    <button onClick={() => setActivePriceList(pl.id)}
+                      style={{ fontSize:11,padding:'4px 12px',borderRadius:8,background:activePriceList===pl.id?'#c9963a':'rgba(255,255,255,0.06)',border:'none',color:activePriceList===pl.id?'#000':'rgba(255,255,255,0.5)',fontWeight:600,cursor:'pointer' }}>
+                      {activePriceList===pl.id?'✓ Activa':'Activar'}
+                    </button>
+                    {pl.id!=='normal'&&(
+                      <button onClick={() => { setPriceLists(prev=>prev.filter(p=>p.id!==pl.id)); if(activePriceList===pl.id) setActivePriceList('normal'); }}
+                        style={{ fontSize:11,padding:'4px 10px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'#f87171',cursor:'pointer' }}>✕</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:16 }}>
+              <div style={{ fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.4)',marginBottom:10 }}>+ Nueva lista</div>
+              <div style={{ display:'flex',gap:8,marginBottom:8 }}>
+                <input value={priceListDraft.name} onChange={e=>setPriceListDraft(d=>({...d,name:e.target.value}))}
+                  placeholder="Ej: Happy Hour, Terraza, Delivery"
+                  style={{ flex:2,background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'8px 12px',color:'#f1f5f9',fontSize:13,outline:'none' }} />
+                <div style={{ flex:1,display:'flex',alignItems:'center',gap:6 }}>
+                  <span style={{ fontSize:12,color:'rgba(255,255,255,0.4)' }}>×</span>
+                  <input type="number" step="0.05" min="0.5" max="3" value={priceListDraft.multiplier}
+                    onChange={e=>setPriceListDraft(d=>({...d,multiplier:parseFloat(e.target.value)||1}))}
+                    style={{ flex:1,background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'8px 10px',color:'#f1f5f9',fontSize:13,outline:'none' }} />
+                </div>
+              </div>
+              <div style={{ fontSize:11,color:'rgba(255,255,255,0.3)',marginBottom:12 }}>
+                {priceListDraft.multiplier!==1?`Ejemplo: platillo de $100 → $${(100*priceListDraft.multiplier).toFixed(0)}`:'Multiplicador 1 = precio normal'}
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <button onClick={() => {
+                  if(!priceListDraft.name.trim()) return;
+                  setPriceLists(prev=>[...prev,{id:'pl_'+Date.now(),name:priceListDraft.name.trim(),multiplier:priceListDraft.multiplier,active:false}]);
+                  setPriceListDraft({name:'',multiplier:1});
+                }} style={{ flex:1,padding:'10px',borderRadius:10,background:'#c9963a',border:'none',color:'#000',fontSize:13,fontWeight:700,cursor:'pointer' }}>
+                  + Agregar lista
+                </button>
+                <button onClick={()=>setShowPriceListModal(false)}
+                  style={{ flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.5)',fontSize:13,cursor:'pointer' }}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

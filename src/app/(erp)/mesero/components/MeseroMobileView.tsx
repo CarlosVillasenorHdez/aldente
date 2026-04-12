@@ -85,6 +85,7 @@ export default function MeseroMobileView() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showTakeoutModal, setShowTakeoutModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [kitchenNotifs, setKitchenNotifs] = useState<{orderId:string; mesa:string; items:string; at:string}[]>([]);
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [takeoutNameInput, setTakeoutNameInput] = useState('');
 
@@ -180,6 +181,25 @@ export default function MeseroMobileView() {
 
     const connect = () => {
       if (destroyed) return;
+      // Subscribe to kitchen ready notifications
+      supabase.channel('kitchen-notifications')
+        .on('broadcast', { event: 'order_ready' }, (payload: any) => {
+          const { mesa, items, orderId } = payload.payload ?? {};
+          const myName = appUser?.fullName || '';
+          // Show to all meseros (they'll see their own tables highlighted)
+          setKitchenNotifs(prev => {
+            const already = prev.some(r => r.orderId === orderId);
+            if (already) return prev;
+            return [{ orderId, mesa: mesa ?? '?', items: items ?? '', at: new Date().toISOString() }, ...prev.slice(0, 4)];
+          });
+          toast(`🔔 ${mesa} lista para servir`, {
+            description: items,
+            duration: 8000,
+            style: { background: '#022c22', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80' },
+          });
+        })
+        .subscribe();
+
       channel = supabase
         .channel(`mesero-tables-sync`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, (payload: any) => {
@@ -683,6 +703,24 @@ export default function MeseroMobileView() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Ready orders notification strip */}
+          {kitchenNotifs.length > 0 && (
+            <div style={{ marginBottom:12, display:'flex', flexDirection:'column', gap:6 }}>
+              {kitchenNotifs.map((r, i) => (
+                <div key={r.orderId} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:12, background:'rgba(34,197,94,0.08)', border:'1px solid rgba(34,197,94,0.25)' }}>
+                  <span style={{ fontSize:18 }}>🔔</span>
+                  <div style={{ flex:1 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#4ade80' }}>{r.mesa}</span>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,0.5)', marginLeft:6 }}>lista para servir</span>
+                    <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:1 }}>{r.items}</p>
+                  </div>
+                  <button onClick={() => setKitchenNotifs(prev => prev.filter(x => x.orderId !== r.orderId))}
+                    style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', fontSize:16, padding:'0 4px' }}>×</button>
+                </div>
+              ))}
             </div>
           )}
 

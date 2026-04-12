@@ -529,6 +529,24 @@ export default function KitchenModule() {
 
     const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
     if (error) { toast.error('Error al actualizar estado: ' + error.message); return; }
+
+    // ── Notify mesero when order is ready ─────────────────────────────────────
+    if (next === 'lista') {
+      const readyOrder = orders.find(o => o.id === orderId);
+      if (readyOrder) {
+        supabase.channel('kitchen-notifications').send({
+          type: 'broadcast',
+          event: 'order_ready',
+          payload: {
+            orderId,
+            mesa: readyOrder.mesa,
+            mesero: readyOrder.mesero,
+            items: readyOrder.items.map(i => i.name).join(', '),
+          },
+        });
+      }
+    }
+
     setOrders((prev) => prev.map((o) =>
       o.id === orderId
         ? { ...o, kitchenStatus: next, kitchenStartedAt: next === 'preparacion' ? now : o.kitchenStartedAt, kitchenCompletedAt: next === 'lista' ? now : o.kitchenCompletedAt }

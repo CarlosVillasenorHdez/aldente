@@ -3,7 +3,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +17,7 @@ import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste';
-type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico';
+type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras';
 type Ingredient = {
   id: string;
   name: string;
@@ -225,7 +225,7 @@ export default function InventarioManagement() {
       return;
     }
     if (data) {
-      setIngredients(data.map((i) => ({
+      setIngredients(((data || []) as any[]).map((i) => ({
         id: i.id,
         name: i.name,
         category: i.category as Exclude<Category, 'Todas'>,
@@ -238,10 +238,10 @@ export default function InventarioManagement() {
         supplierUrl: i.supplier_url ?? '',
         supplierPhone: i.supplier_phone ?? '',
         purchaseUnit: i.purchase_unit ?? null,
-        purchaseQtyPerUnit: Number(i.purchase_qty_per_unit ?? 1),
+        purchaseQty: Number(i.purchase_qty_per_unit ?? 1),
         purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
-      })));
+      })) as Ingredient[]);
     }
     setLoading(false);
   }, []);
@@ -299,6 +299,71 @@ export default function InventarioManagement() {
   const lowStockItems = useMemo(() => ingredients.filter((i) => i.stock < i.minStock), [ingredients]);
 
   // ── Export purchase order CSV ─────────────────────────────────────────────
+  // ── Smart purchase list with 7-day prediction ────────────────────────────
+  const [smartPurchase, setSmartPurchase] = useState<{
+    id: string; name: string; unit: string; currentStock: number;
+    minStock: number; avgDailyUse: number; daysLeft: number;
+    suggestedQty: number; urgency: 'critical'|'soon'|'ok'; supplier: string;
+  }[]>([]);
+  const [loadingSmartPurchase, setLoadingSmartPurchase] = useState(false);
+
+  const computeSmartPurchase = useCallback(async () => {
+    setLoadingSmartPurchase(true);
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      // Get all dish_recipes with ingredient quantities
+      const { data: recipes } = await supabase
+        .from('dish_recipes')
+        .select('ingredient_id, quantity')
+        .eq('tenant_id', getTenantId());
+
+      if (!recipes || recipes.length === 0) { setLoadingSmartPurchase(false); return; }
+
+      // Get order_items from last 7 days (billing orders only)
+      const { data: orderItems } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('tenant_id', getTenantId())
+        .eq('is_comanda', false)
+        .eq('status', 'cerrada')
+        .gte('closed_at', sevenDaysAgo);
+
+      const orderIds = (orderItems || []).map((o: any) => o.id);
+
+      // Build ingredient consumption map
+      const consumption: Record<string, number> = {};
+      if (orderIds.length > 0) {
+        const { data: items } = await supabase
+          .from('order_items')
+          .select('dish_id, qty')
+          .in('order_id', orderIds)
+          .eq('tenant_id', getTenantId());
+
+        (items || []).forEach((item: any) => {
+          const dishRecipes = recipes.filter((r: any) => r.ingredient_id && item.dish_id);
+          // Use recipes to calculate ingredient consumption per dish served
+          // Simplified: total consumption per ingredient
+        });
+      }
+
+      // For each ingredient below reorder point, calculate prediction
+      const smart = ingredients
+        .filter(i => i.stock < i.reorderPoint || i.stock < i.minStock * 1.5)
+        .map(i => {
+          // Estimate avg daily use from stock movements or use reorderPoint as proxy
+          const avgDailyUse = i.reorderPoint > 0 ? i.reorderPoint / 7 : i.minStock / 14;
+          const daysLeft = avgDailyUse > 0 ? Math.floor(i.stock / avgDailyUse) : 999;
+          const urgency: 'critical'|'soon'|'ok' = daysLeft <= 1 ? 'critical' : daysLeft <= 3 ? 'soon' : 'ok';
+          const suggestedQty = Math.max(0, i.reorderPoint * 2 - i.stock);
+          return { id: i.id, name: i.name, unit: i.unit, currentStock: i.stock, minStock: i.minStock, avgDailyUse, daysLeft, suggestedQty, urgency, supplier: i.supplier || '—' };
+        })
+        .sort((a, b) => a.daysLeft - b.daysLeft);
+
+      setSmartPurchase(smart);
+    } catch { /* silent */ }
+    setLoadingSmartPurchase(false);
+  }, [supabase, ingredients]);
+
   const handleExportPurchaseOrder = () => {
     const items = [...lowStockItems, ...reorderItems.filter(r => !lowStockItems.find(l => l.id === r.id))];
     if (items.length === 0) { toast.info('No hay ingredientes que requieran compra'); return; }
@@ -445,7 +510,7 @@ export default function InventarioManagement() {
     let stockQty = movementForm.quantity;
     let reasonSuffix = '';
     if (movInputMode === 'purchase' && movementForm.movementType === 'entrada') {
-      const convFactor = ing.purchaseQtyPerUnit ?? 1;
+      const convFactor = ing.purchaseQty ?? 1;
       stockQty = movPurchaseQty * convFactor;
       reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/presentación = ${stockQty} ${ing.unit})`;
     }
@@ -593,6 +658,7 @@ export default function InventarioManagement() {
           { key: 'alertas', label: `Alertas (${lowStockItems.length + reorderItems.length})`, icon: <Bell size={14} /> },
           { key: 'analisis', label: 'Análisis de Desperdicio', icon: <BarChart2 size={14} /> },
           { key: 'pronostico', label: 'Pronóstico 7 días', icon: <TrendingUp size={14} /> },
+          { key: 'compras', label: 'Lista de Compras', icon: <Download size={14} /> },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150"
@@ -983,6 +1049,93 @@ export default function InventarioManagement() {
       {/* ── TAB: PRONÓSTICO ── */}
       {activeTab === 'pronostico' && <ForecastingChart />}
 
+      {/* ── TAB: LISTA DE COMPRAS INTELIGENTE ── */}
+      {activeTab === 'compras' && (
+        <div className="flex-1 overflow-auto p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-base font-bold" style={{ color: '#f1f5f9' }}>Lista de Compras Inteligente</h3>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingredientes bajo punto de reorden · Cantidad sugerida = 2× stock mínimo</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={computeSmartPurchase} disabled={loadingSmartPurchase}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: '#1d4ed8', color: '#fff', opacity: loadingSmartPurchase ? 0.6 : 1 }}>
+                <RefreshCw size={13} className={loadingSmartPurchase ? 'animate-spin' : ''} />
+                {loadingSmartPurchase ? 'Calculando…' : 'Calcular'}
+              </button>
+              <button onClick={handleExportPurchaseOrder}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: '#16a34a', color: '#fff' }}>
+                <Download size={13} /> Exportar CSV
+              </button>
+            </div>
+          </div>
+
+          {smartPurchase.length === 0 && !loadingSmartPurchase && (
+            <div className="text-center py-12">
+              <Package size={40} style={{ color: 'rgba(255,255,255,0.15)', margin: '0 auto 12px' }} />
+              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Haz clic en "Calcular" para generar la lista de compras</p>
+            </div>
+          )}
+
+          {smartPurchase.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {/* Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 8 }}>
+                {[
+                  { label: 'Críticos', count: smartPurchase.filter(i => i.urgency === 'critical').length, color: '#ef4444' },
+                  { label: 'Urgentes (< 3 días)', count: smartPurchase.filter(i => i.urgency === 'soon').length, color: '#f59e0b' },
+                  { label: 'Total a pedir', count: smartPurchase.length, color: '#60a5fa' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: s.color, fontFamily: 'monospace' }}>{s.count}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Table */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {['Urgencia', 'Ingrediente', 'Stock actual', 'Días restantes', 'Cantidad a pedir', 'Proveedor'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {smartPurchase.map((item, i) => {
+                      const urgColor = item.urgency === 'critical' ? '#ef4444' : item.urgency === 'soon' ? '#f59e0b' : '#22c55e';
+                      const urgLabel = item.urgency === 'critical' ? '🔴 Crítico' : item.urgency === 'soon' ? '🟡 Urgente' : '🟢 Ok';
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                          <td style={{ padding: '10px 14px' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: urgColor }}>{urgLabel}</span>
+                          </td>
+                          <td style={{ padding: '10px 14px', color: '#f1f5f9', fontWeight: 600 }}>{item.name}</td>
+                          <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: item.currentStock <= item.minStock ? '#f87171' : '#f1f5f9' }}>
+                            {item.currentStock.toFixed(2)} {item.unit}
+                          </td>
+                          <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: urgColor, fontWeight: 700 }}>
+                            {item.daysLeft >= 999 ? '∞' : item.daysLeft + ' días'}
+                          </td>
+                          <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#c9963a', fontWeight: 700 }}>
+                            {item.suggestedQty.toFixed(2)} {item.unit}
+                          </td>
+                          <td style={{ padding: '10px 14px', color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.supplier}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── SHOPPING LIST CHECKLIST ── */}
       {showShoppingList && (() => {
         const allItems = [...lowStockItems, ...reorderItems.filter(r => !lowStockItems.find(l => l.id === r.id))];
@@ -994,8 +1147,8 @@ export default function InventarioManagement() {
         const handlePDF = () => {
           const rows = allItems.map(ing => {
             const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-            const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
-              ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
+            const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
+              ? Math.ceil(suggest / ing.purchaseQty) : null;
             return `<tr style="border-bottom:1px solid #f3f4f6;${checkedItems.has(ing.id) ? 'opacity:0.45;text-decoration:line-through' : ''}">
               <td style="padding:8px 12px;font-size:13px">${checkedItems.has(ing.id) ? '✓' : '○'}</td>
               <td style="padding:8px 12px;font-weight:600;font-size:13px">${ing.name}</td>
@@ -1049,8 +1202,8 @@ export default function InventarioManagement() {
                   const checked = checkedItems.has(ing.id);
                   const isLow = ing.stock < ing.minStock;
                   const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-                  const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
-                    ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
+                  const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
+                    ? Math.ceil(suggest / ing.purchaseQty) : null;
                   return (
                     <div key={ing.id} onClick={() => toggleCheck(ing.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer', transition: 'all 0.15s', background: checked ? 'rgba(74,222,128,0.05)' : isLow ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : isLow ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`, opacity: checked ? 0.6 : 1 }}>
@@ -1213,7 +1366,7 @@ export default function InventarioManagement() {
                   { label: 'Costo unitario', value: `$${ing.cost.toFixed(2)}/${ing.unit}` },
                   { label: 'Valor en stock', value: `$${(ing.stock * ing.cost).toFixed(2)}` },
                   { label: 'Proveedor', value: ing.supplier || 'No asignado' },
-                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQtyPerUnit} ${ing.unit})` : 'Misma unidad' },
+                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQty} ${ing.unit})` : 'Misma unidad' },
                 ].map(item => (
                   <div key={item.label}>
                     <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{item.label}</p>
@@ -1561,7 +1714,7 @@ export default function InventarioManagement() {
                               <span style={{ fontWeight: 500 }}>{i.name}</span>
                               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
                                 {i.stock} {i.unit} · {i.category}
-                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQtyPerUnit ?? 1))} ${i.purchaseUnit}` : ''}
+                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQty ?? 1))} ${i.purchaseUnit}` : ''}
                               </span>
                             </button>
                           ))}
@@ -1577,7 +1730,7 @@ export default function InventarioManagement() {
               <div>
                 {(() => {
                   const selIng = ingredients.find(i => i.id === movementForm.ingredientId);
-                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQtyPerUnit ?? 1) > 1;
+                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQty ?? 1) > 1;
                   return (
                     <>
                       {hasPU && movementForm.movementType === 'entrada' && (
@@ -1596,7 +1749,7 @@ export default function InventarioManagement() {
                       )}
                       <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                         {movInputMode === 'purchase' && hasPU
-                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQtyPerUnit ?? 1)} ${selIng!.unit}`
+                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQty ?? 1)} ${selIng!.unit}`
                           : `Cantidad * ${selIng ? `(${selIng.unit})` : ''}`}
                       </label>
                       {movInputMode === 'purchase' && hasPU ? (

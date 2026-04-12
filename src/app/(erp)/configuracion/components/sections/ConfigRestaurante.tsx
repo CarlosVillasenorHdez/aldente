@@ -191,7 +191,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
     }
 
-    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).then(({ data }) => {
+    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).then(({ data }: { data: any }) => {
       if (!data) return;
       const map: Record<string,string> = {};
       data.forEach((r: any) => { map[r.config_key] = r.config_value; });
@@ -245,16 +245,15 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   }
 
   async function handleSaveSettings() {
-    const tenantId = appUser?.tenantId ?? undefined;
-    const upsertRows: {config_key:string;config_value:string;tenant_id:string|undefined}[] = [
-      { config_key: 'restaurant_name',    config_value: restaurantNameDraft, tenant_id: tenantId },
-      { config_key: 'brand_primary_color',config_value: primaryColor,        tenant_id: tenantId },
-      { config_key: 'brand_theme',        config_value: appTheme,            tenant_id: tenantId },
-      { config_key: 'restaurant_address', config_value: address,             tenant_id: tenantId },
-      { config_key: 'restaurant_phone',   config_value: phone,               tenant_id: tenantId },
-      { config_key: 'restaurant_city',    config_value: city,                tenant_id: tenantId },
-      { config_key: 'restaurant_state',   config_value: stateRegion,         tenant_id: tenantId },
-      { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: tenantId },
+    const upsertRows: {config_key:string;config_value:string|null|undefined;tenant_id:string|null|undefined}[] = [
+      { config_key: 'restaurant_name',    config_value: restaurantNameDraft ?? '', tenant_id: appUser?.tenantId },
+      { config_key: 'brand_primary_color',config_value: primaryColor ?? '',   tenant_id: appUser?.tenantId },
+      { config_key: 'brand_theme',        config_value: appTheme ?? '',       tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_address', config_value: address,             tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_phone',   config_value: phone,               tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_city',    config_value: city ?? '',          tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_state',   config_value: stateRegion ?? '',   tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: appUser?.tenantId },
     ];
     if (logoPreview) {
       upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: tenantId });
