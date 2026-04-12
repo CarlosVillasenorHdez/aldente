@@ -1,6 +1,67 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 
+// ─── i18n: ES / EN ────────────────────────────────────────────────────────────
+type Lang = 'es' | 'en';
+const T = {
+  es: {
+    navProblem:'El problema', navWhy:'Por qué nosotros', navDemo:'Demo', navPlans:'Planes', navFeatures:'Funcionalidades',
+    navLogin:'Iniciar sesión', navCta:'14 días gratis →',
+    heroEyebrow:'Sistema de gestión para restaurantes · México',
+    heroH1a:'Por primera vez,', heroH1b:'sabes exactamente', heroH1c:'qué pasa en tu restaurante.',
+    heroSub:'Sin esperar el corte. Sin llamar al cajero. Sin adivinar si te quedaste sin un ingrediente clave.',
+    heroCta:'Probar 14 días gratis →', heroDemo:'Ver demo',
+    heroTrust:['Sin tarjeta de crédito','14 días gratis','Cancela cuando quieras','Soporte en español'],
+    statsLabels:['para cerrar un corte de caja','ROI en el primer mes','de mejora de margen promedio'],
+    probEyebrow:'El problema real', probH:'No importa el tamaño.', probHEm:'Las preguntas son las mismas.',
+    probBody:'4 mesas o 40. Tacos o mariscos. Familiar o cadena. Cada dueño de restaurante se va a dormir con las mismas preguntas sin respuesta.',
+    demoEyebrow:'Ve cómo funciona', demoH:'Mesas, cocina y P&L', demoHEm:'en una sola plataforma.',
+    demoNote:'Vista de demostración · La interfaz real se adapta a tu restaurante',
+    demoTabs:['Mapa de mesas','Cocina (KDS)','P&L del día'],
+    diffEyebrow:'Por qué Aldente', diffH:'La diferencia está en', diffHEm:'lo que nadie más mide.',
+    diffBody:'Otros sistemas te dan un POS y un reporte. Aldente te dice cuánto ganaste, por qué falta mercancía y dónde se va el dinero.',
+    diffThem:'Otros sistemas', diffUs:'Aldente',
+    stepsEyebrow:'Qué tan rápido empiezas', stepsH:'Configurado y operando', stepsHEm:'el mismo día.',
+    plansEyebrow:'Planes que crecen contigo', plansH:'No pagas módulos.', plansHEm:'Pagas por la etapa de tu negocio.',
+    plansSub:'Cuando tu restaurante crece, cambias de plan. No compras módulos uno por uno. Sin contratos. Cambia de plan cuando quieras.',
+    plansMonthly:'Mensual', plansAnnual:'Anual', plansMo:'/mes',
+    plansDiscount:'−15%', plansBefore:'Antes',
+    plansStart:'Empezar en', plansPriceNote:'Todos los precios en MXN · No incluyen IVA',
+    ctaEyebrow:'Empieza hoy', ctaH:'Tu restaurante merece', ctaHEm:'saber la verdad.',
+    ctaSub:'14 días sin costo, sin tarjeta. El sistema queda configurado el mismo día.',
+    ctaBtn:'Probar Aldente gratis →',
+    footerRights:'© 2026 Aldente · México',
+  },
+  en: {
+    navProblem:'The problem', navWhy:'Why us', navDemo:'Demo', navPlans:'Plans', navFeatures:'Features',
+    navLogin:'Log in', navCta:'14 days free →',
+    heroEyebrow:'Restaurant management system · Mexico',
+    heroH1a:"For the first time,", heroH1b:"you know exactly", heroH1c:"what's happening in your restaurant.",
+    heroSub:'Without waiting for the daily close. Without calling the cashier. Without guessing what ingredient you ran out of.',
+    heroCta:'Try 14 days free →', heroDemo:'See demo',
+    heroTrust:['No credit card','14 days free','Cancel anytime','Spanish & English support'],
+    statsLabels:['to close a daily register','ROI in the first month','average margin improvement'],
+    probEyebrow:'The real problem', probH:"Size doesn't matter.", probHEm:'The questions are always the same.',
+    probBody:'4 tables or 40. Tacos or seafood. Family or chain. Every restaurant owner goes to bed with the same unanswered questions.',
+    demoEyebrow:'See how it works', demoH:'Tables, kitchen and P&L', demoHEm:'in one platform.',
+    demoNote:'Demo view · The real interface adapts to your restaurant',
+    demoTabs:['Table map','Kitchen (KDS)','Daily P&L'],
+    diffEyebrow:'Why Aldente', diffH:'The difference is in', diffHEm:'what nobody else measures.',
+    diffBody:'Other systems give you a POS and a report. Aldente tells you how much you made, why inventory is missing and where the money goes.',
+    diffThem:'Other systems', diffUs:'Aldente',
+    stepsEyebrow:'How fast you get started', stepsH:'Configured and running', stepsHEm:'the same day.',
+    plansEyebrow:'Plans that grow with you', plansH:"You don't pay per module.", plansHEm:'You pay for your business stage.',
+    plansSub:"When your restaurant grows, you upgrade. No buying modules one by one. No contracts. Change plans whenever you want.",
+    plansMonthly:'Monthly', plansAnnual:'Annual', plansMo:'/mo',
+    plansDiscount:'−15%', plansBefore:'Was',
+    plansStart:'Start on', plansPriceNote:'All prices in MXN · VAT not included',
+    ctaEyebrow:'Start today', ctaH:'Your restaurant deserves to', ctaHEm:'know the truth.',
+    ctaSub:'14 days free, no card. The system is configured the same day.',
+    ctaBtn:'Try Aldente free →',
+    footerRights:'© 2026 Aldente · Mexico',
+  },
+};
+
 const PAINS = [
   { n:'01', q:'¿Cuánto gané hoy de verdad?', body:'No el número de ventas. La utilidad real: con el costo de cada ingrediente que salió de la cocina, los gastos del día prorrateados y la merma de las cancelaciones. Ese número.', answer:'P&L del día en tiempo real. Automático.', color:'#c9963a' },
   { n:'02', q:'¿Por qué me falta mercancía si no vendí tanto?', body:'Porque cada platillo que sale descuenta los ingredientes exactos de su receta. Y cada cancelación registra lo que ya se consumió como merma con costo real. La diferencia te dice dónde está el problema.', answer:'Inventario vivo. Merma por ingrediente.', color:'#4a9eff' },
@@ -79,6 +140,7 @@ function LiveDemo() {
   const MESAS = [{n:1,s:'ocupada',t:22,v:480,m:'Carlos'},{n:2,s:'libre',t:0,v:0,m:''},{n:3,s:'ocupada',t:8,v:210,m:'María'},{n:4,s:'ocupada',t:41,v:920,m:'Carlos'},{n:5,s:'libre',t:0,v:0,m:''},{n:6,s:'cuenta',t:65,v:1340,m:'Luis'}];
   const CMDS = [{mesa:4,p:'Tacos de Res x3',min:18},{mesa:1,p:'Hamburguesa Aldente',min:9},{mesa:3,p:'Ensalada César',min:4},{mesa:6,p:'Café Americano x2',min:2}];
   const sem = (m:number) => m>15?'#ef4444':m>8?'#f59e0b':'#22c55e';
+  const lang2 = typeof window !== 'undefined' ? (window as any).__aldenteLang ?? 'es' : 'es';
   const changeTab = (k: typeof tab) => { if (k===tab) return; setFade(false); setTimeout(() => { setTab(k); setFade(true); }, 170); };
   return (
     <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.08)',borderRadius:20,overflow:'hidden'}}>
@@ -103,6 +165,9 @@ function LiveDemo() {
 }
 
 export default function MarketingPage() {
+  const [lang, setLang] = useState<Lang>('es');
+  const t = T[lang];
+  const [menuOpen, setMenuOpen] = useState(false);
   const [activePain, setActivePain] = useState(0);
   const [annual, setAnnual] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -143,23 +208,73 @@ export default function MarketingPage() {
         .pcard{border-radius:22px;padding:36px 30px;transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s}.pcard:hover{transform:translateY(-10px);box-shadow:0 28px 64px rgba(0,0,0,.45)}
         .pain-btn{transition:all .3s cubic-bezier(.22,1,.36,1)}.pain-btn:hover{transform:translateX(5px)}
         .diff-row{transition:transform .2s}.diff-row:hover{transform:scaleX(1.006)}
-        @media(max-width:900px){.hnav{display:none!important}.g3{grid-template-columns:1fr!important}.g2{grid-template-columns:1fr!important}.hcols{flex-direction:column!important}.prob-grid{grid-template-columns:1fr!important;gap:36px!important}}
+        @media(max-width:900px){
+  .hnav{display:none!important}
+  .hmob{display:flex!important}
+  .g3{grid-template-columns:1fr!important}
+  .g2{grid-template-columns:1fr!important}
+  .hcols{flex-direction:column!important}
+  .prob-grid{grid-template-columns:1fr!important;gap:36px!important}
+  .diff-grid{grid-template-columns:1fr!important}
+  .diff-label{display:none!important}
+  .hero-ctas{flex-direction:column!important;align-items:stretch!important}
+  .hero-ctas a{text-align:center!important}
+  .hero-trust{justify-content:center!important}
+  .stats-grid{grid-template-columns:repeat(3,1fr)!important;gap:20px!important}
+  .footer-inner{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:16px!important}
+  .plan-grid{grid-template-columns:1fr!important}
+  .roi-inner{flex-direction:column!important;gap:24px!important}
+  .roi-stats{justify-content:center!important}
+}
+@media(max-width:500px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .hero-trust{flex-direction:column!important;align-items:center!important;gap:8px!important}
+  .plan-grid{gap:12px!important}
+}
       `}</style>
 
       {/* NAV */}
       <nav className={`nav${navScrolled?' s':''}`}>
         <div style={{width:'100%',maxWidth:1200,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:'#c9963a',letterSpacing:'.03em',display:'flex',alignItems:'center',gap:10}}>
+          <a href="/" style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:'#c9963a',letterSpacing:'.03em',display:'flex',alignItems:'center',gap:10}}>
             <img src="/assets/images/logo_aldente.png" alt="" style={{width:28,height:28,objectFit:'contain'}}/>Aldente
-          </div>
+          </a>
+          {/* Desktop nav */}
           <div className="hnav" style={{display:'flex',alignItems:'center',gap:28}}>
-            {[['#problema','El problema'],['#diferencia','Por qué nosotros'],['#demo','Demo'],['#planes','Planes'],['/funcionalidades','Funcionalidades']].map(([h,l])=>(
+            {([[`#problema`,t.navProblem],[`#diferencia`,t.navWhy],[`#demo`,t.navDemo],[`#planes`,t.navPlans],[`/funcionalidades`,t.navFeatures]] as [string,string][]).map(([h,l])=>(
               <a key={l} href={h} style={{fontSize:13,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='#f0ece4')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
-            <a href="/login" style={{fontSize:13,fontWeight:500,color:'rgba(240,236,228,.75)',padding:'8px 18px',borderRadius:100,border:'1px solid rgba(240,236,228,.2)',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.color='#f0ece4';e.currentTarget.style.borderColor='rgba(240,236,228,.5)';}} onMouseLeave={e=>{e.currentTarget.style.color='rgba(240,236,228,.75)';e.currentTarget.style.borderColor='rgba(240,236,228,.2)';}}>Iniciar sesión</a>
-            <a href="/registro" className="pill gold" style={{fontSize:13}}>14 días gratis →</a>
+            {/* ES/EN toggle */}
+            <button onClick={()=>setLang(l=>l==='es'?'en':'es')} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:100,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',fontSize:12,fontWeight:600,color:'rgba(240,236,228,.7)',transition:'all .2s'}}>
+              <span style={{opacity:lang==='es'?1:.4}}>ES</span>
+              <span style={{color:'rgba(255,255,255,.25)'}}>/</span>
+              <span style={{opacity:lang==='en'?1:.4}}>EN</span>
+            </button>
+            <a href="/login" style={{fontSize:13,fontWeight:500,color:'rgba(240,236,228,.75)',padding:'8px 18px',borderRadius:100,border:'1px solid rgba(240,236,228,.2)',transition:'all .2s'}}>{t.navLogin}</a>
+            <a href="/registro" className="pill gold" style={{fontSize:13}}>{t.navCta}</a>
+          </div>
+          {/* Mobile: lang + hamburger */}
+          <div className="hmob" style={{display:'none',alignItems:'center',gap:10}}>
+            <button onClick={()=>setLang(l=>l==='es'?'en':'es')} style={{padding:'5px 10px',borderRadius:20,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',fontSize:11,fontWeight:700,color:'rgba(240,236,228,.7)'}}>
+              {lang.toUpperCase()}
+            </button>
+            <button onClick={()=>setMenuOpen(v=>!v)} style={{background:'none',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,padding:'6px 10px',cursor:'pointer',display:'flex',flexDirection:'column',gap:4}}>
+              {[0,1,2].map(i=><div key={i} style={{width:20,height:2,background:'rgba(240,236,228,.7)',borderRadius:1,transition:'all .25s',transform:menuOpen&&i===0?'rotate(45deg) translate(4px,4px)':menuOpen&&i===2?'rotate(-45deg) translate(4px,-4px)':'none',opacity:menuOpen&&i===1?0:1}}/>)}
+            </button>
           </div>
         </div>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div style={{position:'absolute',top:60,left:0,right:0,background:'rgba(7,9,15,.98)',borderBottom:'1px solid rgba(255,255,255,.08)',padding:'20px 24px',display:'flex',flexDirection:'column',gap:16,zIndex:300,backdropFilter:'blur(20px)'}}>
+            {([[`#problema`,t.navProblem],[`#diferencia`,t.navWhy],[`#demo`,t.navDemo],[`#planes`,t.navPlans],[`/funcionalidades`,t.navFeatures]] as [string,string][]).map(([h,l])=>(
+              <a key={l} href={h} onClick={()=>setMenuOpen(false)} style={{fontSize:15,color:'rgba(240,236,228,.7)',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,.05)'}}>{l}</a>
+            ))}
+            <div style={{display:'flex',gap:10,marginTop:4}}>
+              <a href="/login" style={{flex:1,padding:'11px',borderRadius:10,border:'1px solid rgba(255,255,255,.15)',color:'rgba(240,236,228,.7)',fontSize:14,textAlign:'center'}}>{t.navLogin}</a>
+              <a href="/registro" style={{flex:1,padding:'11px',borderRadius:10,background:'#c9963a',color:'#07090f',fontSize:14,fontWeight:700,textAlign:'center'}}>{t.navCta}</a>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* HERO */}
@@ -172,13 +287,11 @@ export default function MarketingPage() {
         <div style={{position:'absolute',top:'65%',right:'14%',width:32,height:32,borderRadius:'50%',background:'rgba(201,150,58,.07)',animation:'float 6s ease-in-out infinite 1.5s',pointerEvents:'none'}}/>
 
         <div className="wrap" style={{position:'relative',zIndex:1,paddingTop:'clamp(60px,10vw,120px)',paddingBottom:'clamp(60px,10vw,120px)',textAlign:'center'}}>
-          <div className="eyebrow" style={{justifyContent:'center',marginBottom:28,opacity:0,animation:'tick-in .6s .1s ease both'}}>Sistema de gestión para restaurantes · México</div>
-          <h1 className="serif" style={{fontSize:'clamp(44px,7.5vw,96px)',fontWeight:700,lineHeight:1.02,marginBottom:24,opacity:0,animation:'tick-in .7s .2s ease both'}}>
-            Por primera vez,<br/><em style={{color:'#c9963a',fontStyle:'italic'}}>sabes exactamente</em><br/>qué pasa en tu restaurante.
+          <div className="eyebrow" style={{justifyContent:'center',marginBottom:28,opacity:0,animation:'tick-in .6s .1s ease both'}}>{t.heroEyebrow}</div>
+          <h1 className="serif" style={{fontSize:'clamp(38px,7vw,96px)',fontWeight:700,lineHeight:1.02,marginBottom:24,opacity:0,animation:'tick-in .7s .2s ease both'}}>
+            {t.heroH1a}<br/><em style={{color:'#c9963a',fontStyle:'italic'}}>{t.heroH1b}</em><br/>{t.heroH1c}
           </h1>
-          <p style={{fontSize:'clamp(15px,2vw,19px)',fontWeight:300,color:'rgba(240,236,228,.6)',maxWidth:520,margin:'0 auto 20px',lineHeight:1.75,opacity:0,animation:'tick-in .7s .32s ease both'}}>
-            Sin esperar el corte. Sin llamar al cajero.<br/>Sin adivinar si te quedaste sin un ingrediente clave.
-          </p>
+          <p style={{fontSize:'clamp(14px,2vw,19px)',fontWeight:300,color:'rgba(240,236,228,.6)',maxWidth:520,margin:'0 auto 20px',lineHeight:1.75,opacity:0,animation:'tick-in .7s .32s ease both'}}>{t.heroSub}</p>
           {/* Pain ticker */}
           <div style={{marginBottom:40,opacity:0,animation:'tick-in .7s .42s ease both'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'10px 18px 10px 14px',borderRadius:100,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',transition:'all .4s'}}>
@@ -187,9 +300,9 @@ export default function MarketingPage() {
               <span style={{fontSize:10,fontWeight:700,color:pain.color,padding:'2px 8px',background:`${pain.color}15`,borderRadius:100,letterSpacing:'.05em',transition:'all .4s'}}>RESUELTA</span>
             </div>
           </div>
-          <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:48,opacity:0,animation:'tick-in .7s .52s ease both'}}>
-            <a href="/registro" className="pill gold" style={{fontSize:15,padding:'13px 32px'}}>Probar 14 días gratis →</a>
-            <a href="#demo" className="pill ghost" style={{fontSize:15,padding:'13px 28px'}}>Ver demo</a>
+          <div className="hero-ctas" style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:48,opacity:0,animation:'tick-in .7s .52s ease both'}}>
+            <a href="/registro" className="pill gold" style={{fontSize:15,padding:'13px 32px'}}>{t.heroCta}</a>
+            <a href="#demo" className="pill ghost" style={{fontSize:15,padding:'13px 28px'}}>{t.heroDemo}</a>
           </div>
           <div style={{display:'flex',gap:24,justifyContent:'center',flexWrap:'wrap',opacity:0,animation:'tick-in .7s .62s ease both'}}>
             {['Sin tarjeta de crédito','14 días gratis','Cancela cuando quieras','Soporte en español'].map(s=>(
@@ -210,13 +323,13 @@ export default function MarketingPage() {
 
       {/* STATS */}
       <div ref={statsRef} style={{background:'#0d0f17',borderTop:'1px solid rgba(255,255,255,.04)',borderBottom:'1px solid rgba(255,255,255,.04)',padding:'clamp(40px,6vw,80px) clamp(16px,5vw,60px)'}}>
-        <div style={{maxWidth:1200,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:40}} className="g3">
-          {[{target:30,suffix:' seg',label:'para cerrar un corte de caja'},{target:3.2,suffix:'x',label:'ROI en el primer mes',decimals:1},{target:12,suffix:'%',label:'de mejora de margen promedio'}].map((s,i)=>(
+        <div style={{maxWidth:1200,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:40}} className="g3 stats-grid">
+          {[{target:30,suffix:' seg'},{target:3.2,suffix:'x',decimals:1},{target:12,suffix:'%'}].map((s,i)=>(
             <div key={i} style={{textAlign:'center',opacity:statsVisible?1:0,transform:statsVisible?'translateY(0)':'translateY(24px)',transition:`opacity .6s ${i*.15}s ease, transform .6s ${i*.15}s ease`}}>
               <p style={{fontSize:'clamp(32px,4vw,52px)',fontWeight:700,color:'#c9963a',lineHeight:1,fontFamily:'monospace',letterSpacing:'-.02em'}}>
                 <CountUp target={s.target} suffix={s.suffix} decimals={(s as any).decimals??0} active={statsVisible}/>
               </p>
-              <p style={{fontSize:13,color:'rgba(240,236,228,.5)',marginTop:8,lineHeight:1.5}}>{s.label}</p>
+              <p style={{fontSize:13,color:'rgba(240,236,228,.5)',marginTop:8,lineHeight:1.5}}>{t.statsLabels[i]}</p>
             </div>
           ))}
         </div>
@@ -229,12 +342,12 @@ export default function MarketingPage() {
             {/* Left col: título + lista de preguntas */}
             <FadeUp>
               <div>
-                <div className="eyebrow" style={{marginBottom:24}}>El problema real</div>
+                <div className="eyebrow" style={{marginBottom:24}}>{t.probEyebrow}</div>
                 <h2 className="serif" style={{fontSize:'clamp(32px,3.5vw,48px)',fontWeight:700,lineHeight:1.08,marginBottom:20}}>
-                  No importa el tamaño.<br/><em style={{color:'#c9963a'}}>Las preguntas son las mismas.</em>
+                  {t.probH}<br/><em style={{color:'#c9963a'}}>{t.probHEm}</em>
                 </h2>
                 <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.8,marginBottom:32}}>
-                  4 mesas o 40. Tacos o mariscos. Familiar o cadena. Cada dueño de restaurante se va a dormir con las mismas preguntas sin respuesta.
+                  {t.probBody}
                 </p>
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   {PAINS.map((p,i)=>(
@@ -300,11 +413,11 @@ export default function MarketingPage() {
       <section className="sec" id="demo" style={{background:'#0d0f17'}}>
         <div className="wrap">
           <FadeUp><div style={{textAlign:'center',marginBottom:56}}>
-            <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>Ve cómo funciona</div>
-            <h2 className="serif" style={{fontSize:'clamp(30px,4.5vw,54px)',fontWeight:700,lineHeight:1.12}}>Mesas, cocina y P&L<br/><em style={{color:'#c9963a'}}>en una sola plataforma.</em></h2>
+            <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>{t.demoEyebrow}</div>
+            <h2 className="serif" style={{fontSize:'clamp(30px,4.5vw,54px)',fontWeight:700,lineHeight:1.12}}>{t.demoH}<br/><em style={{color:'#c9963a'}}>{t.demoHEm}</em></h2>
           </div></FadeUp>
           <FadeUp delay={0.1}><LiveDemo/></FadeUp>
-          <p style={{textAlign:'center',fontSize:12,color:'rgba(240,236,228,.2)',marginTop:20}}>Vista de demostración · La interfaz real se adapta a tu restaurante</p>
+          <p style={{textAlign:'center',fontSize:12,color:'rgba(240,236,228,.2)',marginTop:20}}>{t.demoNote}</p>
         </div>
       </section>
 
@@ -312,19 +425,19 @@ export default function MarketingPage() {
       <section className="sec" id="diferencia" style={{background:'#07090f'}}>
         <div className="wrap">
           <FadeUp><div style={{maxWidth:600,marginBottom:64}}>
-            <div className="eyebrow" style={{marginBottom:20}}>Por qué Aldente</div>
-            <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,54px)',fontWeight:700,lineHeight:1.1,marginBottom:20}}>La diferencia está en<br/><em style={{color:'#c9963a'}}>lo que nadie más mide.</em></h2>
-            <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.75}}>Otros sistemas te dan un POS y un reporte. Aldente te dice cuánto ganaste, por qué falta mercancía y dónde se va el dinero.</p>
+            <div className="eyebrow" style={{marginBottom:20}}>{t.diffEyebrow}</div>
+            <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,54px)',fontWeight:700,lineHeight:1.1,marginBottom:20}}>{t.diffH}<br/><em style={{color:'#c9963a'}}>{t.diffHEm}</em></h2>
+            <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.75}}>{t.diffBody}</p>
           </div></FadeUp>
           <div style={{display:'flex',flexDirection:'column',gap:2}}>
             <div style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2,marginBottom:6}}>
-              <div/><div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.55)'}}>Otros sistemas</div>
-              <div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a'}}>Aldente</div>
+              <div/><div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.55)'}}>{t.diffThem}</div>
+              <div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a'}}>{t.diffUs}</div>
             </div>
             {DIFFS.map((d,i)=>(
               <FadeUp key={i} delay={i*0.07}>
-                <div className="diff-row" style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2}}>
-                  <div style={{padding:'18px 16px',display:'flex',alignItems:'center',borderRadius:'10px 0 0 10px',background:'rgba(255,255,255,.02)',borderRight:'1px solid rgba(255,255,255,.04)'}}><span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.6)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span></div>
+                <div className="diff-row diff-grid" style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2}}>
+                  <div className="diff-label" style={{padding:'18px 16px',display:'flex',alignItems:'center',borderRadius:'10px 0 0 10px',background:'rgba(255,255,255,.02)',borderRight:'1px solid rgba(255,255,255,.04)'}}><span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.6)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span></div>
                   <div style={{padding:'18px 22px',background:'rgba(255,255,255,.018)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'rgba(239,68,68,.5)',fontSize:13,flexShrink:0}}>✗</span><p style={{fontSize:13,color:'rgba(240,236,228,.4)',lineHeight:1.65}}>{d.them}</p></div>
                   <div style={{padding:'18px 22px',background:'rgba(201,150,58,.04)',borderRadius:'0 10px 10px 0',border:'1px solid rgba(201,150,58,.1)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'#c9963a',fontSize:13,flexShrink:0}}>✓</span><p style={{fontSize:13,color:'rgba(240,236,228,.8)',lineHeight:1.65}}>{d.us}</p></div>
                 </div>
@@ -370,8 +483,8 @@ export default function MarketingPage() {
       <section className="sec" id="planes" style={{background:'#07090f'}}>
         <div className="wrap">
           <FadeUp><div style={{textAlign:'center',marginBottom:52}}>
-            <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>Planes que crecen contigo</div>
-            <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,58px)',fontWeight:700,lineHeight:1.08,marginBottom:16}}>No pagas módulos.<br/><em style={{color:'#c9963a'}}>Pagas por la etapa de tu negocio.</em></h2>
+            <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>{t.plansEyebrow}</div>
+            <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,58px)',fontWeight:700,lineHeight:1.08,marginBottom:16}}>{t.plansH}<br/><em style={{color:'#c9963a'}}>{t.plansHEm}</em></h2>
             <p style={{fontSize:15,color:'rgba(240,236,228,.45)',maxWidth:460,margin:'0 auto 32px',lineHeight:1.75}}>Cuando tu restaurante crece, cambias de plan. No compras módulos uno por uno. Sin contratos. Cambia de plan cuando quieras.</p>
             <div style={{display:'inline-flex',alignItems:'center',gap:12,padding:'8px 18px',borderRadius:100,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)'}}>
               <span style={{fontSize:13,color:annual?'rgba(240,236,228,.35)':'#f0ece4'}}>Mensual</span>
@@ -381,7 +494,7 @@ export default function MarketingPage() {
               <span style={{fontSize:13,color:annual?'#f0ece4':'rgba(240,236,228,.35)'}}>Anual <span style={{color:'#c9963a',fontSize:11,fontWeight:700}}>−15%</span></span>
             </div>
           </div></FadeUp>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}} className="g3">
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}} className="g3 plan-grid">
             {PLANS.map((plan,pi)=>{
               const fp=Math.round(plan.price*disc);
               return(
@@ -423,10 +536,10 @@ export default function MarketingPage() {
         <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(201,150,58,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,.025) 1px,transparent 1px)',backgroundSize:'80px 80px',pointerEvents:'none'}}/>
         <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:800,height:500,background:'radial-gradient(ellipse,rgba(201,150,58,.08) 0%,transparent 65%)',pointerEvents:'none',animation:'pulse 4s ease-in-out infinite'}}/>
         <FadeUp><div style={{position:'relative',maxWidth:640,margin:'0 auto'}}>
-          <div className="eyebrow" style={{justifyContent:'center',marginBottom:24}}>Empieza hoy</div>
-          <h2 className="serif" style={{fontSize:'clamp(40px,6vw,76px)',fontWeight:700,lineHeight:1.05,marginBottom:20}}>Tu restaurante merece<br/><em style={{color:'#c9963a'}}>saber la verdad.</em></h2>
+          <div className="eyebrow" style={{justifyContent:'center',marginBottom:24}}>{t.ctaEyebrow}</div>
+          <h2 className="serif" style={{fontSize:'clamp(40px,6vw,76px)',fontWeight:700,lineHeight:1.05,marginBottom:20}}>{t.ctaH}<br/><em style={{color:'#c9963a'}}>{t.ctaHEm}</em></h2>
           <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.<br/>El sistema queda configurado el mismo día.</p>
-          <a href="/registro" className="pill gold" style={{fontSize:16,padding:'16px 40px'}}>Probar Aldente gratis →</a>
+          <a href="/registro" className="pill gold" style={{fontSize:16,padding:'16px 40px'}}>{t.ctaBtn}</a>
         </div></FadeUp>
       </section>
 
@@ -441,7 +554,7 @@ export default function MarketingPage() {
               <a key={l} href={h} style={{fontSize:12,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='rgba(240,236,228,.7)')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
           </div>
-          <p style={{fontSize:11,color:'rgba(240,236,228,.18)'}}>© 2026 Aldente · México</p>
+          <p style={{fontSize:11,color:'rgba(240,236,228,.18)'}}>{t.footerRights}</p>
         </div>
       </footer>
     </div>
