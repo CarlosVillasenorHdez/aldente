@@ -1352,12 +1352,12 @@ export default function MenuManagement() {
   return (
     <div className="space-y-6">
       {/* View tabs: Platillos | Combos */}
-      <div style={{ display:'flex', gap:8, padding:'4px', background:'rgba(255,255,255,0.04)', borderRadius:14, width:'fit-content', border:'1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ display:'flex', gap:6, padding:'4px', background:'#1a2535', borderRadius:12, width:'fit-content', border:'1px solid #243f72' }}>
         {([['platillos','🍽️ Platillos'],['combos','🎁 Combos y Promos']] as const).map(([v, label]) => (
           <button key={v} onClick={() => setMenuView(v)}
-            style={{ padding:'8px 20px', borderRadius:10, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all .2s',
+            style={{ padding:'8px 20px', borderRadius:9, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all .2s',
               background: menuView === v ? '#c9963a' : 'transparent',
-              color: menuView === v ? '#07090f' : 'rgba(255,255,255,0.5)' }}>
+              color: menuView === v ? '#07090f' : 'rgba(255,255,255,0.6)' }}>
             {label}
           </button>
         ))}
