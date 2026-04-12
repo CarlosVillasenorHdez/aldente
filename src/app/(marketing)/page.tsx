@@ -290,7 +290,7 @@ export default function MarketingPage() {
   // Anime.js: hero words stagger entrance
   useEffect(() => {
     if (!anime) return;
-    const words = document.querySelectorAll('.hero-word');
+    const words = Array.from(document.querySelectorAll('.hero-word')).filter(Boolean);
     if (!words.length) return;
     anime({
       targets: words,
@@ -326,8 +326,8 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = pricingRef.current?.querySelectorAll('.pcard');
-      if (!cards?.length) return;
+      const cards = Array.from(pricingRef.current?.querySelectorAll('.pcard') ?? []).filter(Boolean);
+      if (!cards.length) return;
       anime({
         targets: cards,
         opacity: [0, 1],
@@ -349,8 +349,8 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const rows = diffsRef.current?.querySelectorAll('.diff-row');
-      if (!rows?.length) return;
+      const rows = Array.from(diffsRef.current?.querySelectorAll('.diff-row') ?? []).filter(Boolean);
+      if (!rows.length) return;
       anime({
         targets: rows,
         opacity: [0, 1],
@@ -371,8 +371,8 @@ export default function MarketingPage() {
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       obs.disconnect();
-      const cards = stepsRef.current?.querySelectorAll('.step-card');
-      if (!cards?.length) return;
+      const cards = Array.from(stepsRef.current?.querySelectorAll('.step-card') ?? []).filter(Boolean);
+      if (!cards.length) return;
       anime({
         targets: cards,
         opacity: [0, 1],
@@ -389,7 +389,7 @@ export default function MarketingPage() {
   // Anime.js: CTA particle dots floating
   useEffect(() => {
     if (!anime) return;
-    const dots = document.querySelectorAll('.cta-dot');
+    const dots = Array.from(document.querySelectorAll('.cta-dot')).filter(Boolean);
     if (!dots.length) return;
     anime({
       targets: dots,
@@ -476,7 +476,7 @@ export default function MarketingPage() {
         {/* Floating shapes */}
         <div style={{position:'absolute',top:'15%',right:'7%',width:130,height:130,borderRadius:'50%',border:'1px solid rgba(201,150,58,.12)',animation:'float 8s ease-in-out infinite',pointerEvents:'none'}}/>
         <div style={{position:'absolute',top:'16%',right:'7.5%',width:110,height:110,borderRadius:'50%',border:'1px solid rgba(201,150,58,.06)',animation:'float 8s ease-in-out infinite .3s',pointerEvents:'none'}}/>
-        <div style={{position:'absolute',bottom:'20%',left:'5%',width:70,height:70,borderRadius:'50%',border:'1px solid rgba(74,158,255,.12)',animation:'float2 10s ease-in-out infinite .8s',pointerEvents:'none'}}/>
+        <div style={{position:'absolute',bottom:'20%',left:'5%',width:70,height:70,borderRadius:'50%',border:'1px solid rgba(167,139,250,.12)',animation:'float2 10s ease-in-out infinite .8s',pointerEvents:'none'}}/>
         <div style={{position:'absolute',top:'62%',right:'12%',width:36,height:36,borderRadius:'50%',background:'rgba(201,150,58,.08)',animation:'float2 7s ease-in-out infinite 1.5s',pointerEvents:'none'}}/>
         <div style={{position:'absolute',top:'40%',left:'3%',width:20,height:20,borderRadius:'50%',background:'rgba(167,139,250,.1)',animation:'float 9s ease-in-out infinite 2s',pointerEvents:'none'}}/>
 
@@ -494,7 +494,7 @@ export default function MarketingPage() {
           </p>
           {/* Pain ticker */}
           <div style={{marginBottom:40,opacity:0,animation:'tick-in .7s .5s ease both'}}>
-            <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'10px 18px 10px 14px',borderRadius:100,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',transition:'all .5s'}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'10px 18px',borderRadius:100,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',transition:'all .5s'}}>
               <div style={{width:24,height:24,borderRadius:'50%',background:`${pain.color}20`,border:`1px solid ${pain.color}40`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:pain.color,flexShrink:0,transition:'all .5s'}}>?</div>
               <span key={activePain} style={{fontSize:13,color:'rgba(240,236,228,.65)',animation:'tick-in .3s ease both'}}>{pain.q.replace(/[¿?]/g,'')}</span>
               <span style={{fontSize:10,fontWeight:700,color:pain.color,padding:'2px 8px',background:`${pain.color}15`,borderRadius:100,letterSpacing:'.05em',flexShrink:0,transition:'all .5s'}}>RESUELTA</span>
@@ -595,7 +595,7 @@ export default function MarketingPage() {
               </h2>
             </div>
           </FadeUp>
-          <FadeUp delay={0.1}><LiveDemo/></FadeUp>
+          <FadeUp delay={0.1}>&lt;LiveDemo/&gt;</FadeUp>
           <p style={{textAlign:'center',fontSize:12,color:'rgba(240,236,228,.2)',marginTop:20}}>Vista de demostración · La interfaz real se adapta a tu restaurante</p>
         </div>
       </section>
@@ -757,7 +757,7 @@ export default function MarketingPage() {
             <h2 className="serif" style={{fontSize:'clamp(40px,6vw,76px)',fontWeight:700,lineHeight:1.05,marginBottom:20}}>
               Tu restaurante merece<br/><em style={{color:'#c9963a'}}>saber la verdad.</em>
             </h2>
-            <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.<br/>El sistema queda configurado el mismo día.</p>
+            <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.&lt;br/&gt;El sistema queda configurado el mismo día.</p>
             <a href="/registro" className="pill gold" style={{fontSize:16,padding:'16px 40px',animation:'glow-pulse 3s ease-in-out infinite'}}>Probar Aldente gratis →</a>
           </div>
         </FadeUp>

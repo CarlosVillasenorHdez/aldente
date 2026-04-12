@@ -1163,7 +1163,7 @@ export default function InventarioManagement() {
           <style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}h1{font-size:20px;color:#1B3A6B;border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:20px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.04em}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
           </head><body>
           <h1>📋 Lista de Compras — ${new Date().toLocaleDateString('es-MX', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h1>
-          <p style="color:#6b7280;font-size:13px;margin-bottom:16px">${allItems.length} ingrediente(s) por comprar · ${checkedItems.size} ya adquirido(s)</p>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px">${allItems.length} ingrediente(s) por comprar · ${checkedItems.size} adquirido(s)</p>
           <table><thead><tr><th>✓</th><th>Ingrediente</th><th>Categoría</th><th>Stock actual</th><th>Cantidad a pedir</th><th>Proveedor</th><th>Teléfono</th></tr></thead><tbody>${rows}</tbody></table>
           <div style="margin-top:24px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:12px">Generado por Aldente ERP · ${new Date().toLocaleString('es-MX')}</div>
           </body></html>`;
@@ -1715,7 +1715,7 @@ export default function InventarioManagement() {
                               <span style={{ fontWeight: 500 }}>{i.name}</span>
                               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
                                 {i.stock} {i.unit} · {i.category}
-                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQty ?? 1))} ${i.purchaseUnit}` : ''}
+                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQtyPerUnit ?? 1))} ${i.purchaseUnit}` : ''}
                               </span>
                             </button>
                           ))}
