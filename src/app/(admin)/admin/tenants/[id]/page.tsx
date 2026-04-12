@@ -2,7 +2,7 @@
 /**
  * SuperAdmin — Tenant Detail
  * Herramientas proactivas para apoyar el éxito del cliente.
- * Forever Transaction: no solo reaccionamos — anticipamos.
+ * Herramientas proactivas para apoyar el éxito del cliente.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,11 +10,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
-const PLANS = ['gratis', 'operacion', 'negocio', 'empresa'];
-const PLAN_LABEL: Record<string, string> = { gratis: 'Gratis', operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
-const PLAN_COLOR: Record<string, string> = { gratis: '#34d399', operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
-const PLAN_MXN: Record<string, number> = { gratis: 0, operacion: 699, negocio: 1299, empresa: 2199 };
-const PLAN_ETAPA: Record<string, string> = { gratis: 'Empieza aquí — gratis para siempre', operacion: 'Etapa 1 — Orden y control', negocio: 'Etapa 2 — Rentabilidad visible', empresa: 'Etapa 3 — Escala con control' };
+const PLANS = ['operacion', 'negocio', 'empresa'];
+const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
+const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
+const PLAN_MXN: Record<string, number> = { operacion: 699, negocio: 1299, empresa: 2199 };
+const PLAN_ETAPA: Record<string, string> = { operacion: 'Etapa 1 — Orden y control', negocio: 'Etapa 2 — Rentabilidad visible', empresa: 'Etapa 3 — Escala con control' };
 
 interface TenantDetail {
   id: string; name: string; slug: string; plan: string; is_active: boolean;
@@ -336,8 +336,8 @@ export default function TenantDetailPage() {
             <span style={label}>Plan</span>
             <select value={draft.plan ?? ''} onChange={e => setDraft(d => ({ ...d, plan: e.target.value }))}
               style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 14 }}>
-              {['gratis','operacion','negocio','empresa'].map(p => (
-                <option key={p} value={p}>{PLAN_LABEL[p]} — {PLAN_MXN[p]===0?'Gratis':'$'+PLAN_MXN[p].toLocaleString('es-MX')+'/mes'} · {PLAN_ETAPA[p]}</option>
+              {PLANS.map(p => (
+                <option key={p} value={p}>{PLAN_LABEL[p]} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes · {PLAN_ETAPA[p]}</option>
               ))}
             </select>
 

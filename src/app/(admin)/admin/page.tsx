@@ -15,9 +15,9 @@ interface KPIs {
   mrr: number; expiringSoon: number; churnRisk: number;
 }
 
-const PLAN_MXN: Record<string, number> = { gratis: 0, operacion: 699, negocio: 1299, empresa: 2199 };
-const PLAN_COLOR: Record<string, string> = { gratis: '#34d399', operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
-const PLAN_LABEL: Record<string, string> = { gratis: 'Gratis', operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
+const PLAN_MXN: Record<string, number> = { operacion: 699, negocio: 1299, empresa: 2199 };
+const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
+const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
 
 
 function daysUntil(dateStr: string): number {
