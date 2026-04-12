@@ -311,7 +311,7 @@ export default function MarketingPage() {
         path.style.strokeDasharray = String(len);
         path.style.strokeDashoffset = String(len);
         anime({
-          targets: path,
+          targets: [path],
           strokeDashoffset: [len, 0],
           duration: 2200,
           delay: 600,
@@ -612,7 +612,7 @@ export default function MarketingPage() {
               </h2>
             </div>
           </FadeUp>
-          <FadeUp delay={0.1}>&lt;LiveDemo/&gt;</FadeUp>
+          <FadeUp delay={0.1}><LiveDemo/></FadeUp>
           <p style={{textAlign:'center',fontSize:12,color:'rgba(240,236,228,.2)',marginTop:20}}>Vista de demostración · La interfaz real se adapta a tu restaurante</p>
         </div>
       </section>
@@ -672,7 +672,7 @@ export default function MarketingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="sec" style={{background:'#0d0f17'}}>
+      <section className="sec" style={{background:'#07090f'}}>
         <div className="wrap">
           <FadeUp>
             <div style={{textAlign:'center',marginBottom:52}}>
@@ -774,7 +774,7 @@ export default function MarketingPage() {
             <h2 className="serif" style={{fontSize:'clamp(40px,6vw,76px)',fontWeight:700,lineHeight:1.05,marginBottom:20}}>
               Tu restaurante merece<br/><em style={{color:'#c9963a'}}>saber la verdad.</em>
             </h2>
-            <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.&lt;br/&gt;El sistema queda configurado el mismo día.</p>
+            <p style={{fontSize:17,color:'rgba(240,236,228,.5)',marginBottom:44,lineHeight:1.75}}>14 días sin costo, sin tarjeta.<br/>El sistema queda configurado el mismo día.</p>
             <a href="/registro" className="pill gold" style={{fontSize:16,padding:'16px 40px',animation:'glow-pulse 3s ease-in-out infinite'}}>Probar Aldente gratis →</a>
           </div>
         </FadeUp>
