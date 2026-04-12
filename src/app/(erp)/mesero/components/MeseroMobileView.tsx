@@ -31,18 +31,29 @@ const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas',
 function MeseroQRCanvas({ slug }: { slug: string }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (!slug || !ref.current) return;
+    if (!slug) return;
+    let destroyed = false;
     const url = `${window.location.origin}/menu/${slug}`;
     const draw = () => {
+      if (destroyed || !ref.current) return;
       const QRCode = (window as any).QRCode;
       if (!QRCode) return;
-      QRCode.toCanvas(ref.current, url, { width: 260, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+      try {
+        QRCode.toCanvas(ref.current, url, { width: 260, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+      } catch { /* canvas not ready */ }
     };
-    if ((window as any).QRCode) { draw(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s.onload = draw;
-    document.head.appendChild(s);
+    if ((window as any).QRCode) { draw(); }
+    else {
+      const existing = document.querySelector('script[src*="qrcodejs"]');
+      if (existing) { existing.addEventListener('load', draw); }
+      else {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        s.onload = draw;
+        document.head.appendChild(s);
+      }
+    }
+    return () => { destroyed = true; };
   }, [slug]);
   return <canvas ref={ref} style={{ borderRadius: 10, maxWidth: '100%' }} />;
 }
