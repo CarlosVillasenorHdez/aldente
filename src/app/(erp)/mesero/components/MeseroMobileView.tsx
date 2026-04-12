@@ -29,7 +29,7 @@ const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas',
 
 // QR canvas for mesero view
 function MeseroQRCanvas({ slug }: { slug: string }) {
-  const ref = React.useRef<HTMLCanvasElement>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!slug) return;
     let destroyed = false;
@@ -39,8 +39,14 @@ function MeseroQRCanvas({ slug }: { slug: string }) {
       const QRCode = (window as any).QRCode;
       if (!QRCode) return;
       try {
-        QRCode.toCanvas(ref.current, url, { width: 260, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
-      } catch { /* canvas not ready */ }
+        ref.current.innerHTML = '';
+        new QRCode(ref.current, {
+          text: url,
+          width: 260, height: 260,
+          colorDark: '#111827', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel?.M ?? 0,
+        });
+      } catch { /* not ready */ }
     };
     if ((window as any).QRCode) { draw(); }
     else {
@@ -55,7 +61,7 @@ function MeseroQRCanvas({ slug }: { slug: string }) {
     }
     return () => { destroyed = true; };
   }, [slug]);
-  return <canvas ref={ref} style={{ borderRadius: 10, maxWidth: '100%' }} />;
+  return <div ref={ref} style={{ borderRadius: 10, maxWidth: '100%', overflow:'hidden', display:'inline-block' }} />;
 }
 
 export default function MeseroMobileView() {

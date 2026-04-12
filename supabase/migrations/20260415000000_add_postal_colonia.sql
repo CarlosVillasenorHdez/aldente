@@ -46,3 +46,15 @@ FROM public.tenants t;
 
 GRANT SELECT ON public.v_tenant_map TO authenticated;
 GRANT SELECT ON public.v_tenant_map TO service_role;
+
+-- Add 'unico' frecuencia for one-time expenses
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum 
+    WHERE enumtypid = 'public.gasto_frecuencia'::regtype 
+    AND enumlabel = 'unico'
+  ) THEN
+    ALTER TYPE public.gasto_frecuencia ADD VALUE 'unico';
+  END IF;
+END $$;
