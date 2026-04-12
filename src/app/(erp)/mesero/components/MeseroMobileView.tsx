@@ -467,8 +467,30 @@ export default function MeseroMobileView() {
     toast.success('Nota enviada a cocina');
   };
 
-  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta', amountPaid: number, loyaltyCustomerId?: string | null) => {
+  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null) => {
     if (!selectedTable || !currentOrderId) return;
+
+    if (method === 'cortesia') {
+      const ok = await closeOrder({
+        orderId: currentOrderId,
+        tableIds: [selectedTable.id],
+        items: orderItems,
+        subtotal: 0, discountAmount: 0, iva: 0, total: 0,
+        payMethod: 'efectivo',
+        waiterName: myName,
+        branchName,
+        openedAt: null,
+        loyaltyCustomerId: loyaltyCustomerId ?? null,
+      });
+      if (!ok) return;
+      const supabaseClient = createClient();
+      await supabaseClient.from('orders').update({ is_cortesia: true }).eq('id', currentOrderId);
+      setShowPayment(false); setShowCart(false);
+      setOrderItems([]); setCurrentOrderId(null); setView('tables');
+      toast.success('🎁 Cortesía registrada — sin cobro al cliente');
+      return;
+    }
+
     const ok = await closeOrder({
       orderId: currentOrderId,
       tableIds: [selectedTable.id],

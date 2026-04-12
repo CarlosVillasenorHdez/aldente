@@ -102,6 +102,8 @@ export default function POSClient() {
   const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [combos, setCombos] = useState<any[]>([]);
+  const [posView, setPosView] = useState<'menu' | 'combos'>('menu');
   const [loadingTables, setLoadingTables] = useState(true);
   const [loadingMenu, setLoadingMenu] = useState(true);
   // View starts on tables for restaurants, but we'll switch to takeout-first for cafeterias
@@ -254,7 +256,10 @@ export default function POSClient() {
 
   const fetchMenu = useCallback(async () => {
     setLoadingMenu(true);
-    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).eq('available', true).order('category').order('name');
+    const [{ data, error }, { data: comboData }] = await Promise.all([
+      supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).eq('available', true).order('category').order('name'),
+      supabase.from('combos').select('*').eq('tenant_id', getTenantId()).eq('active', true).order('created_at'),
+    ]);
     if (!error && data) {
       setMenuItems(data.map((d) => ({
         id: d.id, name: d.name, category: d.category,
@@ -262,6 +267,7 @@ export default function POSClient() {
         available: d.available, emoji: d.emoji, popular: d.popular,
       })));
     }
+    setCombos((comboData ?? []) as any[]);
     setLoadingMenu(false);
   }, [supabase]);
 
@@ -860,6 +866,37 @@ export default function POSClient() {
     setSendingToKitchen(false);
   };
 
+  // Add a combo: expands into individual items with their discounts applied
+  const handleAddCombo = useCallback(async (combo: any) => {
+    if (!selectedTable) return;
+    const newLines = (combo.items as any[]).map((ci: any) => ({
+      lineId: `combo-${combo.id}-${ci.dish_id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      menuItem: {
+        id: ci.dish_id, name: ci.name, emoji: ci.emoji ?? '🍽️',
+        price: ci.qty > 0 ? ci.final_price / ci.qty : ci.original_price,
+        available: true, category: 'Combos', description: `Combo: ${combo.name}`,
+        popular: false, imageUrl: null,
+      } as MenuItem,
+      quantity: ci.qty,
+      modifier: `🎁 ${combo.name}`,
+      notes: undefined,
+      excludedIngredientIds: undefined,
+    }));
+    const newItems = [...orderItems, ...newLines];
+    setOrderItems(newItems);
+    const orderId = await ensureOpenOrder(selectedTable);
+    const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const discAmt = discount.type === 'pct'
+      ? newSubtotal * (discount.value / 100)
+      : Math.min(discount.value, newSubtotal);
+    const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+    const groupIds = selectedTable.mergeGroupId
+      ? tables.filter(t => t.mergeGroupId === selectedTable.mergeGroupId).map(t => t.id)
+      : [selectedTable.id];
+    syncOrderToTable(orderId, groupIds, newItems, newTotal);
+    toast.success(`🎁 Combo "${combo.name}" agregado`);
+  }, [selectedTable, orderItems, ensureOpenOrder, syncOrderToTable, discount, IVA_RATE, tables]);
+
   const handleAddItem = useCallback((item: MenuItem) => {
     if (!item.available || !selectedTable) return;
     // Open modifier modal — confirm adds lines with customization
@@ -1164,14 +1201,13 @@ export default function POSClient() {
     toast.success('Nota enviada a cocina');
   };
 
-  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta', amountPaid: number, loyaltyCustomerId?: string | null) => {
+  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null) => {
     if (!selectedTable) return;
 
     const groupIds = selectedTable.mergeGroupId
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
 
-    // Use orderId from table state, or create one if missing (edge case)
     const orderId = selectedTable.currentOrderId ?? `ORD-${Date.now()}`;
 
     const flowItems = orderItems.map((i) => ({
@@ -1182,6 +1218,30 @@ export default function POSClient() {
       excludedIngredientIds: i.excludedIngredientIds,
       modifier: i.modifier,
     }));
+
+    // ── Cortesía: close with $0 total, mark is_cortesia, still deducts inventory
+    if (method === 'cortesia') {
+      const ok = await closeOrder({
+        orderId,
+        tableIds: groupIds,
+        items: flowItems,
+        subtotal: 0, discountAmount: 0, iva: 0, total: 0,
+        payMethod: 'efectivo', // DB enum only has efectivo/tarjeta; flag via is_cortesia
+        waiterName: selectedTable.waiter || appUser?.fullName || 'Administrador',
+        branchName,
+        openedAt: selectedTable.openedAt ?? null,
+        loyaltyCustomerId: loyaltyCustomerId ?? null,
+      });
+      if (!ok) return;
+      // Mark as cortesia
+      await supabase.from('orders').update({ is_cortesia: true, pay_method: 'efectivo' }).eq('id', orderId);
+      await fetchTables();
+      setShowPaymentModal(false);
+      setOrderItems([]); setSelectedTable(null); setView('tables');
+      setKitchenSent(false); setSentItemsSnapshot([]);
+      toast.success('🎁 Cortesía registrada — sin cobro al cliente');
+      return;
+    }
 
     const ok = await closeOrder({
       orderId,
@@ -1349,12 +1409,70 @@ export default function POSClient() {
                 )
               ) : (
                 loadingMenu ? <MenuSkeleton /> : (
-                  <MenuGrid
-                    items={menuItems}
-                    onAddItem={handleAddItem}
-                    orderItems={orderItems}
-                    selectedTable={selectedTable}
-                  />
+                  <>
+                    {/* Combos tab strip — only show when combos exist */}
+                    {combos.length > 0 && (
+                      <div style={{ display:'flex', gap:6, padding:'8px 12px', background:'rgba(0,0,0,0.15)', borderBottom:'1px solid rgba(255,255,255,0.06)', flexShrink:0 }}>
+                        <button onClick={() => setPosView('menu')}
+                          style={{ padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
+                            background: posView === 'menu' ? '#f59e0b' : 'rgba(255,255,255,0.08)',
+                            color: posView === 'menu' ? '#1B3A6B' : 'rgba(255,255,255,0.55)' }}>
+                          🍽 Menú
+                        </button>
+                        <button onClick={() => setPosView('combos')}
+                          style={{ padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
+                            background: posView === 'combos' ? '#c9963a' : 'rgba(255,255,255,0.08)',
+                            color: posView === 'combos' ? '#07090f' : 'rgba(255,255,255,0.55)' }}>
+                          🎁 Combos {combos.length > 0 && `(${combos.length})`}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Combos panel */}
+                    {posView === 'combos' ? (
+                      <div style={{ padding:12, display:'flex', flexDirection:'column', gap:8, overflowY:'auto' }}>
+                        {combos.map((combo: any) => {
+                          const savings = combo.savings ?? 0;
+                          return (
+                            <button key={combo.id}
+                              onClick={() => selectedTable ? handleAddCombo(combo) : toast.error('Selecciona una mesa primero')}
+                              style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:12,
+                                background:'rgba(201,150,58,0.07)', border:'1px solid rgba(201,150,58,0.2)',
+                                cursor: selectedTable ? 'pointer' : 'not-allowed', textAlign:'left', transition:'all .15s',
+                                opacity: selectedTable ? 1 : 0.55 }}>
+                              <span style={{ fontSize:24, flexShrink:0 }}>{combo.emoji ?? '🎁'}</span>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:2 }}>{combo.name}</div>
+                                <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>
+                                  {(combo.items as any[]).map((i: any) => `${i.qty > 1 ? i.qty+'× ' : ''}${i.name}`).join(' + ')}
+                                </div>
+                                {savings > 0 && (
+                                  <div style={{ fontSize:10, color:'#4ade80', marginTop:3 }}>El cliente ahorra ${Number(savings).toFixed(0)}</div>
+                                )}
+                              </div>
+                              <div style={{ textAlign:'right', flexShrink:0 }}>
+                                <div style={{ fontSize:15, fontWeight:800, color:'#f59e0b', fontFamily:'monospace' }}>
+                                  ${Number(combo.total_price).toFixed(0)}
+                                </div>
+                                {savings > 0 && (
+                                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', textDecoration:'line-through', fontFamily:'monospace' }}>
+                                    ${(Number(combo.total_price) + Number(savings)).toFixed(0)}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <MenuGrid
+                        items={menuItems}
+                        onAddItem={handleAddItem}
+                        orderItems={orderItems}
+                        selectedTable={selectedTable}
+                      />
+                    )}
+                  </>
                 )
               )}
             </div>
