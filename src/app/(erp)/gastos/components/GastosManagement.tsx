@@ -39,6 +39,9 @@ interface GastoRecurrente {
   estado: GastoEstado;
   activo: boolean;
   notas: string | null;
+  metodo_pago: 'efectivo' | 'transferencia' | 'credito' | 'tarjeta_empresa' | 'cheque';
+  proveedor: string;
+  dias_credito: number;
   created_at: string;
 }
 
@@ -94,7 +97,7 @@ const METODO_LABELS: Record<DepreciacionMetodo, string> = {
 };
 
 const EMPTY_GASTO: Omit<GastoRecurrente, 'id' | 'created_at'> = {
-  nombre: '', descripcion: '', monto: 0, categoria: 'servicios', frecuencia: 'mensual',
+  nombre: '', descripcion: '', monto: 0, categoria: 'servicios', frecuencia: 'mensual', metodo_pago: 'efectivo' as const, proveedor: '', dias_credito: 0,
   dia_pago: 1, proximo_pago: '', estado: 'pendiente', activo: true, notas: '',
 };
 
@@ -256,6 +259,51 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
             />
             <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Se actualiza automáticamente al cambiar el día de pago</p>
           </div>
+          {/* Proveedor y método de pago */}
+          <div>
+            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
+            <input
+              type="text"
+              value={form.proveedor ?? ''}
+              onChange={e => handleChange('proveedor', e.target.value)}
+              placeholder="Ej: Bimbo, CFE, Arrendador García"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              style={{ borderColor: '#d1d5db' }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
+              <select
+                value={form.metodo_pago ?? 'efectivo'}
+                onChange={e => handleChange('metodo_pago', e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                style={{ borderColor: '#d1d5db' }}
+              >
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="transferencia">🏦 Transferencia</option>
+                <option value="credito">📄 Crédito (CxP)</option>
+                <option value="tarjeta_empresa">💳 Tarjeta empresa</option>
+                <option value="cheque">📝 Cheque</option>
+              </select>
+              <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>
+                {(form.metodo_pago==='credito')?'Se registra como Cuenta por Pagar':'Egreso directo de efectivo/banco'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
+              <input
+                type="number" min={0} max={180}
+                value={form.dias_credito ?? 0}
+                onChange={e => handleChange('dias_credito', parseInt(e.target.value)||0)}
+                disabled={form.metodo_pago !== 'credito'}
+                placeholder="0"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
+              />
+              <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Notas</label>
             <textarea
@@ -416,6 +464,51 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               </span>
             </div>
           )}
+          {/* Proveedor y método de pago */}
+          <div>
+            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
+            <input
+              type="text"
+              value={form.proveedor ?? ''}
+              onChange={e => handleChange('proveedor', e.target.value)}
+              placeholder="Ej: Bimbo, CFE, Arrendador García"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              style={{ borderColor: '#d1d5db' }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
+              <select
+                value={form.metodo_pago ?? 'efectivo'}
+                onChange={e => handleChange('metodo_pago', e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                style={{ borderColor: '#d1d5db' }}
+              >
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="transferencia">🏦 Transferencia</option>
+                <option value="credito">📄 Crédito (CxP)</option>
+                <option value="tarjeta_empresa">💳 Tarjeta empresa</option>
+                <option value="cheque">📝 Cheque</option>
+              </select>
+              <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>
+                {(form.metodo_pago==='credito')?'Se registra como Cuenta por Pagar':'Egreso directo de efectivo/banco'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
+              <input
+                type="number" min={0} max={180}
+                value={form.dias_credito ?? 0}
+                onChange={e => handleChange('dias_credito', parseInt(e.target.value)||0)}
+                disabled={form.metodo_pago !== 'credito'}
+                placeholder="0"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
+              />
+              <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Notas</label>
             <textarea

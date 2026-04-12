@@ -53,49 +53,20 @@ const peakPredictions: PeakPrediction[] = [];
 
 // ─── P&L Data (static fallback — overridden by dynamic useMemo inside component) ──
 
-const gastosOpFallback: { concepto: string; monto: number }[] = [
-  { concepto: 'Renta y Servicios', monto: 18500 },
-  { concepto: 'Servicios Públicos (Luz, Agua, Gas)', monto: 12400 },
-  { concepto: 'Marketing y Publicidad', monto: 6200 },
-  { concepto: 'Consumibles y Suministros', monto: 4800 },
-  { concepto: 'Otros Gastos Operativos', monto: 3500 },
-];
+// gastosOpFallback: empty — real data comes from gastos_recurrentes
+const gastosOpFallback: { concepto: string; monto: number }[] = [];
 
-const plDataFallback: PLItem[] = [
-  { concepto: 'INGRESOS', monto: 0, tipo: 'subtotal', nivel: 0 },
-  { concepto: 'Ventas de Alimentos', monto: 412600, tipo: 'ingreso', nivel: 1 },
-  { concepto: 'Ventas de Bebidas', monto: 87400, tipo: 'ingreso', nivel: 1 },
-  { concepto: 'Otros Ingresos', monto: 8200, tipo: 'ingreso', nivel: 1 },
-  { concepto: 'TOTAL INGRESOS', monto: 508200, tipo: 'total', nivel: 0 },
-  { concepto: 'COSTO DE VENTAS (COGS)', monto: 0, tipo: 'subtotal', nivel: 0 },
-  { concepto: 'Costo de Ingredientes — Alimentos', monto: 148536, tipo: 'costo', nivel: 1 },
-  { concepto: 'Costo de Ingredientes — Bebidas', monto: 13984, tipo: 'costo', nivel: 1 },
-  { concepto: 'TOTAL COGS', monto: 162520, tipo: 'total', nivel: 0 },
-  { concepto: 'UTILIDAD BRUTA', monto: 345680, tipo: 'total', nivel: 0 },
-  { concepto: 'GASTOS OPERATIVOS', monto: 0, tipo: 'subtotal', nivel: 0 },
-  { concepto: 'Nómina y Prestaciones', monto: 98400, tipo: 'gasto', nivel: 1 },
-  { concepto: 'Renta del Local', monto: 35000, tipo: 'gasto', nivel: 1 },
-  { concepto: 'Servicios (Luz, Agua, Gas)', monto: 18200, tipo: 'gasto', nivel: 1 },
-  { concepto: 'Marketing y Publicidad', monto: 8500, tipo: 'gasto', nivel: 1 },
-  { concepto: 'Mantenimiento y Reparaciones', monto: 4200, tipo: 'gasto', nivel: 1 },
-  { concepto: 'Consumibles y Suministros', monto: 6800, tipo: 'gasto', nivel: 1 },
-  { concepto: 'TOTAL GASTOS OPERATIVOS', monto: 171100, tipo: 'total', nivel: 0 },
-  { concepto: 'EBITDA', monto: 174580, tipo: 'total', nivel: 0 },
-  { concepto: 'Depreciación y Amortización', monto: 8400, tipo: 'gasto', nivel: 1 },
-  { concepto: 'UTILIDAD OPERATIVA (EBIT)', monto: 166180, tipo: 'total', nivel: 0 },
-  { concepto: 'Gastos Financieros (Intereses)', monto: 4200, tipo: 'gasto', nivel: 1 },
-  { concepto: 'UTILIDAD ANTES DE IMPUESTOS', monto: 161980, tipo: 'total', nivel: 0 },
-  { concepto: 'ISR (30%)', monto: 48594, tipo: 'costo', nivel: 1 },
-  { concepto: 'UTILIDAD NETA', monto: 113386, tipo: 'total', nivel: 0 },
-];
+// plDataFallback: empty — real P&L is built dynamically from Supabase data
+const plDataFallback: PLItem[] = [];
 
 // ─── KPI Summary Data ─────────────────────────────────────────────────────────
 
+// kpiData: zero-value fallback — replaced by realKpis from Supabase once loaded
 const kpiData: Record<string, { ventas: number; ordenes: number; ticket: number; clientes: number; merma?: number; margenPct?: number }> = {
-  hoy: { ventas: 34602, ordenes: 115, ticket: 300.9, clientes: 98 },
-  semana: { ventas: 139400, ordenes: 742, ticket: 187.9, clientes: 621 },
-  mes: { ventas: 548200, ordenes: 2890, ticket: 189.7, clientes: 2340 },
-  personalizado: { ventas: 87400, ordenes: 412, ticket: 212.1, clientes: 356 },
+  hoy:           { ventas: 0, ordenes: 0, ticket: 0, clientes: 0 },
+  semana:        { ventas: 0, ordenes: 0, ticket: 0, clientes: 0 },
+  mes:           { ventas: 0, ordenes: 0, ticket: 0, clientes: 0 },
+  personalizado: { ventas: 0, ordenes: 0, ticket: 0, clientes: 0 },
 };
 
 // ─── Tooltip Components ───────────────────────────────────────────────────────
