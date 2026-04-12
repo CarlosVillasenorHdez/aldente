@@ -38,7 +38,7 @@ interface PaymentModalProps {
     showDiscount?: boolean; showUnitPrice?: boolean;
   };
   onClose: () => void;
-  onComplete: (method: 'efectivo' | 'tarjeta', amountPaid: number, loyaltyCustomerId?: string | null) => void;
+  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null) => void;
 }
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ export default function PaymentModal({
   const [mode, setMode] = useState<'single' | 'split_amount' | 'split_items'>('single');
 
   // ── Single payment ──
-  const [method, setMethod] = useState<'efectivo' | 'tarjeta'>('efectivo');
+  const [method, setMethod] = useState<'efectivo' | 'tarjeta' | 'cortesia'>('efectivo');
   const [cashInput, setCashInput] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -255,6 +255,14 @@ export default function PaymentModal({
   };
 
   const handleConfirmSingle = async () => {
+    if (method === 'cortesia') {
+      // Cortesía: close with $0, mark as courtesy
+      setLoading(true);
+      await new Promise(r => setTimeout(r, 200));
+      setLoading(false);
+      onComplete('cortesia', 0, selectedCustomer?.id ?? null);
+      return;
+    }
     if (method === 'efectivo' && cashAmount < effectiveTotal) return;
     setLoading(true);
     await doRedeemIfNeeded();
@@ -370,7 +378,7 @@ export default function PaymentModal({
             {pointsDiscount > 0 ? (
               <>
                 <p className="font-mono text-lg line-through text-gray-400">${total.toFixed(2)}</p>
-                <p className="font-mono font-bold text-3xl" style={{ color: '#15803d' }}>${effectiveTotal.toFixed(2)}</p>
+                <p className="font-mono font-bold text-3xl" style={{ color: method === 'cortesia' ? '#7c3aed' : '#15803d' }}>{method === 'cortesia' ? '🎁 $0.00 — Cortesía' : `$${effectiveTotal.toFixed(2)}`}</p>
                 <p className="text-xs font-semibold text-green-600 mt-0.5">− ${pointsDiscount.toFixed(2)} en puntos canjeados</p>
               </>
             ) : (
@@ -537,6 +545,17 @@ export default function PaymentModal({
                   ))}
                 </div>
               </div>
+              {/* Cortesía — venta sin cobro */}
+              <button onClick={() => setMethod(method === 'cortesia' ? 'efectivo' : 'cortesia')}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all"
+                style={{ borderColor: method === 'cortesia' ? '#a78bfa' : '#e5e7eb', backgroundColor: method === 'cortesia' ? '#f5f3ff' : '#fafafa' }}>
+                <span style={{ fontSize:20 }}>🎁</span>
+                <div className="text-left flex-1">
+                  <p className="text-sm font-semibold" style={{ color: method === 'cortesia' ? '#5b21b6' : '#374151' }}>Cortesía — sin cobro</p>
+                  <p className="text-xs" style={{ color:'#9ca3af' }}>El producto fue servido pero no se cobra. Queda registrado para cocina e inventario.</p>
+                </div>
+                {method === 'cortesia' && <Check size={14} style={{ color:'#7c3aed' }} />}
+              </button>
               {method === 'efectivo' && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Efectivo recibido</label>

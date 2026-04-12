@@ -1,5 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import CombosManagement from './CombosManagement';
 
 
 
@@ -1208,6 +1209,7 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, pri
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function MenuManagement() {
+  const [menuView, setMenuView] = useState<'platillos' | 'combos'>('platillos');
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category>('Todas');
@@ -1348,6 +1350,24 @@ export default function MenuManagement() {
 
   return (
     <div className="space-y-6">
+      {/* View tabs: Platillos | Combos */}
+      <div style={{ display:'flex', gap:8, padding:'4px', background:'rgba(255,255,255,0.04)', borderRadius:14, width:'fit-content', border:'1px solid rgba(255,255,255,0.08)' }}>
+        {([['platillos','🍽️ Platillos'],['combos','🎁 Combos y Promos']] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setMenuView(v)}
+            style={{ padding:'8px 20px', borderRadius:10, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all .2s',
+              background: menuView === v ? '#c9963a' : 'transparent',
+              color: menuView === v ? '#07090f' : 'rgba(255,255,255,0.5)' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Combos view */}
+      {menuView === 'combos' && <CombosManagement dishes={dishes.filter(d => d.available)} />}
+
+      {/* Platillos view */}
+      {menuView === 'platillos' && <>
+
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
@@ -1515,6 +1535,7 @@ export default function MenuManagement() {
           }}
         />
       )}
+    </>}
     </div>
   );
 }
