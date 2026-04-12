@@ -46,20 +46,31 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
 
   // Load qrcode.js from CDN and render QR
   React.useEffect(() => {
-    if (!menuUrl || !canvasRef.current) return;
+    if (!menuUrl) return;
+    let destroyed = false;
     const loadQR = () => {
+      if (destroyed || !canvasRef.current) return;
       const QRCode = (window as any).QRCode;
       if (!QRCode) return;
-      QRCode.toCanvas(canvasRef.current, menuUrl, {
-        width: 220, margin: 2,
-        color: { dark: '#0f1923', light: '#ffffff' },
-      }, (err: any) => { if (!err) setQrReady(true); });
+      try {
+        QRCode.toCanvas(canvasRef.current, menuUrl, {
+          width: 220, margin: 2,
+          color: { dark: '#0f1923', light: '#ffffff' },
+        }, (err: any) => { if (!err && !destroyed) setQrReady(true); });
+      } catch { /* canvas not ready */ }
     };
-    if ((window as any).QRCode) { loadQR(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    script.onload = loadQR;
-    document.head.appendChild(script);
+    if ((window as any).QRCode) { loadQR(); }
+    else {
+      const existing = document.querySelector('script[src*="qrcodejs"]');
+      if (existing) { existing.addEventListener('load', loadQR); }
+      else {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        script.onload = loadQR;
+        document.head.appendChild(script);
+      }
+    }
+    return () => { destroyed = true; };
   }, [menuUrl]);
 
   const handleDownload = () => {
@@ -144,12 +155,22 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
 function QRBigCanvas({ url }: { url: string }) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   React.useEffect(() => {
-    if (!url || !ref.current) return;
+    if (!url) return;
+    let destroyed = false;
     const draw = () => {
+      if (destroyed || !ref.current) return;
       const QRCode = (window as any).QRCode;
-      if (QRCode) QRCode.toCanvas(ref.current, url, { width: 280, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+      if (!QRCode) return;
+      try {
+        QRCode.toCanvas(ref.current, url, { width: 280, margin: 2, color: { dark: '#111827', light: '#ffffff' } }, () => {});
+      } catch { /* canvas not ready */ }
     };
-    (window as any).QRCode ? draw() : setTimeout(draw, 500);
+    if ((window as any).QRCode) { draw(); }
+    else {
+      const t = setTimeout(draw, 600);
+      return () => { destroyed = true; clearTimeout(t); };
+    }
+    return () => { destroyed = true; };
   }, [url]);
   return <canvas ref={ref} style={{ borderRadius: 12, maxWidth: '100%' }} />;
 }
