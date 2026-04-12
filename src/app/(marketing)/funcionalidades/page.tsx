@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // ─── BRAND CONSTANTS (shared philosophy across all pages) ─────────────────────
 // Mission: Dar a cada restaurantero la verdad de su negocio, en tiempo real.
@@ -168,6 +168,393 @@ function Nav() {
   );
 }
 
+
+// ─── Animated Module Mocks ─────────────────────────────────────────────────────
+// Each mock recreates the actual UI of that module with live animations
+
+function useInterval(cb: () => void, delay: number) {
+  const savedCb = useRef(cb);
+  useEffect(() => { savedCb.current = cb; }, [cb]);
+  useEffect(() => { const id = setInterval(() => savedCb.current(), delay); return () => clearInterval(id); }, [delay]);
+}
+
+// ── POS Mock: animated table map ─────────────────────────────────────────────
+function POSMock({ color }: { color: string }) {
+  const TABLES = [
+    { n: 1, s: 'ocupada', mins: 22, total: 480, waiter: 'Carlos' },
+    { n: 2, s: 'libre',   mins: 0,  total: 0,   waiter: '' },
+    { n: 3, s: 'ocupada', mins: 8,  total: 210,  waiter: 'María' },
+    { n: 4, s: 'cuenta',  mins: 41, total: 920,  waiter: 'Carlos' },
+    { n: 5, s: 'libre',   mins: 0,  total: 0,    waiter: '' },
+    { n: 6, s: 'ocupada', mins: 14, total: 1340, waiter: 'Luis' },
+  ];
+  const [highlighted, setHighlighted] = useState<number | null>(null);
+  const [newOrder, setNewOrder] = useState(false);
+
+  useInterval(() => {
+    setHighlighted(h => h === null ? 3 : h === 3 ? 6 : h === 6 ? 1 : null);
+  }, 2200);
+
+  useInterval(() => { setNewOrder(true); setTimeout(() => setNewOrder(false), 800); }, 3500);
+
+  return (
+    <div style={{ background: '#0a1628', borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', fontWeight: 600 }}>Restaurante El Güero · Turno tarde</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {newOrder && <span style={{ fontSize: 10, color: '#c9963a', fontWeight: 700, animation: 'pulse-fade .8s ease' }}>+1 orden</span>}
+          <span style={{ fontSize: 13, color: color, fontWeight: 700, fontFamily: 'monospace' }}>$2,950</span>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        {TABLES.map(t => {
+          const isHl = highlighted === t.n;
+          const bg = t.s === 'libre' ? 'rgba(255,255,255,.03)' : t.s === 'cuenta' ? 'rgba(201,150,58,.1)' : isHl ? 'rgba(74,222,128,.12)' : 'rgba(34,197,94,.07)';
+          const border = t.s === 'libre' ? 'rgba(255,255,255,.07)' : t.s === 'cuenta' ? 'rgba(201,150,58,.35)' : isHl ? 'rgba(74,222,128,.5)' : 'rgba(34,197,94,.2)';
+          return (
+            <div key={t.n} style={{ padding: '12px 14px', borderRadius: 11, background: bg, border: `1px solid ${border}`, transition: 'all .4s cubic-bezier(.22,1,.36,1)', transform: isHl ? 'scale(1.03)' : 'scale(1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Mesa {t.n}</span>
+                {t.s !== 'libre' && <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{t.mins}m</span>}
+              </div>
+              {t.s === 'libre'
+                ? <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)' }}>Libre</span>
+                : <>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: t.s === 'cuenta' ? '#c9963a' : isHl ? '#4ade80' : '#f1f5f9', fontFamily: 'monospace' }}>${t.total.toLocaleString()}</span>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>{t.waiter}</div>
+                  </>}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 12, fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
+        Toca una mesa para abrir el POS · Drag & drop para reorganizar
+      </div>
+    </div>
+  );
+}
+
+// ── KDS Mock: live semaphore orders ──────────────────────────────────────────
+function KDSMock({ color }: { color: string }) {
+  const [orders, setOrders] = useState([
+    { id: 1, mesa: 4, item: 'Tacos de Res x3',     mins: 18, done: false },
+    { id: 2, mesa: 1, item: 'Hamburguesa Aldente',  mins: 9,  done: false },
+    { id: 3, mesa: 3, item: 'Ensalada César',       mins: 4,  done: false },
+    { id: 4, mesa: 6, item: 'Café Americano x2',    mins: 2,  done: false },
+  ]);
+  const [tick, setTick] = useState(0);
+
+  useInterval(() => setTick(t => t + 1), 1500);
+  useInterval(() => {
+    setOrders(prev => {
+      const updated = prev.map(o => ({ ...o, mins: Math.max(0, o.mins - 1) }));
+      // Mark oldest as done every 6s, then remove after flash
+      const oldest = updated.find(o => o.mins === 0 && !o.done);
+      if (oldest) {
+        return updated.map(o => o.id === oldest.id ? { ...o, done: true } : o);
+      }
+      return updated;
+    });
+  }, 3000);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setOrders(prev => {
+        const without = prev.filter(o => !o.done);
+        if (prev.some(o => o.done)) {
+          return [...without, { id: Date.now(), mesa: Math.ceil(Math.random() * 6), item: ['Quesadilla x2', 'Enchiladas verdes', 'Pozole rojo', 'Agua de Jamaica'][Math.floor(Math.random() * 4)], mins: 12, done: false }];
+        }
+        return prev;
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [orders]);
+
+  const sem = (m: number) => m > 15 ? '#ef4444' : m > 8 ? '#f59e0b' : '#22c55e';
+
+  return (
+    <div style={{ background: '#0a1628', borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,.06)' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+        {[['#22c55e', '< 8 min'], ['#f59e0b', '8–15 min'], ['#ef4444', '> 15 min']].map(([c, l]) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,.45)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}` }} />{l}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {orders.slice(0, 5).map(o => (
+          <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10,
+            background: o.done ? 'rgba(74,222,128,.08)' : 'rgba(255,255,255,.03)',
+            border: `1px solid ${o.done ? 'rgba(74,222,128,.3)' : 'rgba(255,255,255,.07)'}`,
+            transition: 'all .5s', opacity: o.done ? 0.5 : 1 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: o.done ? '#22c55e' : sem(o.mins), boxShadow: `0 0 8px ${o.done ? '#22c55e' : sem(o.mins)}80`, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', width: 52, flexShrink: 0 }}>Mesa {o.mesa}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: o.done ? '#4ade80' : '#f1f5f9', flex: 1 }}>{o.done ? '✓ ' : ''}{o.item}</span>
+            <span style={{ fontSize: 13, color: o.done ? '#4ade80' : sem(o.mins), fontWeight: 700, fontFamily: 'monospace', flexShrink: 0 }}>
+              {o.done ? 'Listo' : `${o.mins} min`}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 12, fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
+        Semáforo en tiempo real · Las órdenes llegan directo del mesero
+      </div>
+    </div>
+  );
+}
+
+// ── Mesero Mock: phone-style UI ───────────────────────────────────────────────
+function MeseroMock({ color }: { color: string }) {
+  const [step, setStep] = useState(0); // 0=mesas, 1=menu, 2=orden, 3=enviada
+  const [cart, setCart] = useState<string[]>([]);
+  const ITEMS = ['☕ Café Americano', '🥐 Croissant', '🥑 Tostada de aguacate'];
+
+  useInterval(() => {
+    setStep(s => {
+      if (s === 0) return 1;
+      if (s === 1) { setCart([]); return 1; }
+      return s;
+    });
+  }, 4000);
+
+  const addItem = (item: string) => {
+    setCart(c => [...c, item]);
+    if (cart.length >= 1) {
+      setTimeout(() => setStep(2), 300);
+      setTimeout(() => setStep(3), 1800);
+      setTimeout(() => { setStep(0); setCart([]); }, 3200);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      {/* Phone frame */}
+      <div style={{ flex: '0 0 180px', background: '#0f172a', borderRadius: 24, border: '2px solid rgba(255,255,255,.1)', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,.5)' }}>
+        {/* Status bar */}
+        <div style={{ background: '#0a0f1e', padding: '8px 16px 6px', display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,.4)' }}>9:41</span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,.4)' }}>●●●●</span>
+        </div>
+        <div style={{ padding: '12px 14px', minHeight: 220 }}>
+          {step === 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: color, marginBottom: 10 }}>Mis mesas</div>
+              {[{n:1,status:'Ocupada'},{n:3,status:'Ocupada'},{n:5,status:'Libre'}].map(t => (
+                <div key={t.n} onClick={() => setStep(1)} style={{ padding: '8px 10px', borderRadius: 8, background: t.status === 'Libre' ? 'rgba(255,255,255,.04)' : `${color}12`, border: `1px solid ${t.status === 'Libre' ? 'rgba(255,255,255,.07)' : color + '30'}`, marginBottom: 6, cursor: 'pointer' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>Mesa {t.n}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginLeft: 8 }}>{t.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {step === 1 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: color, marginBottom: 10 }}>Mesa 3 · Agregar</div>
+              {ITEMS.map(item => (
+                <div key={item} onClick={() => addItem(item)} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', marginBottom: 6, cursor: 'pointer', fontSize: 11, color: '#f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {item} <span style={{ color: color, fontWeight: 700 }}>+</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {step === 2 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: color, marginBottom: 10 }}>Enviando a cocina…</div>
+              {cart.map((item, i) => (
+                <div key={i} style={{ padding: '7px 10px', borderRadius: 8, background: `${color}10`, border: `1px solid ${color}25`, marginBottom: 5, fontSize: 11, color: '#f1f5f9' }}>{item}</div>
+              ))}
+              <div style={{ marginTop: 8, height: 3, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '70%', background: color, animation: 'progress-fill 1.5s linear forwards', borderRadius: 2 }} />
+              </div>
+            </div>
+          )}
+          {step === 3 && (
+            <div style={{ textAlign: 'center', paddingTop: 30 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>¡Enviado a cocina!</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>El cocinero ya lo ve</div>
+            </div>
+          )}
+        </div>
+        {/* Home bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 10px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.15)' }} />
+        </div>
+      </div>
+      {/* Explanation */}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: color, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.08em' }}>Sin app store</div>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 16 }}>
+          El mesero abre el link en su celular y lo guarda como app. En 10 segundos está tomando órdenes que van directo a cocina.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { icon: '📲', text: 'Sin Google Play ni App Store' },
+            { icon: '⚡', text: 'Funciona offline — sync al volver' },
+            { icon: '🎯', text: 'Login por PIN, sin contraseñas' },
+            { icon: '🔄', text: 'Diff inteligente — no duplica órdenes' },
+          ].map(({ icon, text }) => (
+            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,.65)' }}>
+              <span>{icon}</span>{text}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── P&L Mock: live numbers updating ─────────────────────────────────────────
+function PLMock({ color }: { color: string }) {
+  const [ventas,  setVentas]  = useState(14280);
+  const [cogs,    setCogs]    = useState(4712);
+  const [gastos,  setGastos]  = useState(2340);
+  const [merma,   setMerma]   = useState(380);
+  const [tick,    setTick]    = useState(0);
+
+  useInterval(() => {
+    const newSale = Math.floor(Math.random() * 300) + 80;
+    const newCogs = Math.floor(newSale * (0.28 + Math.random() * 0.08));
+    setVentas(v => v + newSale);
+    setCogs(c => c + newCogs);
+    setTick(t => t + 1);
+  }, 2000);
+
+  const utilBruta = ventas - cogs;
+  const utilNeta  = utilBruta - gastos - merma;
+  const margen    = ventas > 0 ? ((utilNeta / ventas) * 100).toFixed(1) : '0.0';
+  const foodCost  = ventas > 0 ? ((cogs / ventas) * 100).toFixed(1) : '0.0';
+
+  const Row = ({ label, value, color: c, bold }: { label: string; value: string; color?: string; bold?: boolean }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+      <span style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', fontWeight: bold ? 600 : 400 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: bold ? 700 : 500, color: c ?? '#f1f5f9', fontFamily: 'monospace', transition: 'color .3s' }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ background: '#0a1628', borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', fontWeight: 600 }}>P&L del día — en tiempo real</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e', animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>En vivo</span>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+        {[
+          { label: 'Ventas',    value: `$${ventas.toLocaleString('es-MX')}`,  color: '#f1f5f9' },
+          { label: 'COGS',      value: `$${cogs.toLocaleString('es-MX')}`,    color: '#f87171' },
+          { label: 'Food Cost', value: `${foodCost}%`,                         color: parseFloat(foodCost) < 35 ? '#4ade80' : '#f59e0b' },
+        ].map(k => (
+          <div key={k.label} style={{ padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>{k.label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: k.color, fontFamily: 'monospace', transition: 'all .4s' }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+      <div>
+        <Row label="Utilidad bruta"         value={`$${utilBruta.toLocaleString('es-MX')}`} color="#60a5fa" />
+        <Row label="Gastos operativos"      value={`−$${gastos.toLocaleString('es-MX')}`}   color="#f87171" />
+        <Row label="Merma registrada"       value={`−$${merma.toLocaleString('es-MX')}`}    color="#f59e0b" />
+        <Row label="🏆 Utilidad neta estimada" value={`$${utilNeta.toLocaleString('es-MX')}`} color={utilNeta > 0 ? '#4ade80' : '#f87171'} bold />
+      </div>
+      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: `${color}08`, border: `1px solid ${color}20` }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.45)' }}>Margen neto</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: parseFloat(margen) >= 10 ? '#4ade80' : '#f59e0b', fontFamily: 'monospace' }}>{margen}%</span>
+      </div>
+      <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
+        Se actualiza con cada venta cerrada · Sin esperar el corte
+      </div>
+    </div>
+  );
+}
+
+// ── Inventario Mock: stock movement ─────────────────────────────────────────
+function InventarioMock({ color }: { color: string }) {
+  const [ingredients, setIngredients] = useState([
+    { name: 'Aguacate Hass', stock: 14.5, min: 5,  unit: 'kg',  cost: 42,  alert: false },
+    { name: 'Leche entera',  stock: 3.2,  min: 5,  unit: 'L',   cost: 18,  alert: true  },
+    { name: 'Café molido',   stock: 0.8,  min: 1,  unit: 'kg',  cost: 320, alert: true  },
+    { name: 'Harina blanca', stock: 12,   min: 3,  unit: 'kg',  cost: 12,  alert: false },
+    { name: 'Huevo',         stock: 48,   min: 12, unit: 'pz',  cost: 3.5, alert: false },
+  ]);
+  const [lastDeducted, setLastDeducted] = useState<string | null>(null);
+
+  useInterval(() => {
+    const idx = Math.floor(Math.random() * ingredients.length);
+    const deduct = parseFloat((Math.random() * 0.5 + 0.1).toFixed(2));
+    setIngredients(prev => prev.map((ing, i) => {
+      if (i !== idx) return ing;
+      const newStock = Math.max(0, parseFloat((ing.stock - deduct).toFixed(2)));
+      return { ...ing, stock: newStock, alert: newStock <= ing.min };
+    }));
+    setLastDeducted(ingredients[idx].name);
+    setTimeout(() => setLastDeducted(null), 1200);
+  }, 2500);
+
+  return (
+    <div style={{ background: '#0a1628', borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', fontWeight: 600 }}>Stock en tiempo real</span>
+        {lastDeducted && (
+          <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, animation: 'tick-fade .3s ease' }}>
+            −{lastDeducted}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {ingredients.map(ing => {
+          const pct = Math.min((ing.stock / (ing.min * 3)) * 100, 100);
+          const barColor = ing.alert ? '#ef4444' : pct < 60 ? '#f59e0b' : '#22c55e';
+          const isFlash = lastDeducted === ing.name;
+          return (
+            <div key={ing.name} style={{ padding: '10px 12px', borderRadius: 10, background: isFlash ? `${barColor}10` : 'rgba(255,255,255,.03)', border: `1px solid ${ing.alert ? 'rgba(239,68,68,.25)' : isFlash ? `${barColor}30` : 'rgba(255,255,255,.06)'}`, transition: 'all .4s' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {ing.alert && <span style={{ fontSize: 10, animation: 'pulse-dot 1s infinite' }}>🔴</span>}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>{ing.name}</span>
+                </div>
+                <span style={{ fontSize: 12, fontFamily: 'monospace', color: barColor, fontWeight: 700, transition: 'all .3s' }}>
+                  {ing.stock} {ing.unit}
+                </span>
+              </div>
+              <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: 'width .6s ease, background .3s' }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}>
+                Mín: {ing.min} {ing.unit} · ${(ing.cost * ing.stock).toFixed(0)} en valor
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
+        Cada venta descuenta ingredientes automáticamente por receta
+      </div>
+    </div>
+  );
+}
+
+// ── Main dispatcher ──────────────────────────────────────────────────────────
+function ModuleMock({ id, color }: { id: string; color: string }) {
+  const MOCK_IDS = ['pos', 'kds', 'mesero', 'inventario', 'pl'];
+  if (!MOCK_IDS.includes(id)) return null;
+  return (
+    <div style={{ marginTop: 24, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e', animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.4)', letterSpacing: '.08em', textTransform: 'uppercase' }}>Vista previa animada — así se ve en el sistema real</span>
+      </div>
+      {id === 'pos'        && <POSMock color={color} />}
+      {id === 'kds'        && <KDSMock color={color} />}
+      {id === 'mesero'     && <MeseroMock color={color} />}
+      {id === 'inventario' && <InventarioMock color={color} />}
+      {id === 'pl'         && <PLMock color={color} />}
+    </div>
+  );
+}
+
 export default function FuncionalidadesPage() {
   const [activeModule, setActiveModule] = useState('pos');
   const [filterPlan, setFilterPlan] = useState<string | null>(null);
@@ -313,8 +700,11 @@ export default function FuncionalidadesPage() {
                 ))}
               </div>
 
+              {/* Live Mock Preview */}
+              <ModuleMock id={activeModule} color={mod.color} />
+
               {/* CTA */}
-              <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <a href="/registro" style={{ padding: '12px 28px', borderRadius: 12, background: mod.color, color: '#07090f', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all .2s' }}>
                   Probar {mod.name} 14 días →
                 </a>
