@@ -2,6 +2,7 @@
 -- Migration: Add postal_code and colonia to tenants + update v_tenant_map
 -- =============================================================================
 
+-- 1. Add new columns to tenants (safe, idempotent)
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
@@ -14,8 +15,10 @@ BEGIN
   END IF;
 END $$;
 
--- Update v_tenant_map to include new fields
-CREATE OR REPLACE VIEW public.v_tenant_map AS
+-- 2. Recreate v_tenant_map (DROP + CREATE to allow column reordering)
+DROP VIEW IF EXISTS public.v_tenant_map;
+
+CREATE VIEW public.v_tenant_map AS
 SELECT
   t.id,
   t.name,
@@ -47,7 +50,7 @@ FROM public.tenants t;
 GRANT SELECT ON public.v_tenant_map TO authenticated;
 GRANT SELECT ON public.v_tenant_map TO service_role;
 
--- Add 'unico' frecuencia for one-time expenses
+-- 3. Add 'unico' to gasto_frecuencia enum (idempotent)
 DO $$
 BEGIN
   IF NOT EXISTS (
