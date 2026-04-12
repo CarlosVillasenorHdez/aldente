@@ -243,12 +243,29 @@ function ComboModal({ combo, dishes, dishCosts, onClose, onSave }: {
             </div>
           </div>
         </div>
-        <div style={{padding:'16px 24px',borderTop:'1px solid rgba(255,255,255,0.06)',display:'flex',gap:10}}>
+        <div style={{padding:'16px 24px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+          {(!name.trim()||items.length<2)&&(
+            <div style={{fontSize:11,color:'rgba(245,158,11,0.8)',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+              <span>⚠</span>
+              <span>
+                {!name.trim()&&items.length<2?'Escribe un nombre y agrega al menos 2 productos':
+                 !name.trim()?'Escribe un nombre para el combo':
+                 'Agrega al menos 2 productos'}
+              </span>
+            </div>
+          )}
+          <div style={{display:'flex',gap:10}}>
           <button onClick={onClose} style={{flex:1,padding:11,borderRadius:12,background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.5)',fontSize:14,cursor:'pointer'}}>Cancelar</button>
-          <button onClick={()=>{if(!name.trim()||items.length<2)return;setSaving(true);onSave({name:name.trim(),description,emoji,items,total_price,savings,active:combo?.active??true});}} disabled={saving||items.length<2||!name.trim()}
+          <button onClick={()=>{
+              if(!name.trim()||items.length<2) return;
+              setSaving(true);
+              try { onSave({name:name.trim(),description,emoji,items,total_price,savings,active:combo?.active??true}); }
+              catch { setSaving(false); }
+            }} disabled={saving||items.length<2||!name.trim()}
             style={{flex:2,padding:11,borderRadius:12,background:items.length<2||!name.trim()?'rgba(201,150,58,0.3)':'#c9963a',border:'none',color:'#07090f',fontSize:14,fontWeight:700,cursor:items.length<2||!name.trim()?'not-allowed':'pointer'}}>
             {saving?'Guardando…':combo?.id?'Guardar cambios':'Crear combo'}
           </button>
+          </div>
         </div>
       </div>
     </div>

@@ -4,11 +4,12 @@ import AppLayout from '@/components/AppLayout';
 import ReportesManagement from './components/ReportesManagement';
 import ReportesMejorados from './components/ReportesMejorados';
 import ReportesConsolidado from './components/ReportesConsolidado';
+import AnalisisFinanciero from './components/AnalisisFinanciero';
 import UpgradeGate from '@/components/UpgradeGate';
 import { useState, useEffect } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
 
-type View = 'ventas' | 'avanzado' | 'consolidado';
+type View = 'ventas' | 'avanzado' | 'financiero' | 'consolidado';
 
 export default function ReportesPage() {
   const { features } = useFeatures();
@@ -20,7 +21,8 @@ export default function ReportesPage() {
 
   const tabs = [
     { id: 'ventas' as View,       label: '📊 Ventas',                    show: true },
-    { id: 'avanzado' as View,     label: '📈 P&L · COGS · Análisis',    show: true },
+    { id: 'avanzado' as View,     label: '📈 COGS · Análisis',           show: true },
+    { id: 'financiero' as View,   label: '📋 Análisis Financiero',         show: true },
     { id: 'consolidado' as View,  label: '🏢 Multi-Sucursal',            show: features.multiSucursal },
   ].filter(t => t.show);
 
@@ -58,6 +60,19 @@ export default function ReportesPage() {
             blurAmount={8}
           >
             <ReportesManagement />
+          </UpgradeGate>
+        )}
+
+        {/* Análisis Financiero — P&L + Balance Sheet */}
+        {activeView === 'financiero' && (
+          <UpgradeGate
+            feature="reportes"
+            requiredPlan="negocio"
+            title="Análisis Financiero: P&L + Balance Sheet"
+            description="Estado de Resultados real, Balance General y Flujo de Caja. Los reportes que necesita tu contador para el cierre fiscal."
+            blurAmount={8}
+          >
+            <AnalisisFinanciero />
           </UpgradeGate>
         )}
 
