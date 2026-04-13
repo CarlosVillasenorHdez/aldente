@@ -508,24 +508,36 @@ export default function POSClient() {
 
       // DELETE all current items for this order, then INSERT the full current state.
       // This is safe because the timer is debounced — only one instance runs at a time.
+      // ── Offline-aware sync ──
+      const itemsPayload = items.map((item) => ({
+        order_id: orderId,
+        dish_id: item.menuItem.id,
+        name: item.menuItem.name,
+        qty: item.quantity,
+        price: item.menuItem.price,
+        emoji: item.menuItem.emoji,
+        modifier: item.modifier ?? null,
+        tenant_id: getTenantId(),
+        notes: item.notes ?? null,
+      }));
+
+      if (!navigator.onLine) {
+        // Queue for later — store as upsert-all (delete+insert equivalent)
+        await enqueue({ table: 'order_items', op: 'delete', payload: { order_id: orderId } as any });
+        if (items.length > 0) {
+          for (const p of itemsPayload) {
+            await enqueue({ table: 'order_items', op: 'insert', payload: p });
+          }
+        }
+        return;
+      }
+
       const { error: delErr } = await supabase.from('order_items')
-        .delete().eq('order_id', orderId);
+        .delete().eq('order_id', orderId).eq('tenant_id', getTenantId());
       if (delErr) { console.error('[POS] sync delete error:', delErr.message); return; }
 
       if (items.length > 0) {
-        const { error: insErr } = await supabase.from('order_items').insert(
-          items.map((item) => ({
-            order_id: orderId,
-            dish_id: item.menuItem.id,
-            name: item.menuItem.name,
-            qty: item.quantity,
-            price: item.menuItem.price,
-            emoji: item.menuItem.emoji,
-            modifier: item.modifier ?? null,
-            tenant_id: getTenantId(),
-            notes: item.notes ?? null,
-          }))
-        );
+        const { error: insErr } = await supabase.from('order_items').insert(itemsPayload);
         if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
       }
 
@@ -617,8 +629,22 @@ export default function POSClient() {
     });
 
     if (orderErr) {
-      toast.error('Error al crear orden para llevar: ' + orderErr.message);
-      return;
+      if (!navigator.onLine) {
+        // Queue the order creation for when connectivity returns
+        await enqueue({ table: 'orders', op: 'insert', payload: {
+          tenant_id: getTenantId(), id: orderId,
+          mesa: displayName, mesa_num: 0, mesero: waiterName,
+          subtotal: 0, iva: 0, discount: 0, total: 0,
+          status: 'abierta', kitchen_status: 'en_edicion',
+          opened_at: now, branch: branchName,
+          order_type: 'para_llevar',
+          customer_name: customerName.trim() || null,
+        }});
+        toast('Sin conexión — orden guardada localmente', { icon: '⚡' });
+      } else {
+        toast.error('Error al crear orden para llevar: ' + orderErr.message);
+        return;
+      }
     }
 
     setSelectedTable(takeoutTable);
@@ -712,38 +738,42 @@ export default function POSClient() {
     const now = new Date().toISOString();
     const waiterName = appUser?.fullName ?? 'Administrador';
 
-    const { error: orderErr } = await supabase.from('orders').insert({ tenant_id: getTenantId(),
-      id: orderId,
-      mesa: table.name,
-      mesa_num: table.number,
-      mesero: waiterName,
-      subtotal: 0,
-      iva: 0,
-      discount: 0,
-      total: 0,
-      status: 'abierta',
-      kitchen_status: 'en_edicion',
-      opened_at: now,
-      branch: branchName,
-    });
+    const tableOrderPayload = {
+      tenant_id: getTenantId(), id: orderId,
+      mesa: table.name, mesa_num: table.number, mesero: waiterName,
+      subtotal: 0, iva: 0, discount: 0, total: 0,
+      status: 'abierta', kitchen_status: 'en_edicion',
+      opened_at: now, branch: branchName,
+    };
+    const { error: orderErr } = await supabase.from('orders').insert(tableOrderPayload);
     if (orderErr) {
-      toast.error('Error al abrir orden: ' + orderErr.message);
-      throw orderErr;
+      if (!navigator.onLine) {
+        await enqueue({ table: 'orders', op: 'insert', payload: tableOrderPayload });
+        toast('Sin conexión — orden guardada localmente', { icon: '⚡' });
+        // Continue opening table locally even without DB confirmation
+      } else {
+        toast.error('Error al abrir orden: ' + orderErr.message);
+        throw orderErr;
+      }
     }
 
     const groupIds = table.mergeGroupId
       ? tables.filter((t) => t.mergeGroupId === table.mergeGroupId).map((t) => t.id)
       : [table.id];
 
-    await supabase.from('restaurant_tables').update({
-      status: 'ocupada',
-      current_order_id: orderId,
-      waiter: waiterName,
-      opened_at: now,
-      item_count: 0,
-      partial_total: 0,
-      updated_at: now,
-    }).in('id', groupIds);
+    const ocupadaPayload = {
+      status: 'ocupada', current_order_id: orderId,
+      waiter: waiterName, opened_at: now,
+      item_count: 0, partial_total: 0, updated_at: now,
+    };
+    const { error: ocupErr } = await supabase.from('restaurant_tables')
+      .update(ocupadaPayload).in('id', groupIds);
+    if (ocupErr && !navigator.onLine) {
+      for (const tid of groupIds) {
+        await enqueue({ table: 'restaurant_tables', op: 'update',
+          payload: { id: tid, ...ocupadaPayload } });
+      }
+    }
 
     // Update local state so subsequent calls find the orderId
     setSelectedTable((prev) => prev ? { ...prev, currentOrderId: orderId, status: 'ocupada', openedAt: now, waiter: waiterName } : prev);
@@ -759,21 +789,27 @@ export default function POSClient() {
   // ─── Hold: guardar orden sin enviar a cocina ────────────────────────────────
   const handleHold = useCallback(async () => {
     if (!selectedTable?.currentOrderId || orderItems.length === 0) return;
-    // Flush current items to DB without creating comanda
-    await supabase.from('order_items').delete().eq('order_id', selectedTable.currentOrderId);
-    await supabase.from('order_items').insert(
-      orderItems.map(item => ({
-        order_id: selectedTable.currentOrderId,
-        dish_id: item.menuItem.id,
-        name: item.menuItem.name,
-        qty: item.quantity,
-        price: item.menuItem.price,
-        emoji: item.menuItem.emoji,
-        modifier: item.modifier ?? null,
-        tenant_id: getTenantId(),
-        notes: item.notes ?? null,
-      }))
-    );
+    const holdPayload = orderItems.map(item => ({
+      order_id: selectedTable.currentOrderId,
+      dish_id: item.menuItem.id,
+      name: item.menuItem.name,
+      qty: item.quantity,
+      price: item.menuItem.price,
+      emoji: item.menuItem.emoji,
+      modifier: item.modifier ?? null,
+      tenant_id: getTenantId(),
+      notes: item.notes ?? null,
+    }));
+    if (!navigator.onLine) {
+      // Queue flush for later
+      await enqueue({ table: 'order_items', op: 'delete', payload: { order_id: selectedTable.currentOrderId } as any });
+      for (const p of holdPayload) {
+        await enqueue({ table: 'order_items', op: 'insert', payload: p });
+      }
+    } else {
+      await supabase.from('order_items').delete().eq('order_id', selectedTable.currentOrderId);
+      await supabase.from('order_items').insert(holdPayload);
+    }
     setIsOnHold(prev => {
       const next = !prev;
       toast(next ? '⏸ Orden en espera — la cocina no la recibirá hasta que presiones Enviar' : 'Orden fuera de espera', { duration: 2500 });
