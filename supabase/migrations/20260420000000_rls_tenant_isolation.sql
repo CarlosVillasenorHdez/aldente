@@ -1,16 +1,23 @@
 -- ============================================================================
--- RLS TENANT ISOLATION — versión nuclear
--- Elimina TODAS las políticas de cada tabla usando pg_policies,
--- luego crea exactamente una política correcta por tabla.
--- Idempotente: puede ejecutarse múltiples veces sin error.
+-- RLS TENANT ISOLATION — versión final
+-- Usa tenant_id::text = current_setting() para evitar el error de tipos.
 -- ============================================================================
 
--- Funciones helper (CREATE OR REPLACE = idempotente)
+-- Función helper (STABLE = cached per query, SECURITY INVOKER = default)
 CREATE OR REPLACE FUNCTION current_tenant_id()
-RETURNS uuid LANGUAGE sql STABLE AS $$
-  SELECT NULLIF(current_setting('app.tenant_id', true), '')::uuid
+RETURNS text LANGUAGE sql STABLE AS $$
+  SELECT NULLIF(current_setting('app.tenant_id', true), '')
 $$;
 
+-- RPC que llama el cliente al iniciar sesión
+CREATE OR REPLACE FUNCTION set_tenant_context(p_tenant_id text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  PERFORM set_config('app.tenant_id', p_tenant_id, false);
+END;
+$$;
+
+-- También acepta uuid directamente (overload para compatibilidad)
 CREATE OR REPLACE FUNCTION set_tenant_context(p_tenant_id uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -18,18 +25,16 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION set_tenant_context(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION set_tenant_context(uuid) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION current_tenant_id()      TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION current_tenant_id()       TO anon, authenticated;
 
--- ── Eliminar TODAS las políticas existentes via DO block ─────────────────────
--- Esto evita tener que adivinar nombres: lee pg_policies y hace DROP de cada una.
+-- ── Eliminar TODAS las políticas existentes (sin adivinar nombres) ────────────
 DO $$
-DECLARE
-  r RECORD;
+DECLARE r RECORD;
 BEGIN
   FOR r IN
-    SELECT policyname, tablename
-    FROM pg_policies
+    SELECT policyname, tablename FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename IN (
         'dishes','ingredients','employees','restaurant_tables','orders',
@@ -42,211 +47,213 @@ BEGIN
         'onboarding_progress','tenants','role_permissions'
       )
   LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I',
+                   r.policyname, r.tablename);
   END LOOP;
 END;
 $$;
 
--- ── Crear políticas correctas ─────────────────────────────────────────────────
+-- ── Políticas nuevas: tenant_id::text = current_tenant_id() ──────────────────
+-- Comparamos ambos como TEXT para evitar el error de operador uuid=text
 ALTER TABLE IF EXISTS public.dishes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_dishes" ON public.dishes
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.ingredients ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_ingredients" ON public.ingredients
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.employees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_employees" ON public.employees
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.restaurant_tables ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_restaurant_tables" ON public.restaurant_tables
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_orders" ON public.orders
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.order_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_order_items" ON public.order_items
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.stock_movements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_stock_movements" ON public.stock_movements
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.dish_recipes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_dish_recipes" ON public.dish_recipes
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.unit_equivalences ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_unit_equivalences" ON public.unit_equivalences
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.gastos_recurrentes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_gastos_recurrentes" ON public.gastos_recurrentes
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.gastos_pagos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_gastos_pagos" ON public.gastos_pagos
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.depreciaciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_depreciaciones" ON public.depreciaciones
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.system_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_system_config" ON public.system_config
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.branches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_branches" ON public.branches
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.combos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_combos" ON public.combos
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.reservations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_reservations" ON public.reservations
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.restaurant_layout ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_restaurant_layout" ON public.restaurant_layout
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.printer_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_printer_config" ON public.printer_config
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.loyalty_customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_loyalty_customers" ON public.loyalty_customers
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.loyalty_transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_loyalty_transactions" ON public.loyalty_transactions
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.cortes_caja ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_cortes_caja" ON public.cortes_caja
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.delivery_orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_delivery_orders" ON public.delivery_orders
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.audit_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_audit_log" ON public.audit_log
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.employee_shifts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_employee_shifts" ON public.employee_shifts
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.employee_attendance ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_employee_attendance" ON public.employee_attendance
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.rh_vacaciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_rh_vacaciones" ON public.rh_vacaciones
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.rh_permisos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_rh_permisos" ON public.rh_permisos
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.rh_tiempos_extras ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_rh_tiempos_extras" ON public.rh_tiempos_extras
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.rh_incapacidades ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_rh_incapacidades" ON public.rh_incapacidades
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.app_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_app_users" ON public.app_users
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 ALTER TABLE IF EXISTS public.onboarding_progress ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_onboarding_progress" ON public.onboarding_progress
   FOR ALL TO public
-  USING (tenant_id = current_tenant_id())
-  WITH CHECK (tenant_id = current_tenant_id());
+  USING  (tenant_id::text = current_tenant_id())
+  WITH CHECK (tenant_id::text = current_tenant_id());
 
 -- tenants: cada tenant solo ve y edita su propio registro
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_tenants_select" ON public.tenants
-  FOR SELECT TO public USING (id = current_tenant_id());
+  FOR SELECT TO public
+  USING (id::text = current_tenant_id());
+
 CREATE POLICY "rls_tenants_update" ON public.tenants
   FOR UPDATE TO public
-  USING (id = current_tenant_id())
-  WITH CHECK (id = current_tenant_id());
+  USING  (id::text = current_tenant_id())
+  WITH CHECK (id::text = current_tenant_id());
 
--- role_permissions: lectura para cualquier sesión con tenant activo
+-- role_permissions: lectura para cualquier sesión autenticada con tenant activo
 ALTER TABLE IF EXISTS public.role_permissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_role_permissions_read" ON public.role_permissions
-  FOR SELECT TO public USING (current_tenant_id() IS NOT NULL);
-
--- demo_requests: insert público (formulario registro), sin tenant
--- Sin cambios intencionales
+  FOR SELECT TO public
+  USING (current_tenant_id() IS NOT NULL);
