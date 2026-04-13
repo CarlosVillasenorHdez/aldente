@@ -1,4 +1,5 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 /**
  * ModifierModal — per-item customization when adding a dish to an order.
@@ -72,7 +73,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
 
   useEffect(() => {
     supabase
-      .from('dish_recipes')
+      .from('dish_recipes').eq('tenant_id', getTenantId())
       .select('ingredient_id, quantity, unit, is_required, ingredients(name, unit)')
       .eq('dish_id', item.id)
       .then(({ data }) => {

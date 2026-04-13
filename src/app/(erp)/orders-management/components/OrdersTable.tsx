@@ -270,7 +270,7 @@ export default function OrdersTable() {
 
   const handleCancelConfirm = async (orderId: string, reason: string, cancelType: 'sin_costo' | 'con_costo') => {
     const order = orders.find((o) => o.id === orderId);
-    await supabase.from('orders').update({
+    await supabase.from('orders').eq('tenant_id', getTenantId()).update({
       status: 'cancelada',
       cancel_type: cancelType,
       closed_at: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),

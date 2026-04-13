@@ -187,7 +187,7 @@ export default function PersonalManagement() {
     setShiftsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('employee_shifts')
+        .from('employee_shifts').eq('tenant_id', getTenantId())
         .select('employee_id, day, shift');
       if (error) throw error;
       setShifts((data || []).map((s: any) => ({
@@ -253,7 +253,7 @@ export default function PersonalManagement() {
   async function handleSave() {
     if (!validate()) return;
     if (editingId) {
-      const { error } = await supabase.from('employees').update({
+      const { error } = await supabase.from('employees').eq('tenant_id', getTenantId()).update({
         name: form.name, role: form.role, phone: form.phone,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,
@@ -274,7 +274,7 @@ export default function PersonalManagement() {
 
   async function handleDelete() {
     if (!deleteId) return;
-    const { error } = await supabase.from('employees').delete().eq('id', deleteId);
+    const { error } = await supabase.from('employees').eq('tenant_id', getTenantId()).delete().eq('id', deleteId);
     if (error) { toast.error('Error al eliminar empleado.'); return; }
     setDeleteId(null);
     await fetchEmployees();
@@ -283,7 +283,7 @@ export default function PersonalManagement() {
   async function toggleStatus(id: string) {
     const emp = employees.find((e) => e.id === id);
     if (!emp) return;
-    const { error } = await supabase.from('employees').update({ status: emp.status === 'activo' ? 'inactivo' : 'activo', updated_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('employees').eq('tenant_id', getTenantId()).update({ status: emp.status === 'activo' ? 'inactivo' : 'activo', updated_at: new Date().toISOString() }).eq('id', id);
     if (error) { toast.error('Error al cambiar estado del empleado.'); return; }
     await fetchEmployees();
   }
@@ -339,7 +339,7 @@ export default function PersonalManagement() {
     const [inH, inM] = checkIn.split(':').map(Number);
     const [outH, outM] = timeStr.split(':').map(Number);
     const hoursWorked = Math.round(((outH * 60 + outM) - (inH * 60 + inM)) / 60 * 100) / 100;
-    const { error } = await supabase.from('employee_attendance')
+    const { error } = await supabase.from('employee_attendance').eq('tenant_id', getTenantId())
       .update({ check_out: timeStr, hours_worked: hoursWorked, updated_at: new Date().toISOString() })
       .eq('id', recordId);
     if (error) { toast.error('Error al registrar salida: ' + error.message); return; }
@@ -351,7 +351,7 @@ export default function PersonalManagement() {
     setSavingShift(true);
     try {
       const { error } = await supabase
-        .from('employee_shifts')
+        .from('employee_shifts').eq('tenant_id', getTenantId())
         .upsert(
           { employee_id: employeeId, day, shift, updated_at: new Date().toISOString() },
           { onConflict: 'employee_id,day' }
