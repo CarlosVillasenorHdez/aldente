@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare, Split } from 'lucide-react';
+import { Minus, Plus, Trash2, Lock, ShoppingCart, Tag, ChevronDown, Send, Printer, MessageSquare, Split, PauseCircle, Clock } from 'lucide-react';
 import { Table, OrderItem } from './POSClient';
 
 interface OrderPanelProps {
@@ -24,6 +24,9 @@ interface OrderPanelProps {
   onUpdateNote: (itemId: string, note: string) => void;
   kitchenSent: boolean;
   sendingToKitchen: boolean;
+  onHold?: () => void;
+  onStay?: () => void;
+  isOnHold?: boolean;
   onSendKitchenNote?: (note: string) => void;
 }
 
@@ -47,6 +50,9 @@ export default function OrderPanel({
   onUpdateNote,
   kitchenSent,
   sendingToKitchen,
+  onHold,
+  onStay,
+  isOnHold,
   onSendKitchenNote,
 }: OrderPanelProps) {
   const [showDiscount, setShowDiscount] = useState(false);
@@ -326,22 +332,66 @@ export default function OrderPanel({
           {/* Action buttons */}
           <div className="px-4 pb-4 flex flex-col gap-2">
             {/* Enviar a cocina — only show if not yet sent, or show re-send if already sent */}
-            {/* Single unified button — always "Enviar comanda", logic handled in sendToKitchen */}
+            {/* Hold / Stay / Send — control de timing de cocina */}
+            {isOnHold && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-1"
+                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <PauseCircle size={13} style={{ color: '#d97706', flexShrink: 0 }} />
+                <span className="text-xs font-semibold" style={{ color: '#d97706' }}>
+                  En espera — la cocina no ha recibido esta orden
+                </span>
+              </div>
+            )}
             <div className="flex gap-2">
+              {/* Hold: guarda la orden pero NO la manda a cocina */}
+              {onHold && (
+                <button
+                  onClick={onHold}
+                  disabled={orderItems.length === 0}
+                  title="Guardar orden sin enviar a cocina aún"
+                  className="flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                  style={{
+                    flex: '0 0 auto', width: 52,
+                    backgroundColor: isOnHold ? 'rgba(245,158,11,0.15)' : '#f3f4f6',
+                    color: isOnHold ? '#d97706' : '#6b7280',
+                    border: isOnHold ? '1px solid rgba(245,158,11,0.4)' : '1px solid #e5e7eb',
+                  }}
+                >
+                  <PauseCircle size={15} />
+                </button>
+              )}
+              {/* Stay: la orden sigue abierta, el cliente pide más */}
+              {onStay && kitchenSent && (
+                <button
+                  onClick={onStay}
+                  disabled={orderItems.length === 0}
+                  title="Marcar que el comensal aún no termina de pedir"
+                  className="flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                  style={{
+                    flex: '0 0 auto', width: 52,
+                    backgroundColor: '#f0fdf4',
+                    color: '#16a34a',
+                    border: '1px solid #bbf7d0',
+                  }}
+                >
+                  <Clock size={15} />
+                </button>
+              )}
+              {/* Send: envía a cocina todo lo pendiente */}
               <button
                 onClick={onSendToKitchen}
                 disabled={sendingToKitchen || orderItems.length === 0 || !selectedTable.currentOrderId}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                style={{ backgroundColor: '#059669', color: 'white' }}
+                style={{ backgroundColor: isOnHold ? '#d97706' : '#059669', color: 'white' }}
               >
                 <Send size={15} />
-                {sendingToKitchen ? 'Enviando...' : 'Enviar comanda'}
+                {sendingToKitchen ? 'Enviando...' : isOnHold ? 'Enviar ahora' : 'Enviar comanda'}
               </button>
               {kitchenSent && onSendKitchenNote && (
                 <button
                   onClick={() => setShowKitchenNote(true)}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-                  style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
+                  style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)', flex: '0 0 auto' }}
                   title="Nota urgente a cocina"
                 >
                   <MessageSquare size={13} />

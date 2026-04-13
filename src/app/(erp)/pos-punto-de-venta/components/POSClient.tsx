@@ -1,5 +1,7 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { enqueue } from '@/lib/offlineQueue';
 
 
 
@@ -88,6 +90,7 @@ function MenuSkeleton() {
 
 export default function POSClient() {
   const { appUser } = useAuth();
+  const { isOnline, pendingCount, syncing, sync } = useOfflineSync();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -111,6 +114,7 @@ export default function POSClient() {
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [kitchenSent, setKitchenSent] = useState(false);
+  const [isOnHold, setIsOnHold] = useState(false);  // orden guardada pero no enviada a cocina
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showNoKitchenConfirm, setShowNoKitchenConfirm] = useState(false);
   const [sentItemsSnapshot, setSentItemsSnapshot] = useState<{id:string;qty:number}[]>([]);
@@ -620,6 +624,7 @@ export default function POSClient() {
     setSelectedTable(takeoutTable);
     setOrderItems([]);
     setKitchenSent(false);
+    setIsOnHold(false);
     setDeliveredLineIds(new Set());
     setSentItemsSnapshot([]);
     setDiscount({ type: 'pct', value: 0 });
@@ -751,6 +756,37 @@ export default function POSClient() {
 
   // ─── Add / update items ───────────────────────────────────────────────────
 
+  // ─── Hold: guardar orden sin enviar a cocina ────────────────────────────────
+  const handleHold = useCallback(async () => {
+    if (!selectedTable?.currentOrderId || orderItems.length === 0) return;
+    // Flush current items to DB without creating comanda
+    await supabase.from('order_items').delete().eq('order_id', selectedTable.currentOrderId);
+    await supabase.from('order_items').insert(
+      orderItems.map(item => ({
+        order_id: selectedTable.currentOrderId,
+        dish_id: item.menuItem.id,
+        name: item.menuItem.name,
+        qty: item.quantity,
+        price: item.menuItem.price,
+        emoji: item.menuItem.emoji,
+        modifier: item.modifier ?? null,
+        tenant_id: getTenantId(),
+        notes: item.notes ?? null,
+      }))
+    );
+    setIsOnHold(prev => {
+      const next = !prev;
+      toast(next ? '⏸ Orden en espera — la cocina no la recibirá hasta que presiones Enviar' : 'Orden fuera de espera', { duration: 2500 });
+      return next;
+    });
+  }, [selectedTable, orderItems, supabase]);
+
+  // ─── Stay: el comensal sigue pidiendo, mantener orden abierta ────────────────
+  const handleStay = useCallback(() => {
+    toast('Mesa activa — sigue agregando platillos', { duration: 2000 });
+    // Simply a UX signal — no DB action needed, order remains open
+  }, []);
+
   // ─── Send order to kitchen ───────────────────────────────────────────────
   const handleSendToKitchen = async () => {
     if (!selectedTable?.currentOrderId) {
@@ -866,6 +902,7 @@ export default function POSClient() {
         setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
       }
 
+      setIsOnHold(false);  // clear hold after sending
       if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? selectedTable.name}`);
     }
     setSendingToKitchen(false);
@@ -1311,6 +1348,30 @@ export default function POSClient() {
 
   return (
     <>
+    {/* ── Offline banner ─────────────────────────────────────────────────────── */}
+    {(!isOnline || pendingCount > 0) && (
+      <div style={{
+        position:'fixed', top:0, left:0, right:0, zIndex:9999,
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'6px 16px', fontSize:12, fontWeight:600,
+        background: !isOnline ? '#7f1d1d' : '#78350f',
+        color: !isOnline ? '#fca5a5' : '#fcd34d',
+      }}>
+        <span>
+          {!isOnline
+            ? '⚡ Sin conexión — las órdenes se guardan localmente y se sincronizan al reconectar'
+            : `🔄 Reconectado — sincronizando ${pendingCount} operación${pendingCount!==1?'es':''} pendiente${pendingCount!==1?'s':''}...`}
+        </span>
+        {isOnline && pendingCount > 0 && (
+          <button onClick={sync} disabled={syncing}
+            style={{padding:'2px 10px',borderRadius:6,background:'rgba(255,255,255,0.15)',
+              border:'1px solid rgba(255,255,255,0.25)',color:'inherit',cursor:'pointer',
+              fontSize:11,fontWeight:700,opacity:syncing?0.5:1}}>
+            {syncing ? 'Sincronizando…' : 'Sincronizar ahora'}
+          </button>
+        )}
+      </div>
+    )}
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <div className="flex-shrink-0">
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -1505,6 +1566,9 @@ export default function POSClient() {
               setShowPaymentModal(true);
             }}
             onSendToKitchen={handleSendToKitchen}
+            onHold={handleHold}
+            onStay={handleStay}
+            isOnHold={isOnHold}
             onPartialCheckout={handlePartialCheckout}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
