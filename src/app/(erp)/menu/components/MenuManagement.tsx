@@ -1,9 +1,4 @@
 'use client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-import CombosManagement from './CombosManagement';
-
-
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Pencil, Trash2, X, Upload, ImageOff, ToggleLeft, ToggleRight,
@@ -13,6 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import CombosManagement from './CombosManagement';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
