@@ -350,6 +350,12 @@ export default function TenantDetailPage() {
             <span style={label}>Plan</span>
             <select value={draft.plan ?? ''} onChange={e => setDraft(d => ({ ...d, plan: e.target.value }))}
               style={{ width: '100%', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 14 }}>
+              {/* Show legacy plan if tenant has old value not in current list */}
+              {draft.plan && !PLANS.includes(draft.plan) && (
+                <option value={draft.plan} disabled style={{ color: '#f87171' }}>
+                  {draft.plan} (legacy — actualizar)
+                </option>
+              )}
               {PLANS.map(p => (
                 <option key={p} value={p}>{PLAN_LABEL[p]} — ${PLAN_MXN[p].toLocaleString('es-MX')}/mes · {PLAN_ETAPA[p]}</option>
               ))}
