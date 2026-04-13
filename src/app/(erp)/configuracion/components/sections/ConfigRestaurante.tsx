@@ -269,59 +269,46 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     if (!addr.trim()) return;
     setGeocoding(true); setGeoStatus('idle');
     try {
-      // Derive country from currency code for multi-country support
-      const COUNTRY_NAMES: Record<string, string> = {
-        MXN: 'México', ARS: 'Argentina', COP: 'Colombia',
-        CLP: 'Chile', PEN: 'Perú', USD: 'United States',
-        EUR: 'España', BRL: 'Brasil', GTQ: 'Guatemala',
-        PAB: 'Panamá', CRC: 'Costa Rica', DOP: 'República Dominicana',
-      };
-      const countryName = COUNTRY_NAMES[currencyCode] ?? 'México';
-      // Strategy: try structured first (most precise), fallback to free-text
-      // Nominatim structured: street MUST be just the street name+number, not full address
-      const buildQuery = (mode: 'structured' | 'freetext') => {
-        const p = new URLSearchParams({ format: 'json', limit: '3', addressdetails: '1', 'accept-language': 'es' });
-        if (mode === 'structured') {
-          if (addr) p.append('street', addr);
-          if (colonia) p.append('neighbourhood', colonia);
-          if (postalCode) p.append('postalcode', postalCode);
-          if (city) p.append('city', city);
-          if (stateRegion) p.append('state', stateRegion);
-          p.append('country', countryName);
-        } else {
-          // Free-text: full address as single query — works better for MX addresses
-          const parts = [addr, colonia, postalCode, city, stateRegion, countryName].filter(Boolean);
-          p.append('q', parts.join(', '));
-        }
-        return p;
-      };
+      // Build full address string — Google handles Mexican addresses much better than Nominatim
+      const parts = [addr, colonia, postalCode, city, stateRegion].filter(Boolean);
+      const fullAddress = encodeURIComponent(parts.join(', '));
 
-      const headers = { 'Accept-Language': 'es' };
-      // Try structured first
-      let data: any[] = [];
-      try {
-        const r1 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('structured').toString()}`, { headers });
-        data = await r1.json();
-      } catch { /* ignore */ }
-      // Fallback to free-text if structured returned nothing
-      if (!data?.length) {
-        try {
-          const r2 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('freetext').toString()}`, { headers });
-          data = await r2.json();
-        } catch { /* ignore */ }
+      // Google Maps Geocoding API — usar la clave del entorno si está disponible
+      const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      if (GOOGLE_KEY) {
+        // ── Google Maps Geocoding (más preciso para México) ──
+        const r = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${fullAddress}&region=mx&language=es&key=${GOOGLE_KEY}`
+        );
+        const data = await r.json();
+        if (data.status === 'OK' && data.results?.[0]) {
+          const loc = data.results[0].geometry.location;
+          lat = loc.lat;
+          lng = loc.lng;
+        }
+      } else {
+        // ── Fallback: Nominatim (gratis pero menos preciso) ──
+        const p = new URLSearchParams({ format: 'json', limit: '1', 'accept-language': 'es',
+          q: [addr, colonia, postalCode, city, stateRegion, 'México'].filter(Boolean).join(', ') });
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?${p}`,
+          { headers: { 'Accept-Language': 'es' } });
+        const data = await r.json();
+        if (data?.[0]) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon); }
       }
 
-      if (data?.[0]) {
-        const { lat, lon } = data[0];
-        // Save lat/lng to tenants table
-        const supaClient = createClient ? createClient() : supabase;
-        await supaClient.from('tenants').update({
-          lat: parseFloat(lat), lng: parseFloat(lon),
-          address: addr, city, state_region: stateRegion,
-          colonia, postal_code: postalCode,
+      if (lat !== null && lng !== null) {
+        await supabase.from('tenants').update({
+          lat, lng, address: addr, city,
+          state_region: stateRegion, colonia, postal_code: postalCode,
         }).eq('id', appUser?.tenantId);
         setGeoStatus('ok');
-      } else { setGeoStatus('error'); }
+      } else {
+        setGeoStatus('error');
+      }
     } catch { setGeoStatus('error'); }
     setGeocoding(false);
   }
