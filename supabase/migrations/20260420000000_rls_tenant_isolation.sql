@@ -1,35 +1,31 @@
 -- ============================================================================
--- RLS TENANT ISOLATION — versión final
--- Usa tenant_id::text = current_setting() para evitar el error de tipos.
+-- RLS TENANT ISOLATION — versión final corregida
+-- DROP explícito de funciones antes de recrear (cambia tipo de retorno)
+-- tenant_id::text vs current_setting() ambos TEXT
 -- ============================================================================
 
--- Función helper (STABLE = cached per query, SECURITY INVOKER = default)
-CREATE OR REPLACE FUNCTION current_tenant_id()
+-- DROP funciones anteriores que pueden tener tipo de retorno uuid
+DROP FUNCTION IF EXISTS current_tenant_id() CASCADE;
+DROP FUNCTION IF EXISTS set_tenant_context(uuid) CASCADE;
+DROP FUNCTION IF EXISTS set_tenant_context(text) CASCADE;
+
+-- Recrear con tipos correctos (ambas devuelven/usan text)
+CREATE FUNCTION current_tenant_id()
 RETURNS text LANGUAGE sql STABLE AS $$
   SELECT NULLIF(current_setting('app.tenant_id', true), '')
 $$;
 
--- RPC que llama el cliente al iniciar sesión
-CREATE OR REPLACE FUNCTION set_tenant_context(p_tenant_id text)
+CREATE FUNCTION set_tenant_context(p_tenant_id text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   PERFORM set_config('app.tenant_id', p_tenant_id, false);
 END;
 $$;
 
--- También acepta uuid directamente (overload para compatibilidad)
-CREATE OR REPLACE FUNCTION set_tenant_context(p_tenant_id uuid)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  PERFORM set_config('app.tenant_id', p_tenant_id::text, false);
-END;
-$$;
-
 GRANT EXECUTE ON FUNCTION set_tenant_context(text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION set_tenant_context(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION current_tenant_id()       TO anon, authenticated;
 
--- ── Eliminar TODAS las políticas existentes (sin adivinar nombres) ────────────
+-- ── Eliminar TODAS las políticas existentes ───────────────────────────────────
 DO $$
 DECLARE r RECORD;
 BEGIN
@@ -53,8 +49,7 @@ BEGIN
 END;
 $$;
 
--- ── Políticas nuevas: tenant_id::text = current_tenant_id() ──────────────────
--- Comparamos ambos como TEXT para evitar el error de operador uuid=text
+-- ── Políticas: tenant_id::text = current_tenant_id() (ambos TEXT) ────────────
 ALTER TABLE IF EXISTS public.dishes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_dishes" ON public.dishes
   FOR ALL TO public
@@ -241,19 +236,16 @@ CREATE POLICY "rls_onboarding_progress" ON public.onboarding_progress
   USING  (tenant_id::text = current_tenant_id())
   WITH CHECK (tenant_id::text = current_tenant_id());
 
--- tenants: cada tenant solo ve y edita su propio registro
+-- tenants
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_tenants_select" ON public.tenants
-  FOR SELECT TO public
-  USING (id::text = current_tenant_id());
-
+  FOR SELECT TO public USING (id::text = current_tenant_id());
 CREATE POLICY "rls_tenants_update" ON public.tenants
   FOR UPDATE TO public
   USING  (id::text = current_tenant_id())
   WITH CHECK (id::text = current_tenant_id());
 
--- role_permissions: lectura para cualquier sesión autenticada con tenant activo
+-- role_permissions
 ALTER TABLE IF EXISTS public.role_permissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_role_permissions_read" ON public.role_permissions
-  FOR SELECT TO public
-  USING (current_tenant_id() IS NOT NULL);
+  FOR SELECT TO public USING (current_tenant_id() IS NOT NULL);
