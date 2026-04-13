@@ -352,6 +352,104 @@ export default function AnalisisFinanciero() {
     a.click();
   };
 
+  // ── Export PDF ───────────────────────────────────────────────────────────────
+  const exportPDF = () => {
+    // Build printable HTML document and open print dialog
+    const restaurantLabel = dateRange.label;
+    const fmt2 = (n: number) => n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const color = (n: number) => n >= 0 ? '#15803d' : '#dc2626';
+    const pct = (n: number) => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+
+    const kpiRow = (label: string, value: string, sub: string, col: string) =>
+      `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value" style="color:${col}">$${value}</div><div class="kpi-sub">${sub}</div></div>`;
+
+    const plHtml = plRows.filter(r => r.tipo !== 'divider').map(r => {
+      if (r.tipo === 'header') return `<tr class="tr-header"><td colspan="2">${r.concepto}</td></tr>`;
+      const amt = r.monto === 0 && r.tipo !== 'item' ? '' : `$${fmt2(Math.abs(r.monto))}`;
+      const cls = r.tipo === 'total' ? 'tr-total' : r.tipo === 'subtotal' ? 'tr-sub' : '';
+      const col = r.tipo === 'total' || r.tipo === 'subtotal' ? color(r.monto) : r.monto < 0 ? '#dc2626' : '#1f2937';
+      const pad = 8 + (r.indent ?? 0) * 16;
+      return `<tr class="${cls}"><td style="padding-left:${pad}px">${r.concepto}${r.note ? ` <span class="note">${r.note}</span>` : ''}</td><td style="color:${col}">${amt}</td></tr>`;
+    }).join('');
+
+    const bsHtml = (rows: typeof bsActivos) => rows.filter(r => r.tipo !== 'divider').map(r => {
+      if (r.tipo === 'header') return `<tr class="tr-header"><td colspan="2">${r.concepto}</td></tr>`;
+      const amt = r.monto === 0 && r.tipo !== 'item' ? '' : `$${fmt2(r.monto)}`;
+      const cls = r.tipo === 'total' ? 'tr-total' : '';
+      const col = r.tipo === 'total' ? '#1e40af' : '#1f2937';
+      const pad = 8 + (r.indent ?? 0) * 16;
+      return `<tr class="${cls}"><td style="padding-left:${pad}px">${r.concepto}</td><td style="color:${col}">${amt}</td></tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Análisis Financiero — ${restaurantLabel}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1f2937; background: white; padding: 32px; }
+  h1 { font-size: 22px; font-weight: 800; color: #1B3A6B; margin-bottom: 2px; }
+  .subtitle { color: #6b7280; font-size: 12px; margin-bottom: 24px; }
+  .kpis { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+  .kpi { flex: 1; min-width: 100px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; }
+  .kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; }
+  .kpi-value { font-size: 18px; font-weight: 800; font-family: monospace; margin-bottom: 2px; }
+  .kpi-sub { font-size: 10px; color: #9ca3af; }
+  h2 { font-size: 13px; font-weight: 700; color: #1B3A6B; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #1B3A6B; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  td { padding: 6px 8px; font-size: 11px; border-bottom: 1px solid #f3f4f6; }
+  td:last-child { text-align: right; font-family: monospace; white-space: nowrap; }
+  .tr-header td { background: #f8fafc; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; padding: 8px 8px 4px; border-bottom: none; }
+  .tr-total td { background: #f0fdf4; font-weight: 700; font-size: 12px; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; }
+  .tr-sub td { font-weight: 600; border-top: 1px solid #d1d5db; }
+  .note { font-size: 9px; color: #9ca3af; }
+  .cols { display: flex; gap: 16px; }
+  .col { flex: 1; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; display: flex; justify-content: space-between; }
+  @media print { body { padding: 20px; } @page { margin: 15mm; size: A4; } }
+</style>
+</head>
+<body>
+<h1>Análisis Financiero</h1>
+<div class="subtitle">${restaurantLabel} · Generado ${new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</div>
+
+<div class="kpis">
+  ${kpiRow('Ventas netas', fmt2(ventas), '', '#1f2937')}
+  ${kpiRow('Utilidad bruta', fmt2(utilidadBruta), pct(margenBruto) + ' margen', color(utilidadBruta))}
+  ${kpiRow('EBITDA', fmt2(ebitda), pct(margenEbitda) + ' margen', color(ebitda))}
+  ${kpiRow('Utilidad neta', fmt2(utilidadNeta), pct(margenNeto) + ' margen', color(utilidadNeta))}
+  ${kpiRow('Prime Cost', fmt2(primeCost), foodCostPct.toFixed(1) + '% food + ' + laborCostPct.toFixed(1) + '% labor', primeCost > ventas * 0.65 ? '#dc2626' : '#15803d')}
+</div>
+
+<h2>Estado de Resultados (P&L)</h2>
+<table><tbody>${plHtml}</tbody></table>
+
+<h2>Balance General</h2>
+<div class="cols">
+  <div class="col">
+    <strong style="font-size:11px;color:#374151">ACTIVOS</strong>
+    <table><tbody>${bsHtml(bsActivos)}</tbody></table>
+  </div>
+  <div class="col">
+    <strong style="font-size:11px;color:#374151">PASIVOS Y CAPITAL</strong>
+    <table><tbody>${bsHtml(bsPasivos)}</tbody></table>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Aldente ERP · Análisis Financiero</span>
+  <span>Período: ${restaurantLabel}</span>
+</div>
+
+<script>window.onload = () => { window.print(); }</script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (win) { win.document.write(html); win.document.close(); }
+  };
+
   const TABS = [
     { id:'pl'    as const, label:'📊 P&L — Estado de Resultados' },
     { id:'bs'    as const, label:'⚖️ Balance General' },
@@ -393,6 +491,9 @@ export default function AnalisisFinanciero() {
             </button>
             <button onClick={exportCSV} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#16a34a', border:'none', color:'white', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               <Download size={13} /> CSV
+            </button>
+            <button onClick={exportPDF} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#1B3A6B', border:'none', color:'white', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+              <Download size={13} /> PDF
             </button>
           </div>
         </div>
