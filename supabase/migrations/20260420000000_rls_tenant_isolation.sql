@@ -1,20 +1,20 @@
 -- ============================================================================
--- RLS TENANT ISOLATION — versión final corregida
--- DROP explícito de funciones antes de recrear (cambia tipo de retorno)
--- tenant_id::text vs current_setting() ambos TEXT
+-- RLS TENANT ISOLATION — versión definitiva
+-- Solo tablas con tenant_id confirmado en migraciones.
 -- ============================================================================
 
--- DROP funciones anteriores que pueden tener tipo de retorno uuid
+-- DROP funciones con CASCADE (elimina dependencias como políticas viejas)
 DROP FUNCTION IF EXISTS current_tenant_id() CASCADE;
 DROP FUNCTION IF EXISTS set_tenant_context(uuid) CASCADE;
 DROP FUNCTION IF EXISTS set_tenant_context(text) CASCADE;
 
--- Recrear con tipos correctos (ambas devuelven/usan text)
+-- Función que devuelve el tenant activo como TEXT
 CREATE FUNCTION current_tenant_id()
 RETURNS text LANGUAGE sql STABLE AS $$
   SELECT NULLIF(current_setting('app.tenant_id', true), '')
 $$;
 
+-- RPC para establecer el tenant desde el cliente
 CREATE FUNCTION set_tenant_context(p_tenant_id text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -25,7 +25,7 @@ $$;
 GRANT EXECUTE ON FUNCTION set_tenant_context(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION current_tenant_id()       TO anon, authenticated;
 
--- ── Eliminar TODAS las políticas existentes ───────────────────────────────────
+-- ── Eliminar TODAS las políticas existentes en tablas objetivo ────────────────
 DO $$
 DECLARE r RECORD;
 BEGIN
@@ -36,11 +36,10 @@ BEGIN
         'dishes','ingredients','employees','restaurant_tables','orders',
         'order_items','stock_movements','dish_recipes','unit_equivalences',
         'gastos_recurrentes','gastos_pagos','depreciaciones','system_config',
-        'branches','combos','reservations','restaurant_layout','printer_config',
+        'branches','combos','reservations','restaurant_layout',
         'loyalty_customers','loyalty_transactions','cortes_caja','delivery_orders',
         'audit_log','employee_shifts','employee_attendance','rh_vacaciones',
-        'rh_permisos','rh_tiempos_extras','rh_incapacidades','app_users',
-        'onboarding_progress','tenants','role_permissions'
+        'rh_permisos','rh_tiempos_extras','app_users','tenants','role_permissions'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I',
@@ -49,7 +48,7 @@ BEGIN
 END;
 $$;
 
--- ── Políticas: tenant_id::text = current_tenant_id() (ambos TEXT) ────────────
+-- ── Políticas por tabla (solo las que TIENEN tenant_id) ───────────────────────
 ALTER TABLE IF EXISTS public.dishes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_dishes" ON public.dishes
   FOR ALL TO public
@@ -152,12 +151,6 @@ CREATE POLICY "rls_restaurant_layout" ON public.restaurant_layout
   USING  (tenant_id::text = current_tenant_id())
   WITH CHECK (tenant_id::text = current_tenant_id());
 
-ALTER TABLE IF EXISTS public.printer_config ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "rls_printer_config" ON public.printer_config
-  FOR ALL TO public
-  USING  (tenant_id::text = current_tenant_id())
-  WITH CHECK (tenant_id::text = current_tenant_id());
-
 ALTER TABLE IF EXISTS public.loyalty_customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_loyalty_customers" ON public.loyalty_customers
   FOR ALL TO public
@@ -218,34 +211,24 @@ CREATE POLICY "rls_rh_tiempos_extras" ON public.rh_tiempos_extras
   USING  (tenant_id::text = current_tenant_id())
   WITH CHECK (tenant_id::text = current_tenant_id());
 
-ALTER TABLE IF EXISTS public.rh_incapacidades ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "rls_rh_incapacidades" ON public.rh_incapacidades
-  FOR ALL TO public
-  USING  (tenant_id::text = current_tenant_id())
-  WITH CHECK (tenant_id::text = current_tenant_id());
-
 ALTER TABLE IF EXISTS public.app_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_app_users" ON public.app_users
   FOR ALL TO public
   USING  (tenant_id::text = current_tenant_id())
   WITH CHECK (tenant_id::text = current_tenant_id());
 
-ALTER TABLE IF EXISTS public.onboarding_progress ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "rls_onboarding_progress" ON public.onboarding_progress
-  FOR ALL TO public
-  USING  (tenant_id::text = current_tenant_id())
-  WITH CHECK (tenant_id::text = current_tenant_id());
-
--- tenants
+-- tenants: id es la PK, no tiene tenant_id
 ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_tenants_select" ON public.tenants
-  FOR SELECT TO public USING (id::text = current_tenant_id());
+  FOR SELECT TO public
+  USING (id::text = current_tenant_id());
 CREATE POLICY "rls_tenants_update" ON public.tenants
   FOR UPDATE TO public
   USING  (id::text = current_tenant_id())
   WITH CHECK (id::text = current_tenant_id());
 
--- role_permissions
+-- role_permissions: tabla global, lectura para cualquier sesión con tenant
 ALTER TABLE IF EXISTS public.role_permissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rls_role_permissions_read" ON public.role_permissions
-  FOR SELECT TO public USING (current_tenant_id() IS NOT NULL);
+  FOR SELECT TO public
+  USING (current_tenant_id() IS NOT NULL);
