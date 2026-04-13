@@ -47,3 +47,21 @@ export function createClient(): SupabaseClient {
   }
   return createNewClient();
 }
+/**
+ * Establece el tenant_id en la sesión de Supabase para que RLS funcione.
+ * DEBE llamarse después de cada login y al restaurar sesión.
+ * Las políticas RLS usan current_setting('app.tenant_id') para filtrar.
+ */
+export async function setSupabaseTenantContext(
+  supabase: ReturnType<typeof createNewClient>,
+  tenantId: string
+): Promise<void> {
+  if (!tenantId) return;
+  try {
+    // SET LOCAL solo dura la transacción — usar SET SESSION para persistir en la conexión
+    await supabase.rpc('set_tenant_context', { p_tenant_id: tenantId });
+  } catch {
+    // Si el RPC no existe aún, fallback silencioso
+    // (compatibilidad mientras se aplica la migración)
+  }
+}

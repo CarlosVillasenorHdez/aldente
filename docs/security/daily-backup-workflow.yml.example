@@ -1,0 +1,49 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6 AM UTC = 1 AM México hora central
+  workflow_dispatch:       # También ejecutable manualmente
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Install AWS CLI
+        run: pip install awscli
+
+      - name: Run backup
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
+          BACKUP_FILE="aldente_backup_${TIMESTAMP}.sql.gz"
+          
+          pg_dump \
+            --no-owner \
+            --no-privileges \
+            "${SUPABASE_DB_URL}" \
+            | gzip -9 > "/tmp/${BACKUP_FILE}"
+          
+          echo "Backup size: $(du -sh /tmp/${BACKUP_FILE} | cut -f1)"
+          
+          aws s3 cp \
+            "/tmp/${BACKUP_FILE}" \
+            "s3://${R2_BUCKET}/backups/${BACKUP_FILE}" \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --region auto
+          
+          echo "✓ Backup uploaded: ${BACKUP_FILE}"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "BACKUP FAILED — review logs immediately"
