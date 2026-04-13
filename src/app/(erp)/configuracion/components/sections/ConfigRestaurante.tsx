@@ -41,7 +41,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
   const [showModal, setShowModal] = React.useState(false);
 
   const menuUrl = typeof window !== 'undefined' && tenantSlug
-    ? `${window.location.origin}/menu/${tenantSlug}`
+    ? `${window.location.origin}/carta/${tenantSlug}`
     : null;
 
   // Load qrcode.js from CDN and render QR
@@ -128,7 +128,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
                 Copiar link
               </button>
               {tenantSlug && (
-                <button onClick={() => window.open(`/menu/${tenantSlug}`, '_blank')} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+                <button onClick={() => window.open(`/carta/${tenantSlug}`, '_blank')} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(96,165,250,0.3)', backgroundColor: 'transparent', color: '#60a5fa', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
                   Ver menú ↗
                 </button>
               )}
@@ -269,46 +269,42 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     if (!addr.trim()) return;
     setGeocoding(true); setGeoStatus('idle');
     try {
-      // Build full address string — Google handles Mexican addresses much better than Nominatim
-      const parts = [addr, colonia, postalCode, city, stateRegion].filter(Boolean);
-      const fullAddress = encodeURIComponent(parts.join(', '));
-
-      // Google Maps Geocoding API — usar la clave del entorno si está disponible
-      const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
-
-      let lat: number | null = null;
-      let lng: number | null = null;
-
-      if (GOOGLE_KEY) {
-        // ── Google Maps Geocoding (más preciso para México) ──
-        const r = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${fullAddress}&region=mx&language=es&key=${GOOGLE_KEY}`
-        );
-        const data = await r.json();
-        if (data.status === 'OK' && data.results?.[0]) {
-          const loc = data.results[0].geometry.location;
-          lat = loc.lat;
-          lng = loc.lng;
+      const buildQuery = (mode: 'structured' | 'freetext') => {
+        const p = new URLSearchParams({ format: 'json', limit: '3', addressdetails: '1', 'accept-language': 'es' });
+        if (mode === 'structured') {
+          if (addr) p.append('street', addr);
+          if (colonia) p.append('neighbourhood', colonia);
+          if (postalCode) p.append('postalcode', postalCode);
+          if (city) p.append('city', city);
+          if (stateRegion) p.append('state', stateRegion);
+          p.append('country', 'México');
+        } else {
+          const parts = [addr, colonia, postalCode, city, stateRegion, 'México'].filter(Boolean);
+          p.append('q', parts.join(', '));
         }
-      } else {
-        // ── Fallback: Nominatim (gratis pero menos preciso) ──
-        const p = new URLSearchParams({ format: 'json', limit: '1', 'accept-language': 'es',
-          q: [addr, colonia, postalCode, city, stateRegion, 'México'].filter(Boolean).join(', ') });
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?${p}`,
-          { headers: { 'Accept-Language': 'es' } });
-        const data = await r.json();
-        if (data?.[0]) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon); }
+        return p;
+      };
+      const headers = { 'Accept-Language': 'es' };
+      let data: any[] = [];
+      try {
+        const r1 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('structured').toString()}`, { headers });
+        data = await r1.json();
+      } catch { /* ignore */ }
+      if (!data?.length) {
+        try {
+          const r2 = await fetch(`https://nominatim.openstreetmap.org/search?${buildQuery('freetext').toString()}`, { headers });
+          data = await r2.json();
+        } catch { /* ignore */ }
       }
-
-      if (lat !== null && lng !== null) {
+      if (data?.[0]) {
+        const { lat, lon } = data[0];
         await supabase.from('tenants').update({
-          lat, lng, address: addr, city,
-          state_region: stateRegion, colonia, postal_code: postalCode,
+          lat: parseFloat(lat), lng: parseFloat(lon),
+          address: addr, city, state_region: stateRegion,
+          colonia, postal_code: postalCode,
         }).eq('id', appUser?.tenantId);
         setGeoStatus('ok');
-      } else {
-        setGeoStatus('error');
-      }
+      } else { setGeoStatus('error'); }
     } catch { setGeoStatus('error'); }
     setGeocoding(false);
   }
