@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { setCurrentTenantId } from '../lib/tenantStore';
+import { setSupabaseTenantContext } from '../lib/supabase/client';
 
 // AppRole is a string — supports both the 7 built-in roles and custom profiles
 export type AppRole = string;
@@ -134,6 +135,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = loadSession();
     if (stored?.tenantId) {
       setCurrentTenantId(stored.tenantId); // restore into module store immediately
+      // Restore RLS context — runs async, queries will work once this resolves
+      // Use a fresh supabase instance since supabaseRef may not be ready yet
+      import('../lib/supabase/client').then(({ createClient, setSupabaseTenantContext: setSTC }) => {
+        const sb = createClient();
+        setSTC(sb, stored.tenantId!);
+      }).catch(() => {});
     }
     setAppUser(stored);
     setLoading(false);
@@ -262,6 +269,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       saveSession(user);
       setCurrentTenantId(user.tenantId);
       setAppUser(user);
+      // Activate RLS: tell Supabase which tenant this session belongs to
+      if (user.tenantId) {
+        await setSupabaseTenantContext(supabase, user.tenantId);
+      }
       return {};
     },
     [supabase]

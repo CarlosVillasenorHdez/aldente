@@ -58,10 +58,8 @@ export async function setSupabaseTenantContext(
 ): Promise<void> {
   if (!tenantId) return;
   try {
-    // SET LOCAL solo dura la transacción — usar SET SESSION para persistir en la conexión
     await supabase.rpc('set_tenant_context', { p_tenant_id: tenantId });
   } catch {
-    // Si el RPC no existe aún, fallback silencioso
-    // (compatibilidad mientras se aplica la migración)
+    // Silencioso: compatibilidad si la migración RLS no se ha aplicado aún
   }
 }
