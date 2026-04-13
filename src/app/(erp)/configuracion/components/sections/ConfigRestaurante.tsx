@@ -409,7 +409,12 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
             className="w-full px-4 py-2.5 rounded-lg text-sm outline-none" maxLength={80}
             style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9' }} />
         </div>
-        {/* Access link for employees */}
+        {/* Save brand info button */}
+      <div style={{ marginBottom: 8 }}>
+        <SaveButton saved={settingsSaved} onClick={handleSaveSettings} />
+      </div>
+
+      {/* Access link for employees */}
       <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
         <div style={{ fontSize: '12px', fontWeight: 600, color: '#f59e0b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Link de acceso para empleados
@@ -517,6 +522,14 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
                 style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', outline: 'none', fontFamily: 'monospace' }} />
             </div>
           </div>
+        </div>
+
+        {/* Guardar dirección / teléfono / RFC */}
+        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <SaveButton saved={settingsSaved} onClick={handleSaveSettings} />
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+            Guarda dirección, teléfono y RFC · Actualiza el mapa del SuperAdmin
+          </p>
         </div>
       </div>
       </div>}

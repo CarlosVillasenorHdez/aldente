@@ -326,6 +326,10 @@ export default function TenantDetailPage() {
               ['Email dueño', tenant.owner_email ?? '—'],
               ['Teléfono', (tenant as any).phone ?? '—'],
               ['País / Ciudad', [tenant.country, tenant.city].filter(Boolean).join(' / ') || '—'],
+              ['Dirección', tenant.address ?? '—'],
+              ['Colonia', (tenant as any).colonia ?? '—'],
+              ['C.P.', (tenant as any).postal_code ?? '—'],
+              ['Estado / Región', (tenant as any).state_region ?? '—'],
               ['Registrado', new Date(tenant.created_at).toLocaleDateString('es-MX')],
               ['Trial vence', tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString('es-MX') : '—'],
               ['Pago válido hasta', tenant.plan_valid_until ? new Date(tenant.plan_valid_until).toLocaleDateString('es-MX') : '—'],
@@ -387,11 +391,27 @@ export default function TenantDetailPage() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
             <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>Sucursales — {branches.length}</span>
           </div>
-          {branches.length === 0 && (
-            <div style={{ textAlign:'center', padding:'32px 0', color:'rgba(255,255,255,.35)', fontSize:13 }}>
-              Sin sucursales registradas. Se crea automáticamente cuando el restaurante configura su primera sucursal.
+          {/* Sucursal principal = el tenant mismo */}
+          <div style={{ padding:'16px 18px', borderRadius:12, background:'rgba(201,150,58,.05)', border:'1px solid rgba(201,150,58,.2)', marginBottom:8 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div>
+                <div style={{ fontSize:14, fontWeight:700, color:'#f1f5f9', marginBottom:2 }}>{tenant?.name ?? '—'} <span style={{ fontSize:10, color:'#c9963a', fontWeight:700, marginLeft:6 }}>PRINCIPAL</span></div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Sucursal principal · slug: {tenant?.slug}</div>
+              </div>
+              <span style={{ fontSize:10, fontWeight:700, color:'#34d399', background:'rgba(52,211,153,.1)', padding:'2px 8px', borderRadius:5 }}>Activa</span>
             </div>
-          )}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              {tenant?.address && <div><div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Dirección</div><div style={{ fontSize:12, color:'rgba(255,255,255,.65)' }}>{tenant.address}</div></div>}
+              {(tenant as any)?.city && <div><div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Ciudad</div><div style={{ fontSize:12, color:'rgba(255,255,255,.65)' }}>{(tenant as any).city}</div></div>}
+              {tenant?.owner_email && <div><div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Email dueño</div><div style={{ fontSize:12, color:'#60a5fa' }}>{tenant.owner_email}</div></div>}
+            </div>
+          </div>
+
+          {branches.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'20px 0', color:'rgba(255,255,255,.3)', fontSize:12 }}>
+              Sin sucursales adicionales. Si este restaurante abre otra ubicación, aparecerá aquí.
+            </div>
+          ) : <div style={{ marginTop:4, fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:8 }}>Sucursales adicionales</div>}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {branches.map(br => (
               <div key={br.id} style={{ padding:'16px 18px', borderRadius:12, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)' }}>
