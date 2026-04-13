@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
     { label:'En trial', value:trialBucket.length, sub:'período de prueba', color:'#60a5fa' },
     { label:'En riesgo', value:riskBucket.length, sub:'vencen ≤7 días', color:'#fb923c' },
     { label:'Churned', value:churnBucket.length, sub:'inactivos o vencidos', color:'#f87171' },
-    { label:'Con ubicación', value:dots.length, sub:`de ${tenants.length} totales`, color:'rgba(255,255,255,.5)' },
+    { label:'Con ubicación', value:dots.length, sub:`de ${tenants.length} restaurantes`, color:'rgba(255,255,255,.5)' },
   ];
 
   return (
