@@ -175,8 +175,9 @@ export default function MeseroMobileView() {
 
   const checkReadyOrders = React.useCallback(async () => {
     const { data } = await supabase
-      .from('orders').eq('tenant_id', getTenantId())
+      .from('orders')
       .select('mesa')
+        .eq('tenant_id', getTenantId())
       .eq('kitchen_status', 'lista')
       .in('status', ['abierta', 'lista', 'preparacion']);
     const mesaNames = (data || []).map((o: any) => o.mesa as string);
@@ -313,8 +314,9 @@ export default function MeseroMobileView() {
 
         // Find items in lista/entregada comandas → lock them
         const { data: comandas } = await supabase
-          .from('orders').eq('tenant_id', getTenantId())
+          .from('orders')
           .select('id, kitchen_status, order_items(id, dish_id)')
+        .eq('tenant_id', getTenantId())
           .eq('parent_order_id', table.currentOrderId)
           .eq('is_comanda', true).neq('status', 'cancelada');
 
@@ -458,7 +460,7 @@ export default function MeseroMobileView() {
   const sendKitchenNote = async () => {
     if (!currentOrderId || !kitchenNote.trim()) return;
     setSendingNote(true);
-    await supabase.from('orders').eq('tenant_id', getTenantId())
+    await supabase.from('orders')
       .update({ kitchen_notes: kitchenNote.trim(), updated_at: new Date().toISOString() })
       .eq('id', currentOrderId);
     setSendingNote(false);
@@ -484,7 +486,7 @@ export default function MeseroMobileView() {
       });
       if (!ok) return;
       const supabaseClient = createClient();
-      await supabaseClient.from('orders').eq('tenant_id', getTenantId()).update({ is_cortesia: true }).eq('id', currentOrderId);
+      await supabaseClient.from('orders').update({ is_cortesia: true }).eq('id', currentOrderId);
       setShowPayment(false); setShowCart(false);
       setOrderItems([]); setCurrentOrderId(null); setView('tables');
       toast.success('🎁 Cortesía registrada — sin cobro al cliente');
@@ -559,7 +561,7 @@ export default function MeseroMobileView() {
           notes: item.notes ?? null,
         }))
       );
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         status: 'ocupada',
         current_order_id: orderId,
         waiter,

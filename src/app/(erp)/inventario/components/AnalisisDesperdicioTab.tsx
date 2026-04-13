@@ -1,7 +1,7 @@
 'use client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { TrendingDown, AlertTriangle, CheckCircle, ShoppingCart, BarChart2, RefreshCw, ChevronDown, Info,  } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
@@ -56,16 +56,18 @@ export default function AnalisisDesperdicioTab() {
     try {
       // Fetch ingredients
       const { data: ingredients } = await supabase
-        .from('ingredients').eq('tenant_id', getTenantId())
+        .from('ingredients')
         .select('*')
+        .eq('tenant_id', getTenantId())
         .order('name');
 
       // Fetch movements (last 90 days)
       const since = new Date();
       since.setDate(since.getDate() - 90);
       const { data: movements } = await supabase
-        .from('stock_movements').eq('tenant_id', getTenantId())
+        .from('stock_movements')
         .select('*, ingredients(name, unit)')
+        .eq('tenant_id', getTenantId())
         .gte('created_at', since.toISOString())
         .order('created_at', { ascending: true });
 

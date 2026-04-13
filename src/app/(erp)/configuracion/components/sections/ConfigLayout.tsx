@@ -164,10 +164,10 @@ export default function ConfigLayout() {
     // Save empty layout and reset table_count
     const payload = { tables_layout: [], updated_at: new Date().toISOString() };
     if (layoutId) {
-      await supabase.from('restaurant_layout').eq('tenant_id', getTenantId()).update(payload).eq('id', layoutId);
+      await supabase.from('restaurant_layout').update(payload).eq('id', layoutId);
     }
     // Delete all restaurant_tables rows
-    await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('restaurant_tables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('system_config').upsert(
       { config_key: 'table_count', config_value: '0' },
       { onConflict: 'config_key' }

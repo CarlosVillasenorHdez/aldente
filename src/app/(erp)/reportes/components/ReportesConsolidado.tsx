@@ -340,8 +340,9 @@ export default function ReportesConsolidado() {
 
         if (orderIds.length > 0) {
           const { data: items } = await supabase
-            .from('order_items').eq('tenant_id', getTenantId())
+            .from('order_items')
             .select('name, qty')
+        .eq('tenant_id', getTenantId())
             .in('order_id', orderIds)
             .limit(3000);
 

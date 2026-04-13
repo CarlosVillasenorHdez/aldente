@@ -1,7 +1,7 @@
 'use client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,  } from 'recharts';
 import { TrendingDown, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -61,8 +61,9 @@ export default function ForecastingChart() {
 
     // 1. Fetch all ingredients
     const { data: ingData, error: ingError } = await supabase
-      .from('ingredients').eq('tenant_id', getTenantId())
+      .from('ingredients')
       .select('id, name, stock, unit, min_stock')
+        .eq('tenant_id', getTenantId())
       .order('name');
 
     if (ingError) {
@@ -89,8 +90,9 @@ export default function ForecastingChart() {
     since.setDate(since.getDate() - 30);
 
     const { data: movData, error: movError } = await supabase
-      .from('stock_movements').eq('tenant_id', getTenantId())
+      .from('stock_movements')
       .select('ingredient_id, quantity, created_at')
+        .eq('tenant_id', getTenantId())
       .eq('movement_type', 'salida')
       .gte('created_at', since.toISOString());
 

@@ -139,8 +139,9 @@ export default function POSClient() {
     orderId: string,
     currentItems: OrderItem[],
   ) => {
-    const { data: cs } = await supabase.from('orders').eq('tenant_id', getTenantId())
+    const { data: cs } = await supabase.from('orders')
       .select('id, kitchen_status, order_items(id, dish_id)')
+        .eq('tenant_id', getTenantId())
       .eq('parent_order_id', orderId)
       .eq('is_comanda', true)
       .neq('status', 'cancelada');
@@ -175,8 +176,9 @@ export default function POSClient() {
     const timeNow = now.toTimeString().slice(0, 5);
     const time2h  = in2h.toTimeString().slice(0, 5);
     const { data } = await supabase
-      .from('reservations').eq('tenant_id', getTenantId())
+      .from('reservations')
       .select('table_id')
+        .eq('tenant_id', getTenantId())
       .eq('reservation_date', today)
       .eq('status', 'confirmada')
       .gte('reservation_time', timeNow)
@@ -502,7 +504,7 @@ export default function POSClient() {
 
       // DELETE all current items for this order, then INSERT the full current state.
       // This is safe because the timer is debounced — only one instance runs at a time.
-      const { error: delErr } = await supabase.from('order_items').eq('tenant_id', getTenantId())
+      const { error: delErr } = await supabase.from('order_items')
         .delete().eq('order_id', orderId);
       if (delErr) { console.error('[POS] sync delete error:', delErr.message); return; }
 
@@ -523,7 +525,7 @@ export default function POSClient() {
         if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
       }
 
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         item_count: count,
         partial_total: totalAmount,
         updated_at: new Date().toISOString(),
@@ -549,12 +551,12 @@ export default function POSClient() {
         mesa_num: targetTable.number,
       }).eq('id', orderId).eq('tenant_id', getTenantId());
       // Free old table
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         status: 'libre', current_order_id: null, waiter: null, opened_at: null,
         item_count: 0, partial_total: 0, updated_at: now,
       }).eq('id', selectedTable.id);
       // Occupy new table
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         status: 'ocupada', current_order_id: orderId,
         waiter: selectedTable.waiter ?? appUser?.fullName ?? '',
         opened_at: selectedTable.openedAt ?? now,
@@ -728,7 +730,7 @@ export default function POSClient() {
       ? tables.filter((t) => t.mergeGroupId === table.mergeGroupId).map((t) => t.id)
       : [table.id];
 
-    await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+    await supabase.from('restaurant_tables').update({
       status: 'ocupada',
       current_order_id: orderId,
       waiter: waiterName,
@@ -785,7 +787,7 @@ export default function POSClient() {
     // Flush ALL current items to DB. Use stable lineIds as order_item IDs
     // so the snapshot stays in sync after reload.
     if (selectedTable.currentOrderId && orderItems.length > 0) {
-      const { error: delErr } = await supabase.from('order_items').eq('tenant_id', getTenantId())
+      const { error: delErr } = await supabase.from('order_items')
         .delete().eq('order_id', selectedTable.currentOrderId);
       if (!delErr) {
         // We don't need to re-read IDs because the snapshot was already
@@ -826,8 +828,9 @@ export default function POSClient() {
       // This prevents the "duplicate on second send" bug where
       // lineIds in state differ from DB ids after flush.
       const { data: freshItems } = await supabase
-        .from('order_items').eq('tenant_id', getTenantId())
+        .from('order_items')
         .select('*')
+        .eq('tenant_id', getTenantId())
         .eq('order_id', selectedTable.currentOrderId);
 
       if (freshItems && freshItems.length > 0) {
@@ -1053,7 +1056,7 @@ export default function POSClient() {
     const selectedTables = tables.filter((t) => mergeSelection.includes(t.id));
     const existingGroups = Array.from(new Set(selectedTables.map((t) => t.mergeGroupId).filter(Boolean)));
     const groupId = existingGroups[0] ?? crypto.randomUUID();
-    await supabase.from('restaurant_tables').eq('tenant_id', getTenantId())
+    await supabase.from('restaurant_tables')
       .update({ merge_group_id: groupId, updated_at: new Date().toISOString() })
       .in('id', mergeSelection);
     setMergeMode(false);
@@ -1067,7 +1070,7 @@ export default function POSClient() {
   const handleUnmerge = async (table: Table) => {
     if (!table.mergeGroupId) return;
     const group = tables.filter((t) => t.mergeGroupId === table.mergeGroupId);
-    await supabase.from('restaurant_tables').eq('tenant_id', getTenantId())
+    await supabase.from('restaurant_tables')
       .update({ merge_group_id: null, updated_at: new Date().toISOString() })
       .in('id', group.map((t) => t.id));
     await fetchTables();
@@ -1165,7 +1168,7 @@ export default function POSClient() {
         total: newSubtotal * (1 + ivaRate),
         updated_at: now,
       }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId()),
-      supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      supabase.from('restaurant_tables').update({
         item_count: newCount,
         partial_total: newSubtotal * (1 + ivaRate),
         updated_at: now,
@@ -1174,7 +1177,7 @@ export default function POSClient() {
 
     // Delete the paid items from order_items
     const lineIdsInDb = selectedItems.map(i => i.lineId);
-    await supabase.from('order_items').eq('tenant_id', getTenantId()).delete()
+    await supabase.from('order_items').delete()
       .in('id', lineIdsInDb)
       .eq('order_id', selectedTable.currentOrderId);
 
@@ -1182,11 +1185,11 @@ export default function POSClient() {
 
     // If no items left, close the table fully
     if (remainingItems.length === 0) {
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         status: 'libre', current_order_id: null, waiter: null,
         item_count: 0, partial_total: 0, updated_at: now,
       }).in('id', [selectedTable.id]);
-      await supabase.from('orders').eq('tenant_id', getTenantId()).update({ status: 'cerrada', closed_at: now })
+      await supabase.from('orders').update({ status: 'cerrada', closed_at: now })
         .eq('id', selectedTable.currentOrderId);
       setSelectedTable(null); setOrderItems([]); setView('tables');
       toast.success(`${selectedTable.name} liberada — cobro completo`);
@@ -1197,7 +1200,7 @@ export default function POSClient() {
 
   const handleSendKitchenNote = async (note: string) => {
     if (!selectedTable?.currentOrderId) return;
-    await supabase.from('orders').eq('tenant_id', getTenantId())
+    await supabase.from('orders')
       .update({ kitchen_notes: note, updated_at: new Date().toISOString() })
       .eq('id', selectedTable.currentOrderId);
     toast.success('Nota enviada a cocina');
@@ -1236,7 +1239,7 @@ export default function POSClient() {
       });
       if (!ok) return;
       // Mark as cortesia
-      await supabase.from('orders').eq('tenant_id', getTenantId()).update({ is_cortesia: true, pay_method: 'efectivo' }).eq('id', orderId);
+      await supabase.from('orders').update({ is_cortesia: true, pay_method: 'efectivo' }).eq('id', orderId);
       await fetchTables();
       setShowPaymentModal(false);
       setOrderItems([]); setSelectedTable(null); setView('tables');
@@ -1269,7 +1272,7 @@ export default function POSClient() {
 
   const handleMarkTableOccupied = async (table: Table) => {
     const now = new Date().toISOString();
-    await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+    await supabase.from('restaurant_tables').update({
       status: 'ocupada', opened_at: now, updated_at: now,
     }).eq('id', table.id);
     await fetchTables();
@@ -1286,7 +1289,7 @@ export default function POSClient() {
     const updated = layoutTables.map((lt) => lt.number === tableNumber ? { ...lt, x: newX, y: newY } : lt);
     setLayoutTables(updated);
     if (layoutId) {
-      await supabase.from('restaurant_layout').eq('tenant_id', getTenantId()).update({ tables_layout: updated, updated_at: new Date().toISOString() }).eq('id', layoutId);
+      await supabase.from('restaurant_layout').update({ tables_layout: updated, updated_at: new Date().toISOString() }).eq('id', layoutId);
     }
   }, [layoutTables, layoutId, supabase]);
 
@@ -1295,11 +1298,11 @@ export default function POSClient() {
     setLayoutTables(updated);
     const tableToDelete = tables.find((t) => t.number === tableNumber);
     if (tableToDelete) {
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).delete().eq('id', tableToDelete.id);
+      await supabase.from('restaurant_tables').delete().eq('id', tableToDelete.id);
       setTables((prev) => prev.filter((t) => t.number !== tableNumber));
     }
     if (layoutId) {
-      await supabase.from('restaurant_layout').eq('tenant_id', getTenantId()).update({ tables_layout: updated, updated_at: new Date().toISOString() }).eq('id', layoutId);
+      await supabase.from('restaurant_layout').update({ tables_layout: updated, updated_at: new Date().toISOString() }).eq('id', layoutId);
     }
     await supabase.from('system_config').upsert(
       { config_key: 'table_count', config_value: String(updated.length) }, { onConflict: 'config_key' }

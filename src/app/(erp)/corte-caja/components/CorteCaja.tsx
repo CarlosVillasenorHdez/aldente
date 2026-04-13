@@ -125,8 +125,9 @@ export default function CorteCaja() {
   const loadCorte = useCallback(async () => {
     setLoading(true);
     const { data: activo } = await supabase
-      .from('cortes_caja').eq('tenant_id', getTenantId())
+      .from('cortes_caja')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .eq('status', 'abierto')
       .order('apertura_at', { ascending: false })
       .limit(1)
@@ -139,8 +140,9 @@ export default function CorteCaja() {
     }
 
     const { data: hist } = await supabase
-      .from('cortes_caja').eq('tenant_id', getTenantId())
+      .from('cortes_caja')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .eq('status', 'cerrado')
       .order('cierre_at', { ascending: false })
       .limit(10);
@@ -313,7 +315,7 @@ export default function CorteCaja() {
       .filter(d => (denominaciones[d.valor] || 0) > 0)
       .map(d => ({ valor: d.valor, cantidad: denominaciones[d.valor] }));
 
-    const { error } = await supabase.from('cortes_caja').eq('tenant_id', getTenantId()).update({
+    const { error } = await supabase.from('cortes_caja').update({
       cierre_at: new Date().toISOString(),
       cierre_por: cierrePor.trim(),
       ventas_efectivo: summary?.ventas_efectivo ?? 0,

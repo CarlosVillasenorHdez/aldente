@@ -81,19 +81,19 @@ export default function SucursalesManagement() {
 
   async function handleDelete(id: string) {
     if (false && !confirm('¿Eliminar esta sucursal? Los usuarios asignados quedarán sin sucursal.')) return;
-    await supabase.from('branches').eq('tenant_id', getTenantId()).delete().eq('id', id);
+    await supabase.from('branches').delete().eq('id', id);
     toast.success('Sucursal eliminada');
     await load();
   }
 
   async function handleToggleActive(b: Branch) {
-    await supabase.from('branches').eq('tenant_id', getTenantId()).update({ is_active:!b.isActive }).eq('id', b.id);
+    await supabase.from('branches').update({ is_active:!b.isActive }).eq('id', b.id);
     await load();
   }
 
   async function assignUserToBranch(userId: string, branchId: string | null) {
     setAssigningUser(userId);
-    await supabase.from('app_users').eq('tenant_id', getTenantId()).update({ branch_id: branchId }).eq('id', userId);
+    await supabase.from('app_users').update({ branch_id: branchId }).eq('id', userId);
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, branchId } : u));
     setAssigningUser(null);
   }
