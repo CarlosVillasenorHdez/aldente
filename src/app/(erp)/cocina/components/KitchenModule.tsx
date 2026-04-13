@@ -505,7 +505,7 @@ export default function KitchenModule() {
     if (targetCol === 'preparacion') updates.kitchen_started_at = now;
     if (targetCol === 'lista') updates.kitchen_completed_at = now;
 
-    const { error } = await supabase.from('orders').eq('tenant_id', getTenantId()).update(updates).eq('id', orderId);
+    const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
     if (error) {
       toast.error('Error al mover orden: ' + error.message);
       // Revert on failure
@@ -527,7 +527,7 @@ export default function KitchenModule() {
     if (next === 'preparacion') updates.kitchen_started_at = now;
     if (next === 'lista') updates.kitchen_completed_at = now;
 
-    const { error } = await supabase.from('orders').eq('tenant_id', getTenantId()).update(updates).eq('id', orderId);
+    const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
     if (error) { toast.error('Error al actualizar estado: ' + error.message); return; }
 
     // ── Notify mesero when order is ready ─────────────────────────────────────
@@ -555,7 +555,7 @@ export default function KitchenModule() {
   };
 
   const handleDeliver = async (orderId: string) => {
-    const { error } = await supabase.from('orders').eq('tenant_id', getTenantId()).update({
+    const { error } = await supabase.from('orders').update({
       kitchen_status: 'entregada', updated_at: new Date().toISOString(),
     }).eq('id', orderId);
     if (error) { toast.error('Error al marcar como entregada: ' + error.message); return; }
@@ -580,7 +580,7 @@ export default function KitchenModule() {
       .select('parent_order_id').eq('tenant_id', getTenantId()).eq('id', orderId).single();
 
     // Cancel this comanda
-    const { error } = await supabase.from('orders').eq('tenant_id', getTenantId()).update({
+    const { error } = await supabase.from('orders').update({
       status: 'cancelada',
       kitchen_status: 'en_edicion',
       cancel_type: cancelType,
@@ -605,7 +605,7 @@ export default function KitchenModule() {
 
       if (siblings && siblings.length > 0) {
         await Promise.all(siblings.map(s =>
-          supabase.from('orders').eq('tenant_id', getTenantId()).update({
+          supabase.from('orders').update({
             status: 'cancelada',
             kitchen_status: 'en_edicion',
             cancel_type: (s.kitchen_status === 'preparacion' || s.kitchen_status === 'lista') ? 'con_costo' : 'sin_costo',

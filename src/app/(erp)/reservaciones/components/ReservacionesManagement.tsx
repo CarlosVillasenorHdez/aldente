@@ -183,7 +183,7 @@ export default function ReservacionesManagement() {
         tenant_id: getTenantId(),
       };
       if (editingId) {
-        const { error } = await supabase.from('reservations').eq('tenant_id', getTenantId()).update(payload).eq('id', editingId);
+        const { error } = await supabase.from('reservations').update(payload).eq('id', editingId);
         if (error) throw error;
         toast.success('Reservación actualizada');
       } else {
@@ -209,7 +209,7 @@ export default function ReservacionesManagement() {
                 },
               },
             });
-            await supabase.from('reservations').eq('tenant_id', getTenantId()).update({ confirmation_sent: true }).eq('id', data.id);
+            await supabase.from('reservations').update({ confirmation_sent: true }).eq('id', data.id);
             toast.success('Confirmación enviada por correo');
           } catch {
             toast.warning('Reservación creada, pero no se pudo enviar el correo');
@@ -232,16 +232,16 @@ export default function ReservacionesManagement() {
   };
 
   const handleStatusChange = async (id: string, status: string) => {
-    const { error } = await supabase.from('reservations').eq('tenant_id', getTenantId()).update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('reservations').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
     if (error) { toast.error('Error: ' + error.message); return; }
     toast.success('Estado actualizado');
     loadData();
   };
 
   const handleSeatGuest = async (r: Reservation) => {
-    await supabase.from('reservations').eq('tenant_id', getTenantId()).update({ status: 'completada', updated_at: new Date().toISOString() }).eq('id', r.id);
+    await supabase.from('reservations').update({ status: 'completada', updated_at: new Date().toISOString() }).eq('id', r.id);
     if (r.tableId) {
-      await supabase.from('restaurant_tables').eq('tenant_id', getTenantId()).update({
+      await supabase.from('restaurant_tables').update({
         status: 'ocupada', waiter: r.guestName, updated_at: new Date().toISOString()
       }).eq('id', r.tableId);
     }

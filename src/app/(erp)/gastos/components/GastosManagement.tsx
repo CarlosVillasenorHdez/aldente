@@ -575,24 +575,27 @@ export default function GastosManagement() {
 
   async function fetchGastos() {
     const { data } = await supabase
-      .from('gastos_recurrentes').eq('tenant_id', getTenantId())
+      .from('gastos_recurrentes')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .order('created_at', { ascending: false });
     if (data) setGastos(data as GastoRecurrente[]);
   }
 
   async function fetchGastosPagos() {
     const { data } = await supabase
-      .from('gastos_pagos').eq('tenant_id', getTenantId())
+      .from('gastos_pagos')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .order('fecha_pago', { ascending: false });
     if (data) setGastosPagos(data as GastoPago[]);
   }
 
   async function fetchDepreciaciones() {
     const { data } = await supabase
-      .from('depreciaciones').eq('tenant_id', getTenantId())
+      .from('depreciaciones')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .order('created_at', { ascending: false });
     if (data) setDepreciaciones(data as Depreciacion[]);
   }
@@ -639,7 +642,7 @@ export default function GastosManagement() {
 
   async function handleDeleteGasto(id: string) {
     // inline delete — user already clicked delete button
-    const { error } = await supabase.from('gastos_recurrentes').eq('tenant_id', getTenantId()).delete().eq('id', id);
+    const { error } = await supabase.from('gastos_recurrentes').delete().eq('id', id);
     if (error) { toast.error('Error al eliminar gasto: ' + error.message); return; }
     fetchGastos();
   }
@@ -693,7 +696,7 @@ export default function GastosManagement() {
 
     // Update gasto: next payment date + status
     const nextPago = calcProximoPago(gasto.frecuencia, new Date(pagoForm.fecha_pago));
-    await supabase.from('gastos_recurrentes').eq('tenant_id', getTenantId()).update({
+    await supabase.from('gastos_recurrentes').update({
       estado: 'pagado',
       proximo_pago: nextPago,
       updated_at: new Date().toISOString(),
@@ -727,7 +730,7 @@ export default function GastosManagement() {
 
   async function handleDeleteDep(id: string) {
     // inline delete — user already clicked delete button
-    const { error } = await supabase.from('depreciaciones').eq('tenant_id', getTenantId()).delete().eq('id', id);
+    const { error } = await supabase.from('depreciaciones').delete().eq('id', id);
     if (error) { toast.error('Error al eliminar activo: ' + error.message); return; }
     fetchDepreciaciones();
   }

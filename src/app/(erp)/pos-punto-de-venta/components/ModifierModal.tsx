@@ -1,5 +1,4 @@
 'use client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 /**
  * ModifierModal — per-item customization when adding a dish to an order.
@@ -14,6 +13,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
  */
 
 import React, { useState, useEffect } from 'react';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { X, Minus, Plus, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -73,8 +73,9 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
 
   useEffect(() => {
     supabase
-      .from('dish_recipes').eq('tenant_id', getTenantId())
+      .from('dish_recipes')
       .select('ingredient_id, quantity, unit, is_required, ingredients(name, unit)')
+        .eq('tenant_id', getTenantId())
       .eq('dish_id', item.id)
       .then(({ data }) => {
         if (data && data.length > 0) {

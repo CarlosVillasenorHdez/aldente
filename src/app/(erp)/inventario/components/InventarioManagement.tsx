@@ -248,8 +248,9 @@ export default function InventarioManagement() {
   const fetchMovements = useCallback(async (ingredientId?: string) => {
     setLoadingMovements(true);
     let query = supabase
-      .from('stock_movements').eq('tenant_id', getTenantId())
+      .from('stock_movements')
       .select('*, ingredients(name, unit)')
+        .eq('tenant_id', getTenantId())
       .order('created_at', { ascending: false })
       .limit(100);
     if (ingredientId) query = query.eq('ingredient_id', ingredientId);
@@ -427,7 +428,7 @@ export default function InventarioManagement() {
       if (editingId) {
         const ing = ingredients.find((i) => i.id === editingId);
         const oldStock = ing?.stock ?? 0;
-        const { error } = await supabase.from('ingredients').eq('tenant_id', getTenantId()).update({
+        const { error } = await supabase.from('ingredients').update({
           name: form.name, category: form.category, stock: form.stock, unit: form.unit,
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
@@ -495,7 +496,7 @@ export default function InventarioManagement() {
   }
   async function handleDelete() {
     if (!deleteId) return;
-    const { error } = await supabase.from('ingredients').eq('tenant_id', getTenantId()).delete().eq('id', deleteId);
+    const { error } = await supabase.from('ingredients').delete().eq('id', deleteId);
     if (error) { toast.error('Error al eliminar: ' + error.message); return; }
     toast.success('Ingrediente eliminado');
     setDeleteId(null);
@@ -527,7 +528,7 @@ export default function InventarioManagement() {
       reason: (movementForm.reason || (movementForm.movementType === 'entrada' ? 'Compra' : 'Salida')) + reasonSuffix,
       created_by: movementForm.createdBy,
     });
-    await supabase.from('ingredients').eq('tenant_id', getTenantId()).update({ stock: newStock, updated_at: new Date().toISOString() }).eq('id', movementForm.ingredientId);
+    await supabase.from('ingredients').update({ stock: newStock, updated_at: new Date().toISOString() }).eq('id', movementForm.ingredientId);
     setMovementModalOpen(false);
     setMovementForm(emptyMovementForm());
     setMovInputMode('direct');
@@ -542,8 +543,9 @@ export default function InventarioManagement() {
     setDetailIngId(id);
     setDetailLoading(true);
     const { data } = await supabase
-      .from('stock_movements').eq('tenant_id', getTenantId())
+      .from('stock_movements')
       .select('*')
+        .eq('tenant_id', getTenantId())
       .eq('ingredient_id', id)
       .order('created_at', { ascending: false })
       .limit(30);

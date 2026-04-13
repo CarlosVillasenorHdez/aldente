@@ -352,8 +352,8 @@ export default function CombosManagement({ dishes }: { dishes: Dish[] }) {
     }catch(err:any){toast.error('Error: '+(err?.message??'Intenta de nuevo'));}
   };
 
-  const handleToggle=async(combo:Combo)=>{await supabase.from('combos').eq('tenant_id', getTenantId()).update({active:!combo.active}).eq('id',combo.id);fetchCombos();};
-  const handleDelete=async(id:string)=>{await supabase.from('combos').eq('tenant_id', getTenantId()).delete().eq('id',id);toast.success('Combo eliminado');fetchCombos();};
+  const handleToggle=async(combo:Combo)=>{await supabase.from('combos').update({active:!combo.active}).eq('id',combo.id);fetchCombos();};
+  const handleDelete=async(id:string)=>{await supabase.from('combos').delete().eq('id',id);toast.success('Combo eliminado');fetchCombos();};
   const openNew=(items?:ComboItem[])=>{setEditingCombo(null);setPreloadItems(items??null);setShowModal(true);};
 
   const modalCombo=useMemo(()=>{

@@ -167,8 +167,9 @@ export default function DashboardKPIs() {
           supabase.from('restaurant_tables').select('status').eq('tenant_id', getTenantId()),
           supabase.from('order_items').select('name, qty, order_id').eq('tenant_id', getTenantId()).gte('created_at', todayUTC),
           supabase.from('ingredients').select('name, stock, min_stock').eq('tenant_id', getTenantId()),
-          supabase.from('gastos_recurrentes').eq('tenant_id', getTenantId())
+          supabase.from('gastos_recurrentes')
             .select('nombre, monto, proximo_pago, frecuencia')
+            .eq('tenant_id', getTenantId())
             .eq('activo', true)
             .eq('estado', 'pendiente'),
         ]);

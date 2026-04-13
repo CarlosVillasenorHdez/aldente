@@ -104,8 +104,9 @@ export default function PaymentModal({
     searchTimerRef.current = setTimeout(async () => {
       setLoyaltySearching(true);
       const { data } = await supabase
-        .from('loyalty_customers').eq('tenant_id', getTenantId())
+        .from('loyalty_customers')
         .select('id, name, phone, points')
+        .eq('tenant_id', getTenantId())
         .or(`name.ilike.%${loyaltySearch}%,phone.ilike.%${loyaltySearch}%`)
         .eq('is_active', true)
         .limit(5);
@@ -249,7 +250,7 @@ export default function PaymentModal({
       amount: pointsDiscount,
       notes: `Canje en cobro — descuento $${pointsDiscount.toFixed(2)}`,
     });
-    await supabase.from('loyalty_customers').eq('tenant_id', getTenantId())
+    await supabase.from('loyalty_customers')
       .update({ points: selectedCustomer.points - pointsToRedeem, updated_at: new Date().toISOString() })
       .eq('id', selectedCustomer.id);
   };

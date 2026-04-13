@@ -96,8 +96,9 @@ export default function ReportesMejorados() {
       const utilidadBruta = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
       // Merma comes from cancelled comandas, not from closed orders
       const { data: mermaRows } = await supabase
-        .from('orders').eq('tenant_id', getTenantId())
+        .from('orders')
         .select('waste_cost')
+        .eq('tenant_id', getTenantId())
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
         .gte('updated_at', start)
@@ -158,8 +159,9 @@ export default function ReportesMejorados() {
       const orderIds = orderList.map(o => o.id);
       if (orderIds.length > 0) {
         const { data: items } = await supabase
-          .from('order_items').eq('tenant_id', getTenantId())
+          .from('order_items')
           .select('name, qty, price')
+        .eq('tenant_id', getTenantId())
           .in('order_id', orderIds.slice(0, 100)); // limit for performance
 
         const productMap: Record<string, { cantidad: number; ingresos: number }> = {};
@@ -181,8 +183,9 @@ export default function ReportesMejorados() {
 
       // Low stock
       const { data: ingredients } = await supabase
-        .from('ingredients').eq('tenant_id', getTenantId())
+        .from('ingredients')
         .select('name, stock, min_stock, unit')
+        .eq('tenant_id', getTenantId())
         .order('stock');
       const low = (ingredients || [])
         .filter((i: any) => Number(i.stock) <= Number(i.min_stock))
