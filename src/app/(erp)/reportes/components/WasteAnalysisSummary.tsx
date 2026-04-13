@@ -46,7 +46,7 @@ export default function WasteAnalysisSummary() {
       const since = new Date();
       since.setDate(since.getDate() - 90);
       const { data: movements } = await supabase
-        .from('stock_movements')
+        .from('stock_movements').eq('tenant_id', getTenantId())
         .select('*')
         .gte('created_at', since.toISOString());
 

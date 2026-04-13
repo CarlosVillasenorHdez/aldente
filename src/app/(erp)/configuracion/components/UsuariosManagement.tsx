@@ -273,7 +273,7 @@ export default function UsuariosManagement() {
         .map((b) => b.toString(16).padStart(2, '0')).join('');
 
       const { error } = await supabase
-        .from('app_users')
+        .from('app_users').eq('tenant_id', getTenantId())
         .update({ pin: hashed })
         .eq('id', selectedUser.id);
       if (error) throw error;

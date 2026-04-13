@@ -82,7 +82,7 @@ export default function DeliveryManagement() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('delivery_orders')
+        .from('delivery_orders').eq('tenant_id', getTenantId())
         .select('*')
         .order('received_at', { ascending: false });
       if (error) throw error;
@@ -158,7 +158,7 @@ export default function DeliveryManagement() {
     const idx = STATUS_FLOW.indexOf(order.status);
     if (idx === -1 || idx >= STATUS_FLOW.length - 1) return;
     const nextStatus = STATUS_FLOW[idx + 1];
-    const { error } = await supabase.from('delivery_orders').update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', order.id);
+    const { error } = await supabase.from('delivery_orders').eq('tenant_id', getTenantId()).update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', order.id);
     if (error) { toast.error('Error: ' + error.message); return; }
 
     // Al pasar a preparación, crear orden en el KDS (tabla orders)
@@ -216,7 +216,7 @@ export default function DeliveryManagement() {
 
   const cancelOrder = async (id: string) => {
     // confirmed by button click — no modal needed for cancel
-    const { error } = await supabase.from('delivery_orders').update({ status: 'cancelado' }).eq('id', id);
+    const { error } = await supabase.from('delivery_orders').eq('tenant_id', getTenantId()).update({ status: 'cancelado' }).eq('id', id);
     if (error) { toast.error('Error: ' + error.message); return; }
     toast.success('Pedido cancelado');
     loadOrders();

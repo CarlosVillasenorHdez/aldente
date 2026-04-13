@@ -92,7 +92,7 @@ export default function LoyaltyManagement() {
 
   const loadTransactions = async (customerId: string) => {
     const { data } = await supabase
-      .from('loyalty_transactions')
+      .from('loyalty_transactions').eq('tenant_id', getTenantId())
       .select('*')
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false })
@@ -153,7 +153,7 @@ export default function LoyaltyManagement() {
         notes: txForm.notes,
       });
 
-      await supabase.from('loyalty_customers').update({
+      await supabase.from('loyalty_customers').eq('tenant_id', getTenantId()).update({
         points: newPoints,
         total_spent: showTransaction === 'acumulacion' ? selectedCustomer.totalSpent + txForm.amount : selectedCustomer.totalSpent,
         total_visits: showTransaction === 'acumulacion' ? selectedCustomer.totalVisits + 1 : selectedCustomer.totalVisits,

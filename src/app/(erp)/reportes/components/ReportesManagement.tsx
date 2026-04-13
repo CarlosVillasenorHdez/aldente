@@ -234,7 +234,7 @@ export default function ReportesManagement() {
       // Merma lives on cancelled comandas (is_comanda=true, status=cancelada, cancel_type=con_costo)
       // NOT on closed billing orders — must query separately
       const { data: mermaOrders } = await supabase
-        .from('orders')
+        .from('orders').eq('tenant_id', getTenantId())
         .select('waste_cost')
         .eq('status', 'cancelada')
         .eq('cancel_type', 'con_costo')
@@ -307,7 +307,7 @@ export default function ReportesManagement() {
       // Order items for dish analysis
       if (orderIds.length > 0) {
         const { data: items, error: itemsError } = await supabase
-          .from('order_items')
+          .from('order_items').eq('tenant_id', getTenantId())
           .select('name, qty, order_id')
           .in('order_id', orderIds)
           .limit(5000);
@@ -410,7 +410,7 @@ export default function ReportesManagement() {
       mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
     };
     supabase
-      .from('gastos_recurrentes')
+      .from('gastos_recurrentes').eq('tenant_id', getTenantId())
       .select('nombre, monto, frecuencia, categoria, activo')
       .eq('activo', true)
       .then(({ data }) => {
@@ -441,7 +441,7 @@ export default function ReportesManagement() {
   // Fetch real depreciaciones
   useEffect(() => {
     supabase
-      .from('depreciaciones')
+      .from('depreciaciones').eq('tenant_id', getTenantId())
       .select('valor_original, valor_residual, vida_util_anios, activo')
       .eq('activo', true)
       .then(({ data }) => {

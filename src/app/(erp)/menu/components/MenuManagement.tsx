@@ -150,7 +150,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   const fetchRecipe = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from('dish_recipes')
+      .from('dish_recipes').eq('tenant_id', getTenantId())
       .select('*, ingredients(name, unit, cost)')
       .eq('dish_id', dish.id)
       .order('created_at');
@@ -215,7 +215,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     try {
       const supabase = (await import('@/lib/supabase/client')).createClient();
       const { error } = await supabase
-        .from('dishes')
+        .from('dishes').eq('tenant_id', getTenantId())
         .update({ price: simulatorPrice, updated_at: new Date().toISOString() })
         .eq('id', dish.id);
       if (error) throw error;
@@ -287,13 +287,13 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 
   const handleUpdateQty = async (recipeId: string, qty: number) => {
     if (qty <= 0) return;
-    const { error } = await supabase.from('dish_recipes').update({ quantity: qty, updated_at: new Date().toISOString() }).eq('id', recipeId);
+    const { error } = await supabase.from('dish_recipes').eq('tenant_id', getTenantId()).update({ quantity: qty, updated_at: new Date().toISOString() }).eq('id', recipeId);
     if (error) { toast.error('Error al actualizar cantidad: ' + error.message); return; }
     setRecipe((prev) => prev.map((r) => r.id === recipeId ? { ...r, quantity: qty } : r));
   };
 
   const handleToggleRequired = async (recipeId: string, current: boolean) => {
-    const { error } = await supabase.from('dish_recipes')
+    const { error } = await supabase.from('dish_recipes').eq('tenant_id', getTenantId())
       .update({ is_required: !current })
       .eq('id', recipeId);
     if (error) { toast.error('Error al actualizar ingrediente: ' + error.message); return; }
@@ -305,7 +305,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
       toast.error('Este ingrediente es requerido. Primero desmárcalo como requerido.');
       return;
     }
-    const { error } = await supabase.from('dish_recipes').delete().eq('id', recipeId);
+    const { error } = await supabase.from('dish_recipes').eq('tenant_id', getTenantId()).delete().eq('id', recipeId);
     if (error) { toast.error('Error al eliminar ingrediente: ' + error.message); return; }
     setRecipe((prev) => prev.filter((r) => r.id !== recipeId));
   };
@@ -773,7 +773,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   };
 
   const handleRemove = async (recipeId: string) => {
-    await supabase.from('dish_recipes').delete().eq('id', recipeId);
+    await supabase.from('dish_recipes').eq('tenant_id', getTenantId()).delete().eq('id', recipeId);
     setRecipe(prev => prev.filter(r => r.id !== recipeId));
   };
 
@@ -995,7 +995,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
   const handleFinish = async (finalPrice: number) => {
     if (savedDish) {
-      await supabase.from('dishes').update({ price: finalPrice, updated_at: new Date().toISOString() }).eq('id', savedDish.id);
+      await supabase.from('dishes').eq('tenant_id', getTenantId()).update({ price: finalPrice, updated_at: new Date().toISOString() }).eq('id', savedDish.id);
     }
     toast.success('Platillo guardado correctamente');
     onSave({ ...form, price: finalPrice });
@@ -1302,7 +1302,7 @@ export default function MenuManagement() {
     // For edits: update the existing dish
     setSaving(true);
     try {
-      const { error } = await supabase.from('dishes').update({
+      const { error } = await supabase.from('dishes').eq('tenant_id', getTenantId()).update({
         name: data.name, description: data.description, price: data.price,
         category: data.category, available: data.available, image: data.image,
         image_alt: data.imageAlt, emoji: data.emoji, popular: data.popular,
@@ -1322,7 +1322,7 @@ export default function MenuManagement() {
 
   const handleDelete = async () => {
     if (!deletingDish) return;
-    const { error } = await supabase.from('dishes').delete().eq('id', deletingDish.id);
+    const { error } = await supabase.from('dishes').eq('tenant_id', getTenantId()).delete().eq('id', deletingDish.id);
     if (error) { toast.error('Error al eliminar platillo: ' + error.message); return; }
     setDeletingDish(null);
     await fetchDishes();
@@ -1335,7 +1335,7 @@ export default function MenuManagement() {
     if (!dish) return;
     // Optimistic update
     setDishes((prev) => prev.map((d) => d.id === id ? { ...d, available: !d.available } : d));
-    const { error } = await supabase.from('dishes').update({ available: !dish.available, updated_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('dishes').eq('tenant_id', getTenantId()).update({ available: !dish.available, updated_at: new Date().toISOString() }).eq('id', id);
     if (error) {
       // Revert on failure
       setDishes((prev) => prev.map((d) => d.id === id ? { ...d, available: dish.available } : d));

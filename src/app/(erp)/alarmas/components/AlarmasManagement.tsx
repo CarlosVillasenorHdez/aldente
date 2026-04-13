@@ -159,7 +159,7 @@ export default function AlarmasManagement() {
 
       // ── 3. Gastos pendientes de pago ──────────────────────────────────────────
       const { data: gastos } = await supabase
-        .from('gastos_recurrentes')
+        .from('gastos_recurrentes').eq('tenant_id', getTenantId())
         .select('id, nombre, monto, proximo_pago, estado, categoria')
         .eq('estado', 'pendiente')
         .eq('activo', true)

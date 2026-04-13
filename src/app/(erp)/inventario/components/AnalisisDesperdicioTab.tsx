@@ -1,4 +1,5 @@
 'use client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { TrendingDown, AlertTriangle, CheckCircle, ShoppingCart, BarChart2, RefreshCw, ChevronDown, Info,  } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function AnalisisDesperdicioTab() {
     try {
       // Fetch ingredients
       const { data: ingredients } = await supabase
-        .from('ingredients')
+        .from('ingredients').eq('tenant_id', getTenantId())
         .select('*')
         .order('name');
 
@@ -63,7 +64,7 @@ export default function AnalisisDesperdicioTab() {
       const since = new Date();
       since.setDate(since.getDate() - 90);
       const { data: movements } = await supabase
-        .from('stock_movements')
+        .from('stock_movements').eq('tenant_id', getTenantId())
         .select('*, ingredients(name, unit)')
         .gte('created_at', since.toISOString())
         .order('created_at', { ascending: true });

@@ -203,7 +203,7 @@ export default function RHManagement() {
       if (permRes.data) setPermisos(permRes.data as Permiso[]);
       // incapacidades — puede que la tabla no exista aún
       try {
-        const incapRes = await supabase.from('rh_incapacidades').select('*, employees(name, role)').order('created_at', { ascending: false });
+        const incapRes = await supabase.from('rh_incapacidades').eq('tenant_id', getTenantId()).select('*, employees(name, role)').order('created_at', { ascending: false });
         if (incapRes.data) setIncapacidades(incapRes.data.map((i: any) => ({ ...i, employeeName: i.employees?.name, employeeRole: i.employees?.role })));
       } catch { /* tabla no existe aún */ }
       if (teRes.data) setTiemposExtras(teRes.data as TiempoExtra[]);
@@ -224,7 +224,7 @@ export default function RHManagement() {
     if (activeTab !== 'resumen') return;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    createClient().from('employee_attendance')
+    createClient().from('employee_attendance').eq('tenant_id', getTenantId())
       .select('employee_id, hours_worked')
       .gte('date', startOfMonth)
       .then(({ data }) => {
@@ -375,7 +375,7 @@ export default function RHManagement() {
       if (error) throw error;
       setShowModal(null);
       // Reload
-      const res = await supabase.from('rh_incapacidades').select('*, employees(name, role)').order('created_at', { ascending: false });
+      const res = await supabase.from('rh_incapacidades').eq('tenant_id', getTenantId()).select('*, employees(name, role)').order('created_at', { ascending: false });
       if (res.data) setIncapacidades(res.data.map((i: any) => ({ ...i, employeeName: i.employees?.name, employeeRole: i.employees?.role })));
     } catch (err: any) {
       toast.error('Error: ' + err.message);
