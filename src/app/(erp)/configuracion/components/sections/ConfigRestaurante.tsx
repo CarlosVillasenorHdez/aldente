@@ -226,10 +226,20 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   // Load system config on mount
   useEffect(() => {
-    // Load tenant slug for employee link
+    // Load tenant data including address fields
     if (appUser?.tenantId) {
-      supabase.from('tenants').select('slug').eq('id', appUser.tenantId).single()
-        .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
+      supabase.from('tenants')
+        .select('slug, address, city, state_region, colonia, postal_code')
+        .eq('id', appUser.tenantId).single()
+        .then(({ data }) => {
+          if (!data) return;
+          if (data.slug) setTenantSlug(data.slug);
+          if (data.address) setAddress(data.address);
+          if (data.city) setCity(data.city);
+          if (data.state_region) setStateRegion(data.state_region);
+          if (data.colonia) setColonia(data.colonia);
+          if (data.postal_code) setPostalCode(data.postal_code);
+        });
     }
 
     supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).then(({ data }: { data: any }) => {
@@ -333,10 +343,18 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: appUser?.tenantId });
     }
     await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
+    // Also persist address fields directly to tenants table (for SuperAdmin map)
+    if (appUser?.tenantId) {
+      await supabase.from('tenants').update({
+        address, city, state_region: stateRegion,
+        colonia: colonia ?? '',
+        postal_code: postalCode ?? '',
+      }).eq('id', appUser.tenantId);
+    }
     setRestaurantName(restaurantNameDraft);
     invalidateSysConfigCache();
-    // Auto-geocode if address changed
-    if (address.trim()) geocodeAddress(address); // auto-geocode on save
+    // Auto-geocode if address changed (updates lat/lng)
+    if (address.trim()) geocodeAddress(address);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2500);
     toast.success('Configuración del restaurante guardada');
