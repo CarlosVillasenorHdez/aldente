@@ -169,13 +169,19 @@ export default function LoginPage() {
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{to{transform:rotate(360deg)}}
         input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.04) inset;-webkit-text-fill-color:#f0ece4;}
+        .login-brand{display:flex}
+        .login-form-panel{width:min(460px,100%)}
+        @media(max-width:768px){
+          .login-brand{display:none!important}
+          .login-form-panel{width:100%!important;min-height:100vh;padding:32px 24px!important}
+        }
       `}</style>
 
       {/* BG grid */}
       <div style={{ position:'fixed', inset:0, backgroundImage:'linear-gradient(rgba(201,150,58,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(201,150,58,.02) 1px,transparent 1px)', backgroundSize:'80px 80px', pointerEvents:'none' }} />
 
       {/* LEFT panel — brand */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'clamp(32px,5vw,64px)', borderRight:'1px solid rgba(255,255,255,.05)', position:'relative' }}>
+      <div className="login-brand" style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'clamp(32px,5vw,64px)', borderRight:'1px solid rgba(255,255,255,.05)', position:'relative' }}>
         <div style={{ position:'absolute', bottom:'10%', left:'20%', width:500, height:400, background:'radial-gradient(ellipse,rgba(201,150,58,.05) 0%,transparent 65%)', pointerEvents:'none' }} />
         {/* Logo */}
         <div style={{ display:'flex', alignItems:'center', gap:12, position:'relative' }}>
@@ -210,7 +216,7 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT panel — form */}
-      <div style={{ width:'min(460px,100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'clamp(24px,4vw,48px)', position:'relative' }}>
+      <div className="login-form-panel" style={{ width:'min(460px,100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'clamp(24px,4vw,48px)', position:'relative' }}>
         <div style={{ width:'100%', maxWidth:380, animation:'fadeUp .5s ease both' }}>
 
           {/* Progress bar */}

@@ -20,7 +20,13 @@ interface TenantDetail {
   id: string; name: string; slug: string; plan: string; is_active: boolean;
   trial_ends_at: string | null; plan_valid_until: string | null;
   owner_email: string | null; country: string | null; city: string | null;
-  address: string | null; created_at: string;
+  state_region: string | null; colonia: string | null; postal_code: string | null;
+  address: string | null; lat: number | null; lng: number | null; created_at: string;
+  phone: string | null;
+}
+interface BranchDetail {
+  id: string; name: string; address: string; phone: string;
+  email: string; manager_name: string; is_active: boolean;
 }
 interface AppUser {
   id: string; full_name: string; app_role: string; is_active: boolean; pin: string;
@@ -58,15 +64,17 @@ export default function TenantDetailPage() {
   const [pinModal, setPinModal]   = useState<AppUser | null>(null);
   const [newPin, setNewPin]       = useState('');
   const [showPins, setShowPins]   = useState<Record<string,boolean>>({});
-  const [activeTab, setActiveTab] = useState<'overview'|'users'|'health'|'notes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview'|'sucursales'|'users'|'health'|'notes'>('overview');
   const [newUser, setNewUser]     = useState({ full_name: '', app_role: 'mesero', pin: '' });
   const [adminNote, setAdminNote] = useState('');
+  const [branches, setBranches] = useState<BranchDetail[]>([]);
   const [savingNote, setSavingNote] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: t }, { data: u }] = await Promise.all([
+    const [{ data: t }, { data: u }, { data: br }] = await Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
       supabase.from('app_users').select('id,full_name,app_role,is_active,pin').eq('tenant_id', id).order('app_role'),
+      supabase.from('branches').select('id,name,address,phone,email,manager_name,is_active').eq('tenant_id', id).order('name'),
     ]);
     if (!t) { setLoading(false); return; }
 
@@ -77,6 +85,7 @@ export default function TenantDetailPage() {
     setTenant(t as TenantDetail);
     setDraft({ plan: t.plan, plan_valid_until: t.plan_valid_until, is_active: t.is_active });
     setUsers((u || []) as AppUser[]);
+    setBranches((br || []) as BranchDetail[]);
 
     // Load usage stats
     const now = new Date();
@@ -299,9 +308,9 @@ export default function TenantDetailPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid #1e2d3d', marginBottom: 20, display: 'flex', gap: 0 }}>
-        {(['overview','users','health','notes'] as const).map(t => (
+        {(['overview','sucursales','users','health','notes'] as const).map(t => (
           <button key={t} style={TAB_STYLE(t)} onClick={() => setActiveTab(t)}>
-            {t === 'overview' ? 'Suscripción' : t === 'users' ? 'Usuarios' : t === 'health' ? `Salud del cliente${riskCount+warnCount>0?' ('+( riskCount+warnCount)+')':''}` : 'Notas'}
+            {t === 'overview' ? 'Suscripción' : t === 'sucursales' ? `Sucursales (${branches.length})` : t === 'users' ? 'Usuarios' : t === 'health' ? `Salud${riskCount+warnCount>0?' ('+( riskCount+warnCount)+')':''}` : 'Notas'}
           </button>
         ))}
       </div>
@@ -315,6 +324,7 @@ export default function TenantDetailPage() {
             {[
               ['ID', tenant.id.slice(0,8)+'…'],
               ['Email dueño', tenant.owner_email ?? '—'],
+              ['Teléfono', (tenant as any).phone ?? '—'],
               ['País / Ciudad', [tenant.country, tenant.city].filter(Boolean).join(' / ') || '—'],
               ['Registrado', new Date(tenant.created_at).toLocaleDateString('es-MX')],
               ['Trial vence', tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString('es-MX') : '—'],
@@ -367,6 +377,55 @@ export default function TenantDetailPage() {
                 ${(PLAN_MXN[draft.plan ?? tenant.plan] ?? 0).toLocaleString('es-MX')}<span style={{ fontSize: 12, fontWeight: 400 }}>/mes</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Sucursales */}
+      {activeTab === 'sucursales' && (
+        <div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>Sucursales — {branches.length}</span>
+          </div>
+          {branches.length === 0 && (
+            <div style={{ textAlign:'center', padding:'32px 0', color:'rgba(255,255,255,.35)', fontSize:13 }}>
+              Sin sucursales registradas. Se crea automáticamente cuando el restaurante configura su primera sucursal.
+            </div>
+          )}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {branches.map(br => (
+              <div key={br.id} style={{ padding:'16px 18px', borderRadius:12, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, color:'#f1f5f9', marginBottom:2 }}>{br.name}</div>
+                    {br.manager_name && <div style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>Gerente: {br.manager_name}</div>}
+                  </div>
+                  <span style={{ fontSize:10, fontWeight:700, color:br.is_active?'#34d399':'#f87171', background:br.is_active?'rgba(52,211,153,.1)':'rgba(248,113,113,.1)', padding:'2px 8px', borderRadius:5 }}>
+                    {br.is_active?'Activa':'Inactiva'}
+                  </span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                  {br.address && (
+                    <div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Dirección</div>
+                      <div style={{ fontSize:12, color:'rgba(255,255,255,.65)' }}>{br.address}</div>
+                    </div>
+                  )}
+                  {br.phone && (
+                    <div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Teléfono</div>
+                      <div style={{ fontSize:12, color:'rgba(255,255,255,.65)' }}>{br.phone}</div>
+                    </div>
+                  )}
+                  {br.email && (
+                    <div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,.3)', marginBottom:2 }}>Email</div>
+                      <div style={{ fontSize:12, color:'#60a5fa' }}>{br.email}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
