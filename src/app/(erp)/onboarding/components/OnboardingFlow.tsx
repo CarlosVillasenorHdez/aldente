@@ -5,8 +5,10 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, ChevronRight, ChevronLeft, Store, LayoutGrid, Users, Rocket } from 'lucide-react';
+import { CheckCircle, ChevronRight, ChevronLeft, Store, LayoutGrid, Users } from 'lucide-react';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import Icon from '@/components/ui/AppIcon';
+
 
 // ─── Forever Transaction philosophy:
 // El objetivo NO es completar todos los pasos — es que el restaurante
