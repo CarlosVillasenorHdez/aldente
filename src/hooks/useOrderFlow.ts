@@ -41,6 +41,11 @@ export interface OrderFlowItem {
   course?: number;           // course number for ordering (1 = first course, etc.)
   excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
   extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
+  course?: number;                  // kept for DB compatibility
+  selectedOptions?: {               // modifier options chosen by customer
+    groupId: string; optionId: string; name: string;
+    price_delta: number; ingredient_id: string | null; qty_delta: number;
+  }[];
 }
 
 export interface OrderFlowTable {
@@ -255,6 +260,40 @@ export function useOrderFlow() {
         );
       }
 
+      // ── Save order_item_modifiers snapshot ──────────────────────────────
+      // Stores which options the customer chose — immutable for reporting
+      const itemsWithMods = items.filter(i => i.selectedOptions?.length);
+      if (itemsWithMods.length > 0) {
+        // Fetch the DB row IDs we just inserted (by order_id + name match)
+        const { data: savedItems } = await supabase.from('order_items')
+          .select('id, name, dish_id')
+          .eq('order_id', orderId)
+          .eq('tenant_id', DEFAULT_TENANT);
+
+        const modRows: any[] = [];
+        for (const item of itemsWithMods) {
+          // Match by dish_id (most reliable) or name
+          const dbItem = (savedItems ?? []).find(r =>
+            (item.dishId && r.dish_id === item.dishId) || r.name === item.name
+          );
+          if (!dbItem) continue;
+          for (const opt of item.selectedOptions ?? []) {
+            modRows.push({
+              order_item_id: dbItem.id,
+              option_id: opt.optionId,
+              tenant_id: DEFAULT_TENANT,
+              name: opt.name,
+              price_delta: opt.price_delta,
+              ingredient_id: opt.ingredient_id || null,
+              qty_delta: opt.qty_delta || 0,
+            });
+          }
+        }
+        if (modRows.length > 0) {
+          await supabase.from('order_item_modifiers').insert(modRows);
+        }
+      }
+
       // Deduct inventory in parallel — only for items with a valid dish_id
       const recipeResults = await Promise.all(
         items
@@ -311,6 +350,44 @@ export function useOrderFlow() {
             dishName: item.name + (extra ? ` [extra ${extra.name}]` : ''), dishQty: item.qty,
             costPerUnit: ingredientCost,
           });
+        }
+      }
+
+      // ── Deduct inventory from modifier options ───────────────────────────
+      // e.g. "Con papas +0.15kg" → deduct 0.15kg from papas ingredient
+      const modIngredientIds = [
+        ...new Set(
+          items.flatMap(item =>
+            (item.selectedOptions ?? [])
+              .filter(o => o.ingredient_id && o.qty_delta > 0)
+              .map(o => o.ingredient_id as string)
+          )
+        )
+      ];
+      if (modIngredientIds.length > 0) {
+        const { data: modIngs } = await supabase
+          .from('ingredients').select('id, stock, cost, unit')
+          .in('id', modIngredientIds);
+        const modIngMap: Record<string, any> = {};
+        (modIngs ?? []).forEach((i: any) => { modIngMap[i.id] = i; });
+
+        for (const item of items) {
+          for (const opt of (item.selectedOptions ?? [])) {
+            if (!opt.ingredient_id || !opt.qty_delta) continue;
+            const ing = modIngMap[opt.ingredient_id];
+            if (!ing) continue;
+            const deductQty = Number(opt.qty_delta) * item.qty;
+            const currentStock = Number(ing.stock);
+            stockUpdates.push({
+              ingredientId: opt.ingredient_id,
+              deductQty,
+              currentStock,
+              newStock: Math.max(0, currentStock - deductQty),
+              dishName: `${item.name} [mod: ${opt.name}]`,
+              dishQty: item.qty,
+              costPerUnit: Number(ing.cost ?? 0),
+            });
+          }
         }
       }
 

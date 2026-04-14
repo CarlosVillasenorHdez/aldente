@@ -57,6 +57,11 @@ export interface OrderItem {
   notes?: string;                      // legacy general note
   modifier?: string;                   // per-line modifier (e.g. "sin cebolla", "bien cocido")
   excludedIngredientIds?: string[];    // ingredient ids removed — skipped during inventory deduction
+  priceDelta?: number;                 // sum of modifier_options price_delta
+  selectedOptions?: {                  // snapshot of chosen modifier options
+    groupId: string; optionId: string; name: string;
+    price_delta: number; ingredient_id: string | null; qty_delta: number;
+  }[];
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -984,14 +989,19 @@ export default function POSClient() {
     const item = modifierPending;
     setModifierPending(null);
 
-    const newLines = lines.map(line => ({
-      lineId: `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
-      menuItem: item,
-      quantity: line.qty,
-      modifier: line.modifier || undefined,
-      notes: line.note || undefined,
-      excludedIngredientIds: line.excludedIds.length > 0 ? line.excludedIds : undefined,
-    }));
+    const newLines = lines.map(line => {
+      const priceDelta = (line.selectedOptions ?? []).reduce((s, o) => s + (o.price_delta ?? 0), 0);
+      return {
+        lineId: `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        menuItem: { ...item, price: item.price + priceDelta }, // effective price includes modifiers
+        quantity: line.qty,
+        modifier: line.modifier || undefined,
+        notes: line.note || undefined,
+        excludedIngredientIds: line.excludedIds.length > 0 ? line.excludedIds : undefined,
+        priceDelta: priceDelta || undefined,
+        selectedOptions: line.selectedOptions?.length ? line.selectedOptions : undefined,
+      };
+    });
 
     const newItems = [...orderItems, ...newLines];
     setOrderItems(newItems);
@@ -1293,6 +1303,7 @@ export default function POSClient() {
       emoji: i.menuItem.emoji, notes: i.notes,
       excludedIngredientIds: i.excludedIngredientIds,
       modifier: i.modifier,
+      selectedOptions: i.selectedOptions,
     }));
 
     // ── Cortesía: close with $0 total, mark is_cortesia, still deducts inventory

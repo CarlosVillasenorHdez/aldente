@@ -24,6 +24,7 @@ interface KitchenOrderItem {
   category?: string;
   course?: number;    // 1=first, 2=second, 3=last — items with course>1 shown with badge
   modifier?: string;  // per-item modifier e.g. "Sin cebolla"
+  modifierOptions?: { name: string; price_delta: number }[];  // chosen modifier group options
 }
 
 interface KitchenOrder {
@@ -225,6 +226,11 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
                               style={{ color: isDone ? '#86efac' : '#f1f5f9', textDecoration: isDone ? 'line-through' : 'none', opacity: isDone ? 0.7 : 1 }}>
                               {item.name}
                             </span>
+                            {item.modifierOptions?.map((opt, i) => (
+                              <span key={i} className="text-xs block mt-0.5" style={{ color: '#a78bfa', fontWeight: 500 }}>
+                                + {opt.name}{opt.price_delta ? ` (+$${opt.price_delta})` : ''}
+                              </span>
+                            ))}
                             {item.modifier && (
                               <span className="text-xs block mt-0.5" style={{ color: '#f59e0b', fontWeight: 500 }}>
                                 ↳ {item.modifier}
@@ -352,8 +358,8 @@ export default function KitchenModule() {
   const fetchOrders = useCallback(async () => {
     let ordersQuery = supabase
       .from('orders')
-      .select('*, kitchen_sent_at, order_items(*, dishes(category))')
       .eq('tenant_id', getTenantId())
+      .select('*, kitchen_sent_at, order_items(*, dishes(category), order_item_modifiers(name, price_delta))')
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', true);         // only show comanda cards — original order is billing only
     if (activeBranchId) ordersQuery = ordersQuery.eq('branch_id', activeBranchId);
@@ -379,6 +385,9 @@ export default function KitchenModule() {
           category: item.dishes?.category ?? null,
           course: item.course ?? 1,
           modifier: item.modifier ?? null,
+          modifierOptions: (item.order_item_modifiers ?? []).length > 0
+            ? (item.order_item_modifiers as any[]).map((m: any) => ({ name: m.name, price_delta: m.price_delta }))
+            : undefined,
         })),
         kitchenStatus: (o.kitchen_status ?? 'pendiente') as KitchenStatus,
         kitchenNotes: o.kitchen_notes || null,

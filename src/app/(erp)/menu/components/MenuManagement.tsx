@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import CombosManagement from './CombosManagement';
+import ModifierGroupsModal from './ModifierGroupsModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1166,9 +1167,10 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
 // ─── Dish Card ────────────────────────────────────────────────────────────────
 
-function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, priceMultiplier = 1 }: {
+function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onModifier, priceMultiplier = 1 }: {
   dish: Dish;
   recipeCount: number;
+  onModifier: (dish: Dish) => void;
   priceMultiplier?: number;
   onEdit: (d: Dish) => void;
   onDelete: (d: Dish) => void;
@@ -1218,7 +1220,15 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, pri
           style={{ backgroundColor: recipeCount > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: recipeCount > 0 ? '#34d399' : 'rgba(255,255,255,0.4)', border: recipeCount > 0 ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.08)' }}
         >
           <BookOpen size={12} />
-          {recipeCount > 0 ? `Receta (${recipeCount} ingredientes)` : 'Agregar receta'}
+          {recipeCount > 0 ? `Receta (${recipeCount} ing.)` : 'Agregar receta'}
+        </button>
+        <button
+          onClick={() => onModifier(dish)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all mb-2 w-full justify-center"
+          style={{ backgroundColor: (dish as any).has_modifiers ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.05)', color: (dish as any).has_modifiers ? '#a78bfa' : 'rgba(255,255,255,0.35)', border: (dish as any).has_modifiers ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <span style={{ fontSize: 12 }}>⊕</span>
+          {(dish as any).has_modifiers ? 'Modificadores activos' : 'Agregar modificadores'}
         </button>
         <div className="flex items-center gap-2 mt-auto">
           <button onClick={() => onToggle(dish.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-1 justify-center" style={{ backgroundColor: dish.available ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.06)', color: dish.available ? '#f59e0b' : 'rgba(255,255,255,0.4)', border: dish.available ? '1px solid rgba(245,158,11,0.25)' : '1px solid rgba(255,255,255,0.08)' }}>
@@ -1245,6 +1255,7 @@ export default function MenuManagement() {
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [deletingDish, setDeletingDish] = useState<Dish | null>(null);
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
+  const [modifierDish, setModifierDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
 
   const { appUser } = useAuth();
@@ -1476,6 +1487,7 @@ export default function MenuManagement() {
               dish={dish as Dish}
               priceMultiplier={priceLists.find(pl => pl.id === activePriceList)?.multiplier ?? 1}
               recipeCount={recipeCounts[dish.id] || 0}
+              onModifier={setModifierDish}
               onEdit={openEdit}
               onDelete={setDeletingDish}
               onToggle={handleToggle}
@@ -1552,6 +1564,12 @@ export default function MenuManagement() {
       {/* Modals */}
       {formOpen && <DishFormModal dish={editingDish} onSave={handleSave} onClose={() => { setFormOpen(false); setEditingDish(null); }} />}
       {deletingDish && <DeleteConfirmModal dish={deletingDish} onConfirm={handleDelete} onCancel={() => setDeletingDish(null)} />}
+      {modifierDish && (
+        <ModifierGroupsModal
+          dish={modifierDish}
+          onClose={() => { setModifierDish(null); fetchDishes(); }}
+        />
+      )}
       {recipeDish && (
         <RecipeModal
           dish={recipeDish}
