@@ -1,5 +1,7 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { enqueue } from '@/lib/offlineQueue';
 
 
 
@@ -88,6 +90,7 @@ function MenuSkeleton() {
 
 export default function POSClient() {
   const { appUser } = useAuth();
+  const { isOnline, pendingCount, syncing, sync } = useOfflineSync();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -111,6 +114,7 @@ export default function POSClient() {
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [kitchenSent, setKitchenSent] = useState(false);
+  const [isOnHold, setIsOnHold] = useState(false);  // orden guardada pero no enviada a cocina
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showNoKitchenConfirm, setShowNoKitchenConfirm] = useState(false);
   const [sentItemsSnapshot, setSentItemsSnapshot] = useState<{id:string;qty:number}[]>([]);
@@ -504,24 +508,36 @@ export default function POSClient() {
 
       // DELETE all current items for this order, then INSERT the full current state.
       // This is safe because the timer is debounced — only one instance runs at a time.
+      // ── Offline-aware sync ──
+      const itemsPayload = items.map((item) => ({
+        order_id: orderId,
+        dish_id: item.menuItem.id,
+        name: item.menuItem.name,
+        qty: item.quantity,
+        price: item.menuItem.price,
+        emoji: item.menuItem.emoji,
+        modifier: item.modifier ?? null,
+        tenant_id: getTenantId(),
+        notes: item.notes ?? null,
+      }));
+
+      if (!navigator.onLine) {
+        // Queue for later — store as upsert-all (delete+insert equivalent)
+        await enqueue({ table: 'order_items', op: 'delete', payload: { order_id: orderId } as any });
+        if (items.length > 0) {
+          for (const p of itemsPayload) {
+            await enqueue({ table: 'order_items', op: 'insert', payload: p });
+          }
+        }
+        return;
+      }
+
       const { error: delErr } = await supabase.from('order_items')
-        .delete().eq('order_id', orderId);
+        .delete().eq('order_id', orderId).eq('tenant_id', getTenantId());
       if (delErr) { console.error('[POS] sync delete error:', delErr.message); return; }
 
       if (items.length > 0) {
-        const { error: insErr } = await supabase.from('order_items').insert(
-          items.map((item) => ({
-            order_id: orderId,
-            dish_id: item.menuItem.id,
-            name: item.menuItem.name,
-            qty: item.quantity,
-            price: item.menuItem.price,
-            emoji: item.menuItem.emoji,
-            modifier: item.modifier ?? null,
-            tenant_id: getTenantId(),
-            notes: item.notes ?? null,
-          }))
-        );
+        const { error: insErr } = await supabase.from('order_items').insert(itemsPayload);
         if (insErr) { console.error('[POS] sync insert error:', insErr.message); return; }
       }
 
@@ -611,13 +627,28 @@ export default function POSClient() {
     });
 
     if (orderErr) {
-      toast.error('Error al crear orden para llevar: ' + orderErr.message);
-      return;
+      if (!navigator.onLine) {
+        // Queue the order creation for when connectivity returns
+        await enqueue({ table: 'orders', op: 'insert', payload: {
+          tenant_id: getTenantId(), id: orderId,
+          mesa: displayName, mesa_num: 0, mesero: waiterName,
+          subtotal: 0, iva: 0, discount: 0, total: 0,
+          status: 'abierta', kitchen_status: 'en_edicion',
+          opened_at: now, branch: branchName,
+          order_type: 'para_llevar',
+          customer_name: customerName.trim() || null,
+        }});
+        toast('Sin conexión — orden guardada localmente', { icon: '⚡' });
+      } else {
+        toast.error('Error al crear orden para llevar: ' + orderErr.message);
+        return;
+      }
     }
 
     setSelectedTable(takeoutTable);
     setOrderItems([]);
     setKitchenSent(false);
+    setIsOnHold(false);
     setDeliveredLineIds(new Set());
     setSentItemsSnapshot([]);
     setDiscount({ type: 'pct', value: 0 });
@@ -705,38 +736,42 @@ export default function POSClient() {
     const now = new Date().toISOString();
     const waiterName = appUser?.fullName ?? 'Administrador';
 
-    const { error: orderErr } = await supabase.from('orders').insert({ tenant_id: getTenantId(),
-      id: orderId,
-      mesa: table.name,
-      mesa_num: table.number,
-      mesero: waiterName,
-      subtotal: 0,
-      iva: 0,
-      discount: 0,
-      total: 0,
-      status: 'abierta',
-      kitchen_status: 'en_edicion',
-      opened_at: now,
-      branch: branchName,
-    });
+    const tableOrderPayload = {
+      tenant_id: getTenantId(), id: orderId,
+      mesa: table.name, mesa_num: table.number, mesero: waiterName,
+      subtotal: 0, iva: 0, discount: 0, total: 0,
+      status: 'abierta', kitchen_status: 'en_edicion',
+      opened_at: now, branch: branchName,
+    };
+    const { error: orderErr } = await supabase.from('orders').insert(tableOrderPayload);
     if (orderErr) {
-      toast.error('Error al abrir orden: ' + orderErr.message);
-      throw orderErr;
+      if (!navigator.onLine) {
+        await enqueue({ table: 'orders', op: 'insert', payload: tableOrderPayload });
+        toast('Sin conexión — orden guardada localmente', { icon: '⚡' });
+        // Continue opening table locally even without DB confirmation
+      } else {
+        toast.error('Error al abrir orden: ' + orderErr.message);
+        throw orderErr;
+      }
     }
 
     const groupIds = table.mergeGroupId
       ? tables.filter((t) => t.mergeGroupId === table.mergeGroupId).map((t) => t.id)
       : [table.id];
 
-    await supabase.from('restaurant_tables').update({
-      status: 'ocupada',
-      current_order_id: orderId,
-      waiter: waiterName,
-      opened_at: now,
-      item_count: 0,
-      partial_total: 0,
-      updated_at: now,
-    }).in('id', groupIds);
+    const ocupadaPayload = {
+      status: 'ocupada', current_order_id: orderId,
+      waiter: waiterName, opened_at: now,
+      item_count: 0, partial_total: 0, updated_at: now,
+    };
+    const { error: ocupErr } = await supabase.from('restaurant_tables')
+      .update(ocupadaPayload).in('id', groupIds);
+    if (ocupErr && !navigator.onLine) {
+      for (const tid of groupIds) {
+        await enqueue({ table: 'restaurant_tables', op: 'update',
+          payload: { id: tid, ...ocupadaPayload } });
+      }
+    }
 
     // Update local state so subsequent calls find the orderId
     setSelectedTable((prev) => prev ? { ...prev, currentOrderId: orderId, status: 'ocupada', openedAt: now, waiter: waiterName } : prev);
@@ -748,6 +783,43 @@ export default function POSClient() {
   }, [supabase, tables, branchName]);
 
   // ─── Add / update items ───────────────────────────────────────────────────
+
+  // ─── Hold: guardar orden sin enviar a cocina ────────────────────────────────
+  const handleHold = useCallback(async () => {
+    if (!selectedTable?.currentOrderId || orderItems.length === 0) return;
+    const holdPayload = orderItems.map(item => ({
+      order_id: selectedTable.currentOrderId,
+      dish_id: item.menuItem.id,
+      name: item.menuItem.name,
+      qty: item.quantity,
+      price: item.menuItem.price,
+      emoji: item.menuItem.emoji,
+      modifier: item.modifier ?? null,
+      tenant_id: getTenantId(),
+      notes: item.notes ?? null,
+    }));
+    if (!navigator.onLine) {
+      // Queue flush for later
+      await enqueue({ table: 'order_items', op: 'delete', payload: { order_id: selectedTable.currentOrderId } as any });
+      for (const p of holdPayload) {
+        await enqueue({ table: 'order_items', op: 'insert', payload: p });
+      }
+    } else {
+      await supabase.from('order_items').delete().eq('order_id', selectedTable.currentOrderId);
+      await supabase.from('order_items').insert(holdPayload);
+    }
+    setIsOnHold(prev => {
+      const next = !prev;
+      toast(next ? '⏸ Orden en espera — la cocina no la recibirá hasta que presiones Enviar' : 'Orden fuera de espera', { duration: 2500 });
+      return next;
+    });
+  }, [selectedTable, orderItems, supabase]);
+
+  // ─── Stay: el comensal sigue pidiendo, mantener orden abierta ────────────────
+  const handleStay = useCallback(() => {
+    toast('Mesa activa — sigue agregando platillos', { duration: 2000 });
+    // Simply a UX signal — no DB action needed, order remains open
+  }, []);
 
   // ─── Send order to kitchen ───────────────────────────────────────────────
   const handleSendToKitchen = async () => {
@@ -864,6 +936,7 @@ export default function POSClient() {
         setSentItemsSnapshot(orderItems.map(i => ({ id: i.lineId, qty: i.quantity })));
       }
 
+      setIsOnHold(false);  // clear hold after sending
       if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? selectedTable.name}`);
     }
     setSendingToKitchen(false);
@@ -1309,6 +1382,30 @@ export default function POSClient() {
 
   return (
     <>
+    {/* ── Offline banner ─────────────────────────────────────────────────────── */}
+    {(!isOnline || pendingCount > 0) && (
+      <div style={{
+        position:'fixed', top:0, left:0, right:0, zIndex:9999,
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'6px 16px', fontSize:12, fontWeight:600,
+        background: !isOnline ? '#7f1d1d' : '#78350f',
+        color: !isOnline ? '#fca5a5' : '#fcd34d',
+      }}>
+        <span>
+          {!isOnline
+            ? '⚡ Sin conexión — las órdenes se guardan localmente y se sincronizan al reconectar'
+            : `🔄 Reconectado — sincronizando ${pendingCount} operación${pendingCount!==1?'es':''} pendiente${pendingCount!==1?'s':''}...`}
+        </span>
+        {isOnline && pendingCount > 0 && (
+          <button onClick={sync} disabled={syncing}
+            style={{padding:'2px 10px',borderRadius:6,background:'rgba(255,255,255,0.15)',
+              border:'1px solid rgba(255,255,255,0.25)',color:'inherit',cursor:'pointer',
+              fontSize:11,fontWeight:700,opacity:syncing?0.5:1}}>
+            {syncing ? 'Sincronizando…' : 'Sincronizar ahora'}
+          </button>
+        )}
+      </div>
+    )}
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <div className="flex-shrink-0">
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -1503,6 +1600,9 @@ export default function POSClient() {
               setShowPaymentModal(true);
             }}
             onSendToKitchen={handleSendToKitchen}
+            onHold={handleHold}
+            onStay={handleStay}
+            isOnHold={isOnHold}
             onPartialCheckout={handlePartialCheckout}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
