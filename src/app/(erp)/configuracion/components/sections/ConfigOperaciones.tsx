@@ -406,47 +406,47 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
             <div style={{ fontSize:18 }}>💰</div>
             <div>
-              <h3 style={{ fontSize:16, fontWeight:700, color:'var(--color-text-primary)', margin:0 }}>Parámetros de costeo de mano de obra</h3>
-              <p style={{ fontSize:12, color:'var(--color-text-secondary)', margin:'2px 0 0' }}>
+              <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>Parámetros de costeo de mano de obra</h3>
+              <p style={{ fontSize:12, color:'#94a3b8', margin:'2px 0 0' }}>
                 Estos valores se usan para calcular el prime cost real de cada platillo basado en su tiempo de preparación
               </p>
             </div>
           </div>
 
-          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
-            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+          <div style={{ background:'#162032', border:'1px solid #1e2d3d', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'#f1f5f9', display:'block', marginBottom:6 }}>
               Costo por hora de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : 'cocina'} (MXN/hr)
             </label>
-            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+            <p style={{ fontSize:12, color:'#94a3b8', marginBottom:10, lineHeight:1.5 }}>
               Usa "Calcular desde nómina" para obtenerlo automáticamente de los salarios del
               personal de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : establishmentType === 'mixto' ? 'cocina' : 'cocina'}, o ingrésalo manualmente.
             </p>
             <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-              <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+              <span style={{ fontSize:15, color:'#94a3b8' }}>$</span>
               <input
                 type="number" min="0" step="0.5"
                 value={kitchenRate}
                 onChange={e => { setKitchenRate(e.target.value); setComputedRate(null); }}
                 placeholder="ej. 56.25"
                 style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
-                  border:'0.5px solid var(--color-border-secondary)',
-                  background:'var(--color-background-secondary)',
-                  color:'var(--color-text-primary)', outline:'none' }}
+                  border:'1px solid #2a3f5f',
+                  background:'#0f1923',
+                  color:'#f1f5f9', outline:'none' }}
               />
-              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+              <span style={{ fontSize:12, color:'#64748b' }}>MXN / hora</span>
               <button
                 onClick={calcKitchenRateFromData}
                 disabled={computing}
-                style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
-                  background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                style={{ padding:'8px 14px', borderRadius:8, border:'1px solid #2a3f5f',
+                  background:'#0f1923', color:'#f1f5f9',
                   fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
                 {computing ? 'Calculando…' : `Calcular desde nómina ${establishmentType === 'bar' || establishmentType === 'cafeteria' ? '(barra)' : '(cocina)'}`}
               </button>
             </div>
             {computedRate && (
               <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
-                background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
-                fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.35)',
+                fontSize:12, color:'#4ade80', lineHeight:1.7 }}>
                 Calculado desde nómina: <strong>{computedRate.headcount} cocineros/ayudantes</strong> ·
                 nómina mensual <strong>${Math.round(computedRate.kitchenSalary).toLocaleString('es-MX')}</strong> ·
                 horas mensuales <strong>{computedRate.monthlyHours} hrs</strong><br/>
@@ -456,35 +456,35 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
           </div>
 
           {establishmentType === 'mixto' && (
-            <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
-              <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+            <div style={{ background:'#162032', border:'1px solid #1e2d3d', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+              <label style={{ fontSize:13, fontWeight:500, color:'#f1f5f9', display:'block', marginBottom:6 }}>
                 Costo por hora de barra (MXN/hr)
               </label>
-              <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:10, lineHeight:1.5 }}>
                 Para negocios mixtos, la barra (bebidas, cócteles) suele tener un costo/hora
                 distinto al de cocina. Aplica a platillos marcados como "Área: Barra".
               </p>
               <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+                <span style={{ fontSize:15, color:'#94a3b8' }}>$</span>
                 <input type="number" min="0" step="0.5" value={barRate}
                   onChange={e => { setBarRate(e.target.value); setComputedBarRate(null); }}
                   placeholder="ej. 45.00"
                   style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
-                    border:'0.5px solid var(--color-border-secondary)',
-                    background:'var(--color-background-secondary)',
-                    color:'var(--color-text-primary)', outline:'none' }} />
-                <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+                    border:'1px solid #2a3f5f',
+                    background:'#0f1923',
+                    color:'#f1f5f9', outline:'none' }} />
+                <span style={{ fontSize:12, color:'#64748b' }}>MXN / hora</span>
                 <button onClick={calcBarRateFromData} disabled={computing}
-                  style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
-                    background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                  style={{ padding:'8px 14px', borderRadius:8, border:'1px solid #2a3f5f',
+                    background:'#0f1923', color:'#f1f5f9',
                     fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
                   {computing ? 'Calculando…' : 'Calcular desde nómina (barra)'}
                 </button>
               </div>
               {computedBarRate && (
                 <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
-                  background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
-                  fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                  background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.35)',
+                  fontSize:12, color:'#4ade80', lineHeight:1.7 }}>
                   {computedBarRate.headcount} bartenders/baristas · nómina ${Math.round(computedBarRate.barSalary).toLocaleString('es-MX')} ·
                   {computedBarRate.monthlyHours} hrs/mes → <strong>${computedBarRate.rate.toFixed(2)}/hr</strong>
                 </div>
@@ -492,11 +492,11 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
             </div>
           )}
 
-          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
-            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+          <div style={{ background:'#162032', border:'1px solid #1e2d3d', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'#f1f5f9', display:'block', marginBottom:6 }}>
               Gastos indirectos (% sobre precio de venta)
             </label>
-            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+            <p style={{ fontSize:12, color:'#94a3b8', marginBottom:10, lineHeight:1.5 }}>
               Renta, luz, gas, mantenimiento — costos que no son ingredientes ni mano de obra.
               El estándar para restaurantes SMB en México es <strong>25–40%</strong>.
             </p>
@@ -507,15 +507,15 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                 onChange={e => setOverheadPct(e.target.value)}
                 placeholder="35"
                 style={{ width:80, padding:'8px 12px', borderRadius:8, fontSize:14,
-                  border:'0.5px solid var(--color-border-secondary)',
-                  background:'var(--color-background-secondary)',
-                  color:'var(--color-text-primary)', outline:'none' }}
+                  border:'1px solid #2a3f5f',
+                  background:'#0f1923',
+                  color:'#f1f5f9', outline:'none' }}
               />
-              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>% de las ventas</span>
+              <span style={{ fontSize:12, color:'#64748b' }}>% de las ventas</span>
             </div>
           </div>
 
-          <div style={{ background:'var(--color-background-info)', border:'0.5px solid var(--color-border-info)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:12, color:'var(--color-text-info)', lineHeight:1.6 }}>
+          <div style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.35)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:12, color:'#60a5fa', lineHeight:1.6 }}>
             <strong>Cómo se usa:</strong> en Menú → cada platillo muestra su prime cost real = food cost + (tiempo de prep ÷ 60 × costo/hora). El Análisis Financiero también lo usa para el cálculo de prime cost global.
           </div>
 
