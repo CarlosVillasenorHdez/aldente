@@ -76,9 +76,8 @@ export default function OnboardingFlow() {
 
       // 1. Restaurant name + type
       await supabase.from('system_config').upsert([
-        { config_key: 'restaurant_name',   config_value: restaurantName.trim(), tenant_id: tid },
+        { config_key: 'restaurant_name',    config_value: restaurantName.trim(), tenant_id: tid },
         { config_key: 'establishment_type', config_value: type,                  tenant_id: tid },
-        { config_key: 'initialized',        config_value: 'true',               tenant_id: tid },
       ], { onConflict: 'tenant_id,config_key' });
 
       // 2. Tables — delete old, insert new
@@ -110,11 +109,19 @@ export default function OnboardingFlow() {
         }
       }
 
-      toast.success('¡Sistema listo!');
+      // Mark initialized FIRST and wait to avoid race condition in AppLayout
+      await supabase.from('system_config').upsert(
+        { config_key: 'initialized', config_value: 'true', tenant_id: tid },
+        { onConflict: 'tenant_id,config_key' }
+      );
+
+      toast.success('¡Sistema listo! Redirigiendo…');
+
+      // Small delay so the upsert propagates before AppLayout re-checks
+      await new Promise(r => setTimeout(r, 800));
       router.push('/dashboard');
     } catch (err: any) {
       toast.error('Error: ' + err.message);
-    } finally {
       setSaving(false);
     }
   };
