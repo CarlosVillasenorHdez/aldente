@@ -64,12 +64,19 @@ export default function RegistroPage() {
       const { data, error: fnError } = await supabase.functions.invoke('create-tenant', {
         body: { restaurantName: form.restaurantName.trim(), slug, adminName: form.adminName.trim(), phone: form.phone.trim(), pinHash },
       });
-      if (fnError) throw fnError;
+      if (fnError) {
+        // fnError.message often contains the raw HTTP error — show it for diagnosis
+        const detail = (fnError as any)?.context?.json?.error
+          || (fnError as any)?.message
+          || JSON.stringify(fnError);
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       setTenantSlug(slug);
       setStep('success');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al crear el restaurante. Intenta de nuevo.');
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      setError('Error: ' + msg);
     } finally {
       setLoading(false);
     }
