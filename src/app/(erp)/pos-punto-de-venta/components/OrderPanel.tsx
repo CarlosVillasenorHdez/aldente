@@ -202,17 +202,27 @@ export default function OrderPanel({
                       <div key={item.lineId} className="px-4 pb-2 ml-8">
                         <div className="flex items-center gap-2 py-1.5 border-t border-dashed" style={{ borderColor: '#f3f4f6' }}>
                           <div className="flex-1 min-w-0">
+                            {/* Modifier group options chosen */}
+                            {(item as any).selectedOptions?.length > 0 && (
+                              <div style={{ marginBottom: 2 }}>
+                                {((item as any).selectedOptions as any[]).map((opt: any, i: number) => (
+                                  <p key={i} className="text-xs font-medium" style={{ color: '#8b5cf6' }}>
+                                    + {opt.name}{opt.price_delta !== 0 ? ` (+$${opt.price_delta})` : ''}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                             {item.modifier && (
                               <p className="text-xs font-medium" style={{ color: '#d97706' }}>
                                 ↳ {item.modifier}
                               </p>
                             )}
-                            {item.notes && !item.modifier && (
+                            {item.notes && (
                               <p className="text-xs italic" style={{ color: '#9ca3af' }}>
                                 📝 {item.notes}
                               </p>
                             )}
-                            {!item.modifier && !item.notes && (
+                            {!(item as any).selectedOptions?.length && !item.modifier && !item.notes && (
                               <p className="text-xs" style={{ color: '#9ca3af' }}>Sin modificaciones</p>
                             )}
                           </div>

@@ -17,6 +17,12 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { X, Minus, Plus, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
+interface ModGroup {
+  id: string; name: string; min_select: number; max_select: number; sort_order: number;
+  options: { id: string; name: string; price_delta: number; is_default: boolean;
+    ingredient_id: string | null; qty_delta: number; }[];
+}
+
 interface RecipeIngredient {
   id: string;
   name: string;
@@ -45,6 +51,7 @@ export interface ModifierLine {
   extras: ExtraIngredient[];
   note: string;
   modifier: string;
+  selectedOptions?: { groupId: string; optionId: string; name: string; price_delta: number; ingredient_id: string | null; qty_delta: number; }[];
 }
 
 export interface ExtraIngredient {
@@ -63,6 +70,8 @@ const QUICK_NOTES = [
 
 export default function ModifierModal({ item, onConfirm, onCancel }: ModifierModalProps) {
   const supabase = createClient();
+  const [modGroups, setModGroups] = useState<ModGroup[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({}); // groupId → optionIds[]
   const [recipe, setRecipe] = useState<RecipeIngredient[]>([]);
   const [loadingRecipe, setLoadingRecipe] = useState(true);
 
@@ -72,6 +81,26 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   useEffect(() => {
+    // Load modifier groups
+    supabase.from('modifier_groups')
+      .select('*, modifier_options(*)')
+      .eq('dish_id', item.id).eq('tenant_id', getTenantId())
+      .order('sort_order')
+      .then(({ data }) => {
+        const grps = (data ?? []).map((g: any) => ({
+          ...g,
+          options: (g.modifier_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+        }));
+        setModGroups(grps);
+        // Pre-select defaults
+        const defaults: Record<string, string[]> = {};
+        grps.forEach((g: ModGroup) => {
+          const def = g.options.filter(o => o.is_default).map(o => o.id);
+          if (def.length > 0) defaults[g.id] = def;
+        });
+        setSelectedOptions(defaults);
+      });
+
     supabase
       .from('dish_recipes')
       .select('ingredient_id, quantity, unit, is_required, ingredients(name, unit)')
@@ -221,6 +250,70 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
           </div>
           <button onClick={onCancel} style={s.iconBtn}><X size={16}/></button>
         </div>
+
+        {/* ── Modifier Groups — obligatorios y opcionales ─────────────────── */}
+        {modGroups.length > 0 && (
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '14px 20px 10px' }}>
+            {modGroups.map(g => {
+              const isRequired = g.min_select > 0;
+              const isMulti = g.max_select > 1;
+              const sel = selectedOptions[g.id] ?? [];
+              return (
+                <div key={g.id} style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>{g.name}</span>
+                    {isRequired && (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 10,
+                        background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>Requerido</span>
+                    )}
+                    {!isRequired && (
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Opcional</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {g.options.map(opt => {
+                      const active = sel.includes(opt.id);
+                      return (
+                        <button key={opt.id}
+                          onClick={() => {
+                            setSelectedOptions(prev => {
+                              const current = prev[g.id] ?? [];
+                              if (isMulti) {
+                                // checkbox: toggle
+                                const next = current.includes(opt.id)
+                                  ? current.filter(id => id !== opt.id)
+                                  : current.length < g.max_select
+                                    ? [...current, opt.id]
+                                    : current;
+                                return { ...prev, [g.id]: next };
+                              } else {
+                                // radio: select only this one (click again = deselect if optional)
+                                return { ...prev, [g.id]: current[0] === opt.id && !isRequired ? [] : [opt.id] };
+                              }
+                            });
+                          }}
+                          style={{
+                            padding: '6px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                            border: `1px solid ${active ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                            background: active ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                            color: active ? '#f59e0b' : 'rgba(255,255,255,0.55)',
+                            fontWeight: active ? 600 : 400, transition: 'all .12s',
+                          }}>
+                          {opt.name}
+                          {opt.price_delta !== 0 && (
+                            <span style={{ marginLeft: 4, fontSize: 11, opacity: 0.8 }}>
+                              {opt.price_delta > 0 ? '+' : ''}{opt.price_delta < 0 ? '-' : ''}${Math.abs(opt.price_delta)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Legend */}
         {recipe.length > 0 && (
