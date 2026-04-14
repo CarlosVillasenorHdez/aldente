@@ -28,6 +28,7 @@ export interface Dish {
   emoji: string;
   popular: boolean;
   preparationTimeMin?: number;
+  preparationArea?: 'cocina' | 'barra';
 }
 
 export interface Ingredient {
@@ -62,7 +63,7 @@ const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
 
 const emptyForm = (): Omit<Dish, 'id'> => ({
   name: '', description: '', price: 0, category: 'Entradas',
-  available: true, image: null, imageAlt: '', emoji: '', popular: false, preparationTimeMin: 15,
+  available: true, image: null, imageAlt: '', emoji: '', popular: false, preparationTimeMin: 15, preparationArea: 'cocina' as const,
 });
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -520,7 +521,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="text-sm font-semibold text-white">👨‍🍳 Mano de Obra</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Cocinero · {(dish as any).preparationTimeMin ?? 15} min de preparación</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{(dish as any).preparationArea === 'barra' ? 'Barra' : 'Cocina'} · {(dish as any).preparationTimeMin ?? 15} min</p>
                   </div>
                   <p className="text-lg font-bold font-mono" style={{ color: '#fb923c' }}>
                     {costConfigLoaded ? `$${laborCost.toFixed(2)}` : '…'}
@@ -939,13 +940,22 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
   const [step, setStep] = useState<1|2>(1);
   const [savedDish, setSavedDish] = useState<Dish | null>(null);
   const [form, setForm] = useState<Omit<Dish, 'id'>>(
-    dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15 }
+    dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15, preparationArea: (dish as any).preparationArea ?? 'cocina' as const }
       : emptyForm()
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Omit<Dish, 'id'>, string>>>({});
   const [imagePreview, setImagePreview] = useState<string | null>(dish?.image ?? null);
   const [savingStep1, setSavingStep1] = useState(false);
+  const [establishmentType, setEstablishmentType] = useState<string>('restaurante');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Load establishment type for prep area visibility
+  useEffect(() => {
+    const supaClient = createClient();
+    supaClient.from('system_config').select('config_value')
+      .eq('tenant_id', getTenantId()).eq('config_key', 'establishment_type').single()
+      .then(({ data }: any) => { if (data?.config_value) setEstablishmentType(data.config_value); });
+  }, []);
 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -983,6 +993,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
         category: form.category, available: form.available, image: form.image,
         image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
         preparation_time_min: (form as any).preparationTimeMin ?? 15,
+        preparation_area: (form as any).preparationArea ?? 'cocina',
         tenant_id: getTenantId(),
       }).select().single();
       if (error) throw error;
@@ -1094,6 +1105,23 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
                   <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>⏱ Tiempo prep. (min)</label>
                   <input type="number" min={1} max={120} step={1} value={(form as any).preparationTimeMin ?? 15} onChange={e => set('preparationTimeMin' as any, parseInt(e.target.value) || 15)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
                 </div>
+                {establishmentType === 'mixto' && (
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Área de preparación</label>
+                    <div style={{ display:'flex', gap:8 }}>
+                      {(['cocina','barra'] as const).map(area => (
+                        <button key={area} type="button"
+                          onClick={() => set('preparationArea' as any, area)}
+                          style={{ flex:1, padding:'8px', borderRadius:10, fontSize:12, fontWeight:600, cursor:'pointer', border:'1px solid',
+                            borderColor: (form as any).preparationArea === area ? '#f59e0b' : 'rgba(255,255,255,0.12)',
+                            background: (form as any).preparationArea === area ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                            color: (form as any).preparationArea === area ? '#f59e0b' : 'rgba(255,255,255,0.5)' }}>
+                          {area === 'cocina' ? '🍳 Cocina' : '🍹 Barra'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Available toggle */}
@@ -1307,6 +1335,7 @@ export default function MenuManagement() {
         category: data.category, available: data.available, image: data.image,
         image_alt: data.imageAlt, emoji: data.emoji, popular: data.popular,
         preparation_time_min: (data as any).preparationTimeMin ?? 15,
+        preparation_area: (data as any).preparationArea ?? 'cocina',
         updated_at: new Date().toISOString(),
       }).eq('id', editingDish.id);
       if (error) throw error;

@@ -60,6 +60,9 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   const [kitchenRate, setKitchenRate] = useState<string>('');
   const [overheadPct, setOverheadPct] = useState<string>('35');
   const [laborSaved, setLaborSaved] = useState(false);
+  const [barRate, setBarRate] = useState<string>('');
+  const [computedBarRate, setComputedBarRate] = useState<{ rate: number; barSalary: number; monthlyHours: number; headcount: number } | null>(null);
+  const [establishmentType, setEstablishmentType] = useState<string>('restaurante');
   const [computedRate, setComputedRate] = useState<{ rate: number; kitchenSalary: number; monthlyHours: number; headcount: number } | null>(null);
   const [computing, setComputing] = useState(false);
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>(defaultPrinter);
@@ -117,13 +120,15 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     supabase.from('system_config')
       .select('config_key, config_value')
       .eq('tenant_id', getTenantId())
-      .in('config_key', ['kitchen_hourly_rate', 'overhead_pct'])
+      .in('config_key', ['kitchen_hourly_rate', 'bar_hourly_rate', 'overhead_pct', 'establishment_type'])
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, string> = {};
         data.forEach((r: any) => { map[r.config_key] = r.config_value; });
         if (map.kitchen_hourly_rate) setKitchenRate(map.kitchen_hourly_rate);
+        if (map.bar_hourly_rate) setBarRate(map.bar_hourly_rate);
         if (map.overhead_pct) setOverheadPct(map.overhead_pct);
+        if (map.establishment_type) setEstablishmentType(map.establishment_type);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -132,12 +137,18 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     const rate = parseFloat(kitchenRate);
     const pct  = parseFloat(overheadPct);
     if (isNaN(rate) || rate < 0) { return; }
-    await supabase.from('system_config').upsert([
+    const rows: any[] = [
       { config_key: 'kitchen_hourly_rate', config_value: rate.toString(),
         tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en cocina' },
       { config_key: 'overhead_pct', config_value: (isNaN(pct) ? 35 : pct).toString(),
         tenant_id: getTenantId(), description: 'Porcentaje de gastos indirectos sobre precio de venta' },
-    ], { onConflict: 'tenant_id,config_key' });
+    ];
+    const barR = parseFloat(barRate);
+    if (!isNaN(barR) && barR > 0) {
+      rows.push({ config_key: 'bar_hourly_rate', config_value: barR.toString(),
+        tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en barra' });
+    }
+    await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
     setLaborSaved(true);
     setTimeout(() => setLaborSaved(false), 2000);
   }
@@ -203,6 +214,45 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     } catch (err: any) {
       alert('Error al calcular: ' + err.message);
     }
+    setComputing(false);
+  }
+
+  async function calcBarRateFromData() {
+    setComputing(true);
+    try {
+      const { data: staff } = await supabase
+        .from('employees').select('salary, salary_frequency, role')
+        .eq('tenant_id', getTenantId()).eq('status', 'activo')
+        .in('role', ['bartender', 'barista', 'Bartender', 'Barista', 'bar']);
+      if (!staff || staff.length === 0) {
+        alert('No hay bartenders/baristas activos. Agrega empleados con rol Barista o Bartender.');
+        setComputing(false); return;
+      }
+      const barSalary = (staff as any[]).reduce((sum, e) => {
+        const s = Number(e.salary ?? 0); const f = e.salary_frequency ?? 'mensual';
+        if (f === 'quincenal') return sum + s * 2;
+        if (f === 'semanal')   return sum + s * 4.33;
+        return sum + s;
+      }, 0);
+      const { data: cfg } = await supabase.from('system_config')
+        .select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single();
+      let monthlyHours = 240;
+      if (cfg?.config_value) {
+        try {
+          const bh: Array<{ open: boolean; from: string; to: string }> = JSON.parse(cfg.config_value);
+          const wh = bh.reduce((sum, d) => {
+            if (!d.open) return sum;
+            const [fh,fm] = d.from.split(':').map(Number);
+            const [th,tm] = d.to.split(':').map(Number);
+            return sum + Math.max(0, (th*60+tm-fh*60-fm)/60);
+          }, 0);
+          monthlyHours = Math.round(wh * 4.33);
+        } catch { /* use default */ }
+      }
+      const rate = barSalary / monthlyHours;
+      setComputedBarRate({ rate, barSalary, monthlyHours, headcount: (staff as any[]).length });
+      setBarRate(rate.toFixed(2));
+    } catch (err: any) { alert('Error: ' + err.message); }
     setComputing(false);
   }
 
@@ -365,11 +415,11 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
           <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
             <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
-              Costo por hora de cocina (MXN/hr)
+              Costo por hora de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : 'cocina'} (MXN/hr)
             </label>
             <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
-              Usa "Calcular desde nómina" para obtenerlo automáticamente de los salarios de
-              cocineros y ayudantes, o ingrésalo manualmente.
+              Usa "Calcular desde nómina" para obtenerlo automáticamente de los salarios del
+              personal de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : establishmentType === 'mixto' ? 'cocina' : 'cocina'}, o ingrésalo manualmente.
             </p>
             <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
               <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
@@ -390,7 +440,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                 style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
                   background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
                   fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
-                {computing ? 'Calculando…' : 'Calcular desde nómina'}
+                {computing ? 'Calculando…' : `Calcular desde nómina ${establishmentType === 'bar' || establishmentType === 'cafeteria' ? '(barra)' : '(cocina)'}`}
               </button>
             </div>
             {computedRate && (
@@ -404,6 +454,43 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
               </div>
             )}
           </div>
+
+          {establishmentType === 'mixto' && (
+            <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+              <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+                Costo por hora de barra (MXN/hr)
+              </label>
+              <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+                Para negocios mixtos, la barra (bebidas, cócteles) suele tener un costo/hora
+                distinto al de cocina. Aplica a platillos marcados como "Área: Barra".
+              </p>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+                <input type="number" min="0" step="0.5" value={barRate}
+                  onChange={e => { setBarRate(e.target.value); setComputedBarRate(null); }}
+                  placeholder="ej. 45.00"
+                  style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
+                    border:'0.5px solid var(--color-border-secondary)',
+                    background:'var(--color-background-secondary)',
+                    color:'var(--color-text-primary)', outline:'none' }} />
+                <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+                <button onClick={calcBarRateFromData} disabled={computing}
+                  style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
+                    background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                    fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
+                  {computing ? 'Calculando…' : 'Calcular desde nómina (barra)'}
+                </button>
+              </div>
+              {computedBarRate && (
+                <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
+                  background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
+                  fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                  {computedBarRate.headcount} bartenders/baristas · nómina ${Math.round(computedBarRate.barSalary).toLocaleString('es-MX')} ·
+                  {computedBarRate.monthlyHours} hrs/mes → <strong>${computedBarRate.rate.toFixed(2)}/hr</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
             <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
