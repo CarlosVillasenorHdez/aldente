@@ -19,7 +19,7 @@ const T = {
     demoNote:'Vista de demostración · La interfaz real se adapta a tu restaurante',
     demoTabs:['Mapa de mesas','Cocina (KDS)','P&L del día'],
     diffEyebrow:'Por qué Aldente', diffH:'La diferencia está en', diffHEm:'lo que nadie más mide.',
-    diffBody:'Otros sistemas te dan un POS y un reporte. Aldente te dice cuánto ganaste, por qué falta mercancía y dónde se va el dinero.',
+    diffBody:'Otros sistemas te dan ventas. Aldente te dice si ganaste o perdiste dinero — y en qué platillo. Con prime cost real por receta: ingredientes + mano de obra por tiempo de preparación. Nadie en el mercado SMB te da eso.',
     diffThem:'Otros sistemas', diffUs:'Aldente',
     stepsEyebrow:'Qué tan rápido empiezas', stepsH:'Configurado y operando', stepsHEm:'el mismo día.',
     plansEyebrow:'Planes que crecen contigo', plansH:'No pagas módulos.', plansHEm:'Pagas por la etapa de tu negocio.',
@@ -47,7 +47,7 @@ const T = {
     demoNote:'Demo view · The real interface adapts to your restaurant',
     demoTabs:['Table map','Kitchen (KDS)','Daily P&L'],
     diffEyebrow:'Why Aldente', diffH:'The difference is in', diffHEm:'what nobody else measures.',
-    diffBody:'Other systems give you a POS and a report. Aldente tells you how much you made, why inventory is missing and where the money goes.',
+    diffBody:'Other systems give you sales. Aldente tells you whether you actually made money — and on which dish. With real prime cost per recipe: ingredients + direct labor by prep time. Nobody in the SMB market gives you that.',
     diffThem:'Other systems', diffUs:'Aldente',
     stepsEyebrow:'How fast you get started', stepsH:'Configured and running', stepsHEm:'the same day.',
     plansEyebrow:'Plans that grow with you', plansH:"You don't pay per module.", plansHEm:'You pay for your business stage.',
@@ -66,6 +66,7 @@ const PAINS = [
   { n:'01', q:'¿Cuánto gané hoy de verdad?', body:'No el número de ventas. La utilidad real: con el costo de cada ingrediente que salió de la cocina, los gastos del día prorrateados y la merma de las cancelaciones. Ese número.', answer:'P&L del día en tiempo real. Automático.', color:'#c9963a' },
   { n:'02', q:'¿Por qué me falta mercancía si no vendí tanto?', body:'Porque cada platillo que sale descuenta los ingredientes exactos de su receta. Y cada cancelación registra lo que ya se consumió como merma con costo real. La diferencia te dice dónde está el problema.', answer:'Inventario vivo. Merma por ingrediente.', color:'#4a9eff' },
   { n:'03', q:'¿Puedo abrir otra sucursal sin perder el control?', body:'Cada sucursal opera de forma independiente — sus propias mesas, su propio menú, su equipo. Tú ves el consolidado desde un solo dashboard. La operación no se centraliza. La visibilidad sí.', answer:'Multi-sucursal con aislamiento real.', color:'#a78bfa' },
+  { n:'03', q:'¿Tu margen real es el que crees?', body:'El 80% de los restaurantes calcula su margen sobre ingredientes. Pero si tu cocinero tardó 15 minutos en preparar ese platillo, hay un costo que nunca viste. Prime cost = ingredientes + mano de obra directa. La diferencia puede ser 25 puntos porcentuales.', answer:'Prime cost real por platillo. Automático.', color:'#a78bfa' },
   { n:'04', q:'¿Sigues con papel y errores de comanda?', body:'La comanda va directo a cocina desde el celular del mesero. El cocinero ve el semáforo — verde, amarillo, rojo. El cajero cierra en 30 segundos. Sin papel, sin carreras, sin "no lo anoté".', answer:'POS + KDS + Mesero Móvil sincronizados.', color:'#34d399' },
 ];
 
@@ -446,15 +447,100 @@ export default function MarketingPage() {
           </div>
           <FadeUp delay={0.2}><div style={{marginTop:48,padding:'36px 44px',borderRadius:20,background:'rgba(201,150,58,.05)',border:'1px solid rgba(201,150,58,.18)',display:'flex',gap:48,alignItems:'center',flexWrap:'wrap'}}>
             <div style={{flex:1,minWidth:240}}>
-              <p className="serif" style={{fontSize:'clamp(18px,2.5vw,26px)',color:'#f0ece4',lineHeight:1.4,marginBottom:12,fontStyle:'italic'}}>"Evitar 2 mermas al día paga el sistema 3 veces al mes."</p>
-              <p style={{fontSize:13,color:'rgba(240,236,228,.4)',lineHeight:1.7}}>Si cada platillo tiene $80 de costo y registras 2 mermas diarias evitables, son $4,800 mensuales. El plan Negocio cuesta $1,499.</p>
+              <p className="serif" style={{fontSize:'clamp(18px,2.5vw,26px)',color:'#f0ece4',lineHeight:1.4,marginBottom:12,fontStyle:'italic'}}>"Tu granola tiene 53% de margen. O eso crees."</p>
+              <p style={{fontSize:13,color:'rgba(240,236,228,.4)',lineHeight:1.7}}>Con ingredientes a $9.75 sobre un precio de $85 el margen parece alto. Suma la mano de obra de los 15 minutos que tardó tu cocinero — el margen real baja a 28%. Aldente calcula ese número. Ningún otro sistema SMB lo hace.</p>
             </div>
             <div style={{display:'flex',gap:48,flexShrink:0,flexWrap:'wrap'}}>
-              {[['3.2x','ROI primer mes'],['30 seg','Corte de caja'],['~12%','Mejora de margen']].map(([v,l])=>(
+              {[['3.2x','ROI primer mes'],['30 seg','Corte de caja'],['25pp','Margen oculto promedio']].map(([v,l])=>(
                 <div key={l} style={{textAlign:'center'}}><p style={{fontSize:36,fontWeight:700,color:'#c9963a',lineHeight:1,fontFamily:'monospace'}}>{v}</p><p style={{fontSize:11,color:'rgba(240,236,228,.6)',marginTop:4}}>{l}</p></div>
               ))}
             </div>
           </div></FadeUp>
+        </div>
+      </section>
+
+      {/* PRIME COST — el número que nadie más calcula */}
+      <section className="sec" style={{background:'#07090f',borderTop:'1px solid rgba(255,255,255,.04)'}}>
+        <div className="wrap">
+          <FadeUp><div style={{textAlign:'center',marginBottom:56}}>
+            <div className="eyebrow" style={{justifyContent:'center',marginBottom:16}}>El número que ningún sistema te da</div>
+            <h2 className="serif" style={{fontSize:'clamp(28px,4vw,48px)',fontWeight:700,lineHeight:1.12,marginBottom:16}}>
+              El margen que ves<br/><em style={{color:'#c9963a'}}>no es el que tienes.</em>
+            </h2>
+            <p style={{fontSize:15,color:'rgba(240,236,228,.5)',maxWidth:520,margin:'0 auto',lineHeight:1.75}}>
+              La mayoría de los sistemas — y la mayoría de los dueños — calculan el margen sobre ingredientes. Ese número siempre se ve bien. El problema es lo que no está ahí.
+            </p>
+          </div></FadeUp>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:3,maxWidth:820,margin:'0 auto 48px'}} className="g2">
+
+            {/* Lo que el dueño cree */}
+            <FadeUp>
+              <div style={{padding:'32px 36px',borderRadius:'16px 0 0 16px',background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)'}}>
+                <p style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.3)',marginBottom:20}}>Lo que ves sin Aldente</p>
+                <p style={{fontSize:20,fontWeight:700,color:'#f0ece4',marginBottom:6}}>Granola con Yogurt · $85</p>
+                <p style={{fontSize:13,color:'rgba(240,236,228,.35)',marginBottom:28}}>Tu platillo estrella del desayuno</p>
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28}}>
+                  {[
+                    ['Ingredientes','$9.75','rgba(239,68,68,.6)'],
+                    ['Mano de obra','???','rgba(240,236,228,.2)'],
+                    ['Utilidad','$75.25','rgba(240,236,228,.2)'],
+                  ].map(([l,v,c])=>
+                    <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',borderRadius:10,background:'rgba(255,255,255,.03)'}}>
+                      <span style={{fontSize:13,color:'rgba(240,236,228,.5)'}}>{l}</span>
+                      <span style={{fontSize:15,fontWeight:700,fontFamily:'monospace',color:c as string}}>{v}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{padding:'16px 20px',borderRadius:12,background:'rgba(74,222,128,.05)',border:'1px solid rgba(74,222,128,.15)',textAlign:'center'}}>
+                  <p style={{fontSize:11,color:'rgba(240,236,228,.35)',marginBottom:4}}>Margen que crees tener</p>
+                  <p style={{fontSize:36,fontWeight:700,color:'#4ade80',fontFamily:'monospace',lineHeight:1}}>53.5%</p>
+                  <p style={{fontSize:11,color:'rgba(240,236,228,.25)',marginTop:6}}>basado solo en ingredientes</p>
+                </div>
+              </div>
+            </FadeUp>
+
+            {/* Lo que Aldente revela */}
+            <FadeUp delay={0.1}>
+              <div style={{padding:'32px 36px',borderRadius:'0 16px 16px 0',background:'rgba(201,150,58,.04)',border:'1px solid rgba(201,150,58,.2)'}}>
+                <p style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a',marginBottom:20}}>Lo que revela Aldente</p>
+                <p style={{fontSize:20,fontWeight:700,color:'#f0ece4',marginBottom:6}}>Granola con Yogurt · $85</p>
+                <p style={{fontSize:13,color:'rgba(240,236,228,.35)',marginBottom:28}}>15 min de preparación · cocinero $84/hr</p>
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28}}>
+                  {[
+                    ['Ingredientes','$9.75','rgba(239,68,68,.7)'],
+                    ['Mano de obra directa','$21.15','rgba(251,146,60,.9)'],
+                    ['Utilidad real','$54.10','#f0ece4'],
+                  ].map(([l,v,col])=>
+                    <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',borderRadius:10,background:'rgba(255,255,255,.03)'}}>
+                      <span style={{fontSize:13,color:'rgba(240,236,228,.5)'}}>{l}</span>
+                      <span style={{fontSize:15,fontWeight:700,fontFamily:'monospace',color:col as string}}>{v}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{padding:'16px 20px',borderRadius:12,background:'rgba(251,146,60,.07)',border:'1px solid rgba(251,146,60,.25)',textAlign:'center'}}>
+                  <p style={{fontSize:11,color:'rgba(240,236,228,.35)',marginBottom:4}}>Margen real (prime cost)</p>
+                  <p style={{fontSize:36,fontWeight:700,color:'#fb923c',fontFamily:'monospace',lineHeight:1}}>28.6%</p>
+                  <p style={{fontSize:11,color:'rgba(240,236,228,.25)',marginTop:6}}>ingredientes + mano de obra directa</p>
+                </div>
+              </div>
+            </FadeUp>
+          </div>
+
+          <FadeUp delay={0.15}>
+            <div style={{maxWidth:820,margin:'0 auto',padding:'28px 36px',borderRadius:16,background:'rgba(201,150,58,.05)',border:'1px solid rgba(201,150,58,.15)',display:'flex',gap:32,alignItems:'center',flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:220}}>
+                <p style={{fontSize:13,fontWeight:700,color:'#c9963a',marginBottom:6,letterSpacing:'.04em',textTransform:'uppercase'}}>La diferencia: 25 puntos porcentuales</p>
+                <p style={{fontSize:14,color:'rgba(240,236,228,.55)',lineHeight:1.7}}>
+                  Esos 25pp son los que decidirán si subes el precio, cambias la receta o simplemente dejas de vender ese platillo. Sin este número, estás tomando decisiones con la mitad de la información.
+                </p>
+              </div>
+              <div style={{textAlign:'center',flexShrink:0}}>
+                <p style={{fontSize:11,color:'rgba(240,236,228,.3)',marginBottom:4}}>Ningún otro sistema SMB<br/>en México calcula esto</p>
+                <p style={{fontSize:32,fontWeight:700,color:'#c9963a',fontFamily:'monospace',lineHeight:1}}>Solo Aldente</p>
+              </div>
+            </div>
+          </FadeUp>
         </div>
       </section>
 
