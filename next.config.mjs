@@ -28,13 +28,14 @@ const nextConfig = {
       `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
       `worker-src 'self'`,
       `frame-src 'none'`,
+      `frame-ancestors 'self' https://*.builtwithrocket.new https://rocket.new`,
       `object-src 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,
     ].join('; ');
 
     const securityHeaders = [
-      { key: 'X-Frame-Options',             value: 'SAMEORIGIN' },
+      // X-Frame-Options omitted — CSP frame-ancestors governs this (more flexible)
       { key: 'X-Content-Type-Options',       value: 'nosniff' },
       { key: 'Referrer-Policy',              value: 'strict-origin-when-cross-origin' },
       { key: 'Strict-Transport-Security',    value: 'max-age=31536000; includeSubDomains' },
