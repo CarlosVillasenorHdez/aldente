@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -31,13 +31,16 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
   }, [appUser, authLoading, router]);
 
   // Redirect to onboarding for new tenants (admin only, not yet initialized)
+  // Only runs once per mount — avoids race condition when onboarding just finished
+  const onboardingChecked = useRef(false);
   useEffect(() => {
     if (authLoading || !appUser) return;
     if (appUser.appRole !== 'admin') return;
     if (typeof window === 'undefined') return;
     if (window.location.pathname.includes('/onboarding')) return;
+    if (onboardingChecked.current) return;
+    onboardingChecked.current = true;
 
-    // Use system_config 'initialized' flag — reliable, not affected by empty order history
     const supabase = createClient();
     supabase
       .from('system_config')
