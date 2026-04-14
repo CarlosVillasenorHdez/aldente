@@ -358,8 +358,8 @@ export default function KitchenModule() {
   const fetchOrders = useCallback(async () => {
     let ordersQuery = supabase
       .from('orders')
-      .eq('tenant_id', getTenantId())
       .select('*, kitchen_sent_at, order_items(*, dishes(category), order_item_modifiers(name, price_delta))')
+      .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', true);         // only show comanda cards — original order is billing only
     if (activeBranchId) ordersQuery = ordersQuery.eq('branch_id', activeBranchId);
