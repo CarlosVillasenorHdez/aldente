@@ -60,6 +60,8 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   const [kitchenRate, setKitchenRate] = useState<string>('');
   const [overheadPct, setOverheadPct] = useState<string>('35');
   const [laborSaved, setLaborSaved] = useState(false);
+  const [computedRate, setComputedRate] = useState<{ rate: number; kitchenSalary: number; monthlyHours: number; headcount: number } | null>(null);
+  const [computing, setComputing] = useState(false);
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>(defaultPrinter);
   const [printerDraft, setPrinterDraft] = useState<PrinterConfig>(defaultPrinter);
   const [printerSaved, setPrinterSaved] = useState(false);
@@ -138,6 +140,70 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     ], { onConflict: 'tenant_id,config_key' });
     setLaborSaved(true);
     setTimeout(() => setLaborSaved(false), 2000);
+  }
+
+  async function calcKitchenRateFromData() {
+    setComputing(true);
+    try {
+      // 1. Get kitchen staff salaries (cocinero + ayudante de cocina)
+      const { data: staff } = await supabase
+        .from('employees')
+        .select('salary, salary_frequency, role')
+        .eq('tenant_id', getTenantId())
+        .eq('status', 'activo')
+        .in('role', ['cocinero', 'ayudante de cocina', 'Cocinero', 'Ayudante de Cocina']);
+
+      if (!staff || staff.length === 0) {
+        alert('No hay cocineros activos registrados en el sistema. Agrega empleados con rol Cocinero o Ayudante de Cocina.');
+        setComputing(false);
+        return;
+      }
+
+      // 2. Convert all salaries to monthly
+      const kitchenSalary = (staff as any[]).reduce((sum, e) => {
+        const s = Number(e.salary ?? 0);
+        const f = e.salary_frequency ?? 'mensual';
+        if (f === 'quincenal') return sum + s * 2;
+        if (f === 'semanal')   return sum + s * 4.33;
+        return sum + s;  // mensual
+      }, 0);
+
+      // 3. Calculate monthly hours from business_hours config
+      const { data: cfg } = await supabase
+        .from('system_config')
+        .select('config_value')
+        .eq('tenant_id', getTenantId())
+        .eq('config_key', 'business_hours')
+        .single();
+
+      let monthlyHours = 240; // default: 8 hrs × 30 días
+      if (cfg?.config_value) {
+        try {
+          const bh: Array<{ open: boolean; from: string; to: string }> = JSON.parse(cfg.config_value);
+          const weeklyHrs = bh.reduce((sum, day) => {
+            if (!day.open) return sum;
+            const [fh, fm] = day.from.split(':').map(Number);
+            const [th, tm] = day.to.split(':').map(Number);
+            const hrs = (th * 60 + tm - fh * 60 - fm) / 60;
+            return sum + Math.max(0, hrs);
+          }, 0);
+          monthlyHours = Math.round(weeklyHrs * 4.33);
+        } catch { /* use default */ }
+      }
+
+      if (monthlyHours <= 0) {
+        alert('Configura los horarios de atención primero para calcular las horas trabajadas al mes.');
+        setComputing(false);
+        return;
+      }
+
+      const rate = kitchenSalary / monthlyHours;
+      setComputedRate({ rate, kitchenSalary, monthlyHours, headcount: (staff as any[]).length });
+      setKitchenRate(rate.toFixed(2));
+    } catch (err: any) {
+      alert('Error al calcular: ' + err.message);
+    }
+    setComputing(false);
   }
 
   async function handleSaveHours() {
@@ -302,23 +368,41 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
               Costo por hora de cocina (MXN/hr)
             </label>
             <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
-              Suma todos los sueldos del área de cocina y divide entre las horas trabajadas al mes.
-              Ej: 3 cocineros × $4,500/mes ÷ 240 hrs = <strong>$56.25/hr</strong>
+              Usa "Calcular desde nómina" para obtenerlo automáticamente de los salarios de
+              cocineros y ayudantes, o ingrésalo manualmente.
             </p>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
               <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
               <input
                 type="number" min="0" step="0.5"
                 value={kitchenRate}
-                onChange={e => setKitchenRate(e.target.value)}
+                onChange={e => { setKitchenRate(e.target.value); setComputedRate(null); }}
                 placeholder="ej. 56.25"
                 style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
                   border:'0.5px solid var(--color-border-secondary)',
                   background:'var(--color-background-secondary)',
                   color:'var(--color-text-primary)', outline:'none' }}
               />
-              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN por hora</span>
+              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+              <button
+                onClick={calcKitchenRateFromData}
+                disabled={computing}
+                style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                  fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
+                {computing ? 'Calculando…' : 'Calcular desde nómina'}
+              </button>
             </div>
+            {computedRate && (
+              <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
+                background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
+                fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                Calculado desde nómina: <strong>{computedRate.headcount} cocineros/ayudantes</strong> ·
+                nómina mensual <strong>${Math.round(computedRate.kitchenSalary).toLocaleString('es-MX')}</strong> ·
+                horas mensuales <strong>{computedRate.monthlyHours} hrs</strong><br/>
+                Costo/hora = ${computedRate.kitchenSalary.toFixed(0)} ÷ {computedRate.monthlyHours} hrs = <strong>${computedRate.rate.toFixed(2)}/hr</strong>
+              </div>
+            )}
           </div>
 
           <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
