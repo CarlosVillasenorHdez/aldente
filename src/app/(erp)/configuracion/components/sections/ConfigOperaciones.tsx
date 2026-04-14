@@ -57,6 +57,14 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
   const [hours, setHours] = useState<BusinessHours[]>(initialHours);
   const [hoursSaved, setHoursSaved] = useState(false);
+  const [kitchenRate, setKitchenRate] = useState<string>('');
+  const [overheadPct, setOverheadPct] = useState<string>('35');
+  const [laborSaved, setLaborSaved] = useState(false);
+  const [barRate, setBarRate] = useState<string>('');
+  const [computedBarRate, setComputedBarRate] = useState<{ rate: number; barSalary: number; monthlyHours: number; headcount: number } | null>(null);
+  const [establishmentType, setEstablishmentType] = useState<string>('restaurante');
+  const [computedRate, setComputedRate] = useState<{ rate: number; kitchenSalary: number; monthlyHours: number; headcount: number } | null>(null);
+  const [computing, setComputing] = useState(false);
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>(defaultPrinter);
   const [printerDraft, setPrinterDraft] = useState<PrinterConfig>(defaultPrinter);
   const [printerSaved, setPrinterSaved] = useState(false);
@@ -108,7 +116,145 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   }, [supabase]);
 
   // ── Load system config ───────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.from('system_config')
+      .select('config_key, config_value')
+      .eq('tenant_id', getTenantId())
+      .in('config_key', ['kitchen_hourly_rate', 'bar_hourly_rate', 'overhead_pct', 'establishment_type'])
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach((r: any) => { map[r.config_key] = r.config_value; });
+        if (map.kitchen_hourly_rate) setKitchenRate(map.kitchen_hourly_rate);
+        if (map.bar_hourly_rate) setBarRate(map.bar_hourly_rate);
+        if (map.overhead_pct) setOverheadPct(map.overhead_pct);
+        if (map.establishment_type) setEstablishmentType(map.establishment_type);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+
+  async function handleSaveLaborConfig() {
+    const rate = parseFloat(kitchenRate);
+    const pct  = parseFloat(overheadPct);
+    if (isNaN(rate) || rate < 0) { return; }
+    const rows: any[] = [
+      { config_key: 'kitchen_hourly_rate', config_value: rate.toString(),
+        tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en cocina' },
+      { config_key: 'overhead_pct', config_value: (isNaN(pct) ? 35 : pct).toString(),
+        tenant_id: getTenantId(), description: 'Porcentaje de gastos indirectos sobre precio de venta' },
+    ];
+    const barR = parseFloat(barRate);
+    if (!isNaN(barR) && barR > 0) {
+      rows.push({ config_key: 'bar_hourly_rate', config_value: barR.toString(),
+        tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en barra' });
+    }
+    await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
+    setLaborSaved(true);
+    setTimeout(() => setLaborSaved(false), 2000);
+  }
+
+  async function calcKitchenRateFromData() {
+    setComputing(true);
+    try {
+      // 1. Get kitchen staff salaries (cocinero + ayudante de cocina)
+      const { data: staff } = await supabase
+        .from('employees')
+        .select('salary, salary_frequency, role')
+        .eq('tenant_id', getTenantId())
+        .eq('status', 'activo')
+        .in('role', ['cocinero', 'ayudante de cocina', 'Cocinero', 'Ayudante de Cocina']);
+
+      if (!staff || staff.length === 0) {
+        alert('No hay cocineros activos registrados en el sistema. Agrega empleados con rol Cocinero o Ayudante de Cocina.');
+        setComputing(false);
+        return;
+      }
+
+      // 2. Convert all salaries to monthly
+      const kitchenSalary = (staff as any[]).reduce((sum, e) => {
+        const s = Number(e.salary ?? 0);
+        const f = e.salary_frequency ?? 'mensual';
+        if (f === 'quincenal') return sum + s * 2;
+        if (f === 'semanal')   return sum + s * 4.33;
+        return sum + s;  // mensual
+      }, 0);
+
+      // 3. Calculate monthly hours from business_hours config
+      const { data: cfg } = await supabase
+        .from('system_config')
+        .select('config_value')
+        .eq('tenant_id', getTenantId())
+        .eq('config_key', 'business_hours')
+        .single();
+
+      let monthlyHours = 240; // default: 8 hrs × 30 días
+      if (cfg?.config_value) {
+        try {
+          const bh: Array<{ open: boolean; from: string; to: string }> = JSON.parse(cfg.config_value);
+          const weeklyHrs = bh.reduce((sum, day) => {
+            if (!day.open) return sum;
+            const [fh, fm] = day.from.split(':').map(Number);
+            const [th, tm] = day.to.split(':').map(Number);
+            const hrs = (th * 60 + tm - fh * 60 - fm) / 60;
+            return sum + Math.max(0, hrs);
+          }, 0);
+          monthlyHours = Math.round(weeklyHrs * 4.33);
+        } catch { /* use default */ }
+      }
+
+      if (monthlyHours <= 0) {
+        alert('Configura los horarios de atención primero para calcular las horas trabajadas al mes.');
+        setComputing(false);
+        return;
+      }
+
+      const rate = kitchenSalary / monthlyHours;
+      setComputedRate({ rate, kitchenSalary, monthlyHours, headcount: (staff as any[]).length });
+      setKitchenRate(rate.toFixed(2));
+    } catch (err: any) {
+      alert('Error al calcular: ' + err.message);
+    }
+    setComputing(false);
+  }
+
+  async function calcBarRateFromData() {
+    setComputing(true);
+    try {
+      const { data: staff } = await supabase
+        .from('employees').select('salary, salary_frequency, role')
+        .eq('tenant_id', getTenantId()).eq('status', 'activo')
+        .in('role', ['bartender', 'barista', 'Bartender', 'Barista', 'bar']);
+      if (!staff || staff.length === 0) {
+        alert('No hay bartenders/baristas activos. Agrega empleados con rol Barista o Bartender.');
+        setComputing(false); return;
+      }
+      const barSalary = (staff as any[]).reduce((sum, e) => {
+        const s = Number(e.salary ?? 0); const f = e.salary_frequency ?? 'mensual';
+        if (f === 'quincenal') return sum + s * 2;
+        if (f === 'semanal')   return sum + s * 4.33;
+        return sum + s;
+      }, 0);
+      const { data: cfg } = await supabase.from('system_config')
+        .select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single();
+      let monthlyHours = 240;
+      if (cfg?.config_value) {
+        try {
+          const bh: Array<{ open: boolean; from: string; to: string }> = JSON.parse(cfg.config_value);
+          const wh = bh.reduce((sum, d) => {
+            if (!d.open) return sum;
+            const [fh,fm] = d.from.split(':').map(Number);
+            const [th,tm] = d.to.split(':').map(Number);
+            return sum + Math.max(0, (th*60+tm-fh*60-fm)/60);
+          }, 0);
+          monthlyHours = Math.round(wh * 4.33);
+        } catch { /* use default */ }
+      }
+      const rate = barSalary / monthlyHours;
+      setComputedBarRate({ rate, barSalary, monthlyHours, headcount: (staff as any[]).length });
+      setBarRate(rate.toFixed(2));
+    } catch (err: any) { alert('Error: ' + err.message); }
+    setComputing(false);
+  }
 
   async function handleSaveHours() {
     await supabase.from('system_config').upsert(
@@ -255,6 +401,135 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
               </div>
               <SaveButton saved={hoursSaved} onClick={handleSaveHours} />
             </div>}
+      {activeSection === 'costos' && (
+        <div className="max-w-xl">
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+            <div style={{ fontSize:18 }}>💰</div>
+            <div>
+              <h3 style={{ fontSize:16, fontWeight:700, color:'var(--color-text-primary)', margin:0 }}>Parámetros de costeo de mano de obra</h3>
+              <p style={{ fontSize:12, color:'var(--color-text-secondary)', margin:'2px 0 0' }}>
+                Estos valores se usan para calcular el prime cost real de cada platillo basado en su tiempo de preparación
+              </p>
+            </div>
+          </div>
+
+          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+              Costo por hora de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : 'cocina'} (MXN/hr)
+            </label>
+            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+              Usa "Calcular desde nómina" para obtenerlo automáticamente de los salarios del
+              personal de {establishmentType === 'bar' || establishmentType === 'cafeteria' ? 'barra' : establishmentType === 'mixto' ? 'cocina' : 'cocina'}, o ingrésalo manualmente.
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+              <input
+                type="number" min="0" step="0.5"
+                value={kitchenRate}
+                onChange={e => { setKitchenRate(e.target.value); setComputedRate(null); }}
+                placeholder="ej. 56.25"
+                style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
+                  border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)',
+                  color:'var(--color-text-primary)', outline:'none' }}
+              />
+              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+              <button
+                onClick={calcKitchenRateFromData}
+                disabled={computing}
+                style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                  fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
+                {computing ? 'Calculando…' : `Calcular desde nómina ${establishmentType === 'bar' || establishmentType === 'cafeteria' ? '(barra)' : '(cocina)'}`}
+              </button>
+            </div>
+            {computedRate && (
+              <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
+                background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
+                fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                Calculado desde nómina: <strong>{computedRate.headcount} cocineros/ayudantes</strong> ·
+                nómina mensual <strong>${Math.round(computedRate.kitchenSalary).toLocaleString('es-MX')}</strong> ·
+                horas mensuales <strong>{computedRate.monthlyHours} hrs</strong><br/>
+                Costo/hora = ${computedRate.kitchenSalary.toFixed(0)} ÷ {computedRate.monthlyHours} hrs = <strong>${computedRate.rate.toFixed(2)}/hr</strong>
+              </div>
+            )}
+          </div>
+
+          {establishmentType === 'mixto' && (
+            <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+              <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+                Costo por hora de barra (MXN/hr)
+              </label>
+              <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+                Para negocios mixtos, la barra (bebidas, cócteles) suele tener un costo/hora
+                distinto al de cocina. Aplica a platillos marcados como "Área: Barra".
+              </p>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+                <input type="number" min="0" step="0.5" value={barRate}
+                  onChange={e => { setBarRate(e.target.value); setComputedBarRate(null); }}
+                  placeholder="ej. 45.00"
+                  style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
+                    border:'0.5px solid var(--color-border-secondary)',
+                    background:'var(--color-background-secondary)',
+                    color:'var(--color-text-primary)', outline:'none' }} />
+                <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN / hora</span>
+                <button onClick={calcBarRateFromData} disabled={computing}
+                  style={{ padding:'8px 14px', borderRadius:8, border:'0.5px solid var(--color-border-secondary)',
+                    background:'var(--color-background-secondary)', color:'var(--color-text-primary)',
+                    fontSize:12, cursor:'pointer', opacity: computing ? 0.6 : 1 }}>
+                  {computing ? 'Calculando…' : 'Calcular desde nómina (barra)'}
+                </button>
+              </div>
+              {computedBarRate && (
+                <div style={{ marginTop:10, padding:'10px 14px', borderRadius:8,
+                  background:'var(--color-background-success)', border:'0.5px solid var(--color-border-success)',
+                  fontSize:12, color:'var(--color-text-success)', lineHeight:1.7 }}>
+                  {computedBarRate.headcount} bartenders/baristas · nómina ${Math.round(computedBarRate.barSalary).toLocaleString('es-MX')} ·
+                  {computedBarRate.monthlyHours} hrs/mes → <strong>${computedBarRate.rate.toFixed(2)}/hr</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+              Gastos indirectos (% sobre precio de venta)
+            </label>
+            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+              Renta, luz, gas, mantenimiento — costos que no son ingredientes ni mano de obra.
+              El estándar para restaurantes SMB en México es <strong>25–40%</strong>.
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <input
+                type="number" min="0" max="100" step="1"
+                value={overheadPct}
+                onChange={e => setOverheadPct(e.target.value)}
+                placeholder="35"
+                style={{ width:80, padding:'8px 12px', borderRadius:8, fontSize:14,
+                  border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)',
+                  color:'var(--color-text-primary)', outline:'none' }}
+              />
+              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>% de las ventas</span>
+            </div>
+          </div>
+
+          <div style={{ background:'var(--color-background-info)', border:'0.5px solid var(--color-border-info)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:12, color:'var(--color-text-info)', lineHeight:1.6 }}>
+            <strong>Cómo se usa:</strong> en Menú → cada platillo muestra su prime cost real = food cost + (tiempo de prep ÷ 60 × costo/hora). El Análisis Financiero también lo usa para el cálculo de prime cost global.
+          </div>
+
+          <button
+            onClick={handleSaveLaborConfig}
+            style={{ padding:'10px 24px', borderRadius:10, border:'none', cursor:'pointer',
+              fontSize:13, fontWeight:600,
+              background: laborSaved ? 'var(--color-background-success)' : '#1B3A6B',
+              color: laborSaved ? 'var(--color-text-success)' : 'white', transition:'all .2s' }}>
+            {laborSaved ? '✓ Guardado' : 'Guardar parámetros'}
+          </button>
+        </div>
+      )}
+
       {activeSection === 'impresora' && <div className="max-w-2xl">
               <SectionTitle icon={Printer} title="Configuración de Impresora de Tickets" />
 
