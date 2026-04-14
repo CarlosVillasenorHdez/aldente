@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import TrialBanner from '@/components/TrialBanner';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -114,6 +115,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         </main>
       </div>
     </div>
+    <TrialBanner />
     </BranchProvider>
   );
 }
