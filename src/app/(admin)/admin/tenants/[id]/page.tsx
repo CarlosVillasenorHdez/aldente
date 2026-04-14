@@ -240,6 +240,25 @@ export default function TenantDetailPage() {
     else { toast.success(tenant.is_active ? 'Cuenta suspendida' : 'Cuenta activada'); load(); }
   }
 
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!tenant || deleteConfirm !== tenant.slug) return;
+    setDeleting(true);
+    try {
+      // CASCADE on all tables — one delete cleans everything
+      const { error } = await supabase.from('tenants').delete().eq('id', id);
+      if (error) throw error;
+      toast.success(`Restaurante "${tenant.name}" eliminado permanentemente`);
+      router.replace('/admin');
+    } catch (e: any) {
+      toast.error('Error al eliminar: ' + e.message);
+      setDeleting(false);
+    }
+  }
+
   if (loading) return <div style={{ color: 'rgba(255,255,255,0.4)', padding: 40 }}>Cargando…</div>;
   if (!tenant) return <div style={{ color: '#f87171', padding: 40 }}>Tenant no encontrado.</div>;
 
@@ -262,6 +281,7 @@ export default function TenantDetailPage() {
   });
 
   return (
+    <>
     <div style={{ maxWidth: 920, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -284,6 +304,10 @@ export default function TenantDetailPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={toggleActive} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {tenant.is_active ? 'Suspender' : 'Activar'}
+          </button>
+          <button onClick={() => { setShowDeleteModal(true); setDeleteConfirm(''); }}
+            style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            🗑 Eliminar
           </button>
         </div>
       </div>
@@ -621,5 +645,58 @@ export default function TenantDetailPage() {
         </div>
       )}
     </div>
+      {/* ── Delete confirmation modal ─────────────────────────────────────── */}
+      {showDeleteModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowDeleteModal(false); }}>
+          <div style={{ background:'#0f1923', border:'1px solid rgba(239,68,68,0.3)', borderRadius:16,
+            padding:28, maxWidth:440, width:'100%' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+              <div style={{ width:40, height:40, borderRadius:10, background:'rgba(239,68,68,0.1)',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🗑</div>
+              <div>
+                <p style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>Eliminar restaurante</p>
+                <p style={{ fontSize:12, color:'rgba(241,245,249,0.4)', margin:0 }}>Esta acción es irreversible</p>
+              </div>
+            </div>
+            <div style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.15)',
+              borderRadius:10, padding:'12px 14px', marginBottom:20, fontSize:13, color:'#fca5a5', lineHeight:1.6 }}>
+              Se eliminarán permanentemente <strong>todos los datos</strong> de <strong>{tenant?.name}</strong>:
+              órdenes, platillos, empleados, inventario, reportes y configuración.
+            </div>
+            <label style={{ display:'block', fontSize:12, color:'rgba(241,245,249,0.5)', marginBottom:8 }}>
+              Escribe <strong style={{ color:'#f87171', fontFamily:'monospace' }}>{tenant?.slug}</strong> para confirmar
+            </label>
+            <input
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder={tenant?.slug ?? ''}
+              autoFocus
+              style={{ width:'100%', padding:'9px 12px', borderRadius:8, fontSize:14, fontFamily:'monospace',
+                border:`1px solid ${deleteConfirm === tenant?.slug ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                background:'#0a0c10', color:'#f1f5f9', outline:'none', boxSizing:'border-box', marginBottom:16 }}
+            />
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setShowDeleteModal(false)}
+                style={{ flex:1, padding:'10px', borderRadius:8, border:'1px solid rgba(255,255,255,0.1)',
+                  background:'transparent', color:'rgba(241,245,249,0.5)', fontSize:13, cursor:'pointer' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteConfirm !== tenant?.slug || deleting}
+                style={{ flex:2, padding:'10px', borderRadius:8, border:'none', fontSize:13, fontWeight:700,
+                  cursor: deleteConfirm !== tenant?.slug || deleting ? 'not-allowed' : 'pointer',
+                  background: deleteConfirm === tenant?.slug && !deleting ? '#dc2626' : 'rgba(239,68,68,0.2)',
+                  color: deleteConfirm === tenant?.slug && !deleting ? 'white' : 'rgba(239,68,68,0.4)',
+                  transition:'all .15s' }}>
+                {deleting ? 'Eliminando…' : 'Eliminar permanentemente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
