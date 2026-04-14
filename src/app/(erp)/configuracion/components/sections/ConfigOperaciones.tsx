@@ -57,6 +57,9 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
   const [hours, setHours] = useState<BusinessHours[]>(initialHours);
   const [hoursSaved, setHoursSaved] = useState(false);
+  const [kitchenRate, setKitchenRate] = useState<string>('');
+  const [overheadPct, setOverheadPct] = useState<string>('35');
+  const [laborSaved, setLaborSaved] = useState(false);
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>(defaultPrinter);
   const [printerDraft, setPrinterDraft] = useState<PrinterConfig>(defaultPrinter);
   const [printerSaved, setPrinterSaved] = useState(false);
@@ -108,7 +111,34 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   }, [supabase]);
 
   // ── Load system config ───────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.from('system_config')
+      .select('config_key, config_value')
+      .eq('tenant_id', getTenantId())
+      .in('config_key', ['kitchen_hourly_rate', 'overhead_pct'])
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach((r: any) => { map[r.config_key] = r.config_value; });
+        if (map.kitchen_hourly_rate) setKitchenRate(map.kitchen_hourly_rate);
+        if (map.overhead_pct) setOverheadPct(map.overhead_pct);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+
+  async function handleSaveLaborConfig() {
+    const rate = parseFloat(kitchenRate);
+    const pct  = parseFloat(overheadPct);
+    if (isNaN(rate) || rate < 0) { return; }
+    await supabase.from('system_config').upsert([
+      { config_key: 'kitchen_hourly_rate', config_value: rate.toString(),
+        tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en cocina' },
+      { config_key: 'overhead_pct', config_value: (isNaN(pct) ? 35 : pct).toString(),
+        tenant_id: getTenantId(), description: 'Porcentaje de gastos indirectos sobre precio de venta' },
+    ], { onConflict: 'tenant_id,config_key' });
+    setLaborSaved(true);
+    setTimeout(() => setLaborSaved(false), 2000);
+  }
 
   async function handleSaveHours() {
     await supabase.from('system_config').upsert(
@@ -255,6 +285,80 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
               </div>
               <SaveButton saved={hoursSaved} onClick={handleSaveHours} />
             </div>}
+      {activeSection === 'costos' && (
+        <div className="max-w-xl">
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+            <div style={{ fontSize:18 }}>💰</div>
+            <div>
+              <h3 style={{ fontSize:16, fontWeight:700, color:'var(--color-text-primary)', margin:0 }}>Parámetros de costeo de mano de obra</h3>
+              <p style={{ fontSize:12, color:'var(--color-text-secondary)', margin:'2px 0 0' }}>
+                Estos valores se usan para calcular el prime cost real de cada platillo basado en su tiempo de preparación
+              </p>
+            </div>
+          </div>
+
+          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+              Costo por hora de cocina (MXN/hr)
+            </label>
+            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+              Suma todos los sueldos del área de cocina y divide entre las horas trabajadas al mes.
+              Ej: 3 cocineros × $4,500/mes ÷ 240 hrs = <strong>$56.25/hr</strong>
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:15, color:'var(--color-text-secondary)' }}>$</span>
+              <input
+                type="number" min="0" step="0.5"
+                value={kitchenRate}
+                onChange={e => setKitchenRate(e.target.value)}
+                placeholder="ej. 56.25"
+                style={{ width:120, padding:'8px 12px', borderRadius:8, fontSize:14,
+                  border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)',
+                  color:'var(--color-text-primary)', outline:'none' }}
+              />
+              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>MXN por hora</span>
+            </div>
+          </div>
+
+          <div style={{ background:'var(--color-background-primary)', border:'0.5px solid var(--color-border-tertiary)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <label style={{ fontSize:13, fontWeight:500, color:'var(--color-text-primary)', display:'block', marginBottom:6 }}>
+              Gastos indirectos (% sobre precio de venta)
+            </label>
+            <p style={{ fontSize:12, color:'var(--color-text-secondary)', marginBottom:10, lineHeight:1.5 }}>
+              Renta, luz, gas, mantenimiento — costos que no son ingredientes ni mano de obra.
+              El estándar para restaurantes SMB en México es <strong>25–40%</strong>.
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <input
+                type="number" min="0" max="100" step="1"
+                value={overheadPct}
+                onChange={e => setOverheadPct(e.target.value)}
+                placeholder="35"
+                style={{ width:80, padding:'8px 12px', borderRadius:8, fontSize:14,
+                  border:'0.5px solid var(--color-border-secondary)',
+                  background:'var(--color-background-secondary)',
+                  color:'var(--color-text-primary)', outline:'none' }}
+              />
+              <span style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>% de las ventas</span>
+            </div>
+          </div>
+
+          <div style={{ background:'var(--color-background-info)', border:'0.5px solid var(--color-border-info)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:12, color:'var(--color-text-info)', lineHeight:1.6 }}>
+            <strong>Cómo se usa:</strong> en Menú → cada platillo muestra su prime cost real = food cost + (tiempo de prep ÷ 60 × costo/hora). El Análisis Financiero también lo usa para el cálculo de prime cost global.
+          </div>
+
+          <button
+            onClick={handleSaveLaborConfig}
+            style={{ padding:'10px 24px', borderRadius:10, border:'none', cursor:'pointer',
+              fontSize:13, fontWeight:600,
+              background: laborSaved ? 'var(--color-background-success)' : '#1B3A6B',
+              color: laborSaved ? 'var(--color-text-success)' : 'white', transition:'all .2s' }}>
+            {laborSaved ? '✓ Guardado' : 'Guardar parámetros'}
+          </button>
+        </div>
+      )}
+
       {activeSection === 'impresora' && <div className="max-w-2xl">
               <SectionTitle icon={Printer} title="Configuración de Impresora de Tickets" />
 

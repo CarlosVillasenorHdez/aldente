@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield , Layers } from 'lucide-react';
+import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield , Layers , DollarSign } from 'lucide-react';
 import ConfigRestaurante  from './sections/ConfigRestaurante';
 import ConfigLayout       from './sections/ConfigLayout';
 import ConfigOperaciones  from './sections/ConfigOperaciones';
@@ -18,6 +18,7 @@ const SECTIONS = [
   { id: 'layout',        label: 'Layout Mesas',        icon: LayoutGrid, group: 'Configuración' },
   { id: 'horarios',      label: 'Horarios',            icon: Clock,      group: 'Operación' },
   { id: 'impresora',     label: 'Impresora',           icon: Printer,    group: 'Operación' },
+  { id: 'costos',        label: 'Costos MO',           icon: DollarSign, group: 'Operación' },
   { id: 'funcionalidades', label: 'Funcionalidades',  icon: Zap,        group: 'Sistema' },
   { id: 'lealtad_config',label: 'Programa de Lealtad', icon: Star,      group: 'Sistema' },
   { id: 'sistema',       label: 'Sistema',             icon: Settings2,  group: 'Sistema' },
@@ -36,7 +37,7 @@ function resolveComponent(section: SectionId): string {
   if (section === 'establecimiento') return 'establecimiento';
   if (section === 'restaurante' || section === 'operacion') return 'restaurante';
   if (section === 'layout') return 'layout';
-  if (section === 'horarios' || section === 'impresora') return 'operaciones';
+  if (section === 'horarios' || section === 'impresora' || section === 'costos') return 'operaciones';
   if (section === 'auditoria') return 'auditoria';
   return 'sistema';
 }
