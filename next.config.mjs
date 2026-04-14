@@ -25,10 +25,10 @@ const nextConfig = {
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com`,
       `font-src 'self' https://fonts.gstatic.com`,
       `img-src 'self' data: blob: https://${supabaseHost} https://*.cartocdn.com https://*.openstreetmap.org https://unpkg.com`,
-      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org https://*.builtwithrocket.new wss://*.builtwithrocket.new https://rocket.new`,
+      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org https://*.builtwithrocket.new wss://*.builtwithrocket.new https://rocket.new https://www.rocket.new`,
       `worker-src 'self' blob:`,
       `frame-src 'none'`,
-      `frame-ancestors 'self' https://*.builtwithrocket.new https://rocket.new`,
+      `frame-ancestors 'self' https://*.builtwithrocket.new https://rocket.new https://www.rocket.new`,
       `object-src 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,
@@ -48,16 +48,7 @@ const nextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
-      {
-        // CORS para rutas API — solo mismo origen
-        source: '/api/(.*)',
-        headers: [
-          { key: 'Access-Control-Allow-Origin',  value: 'https://aldenteerp.com' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-          { key: 'Access-Control-Max-Age',       value: '86400' },
-        ],
-      },
+      // CORS handled dynamically in src/middleware.ts
     ];
   },
 
