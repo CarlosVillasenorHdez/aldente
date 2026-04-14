@@ -17,14 +17,44 @@ const nextConfig = {
   },
 
   async headers() {
+    const supabaseHost = 'ocrfaojxnpbxbljskkmz.supabase.co';
+
+    const csp = [
+      `default-src 'self'`,
+      `script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+      `font-src 'self' https://fonts.gstatic.com`,
+      `img-src 'self' data: blob: https://${supabaseHost}`,
+      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
+      `worker-src 'self'`,
+      `frame-src 'none'`,
+      `object-src 'none'`,
+      `base-uri 'self'`,
+      `form-action 'self'`,
+    ].join('; ');
+
+    const securityHeaders = [
+      { key: 'X-Frame-Options',             value: 'SAMEORIGIN' },
+      { key: 'X-Content-Type-Options',       value: 'nosniff' },
+      { key: 'Referrer-Policy',              value: 'strict-origin-when-cross-origin' },
+      { key: 'Strict-Transport-Security',    value: 'max-age=31536000; includeSubDomains' },
+      { key: 'Permissions-Policy',           value: 'usb=*, bluetooth=*, serial=*, camera=()' },
+      { key: 'Content-Security-Policy',      value: csp },
+    ];
+
     return [
       {
         source: '/(.*)',
+        headers: securityHeaders,
+      },
+      {
+        // CORS para rutas API — solo mismo origen
+        source: '/api/(.*)',
         headers: [
-          {
-            key: 'Permissions-Policy',
-            value: 'usb=*, bluetooth=*, serial=*',
-          },
+          { key: 'Access-Control-Allow-Origin',  value: 'https://aldenteerp.com' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+          { key: 'Access-Control-Max-Age',       value: '86400' },
         ],
       },
     ];
