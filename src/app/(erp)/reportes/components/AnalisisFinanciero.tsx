@@ -219,11 +219,34 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
 
 
+  const [showDetail, setShowDetail] = React.useState(false);
+
+  // ── Derived summary metrics ──────────────────────────────────────────────────
+  const last = months[months.length - 1];
+  const prev = months[months.length - 2];
+
+  function getRowDerived(key: string, m: MonthData): number {
+    const vn = m.ventas - m.descuentos - m.iva;
+    if (key === 'ventas_netas') return vn;
+    if (key === 'margen_bruto') return vn - m.cogs - m.merma;
+    if (key === 'ebitda')       return vn - m.cogs - m.merma - m.nomina - m.gastosOp;
+    if (key === 'utilidad_neta') return vn - m.cogs - m.merma - m.nomina - m.gastosOp - m.depreciacion - m.financiero;
+    if (key === 'prime_cost')   return vn > 0 ? (m.cogs + m.nomina) / vn * 100 : 0;
+    return 0;
+  }
+
+  const SUMMARY_METRICS = [
+    { key: 'ventas_netas',  label: 'Ventas netas',  isMoney: true,  goodUp: true },
+    { key: 'margen_bruto',  label: 'Margen bruto',  isMoney: true,  goodUp: true },
+    { key: 'ebitda',        label: 'EBITDA',         isMoney: true,  goodUp: true },
+    { key: 'utilidad_neta', label: 'Utilidad neta',  isMoney: true,  goodUp: true },
+    { key: 'prime_cost',    label: 'Prime Cost',     isMoney: false, goodUp: false },
+  ];
+
   const C = { hdr:'#f9fafb', border:'#e5e7eb', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
   const thStyle: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 600, color: C.muted, textAlign: 'right', background: C.hdr, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
   const TOTAL_COL_STYLE: React.CSSProperties = { fontWeight: 700, color: C.blue, background: '#f0f4ff' };
 
-  // Compute totals column
   const totals: MonthData = months.reduce((acc, m) => ({
     label: 'Total', ventas: acc.ventas + m.ventas, descuentos: acc.descuentos + m.descuentos,
     iva: acc.iva + m.iva, cogs: acc.cogs + m.cogs, merma: acc.merma + m.merma,
@@ -231,10 +254,39 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     depreciacion: acc.depreciacion + m.depreciacion, financiero: acc.financiero + m.financiero,
   }), { label:'Total', ventas:0, descuentos:0, iva:0, cogs:0, merma:0, nomina:0, gastosOp:0, depreciacion:0, financiero:0 });
 
+  // Sparkline SVG for a metric across months
+  function Sparkline({ values, goodUp }: { values: number[]; goodUp: boolean }) {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const W = 80; const H = 28; const pad = 3;
+    const pts = values.map((v, i) => {
+      const x = pad + (i / Math.max(values.length - 1, 1)) * (W - pad * 2);
+      const y = H - pad - ((v - min) / range) * (H - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const lastVal = values[values.length - 1];
+    const prevVal = values[values.length - 2] ?? lastVal;
+    const trending = lastVal >= prevVal;
+    const color = (trending === goodUp) ? '#16a34a' : '#dc2626';
+    return (
+      <svg width={W} height={H} style={{ display: 'block' }}>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {values.map((v, i) => {
+          const x = pad + (i / Math.max(values.length - 1, 1)) * (W - pad * 2);
+          const y = H - pad - ((v - min) / range) * (H - pad * 2);
+          return i === values.length - 1
+            ? <circle key={i} cx={x} cy={y} r={2.5} fill={color} />
+            : null;
+        })}
+      </svg>
+    );
+  }
+
   return (
     <div>
-      {/* View toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+      {/* ── View toggle ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {([['pesos','$ Pesos'], ['pct','% sobre ventas'], ['delta','Δ vs mes ant.']] as [HView,string][]).map(([v, lbl]) => (
           <button key={v} onClick={() => setView(v)}
             style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
@@ -244,113 +296,167 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         ))}
       </div>
 
-      <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${C.border}` }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
-            <tr>
-              <th style={{ ...thStyle, textAlign: 'left', width: 180 }}>Concepto</th>
-              {months.map(m => <th key={m.label} style={thStyle}>{m.label}</th>)}
-              <th style={{ ...thStyle, ...TOTAL_COL_STYLE }}>{numMonths} meses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => {
-              if (row.tipo === 'header') {
+      {/* ── Summary cards — 5 métricas clave ─────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10, marginBottom: 20 }}>
+        {SUMMARY_METRICS.map(metric => {
+          const lastVal = last ? getRowDerived(metric.key, last) : 0;
+          const prevVal = prev ? getRowDerived(metric.key, prev) : null;
+          const delta = prevVal !== null && prevVal !== 0
+            ? ((lastVal - prevVal) / Math.abs(prevVal)) * 100
+            : null;
+          const trending = delta !== null ? delta >= 0 : null;
+          const isGood = trending === null ? null : trending === metric.goodUp;
+          const sparkVals = months.map(m => getRowDerived(metric.key, m));
+
+          return (
+            <div key={metric.key} style={{ background: 'white', border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: '14px 16px' }}>
+              <p style={{ fontSize: 11, color: C.muted, margin: '0 0 6px',
+                textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 }}>
+                {metric.label}
+              </p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: '0 0 4px',
+                fontFamily: 'monospace' }}>
+                {metric.isMoney
+                  ? '$' + lastVal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  : lastVal.toFixed(1) + '%'}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                {delta !== null ? (
+                  <p style={{ fontSize: 11, margin: 0, fontWeight: 600,
+                    color: isGood ? '#16a34a' : '#dc2626' }}>
+                    {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}% vs {prev?.label}
+                  </p>
+                ) : <p style={{ fontSize: 11, margin: 0, color: C.muted }}>—</p>}
+                {months.length > 1 && (
+                  <Sparkline values={sparkVals} goodUp={metric.goodUp} />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Detalle colapsable ────────────────────────────────────────────── */}
+      <button
+        onClick={() => setShowDetail(d => !d)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+          borderRadius: 8, border: `1px solid ${C.border}`, background: C.hdr,
+          color: C.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          marginBottom: showDetail ? 14 : 0, width: '100%', justifyContent: 'space-between' }}>
+        <span>{showDetail ? '▲ Ocultar detalle completo' : '▼ Ver estado de resultados completo mes a mes'}</span>
+        <span style={{ fontSize: 10, color: '#9ca3af' }}>{months.length} meses · {rows.filter(r => r.tipo !== 'header').length} líneas</span>
+      </button>
+
+      {showDetail && (
+        <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle, textAlign: 'left', width: 180, minWidth: 160 }}>Concepto</th>
+                {months.map(m => <th key={m.label} style={thStyle}>{m.label}</th>)}
+                <th style={{ ...thStyle, ...TOTAL_COL_STYLE }}>{numMonths}m</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => {
+                if (row.tipo === 'header') {
+                  return (
+                    <tr key={ri}>
+                      <td colSpan={months.length + 2}
+                        style={{ padding: '6px 10px', fontSize: 10, fontWeight: 600, color: C.muted,
+                          letterSpacing: '.08em', textTransform: 'uppercase', background: C.hdr,
+                          borderTop: `1px solid ${C.border}` }}>
+                        {row.label}
+                      </td>
+                    </tr>
+                  );
+                }
+
+                const vals = months.map(m => getVal(row, m));
+                const totVal = getVal(row, totals);
+                const maxVal = Math.max(...vals.map(Math.abs), 1);
+                const isTotal = row.tipo === 'total';
+                const isSub   = row.tipo === 'sub';
+
                 return (
-                  <tr key={ri}>
-                    <td colSpan={months.length + 2}
-                      style={{ padding: '6px 10px', fontSize: 10, fontWeight: 600, color: C.muted,
-                        letterSpacing: '.08em', textTransform: 'uppercase', background: C.hdr,
-                        borderTop: `1px solid ${C.border}` }}>
+                  <tr key={ri} style={{ borderTop: (isTotal || isSub) ? `1px solid ${C.border}` : undefined }}>
+                    <td style={{ padding: '9px 10px', paddingLeft: row.indent ? 22 : 10,
+                      fontWeight: isTotal || isSub ? 600 : 400, color: C.text,
+                      background: isTotal ? '#eff6ff' : 'transparent',
+                      borderBottom: `1px solid ${C.border}` }}>
                       {row.label}
+                    </td>
+                    {months.map((m, mi) => {
+                      const val = vals[mi];
+                      const prevVal2 = mi > 0 ? vals[mi - 1] : null;
+                      const isMax = row.tipo === 'line' && val === Math.max(...vals);
+                      const isMin = row.tipo === 'line' && val === Math.min(...vals) && val !== Math.max(...vals);
+                      const cellBg = isMax ? 'rgba(22,163,74,0.05)' : isMin ? 'rgba(220,38,38,0.05)' : isTotal ? '#eff6ff' : 'transparent';
+
+                      let display: React.ReactNode;
+                      if (view === 'pesos') {
+                        const barW = Math.round(Math.min(Math.abs(val) / maxVal * 32, 32));
+                        display = (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                            {(isSub || isTotal) && barW > 0 && (
+                              <span style={{ display: 'inline-block', height: 3, width: barW,
+                                borderRadius: 2, background: val >= 0 ? '#1d4ed8' : '#dc2626', flexShrink: 0 }} />
+                            )}
+                            <span style={{ color: isTotal ? (val >= 0 ? '#15803d' : '#dc2626') : C.text }}>
+                              {fmtMXN(val)}
+                            </span>
+                          </span>
+                        );
+                      } else if (view === 'pct') {
+                        const base = months[mi].ventas || 1;
+                        const pct  = val / base * 100;
+                        display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#dc2626' : C.text }}>{fmtP(val, base)}</span>;
+                      } else {
+                        if (prevVal2 === null || prevVal2 === 0) {
+                          display = <span style={{ color: '#d1d5db' }}>—</span>;
+                        } else {
+                          const result = fmtD(val, prevVal2);
+                          if (typeof result === 'string') {
+                            display = <span style={{ color: '#d1d5db' }}>{result}</span>;
+                          } else {
+                            display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
+                          }
+                        }
+                      }
+
+                      return (
+                        <td key={mi}
+                          style={{ padding: '9px 10px', textAlign: 'right', fontWeight: isTotal || isSub ? 600 : 400,
+                            background: cellBg, borderBottom: `1px solid ${C.border}` }}>
+                          {display}
+                        </td>
+                      );
+                    })}
+                    <td style={{ ...TOTAL_COL_STYLE, padding: '9px 10px', textAlign: 'right',
+                      fontWeight: isTotal || isSub ? 700 : 400, borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ color: isTotal ? (totVal >= 0 ? '#15803d' : '#dc2626') : C.blue }}>
+                        {view === 'pesos' ? fmtMXN(totVal) :
+                         view === 'pct'   ? fmtP(totVal, totals.ventas) : '—'}
+                      </span>
                     </td>
                   </tr>
                 );
-              }
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-              const vals = months.map(m => getVal(row, m));
-              const totVal = getVal(row, totals);
-              const maxVal = Math.max(...vals.map(Math.abs), 1);
-              const isTotal = row.tipo === 'total';
-              const isSub   = row.tipo === 'sub';
-
-              return (
-                <tr key={ri} style={{ borderTop: (isTotal || isSub) ? `1px solid ${C.border}` : undefined }}>
-                  <td style={{ padding: '9px 10px', paddingLeft: row.indent ? 22 : 10,
-                    fontWeight: isTotal || isSub ? 600 : 400, color: C.text,
-                    background: isTotal ? '#eff6ff' : 'transparent',
-                    borderBottom: `1px solid ${C.border}` }}>
-                    {row.label}
-                  </td>
-                  {months.map((m, mi) => {
-                    const val = vals[mi];
-                    const prevVal = mi > 0 ? vals[mi - 1] : null;
-
-                    // Best/worst highlight for line rows
-                    const isMax = row.tipo === 'line' && val === Math.max(...vals);
-                    const isMin = row.tipo === 'line' && val === Math.min(...vals) && val !== Math.max(...vals);
-                    const cellBg = isMax ? 'rgba(22,163,74,0.05)' : isMin ? 'rgba(220,38,38,0.05)' : isTotal ? '#eff6ff' : 'transparent';
-
-                    let display: React.ReactNode;
-                    if (view === 'pesos') {
-                      const barW = Math.round(Math.min(Math.abs(val) / maxVal * 32, 32));
-                      display = (
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                          {(isSub || isTotal) && barW > 0 && (
-                            <span style={{ display: 'inline-block', height: 3, width: barW,
-                              borderRadius: 2, background: val >= 0 ? '#1d4ed8' : '#dc2626', flexShrink: 0 }} />
-                          )}
-                          <span style={{ color: isTotal ? (val >= 0 ? '#15803d' : '#dc2626') : C.text }}>
-                            {fmtMXN(val)}
-                          </span>
-                        </span>
-                      );
-                    } else if (view === 'pct') {
-                      const base = months[mi].ventas || 1;
-                      const pct  = val / base * 100;
-                      display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#dc2626' : C.text }}>{fmtP(val, base)}</span>;
-                    } else {
-                      if (prevVal === null || prevVal === 0) {
-                        display = <span style={{ color: '#d1d5db' }}>—</span>;
-                      } else {
-                        const result = fmtD(val, prevVal);
-                        if (typeof result === 'string') {
-                          display = <span style={{ color: '#d1d5db' }}>{result}</span>;
-                        } else {
-                          display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
-                        }
-                      }
-                    }
-
-                    return (
-                      <td key={mi}
-                        style={{ padding: '9px 10px', textAlign: 'right', fontWeight: isTotal || isSub ? 600 : 400,
-                          background: cellBg, borderBottom: `1px solid ${C.border}` }}>
-                        {display}
-                      </td>
-                    );
-                  })}
-                  {/* Total column */}
-                  <td style={{ ...TOTAL_COL_STYLE, padding: '9px 10px', textAlign: 'right',
-                    fontWeight: isTotal || isSub ? 700 : 400, borderBottom: `1px solid ${C.border}` }}>
-                    <span style={{ color: isTotal ? (totVal >= 0 ? '#15803d' : '#dc2626') : C.blue }}>
-                      {view === 'pesos' ? fmtMXN(totVal) :
-                       view === 'pct'   ? fmtP(totVal, totals.ventas) : '—'}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 10 }}>
-        Verde = mejor mes de la fila · Rojo = peor mes · Las barras muestran magnitud relativa de utilidades
-      </p>
+      {!showDetail && (
+        <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+          Verde = mejor mes · Rojo = peor mes · Sparklines muestran tendencia del período
+        </p>
+      )}
     </div>
   );
 }
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AnalisisFinanciero() {
