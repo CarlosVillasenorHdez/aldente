@@ -954,37 +954,61 @@ export default function POSClient() {
     setSendingToKitchen(false);
   };
 
-  // Add a combo: expands into individual items with their discounts applied
+  // Add a combo: check each dish for modifiers, prompt if needed, then add all
   const handleAddCombo = useCallback(async (combo: any) => {
     if (!selectedTable) return;
-    const newLines = (combo.items as any[]).map((ci: any) => ({
-      lineId: `combo-${combo.id}-${ci.dish_id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
-      menuItem: {
-        id: ci.dish_id, name: ci.name, emoji: ci.emoji ?? '🍽️',
-        price: ci.qty > 0 ? ci.final_price / ci.qty : ci.original_price,
-        available: true, category: 'Combos', description: `Combo: ${combo.name}`,
-        popular: false, imageUrl: null,
-      } as MenuItem,
-      quantity: ci.qty,
-      modifier: `🎁 ${combo.name}`,
-      notes: undefined,
-      excludedIngredientIds: undefined,
-    }));
-    const newItems = [...orderItems, ...newLines];
+
+    // Fetch has_modifiers for each dish in the combo
+    const dishIds = [...new Set((combo.items as any[]).map((ci: any) => ci.dish_id))];
+    const { data: dishData } = await supabase
+      .from('dishes').select('id, has_modifiers').in('id', dishIds);
+    const hasModMap: Record<string, boolean> = {};
+    (dishData ?? []).forEach((d: any) => { hasModMap[d.id] = d.has_modifiers; });
+
+    // Items without modifiers go straight to the order
+    const simpleLines = (combo.items as any[])
+      .filter(ci => !hasModMap[ci.dish_id])
+      .map((ci: any) => ({
+        lineId: `combo-${combo.id}-${ci.dish_id}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        menuItem: {
+          id: ci.dish_id, name: ci.name, emoji: ci.emoji ?? '🍽️',
+          price: ci.qty > 0 ? ci.final_price / ci.qty : ci.original_price,
+          available: true, category: 'Combos', description: `Combo: ${combo.name}`,
+          popular: false, imageUrl: null,
+        } as MenuItem,
+        quantity: ci.qty,
+        modifier: `🎁 ${combo.name}`,
+      }));
+
+    const newItems = [...orderItems, ...simpleLines];
     setOrderItems(newItems);
     const orderId = await ensureOpenOrder(selectedTable);
     const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
     const discAmt = discount.type === 'pct'
-      ? newSubtotal * (discount.value / 100)
-      : Math.min(discount.value, newSubtotal);
+      ? newSubtotal * (discount.value / 100) : Math.min(discount.value, newSubtotal);
     const taxable = newSubtotal - discAmt;
     const newTotal = ivaIncludedInPrice ? taxable : taxable * (1 + IVA_RATE);
     const groupIds = selectedTable.mergeGroupId
       ? tables.filter(t => t.mergeGroupId === selectedTable.mergeGroupId).map(t => t.id)
       : [selectedTable.id];
     syncOrderToTable(orderId, groupIds, newItems, newTotal);
-    toast.success(`🎁 Combo "${combo.name}" agregado`);
-  }, [selectedTable, orderItems, ensureOpenOrder, syncOrderToTable, discount, IVA_RATE, tables]);
+
+    // Items WITH modifiers: open modifier modal for each one
+    const modItems = (combo.items as any[]).filter(ci => hasModMap[ci.dish_id]);
+    if (modItems.length > 0) {
+      // Open the first one — subsequent ones handled by existing modifier confirm flow
+      const ci = modItems[0];
+      setModifierPending({
+        id: ci.dish_id, name: ci.name, emoji: ci.emoji ?? '🍽️',
+        price: ci.qty > 0 ? ci.final_price / ci.qty : ci.original_price,
+        available: true, category: 'Combos', popular: false, imageUrl: null,
+        description: `Combo: ${combo.name}`,
+      } as MenuItem);
+      toast(`🎁 Combo "${combo.name}" — elige opciones para ${ci.name}`);
+    } else {
+      toast.success(`🎁 Combo "${combo.name}" agregado`);
+    }
+  }, [selectedTable, orderItems, ensureOpenOrder, syncOrderToTable, discount, IVA_RATE, tables, supabase, ivaIncludedInPrice]);
 
   const handleAddItem = useCallback((item: MenuItem) => {
     if (!item.available || !selectedTable) return;
@@ -1586,12 +1610,12 @@ export default function POSClient() {
                                 opacity: selectedTable ? 1 : 0.55 }}>
                               <span style={{ fontSize:24, flexShrink:0 }}>{combo.emoji ?? '🎁'}</span>
                               <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:2 }}>{combo.name}</div>
-                                <div style={{ fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>
-                                  {(combo.items as any[]).map((i: any) => `${i.qty > 1 ? i.qty+'× ' : ''}${i.name}`).join(' + ')}
+                                <div style={{ fontSize:14, fontWeight:700, color:'#f1f5f9', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{combo.name}</div>
+                                <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.5 }}>
+                                  {(combo.items as any[]).map((i: any) => `${i.qty > 1 ? i.qty+'× ' : ''}${i.name}`).join(' · ')}
                                 </div>
                                 {savings > 0 && (
-                                  <div style={{ fontSize:10, color:'#4ade80', marginTop:3 }}>El cliente ahorra ${Number(savings).toFixed(0)}</div>
+                                  <div style={{ fontSize:11, color:'#4ade80', marginTop:4, fontWeight:500 }}>Ahorra ${Number(savings).toFixed(0)}</div>
                                 )}
                               </div>
                               <div style={{ textAlign:'right', flexShrink:0 }}>
