@@ -304,7 +304,11 @@ function PLHorizontal({ tenantId }: { tenantId: string }) {
                         display = <span style={{ color: '#d1d5db' }}>—</span>;
                       } else {
                         const result = fmtD(val, prevVal);
-                        display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
+                        if (typeof result === 'string') {
+                          display = <span style={{ color: '#d1d5db' }}>{result}</span>;
+                        } else {
+                          display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
+                        }
                       }
                     }
 
