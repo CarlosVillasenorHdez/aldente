@@ -48,6 +48,7 @@ export interface MenuItem {
   available: boolean;
   emoji: string;
   popular?: boolean;
+  has_modifiers?: boolean;
 }
 
 export interface OrderItem {
@@ -960,12 +961,12 @@ export default function POSClient() {
   const handleAddCombo = useCallback(async (combo: any) => {
     if (!selectedTable) return;
 
-    // Fetch has_modifiers for each dish in the combo
+    // Check which dishes in combo have modifier groups (query directly — more reliable than has_modifiers cache)
     const dishIds = [...new Set((combo.items as any[]).map((ci: any) => ci.dish_id))];
-    const { data: dishData } = await supabase
-      .from('dishes').select('id, has_modifiers').in('id', dishIds);
+    const { data: modGroupData } = await supabase
+      .from('modifier_groups').select('dish_id').in('dish_id', dishIds).eq('tenant_id', getTenantId());
     const hasModMap: Record<string, boolean> = {};
-    (dishData ?? []).forEach((d: any) => { hasModMap[d.id] = d.has_modifiers; });
+    (modGroupData ?? []).forEach((g: any) => { hasModMap[g.dish_id] = true; });
 
     // Items without modifiers go straight to the order
     const simpleLines = (combo.items as any[])
@@ -1600,7 +1601,7 @@ export default function POSClient() {
 
                     {/* Combos panel */}
                     {posView === 'combos' ? (
-                      <div style={{ padding:12, display:'flex', flexDirection:'column', gap:8, overflowY:'auto' }}>
+                      <div style={{ padding:12, display:'flex', flexDirection:'column', gap:8, overflowY:'auto', flex:1 }}>
                         {combos.map((combo: any) => {
                           const savings = combo.savings ?? 0;
                           return (

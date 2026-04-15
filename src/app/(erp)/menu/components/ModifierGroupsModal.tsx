@@ -200,6 +200,10 @@ export default function ModifierGroupsModal({ dish, onClose }: { dish: Dish; onC
         }
       }
 
+      // Sync has_modifiers flag on the dish (safety net — trigger may be delayed)
+      const hasAny = groups.length > 0;
+      await supabase.from('dishes').update({ has_modifiers: hasAny }).eq('id', dish.id);
+
       toast.success('Modificadores guardados');
       onClose(); // ← cierra automáticamente al guardar
     } catch (e: any) {
