@@ -17,9 +17,10 @@ import { toast } from 'sonner';
 const C = { gold: '#d4922a', goldHover: '#e8ac4a', blue: '#1B3A6B', bg: '#0f1923', bg2: '#1a2535', border: 'rgba(255,255,255,0.08)', text: '#f1f5f9', muted: 'rgba(241,245,249,0.45)' };
 
 const PLANS = [
-  { key: 'operacion', name: 'Operación', price: 699,  color: '#4a9eff', desc: 'POS · KDS · Mesero móvil', tag: '' },
-  { key: 'negocio',   name: 'Negocio',   price: 1299, color: '#d4922a', desc: 'Todo + P&L · Inventario · Reportes', tag: 'Más popular' },
-  { key: 'empresa',   name: 'Empresa',   price: 2199, color: '#a78bfa', desc: 'Todo + Multi-sucursal · Alarmas', tag: '' },
+  { key: 'medida',    name: 'A tu medida', price: 399,  color: '#60a5fa', desc: 'Solo lo que necesitas — elige módulos desde $100/mes', tag: 'Nuevo' },
+  { key: 'operacion', name: 'Operación',   price: 699,  color: '#4a9eff', desc: 'POS · KDS · Mesero Móvil — todo incluido', tag: '' },
+  { key: 'negocio',   name: 'Negocio',     price: 1299, color: '#d4922a', desc: 'Todo + P&L · Inventario · Reportes · Lealtad', tag: 'Más popular' },
+  { key: 'empresa',   name: 'Empresa',     price: 2199, color: '#a78bfa', desc: 'Todo + Multi-sucursal · RRHH · Delivery', tag: '' },
 ];
 
 export default function OnboardingFlow() {

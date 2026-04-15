@@ -7,11 +7,13 @@ import ConfigLayout       from './sections/ConfigLayout';
 import ConfigOperaciones  from './sections/ConfigOperaciones';
 import ConfigSistema      from './sections/ConfigSistema';
 import AuditLog              from './sections/AuditLog';
+import ConfigPlan from './sections/ConfigPlan';
 import ConfigEstablecimiento  from './sections/ConfigEstablecimiento';
 import Icon from '@/components/ui/AppIcon';
 
 
 const SECTIONS = [
+  { id: 'plan',            label: 'Plan y módulos',     icon: Zap,        group: 'Cuenta' },
   { id: 'establecimiento', label: 'Tipo de Negocio',   icon: Layers,     group: 'Configuración' },
   { id: 'restaurante',   label: 'Restaurante',        icon: Store,      group: 'Configuración' },
   { id: 'operacion',     label: 'Operación',           icon: Hash,       group: 'Configuración' },
@@ -34,6 +36,7 @@ type SectionId = typeof SECTIONS[number]['id'];
 // ConfigOperaciones handles: horarios + impresora
 // ConfigSistema handles: funcionalidades + lealtad + sistema + usuarios
 function resolveComponent(section: SectionId): string {
+  if (section === 'plan')            return 'plan';
   if (section === 'establecimiento') return 'establecimiento';
   if (section === 'restaurante' || section === 'operacion') return 'restaurante';
   if (section === 'layout') return 'layout';
@@ -98,6 +101,7 @@ export default function ConfiguracionManagement() {
 
         {/* Content — mount once, let each sub-component manage its own scroll */}
         <div className="flex-1 overflow-y-auto p-6">
+          {activeComponent === 'plan'            && <ConfigPlan />}
           {activeComponent === 'establecimiento' && <ConfigEstablecimiento />}
           {activeComponent === 'restaurante' && <ConfigRestaurante activeSection={activeSection} />}
           {activeComponent === 'layout'      && <ConfigLayout />}
