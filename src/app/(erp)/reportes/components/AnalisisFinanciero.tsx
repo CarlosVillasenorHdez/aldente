@@ -194,6 +194,8 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     return row.derived ? row.derived(m) : Number(m[row.key as keyof MonthData] ?? 0);
   }
 
+  const [showDetail, setShowDetail] = React.useState(false);
+
   // Notify parent when data is loaded (for CSV/PDF export)
   useEffect(() => {
     if (!loading && months.length > 0 && onDataReady) {
@@ -203,7 +205,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 48, color: '#9ca3af', fontSize: 13 }}>
-      Cargando comparativa de 6 meses…
+      Cargando comparativa de {numMonths} meses…
     </div>
   );
 
@@ -216,10 +218,6 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     const col = d >= 0 ? '#16a34a' : '#dc2626';
     return { text: s + ' ' + Math.abs(d).toFixed(1) + '%', color: col };
   };
-
-
-
-  const [showDetail, setShowDetail] = React.useState(false);
 
   // ── Derived summary metrics ──────────────────────────────────────────────────
   const last = months[months.length - 1];
