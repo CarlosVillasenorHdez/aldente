@@ -98,6 +98,14 @@ export default function MenuGrid({ items, onAddItem, orderItems, selectedTable }
                         <Star size={12} className="text-amber-500 fill-amber-500" />
                       </div>
                     )}
+                    {(item as any).has_modifiers && (
+                      <div className="absolute top-2 left-2" title="Tiene opciones personalizables">
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6,
+                          background: 'rgba(139,92,246,0.85)', color: 'white', letterSpacing: '.02em' }}>
+                          OPC
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 relative">
                     <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold mb-1.5 inline-block" style={{ backgroundColor: catColors.bg, color: catColors.color, fontSize: '10px' }}>{item.category}</span>
