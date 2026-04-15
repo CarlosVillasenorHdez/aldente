@@ -70,6 +70,7 @@ serve(async (req) => {
       { config_key: 'currency_code',            config_value: 'MXN',                 tenant_id: tid },
       { config_key: 'currency_locale',          config_value: 'es-MX',               tenant_id: tid },
       { config_key: 'establishment_type',       config_value: establishmentType?.trim() || 'restaurante', tenant_id: tid },
+      { config_key: 'iva_included_in_price',     config_value: 'true',                tenant_id: tid }, // México: precios incluyen IVA
       { config_key: 'feature_mesero_movil',     config_value: 'false',               tenant_id: tid },
       { config_key: 'feature_lealtad',          config_value: 'false',               tenant_id: tid },
       { config_key: 'feature_reservaciones',    config_value: 'false',               tenant_id: tid },

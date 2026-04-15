@@ -62,5 +62,9 @@ export function useSysConfig() {
   const currencyCode = config['currency_code'] ?? 'MXN';
   const restaurantName = config['restaurant_name'] ?? 'Aldente';
 
-  return { config, ivaPercent, currencySymbol, currencyLocale, currencyCode, restaurantName };
+  // iva_included_in_price: true = precios ya incluyen IVA (México estándar)
+  // false = precios sin IVA, se suma encima (modo exportación/B2B)
+  const ivaIncludedInPrice = config['iva_included_in_price'] !== 'false'; // default true
+
+  return { config, ivaPercent, currencySymbol, currencyLocale, currencyCode, restaurantName, ivaIncludedInPrice };
 }

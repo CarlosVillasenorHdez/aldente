@@ -196,7 +196,26 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
     if (extras.length > 0) modParts.push(`Extra: ${extras.map(e => e.name).join(', ')}`);
     if (row.note.trim()) modParts.push(row.note.trim());
 
-    return { qty: row.qty, excluded, excludedIds, extras, note: row.note, modifier: modParts.join(' — ') };
+    // Build selectedOptions from modifier group selections
+    const chosenOptions = Object.entries(selectedOptions).flatMap(([gid, oids]) =>
+      oids.map(oid => {
+        const grp = modGroups.find(g => g.id === gid);
+        const opt = grp?.options.find(o => o.id === oid);
+        if (!opt) return null;
+        if (opt.name) modParts.push(opt.name + (opt.price_delta !== 0 ? ` (+$${opt.price_delta})` : ''));
+        return {
+          groupId: gid, optionId: oid,
+          name: opt.name, price_delta: opt.price_delta,
+          ingredient_id: opt.ingredient_id, qty_delta: opt.qty_delta,
+        };
+      }).filter(Boolean)
+    ) as { groupId: string; optionId: string; name: string; price_delta: number; ingredient_id: string | null; qty_delta: number; }[];
+
+    return {
+      qty: row.qty, excluded, excludedIds, extras,
+      note: row.note, modifier: modParts.join(' — '),
+      selectedOptions: chosenOptions.length > 0 ? chosenOptions : undefined,
+    };
   }
 
   function handleConfirm() {
