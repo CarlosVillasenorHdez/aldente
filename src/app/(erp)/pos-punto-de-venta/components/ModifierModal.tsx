@@ -20,7 +20,9 @@ import { createClient } from '@/lib/supabase/client';
 interface ModGroup {
   id: string; name: string; min_select: number; max_select: number; sort_order: number;
   options: { id: string; name: string; price_delta: number; is_default: boolean;
-    ingredient_id: string | null; qty_delta: number; }[];
+    ingredient_id: string | null; qty_delta: number;
+    extra_ingredients?: { ingredient_id: string; qty_delta: number }[];
+  }[];
 }
 
 interface RecipeIngredient {
@@ -82,14 +84,25 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
 
   useEffect(() => {
     // Load modifier groups
-    supabase.from('modifier_groups')
-      .select('*, modifier_options(*)')
-      .eq('dish_id', item.id).eq('tenant_id', getTenantId())
-      .order('sort_order')
-      .then(({ data }) => {
+    Promise.all([
+      supabase.from('modifier_groups')
+        .select('*, modifier_options(*)')
+        .eq('dish_id', item.id).eq('tenant_id', getTenantId())
+        .order('sort_order'),
+      supabase.from('modifier_option_ingredients')
+        .select('option_id, ingredient_id, qty_delta')
+        .eq('tenant_id', getTenantId()),
+    ]).then(([{ data }, { data: optIngs }]) => {
+        const optIngMap: Record<string, { ingredient_id: string; qty_delta: number }[]> = {};
+        (optIngs ?? []).forEach((oi: any) => {
+          if (!optIngMap[oi.option_id]) optIngMap[oi.option_id] = [];
+          optIngMap[oi.option_id].push({ ingredient_id: oi.ingredient_id, qty_delta: oi.qty_delta });
+        });
         const grps = (data ?? []).map((g: any) => ({
           ...g,
-          options: (g.modifier_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+          options: (g.modifier_options ?? [])
+            .sort((a: any, b: any) => a.sort_order - b.sort_order)
+            .map((o: any) => ({ ...o, extra_ingredients: optIngMap[o.id] ?? [] })),
         }));
         setModGroups(grps);
         // Pre-select defaults
@@ -202,11 +215,13 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
         const grp = modGroups.find(g => g.id === gid);
         const opt = grp?.options.find(o => o.id === oid);
         if (!opt) return null;
-        if (opt.name) modParts.push(opt.name + (opt.price_delta !== 0 ? ` (+$${opt.price_delta})` : ''));
+        // NOTE: do NOT add to modParts — OrderPanel renders options separately
+        // to avoid double display in the order list and KDS
         return {
           groupId: gid, optionId: oid,
           name: opt.name, price_delta: opt.price_delta,
           ingredient_id: opt.ingredient_id, qty_delta: opt.qty_delta,
+          extra_ingredients: opt.extra_ingredients ?? [],
         };
       }).filter(Boolean)
     ) as { groupId: string; optionId: string; name: string; price_delta: number; ingredient_id: string | null; qty_delta: number; }[];

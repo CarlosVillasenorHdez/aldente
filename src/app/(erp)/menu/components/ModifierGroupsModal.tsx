@@ -6,10 +6,14 @@ import { toast } from 'sonner';
 import { Plus, Trash2, GripVertical, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Ingredient { id: string; name: string; unit: string; }
+interface ModOptionIngredient {
+  ingredient_id: string; qty_delta: number; // multi-ingredient support
+}
 interface ModOption {
   id: string; name: string; price_delta: number;
   is_default: boolean; ingredient_id: string | null;
   qty_delta: number; sort_order: number;
+  extra_ingredients?: ModOptionIngredient[]; // additional ingredients beyond the primary
 }
 interface ModGroup {
   id: string; name: string; min_select: number;
@@ -40,17 +44,27 @@ export default function ModifierGroupsModal({ dish, onClose }: { dish: Dish; onC
   // ── Load ──────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: grps }, { data: ings }] = await Promise.all([
+    const [{ data: grps }, { data: ings }, { data: optIngs }] = await Promise.all([
       supabase.from('modifier_groups')
         .select('*, modifier_options(*)')
         .eq('dish_id', dish.id).eq('tenant_id', getTenantId())
         .order('sort_order'),
       supabase.from('ingredients')
         .select('id, name, unit').eq('tenant_id', getTenantId()).order('name'),
+      supabase.from('modifier_option_ingredients')
+        .select('option_id, ingredient_id, qty_delta')
+        .eq('tenant_id', getTenantId()),
     ]);
+    const optIngMap: Record<string, ModOptionIngredient[]> = {};
+    (optIngs ?? []).forEach((oi: any) => {
+      if (!optIngMap[oi.option_id]) optIngMap[oi.option_id] = [];
+      optIngMap[oi.option_id].push({ ingredient_id: oi.ingredient_id, qty_delta: oi.qty_delta });
+    });
     setGroups((grps ?? []).map((g: any) => ({
       ...g,
-      options: (g.modifier_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+      options: (g.modifier_options ?? [])
+        .sort((a: any, b: any) => a.sort_order - b.sort_order)
+        .map((o: any) => ({ ...o, extra_ingredients: optIngMap[o.id] ?? [] })),
     })));
     setIngredients(ings ?? []);
     setLoading(false);
@@ -140,21 +154,38 @@ export default function ModifierGroupsModal({ dish, onClose }: { dish: Dish; onC
             qty_delta: Number(o.qty_delta) || 0,
             sort_order: oi,
           };
+          let optionId = o.id;
           if (o.id.startsWith('new-')) {
-            await supabase.from('modifier_options').insert(payload);
+            const { data: newOpt } = await supabase.from('modifier_options').insert(payload).select('id').single();
+            if (newOpt) optionId = newOpt.id;
           } else {
             await supabase.from('modifier_options').update(payload).eq('id', o.id);
+          }
+          // Save extra ingredients (multi-ingredient support)
+          if (optionId && !optionId.startsWith('new-')) {
+            await supabase.from('modifier_option_ingredients').delete().eq('option_id', optionId);
+            const extras = (o.extra_ingredients ?? []).filter((ei: ModOptionIngredient) => ei.ingredient_id && ei.qty_delta > 0);
+            if (extras.length > 0) {
+              await supabase.from('modifier_option_ingredients').insert(
+                extras.map((ei: ModOptionIngredient, idx: number) => ({
+                  option_id: optionId, tenant_id: getTenantId(),
+                  ingredient_id: ei.ingredient_id, qty_delta: ei.qty_delta, sort_order: idx,
+                }))
+              );
+            }
           }
         }
 
         // Delete removed options (options not in current list)
-        const currentIds = g.options.filter(o => !o.id.startsWith('new-')).map(o => o.id);
-        if (currentIds.length === 0 && !g.id.startsWith('new-')) {
-          await supabase.from('modifier_options').delete().eq('group_id', groupId);
-        } else if (currentIds.length > 0) {
+        // Only delete options that were removed (existed before but not in current list)
+        // If all options are new, nothing to delete
+        const existingIds = g.options.filter(o => !o.id.startsWith('new-')).map(o => o.id);
+        if (existingIds.length > 0) {
+          // Delete options from DB that are no longer in the current list
           await supabase.from('modifier_options')
-            .delete().eq('group_id', groupId).not('id', 'in', `(${currentIds.join(',')})`);
+            .delete().eq('group_id', groupId).not('id', 'in', `(${existingIds.join(',')})`);
         }
+        // If group is brand new (was 'new-'), no existing options to clean up
       }
       toast.success('Modificadores guardados');
       await load();
@@ -253,20 +284,20 @@ export default function ModifierGroupsModal({ dish, onClose }: { dish: Dish; onC
                 {!isCol && (
                   <div style={{ borderTop: S.border }}>
                     {/* Options header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px 160px 32px',
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 1fr 32px',
                       gap: 6, padding: '8px 16px 4px', fontSize: 10, fontWeight: 600,
                       color: S.muted, letterSpacing: '.05em', textTransform: 'uppercase' }}>
                       <span>Opción</span><span style={{ textAlign: 'right' }}>+Precio</span>
                       <span style={{ textAlign: 'center' }}>Default</span>
-                      <span>Ingrediente (inventario)</span><span />
+                      <span>Ingredientes del inventario</span><span />
                     </div>
 
                     {g.options.map(o => {
                       const ing = ingredients.find(i => i.id === o.ingredient_id);
                       return (
                         <div key={o.id} style={{ display: 'grid',
-                          gridTemplateColumns: '1fr 90px 90px 160px 32px',
-                          gap: 6, padding: '6px 16px', alignItems: 'center',
+                          gridTemplateColumns: '1fr 90px 70px 1fr 32px',
+                          gap: 6, padding: '6px 16px', alignItems: 'start',
                           borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                           <Inp value={o.name} small
                             onChange={(e: any) => updateOption(g.id, o.id, { name: e.target.value })}
@@ -296,24 +327,72 @@ export default function ModifierGroupsModal({ dish, onClose }: { dish: Dish; onC
                               }}
                               style={{ accentColor: S.gold, cursor: 'pointer' }} />
                           </div>
-                          {/* Ingredient selector */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <select value={o.ingredient_id ?? ''}
-                              onChange={e => updateOption(g.id, o.id, { ingredient_id: e.target.value || null })}
-                              style={{ background: S.bg, border: S.border, borderRadius: 8, color: o.ingredient_id ? S.text : S.muted,
-                                padding: '4px 8px', fontSize: 11, outline: 'none', width: '100%' }}>
-                              <option value="">Sin vínculo</option>
-                              {ingredients.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
-                            </select>
-                            {o.ingredient_id && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <input type="number" min={0} step={0.01} value={o.qty_delta}
-                                  onChange={e => updateOption(g.id, o.id, { qty_delta: parseFloat(e.target.value) || 0 })}
-                                  style={{ background: S.bg, border: S.border, borderRadius: 6, color: S.text,
-                                    padding: '3px 6px', fontSize: 11, outline: 'none', width: 60, fontFamily: 'monospace' }} />
-                                <span style={{ fontSize: 10, color: S.muted }}>{ing?.unit}</span>
-                              </div>
-                            )}
+                          {/* Multi-ingredient selector */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {/* Primary ingredient (backwards compat) */}
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                              <select value={o.ingredient_id ?? ''}
+                                onChange={e => updateOption(g.id, o.id, { ingredient_id: e.target.value || null, qty_delta: e.target.value ? o.qty_delta || 0 : 0 })}
+                                style={{ background: S.bg, border: S.border, borderRadius: 6, color: o.ingredient_id ? S.text : S.muted,
+                                  padding: '3px 6px', fontSize: 11, outline: 'none', flex: 1 }}>
+                                <option value="">Sin ingrediente</option>
+                                {ingredients.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                              </select>
+                              {o.ingredient_id && (
+                                <>
+                                  <input type="number" min={0} step={0.01} value={o.qty_delta}
+                                    onChange={e => updateOption(g.id, o.id, { qty_delta: parseFloat(e.target.value) || 0 })}
+                                    style={{ background: S.bg, border: S.border, borderRadius: 6, color: S.text,
+                                      padding: '3px 5px', fontSize: 11, outline: 'none', width: 48, fontFamily: 'monospace', textAlign: 'right' }} />
+                                  <span style={{ fontSize: 10, color: S.muted, flexShrink: 0 }}>
+                                    {ingredients.find(i => i.id === o.ingredient_id)?.unit ?? ''}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {/* Extra ingredients */}
+                            {(o.extra_ingredients ?? []).map((ei, eiIdx) => {
+                              const eiIng = ingredients.find(i => i.id === ei.ingredient_id);
+                              return (
+                                <div key={eiIdx} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                  <select value={ei.ingredient_id}
+                                    onChange={e => {
+                                      const updated = [...(o.extra_ingredients ?? [])];
+                                      updated[eiIdx] = { ...ei, ingredient_id: e.target.value };
+                                      updateOption(g.id, o.id, { extra_ingredients: updated });
+                                    }}
+                                    style={{ background: S.bg, border: S.border, borderRadius: 6, color: S.text,
+                                      padding: '3px 6px', fontSize: 11, outline: 'none', flex: 1 }}>
+                                    <option value="">— ingrediente —</option>
+                                    {ingredients.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                  </select>
+                                  <input type="number" min={0} step={0.01} value={ei.qty_delta}
+                                    onChange={e => {
+                                      const updated = [...(o.extra_ingredients ?? [])];
+                                      updated[eiIdx] = { ...ei, qty_delta: parseFloat(e.target.value) || 0 };
+                                      updateOption(g.id, o.id, { extra_ingredients: updated });
+                                    }}
+                                    style={{ background: S.bg, border: S.border, borderRadius: 6, color: S.text,
+                                      padding: '3px 5px', fontSize: 11, outline: 'none', width: 48, fontFamily: 'monospace', textAlign: 'right' }} />
+                                  <span style={{ fontSize: 10, color: S.muted, flexShrink: 0 }}>
+                                    {eiIng?.unit ?? ''}
+                                  </span>
+                                  <button onClick={() => {
+                                    const updated = (o.extra_ingredients ?? []).filter((_, i) => i !== eiIdx);
+                                    updateOption(g.id, o.id, { extra_ingredients: updated });
+                                  }} style={{ background: 'none', border: 'none', color: S.danger, cursor: 'pointer', padding: 2 }}>
+                                    <X size={10} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                            {/* Add extra ingredient */}
+                            <button onClick={() => updateOption(g.id, o.id, {
+                              extra_ingredients: [...(o.extra_ingredients ?? []), { ingredient_id: '', qty_delta: 0 }]
+                            })} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(245,158,11,0.6)',
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}>
+                              <Plus size={9} /> otro ingrediente
+                            </button>
                           </div>
                           <button onClick={() => deleteOption(g.id, o.id)}
                             style={{ background: 'none', border: 'none', color: S.danger, cursor: 'pointer', padding: 4 }}>

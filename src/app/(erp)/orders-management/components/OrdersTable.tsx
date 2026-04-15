@@ -135,6 +135,7 @@ export default function OrdersTable() {
       .eq('tenant_id', getTenantId())
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
       .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
+      .neq('kitchen_status', 'en_edicion')  // exclude abandoned drafts never sent to kitchen
       .order('created_at', { ascending: false });
 
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');
