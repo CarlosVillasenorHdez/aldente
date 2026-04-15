@@ -18,7 +18,7 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { restaurantName, slug, adminName, pinHash, email, phone } = await req.json();
+    const { restaurantName, slug, adminName, pinHash, email, phone, establishmentType } = await req.json();
 
     if (!restaurantName?.trim() || !slug?.trim() || !adminName?.trim() || !pinHash) {
       return json({ error: 'Campos requeridos faltantes' }, 400);
@@ -69,7 +69,7 @@ serve(async (req) => {
       { config_key: 'currency_symbol',          config_value: '$',                   tenant_id: tid },
       { config_key: 'currency_code',            config_value: 'MXN',                 tenant_id: tid },
       { config_key: 'currency_locale',          config_value: 'es-MX',               tenant_id: tid },
-      { config_key: 'establishment_type',       config_value: 'restaurante',         tenant_id: tid },
+      { config_key: 'establishment_type',       config_value: establishmentType?.trim() || 'restaurante', tenant_id: tid },
       { config_key: 'feature_mesero_movil',     config_value: 'false',               tenant_id: tid },
       { config_key: 'feature_lealtad',          config_value: 'false',               tenant_id: tid },
       { config_key: 'feature_reservaciones',    config_value: 'false',               tenant_id: tid },

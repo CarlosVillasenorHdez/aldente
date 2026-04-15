@@ -1,31 +1,33 @@
 'use client';
-
 /**
- * UpgradeGate — shows a blurred teaser with upgrade prompt
- * when the current plan doesn't include a feature.
+ * UpgradeGate — muestra contenido bloqueado con CTA de upgrade.
  *
- * Strategy: never show empty widgets. Always show what they're missing.
- * The blur + lock creates desire, not frustration.
+ * Para el plan "medida": no hay candado — el módulo simplemente
+ * no aparece en el sidebar si no está activo. Este componente
+ * solo se activa para planes bundle donde el módulo no está incluido.
+ *
+ * Filosofía: nunca mostrar una pantalla vacía. Siempre mostrar
+ * lo que se está perdiendo, con un CTA claro.
  */
 
 import React, { useState, useEffect } from 'react';
-import { Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { Zap, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { PLAN_NAMES, PLAN_PRICES, PLAN_ORDER } from '@/hooks/useFeatures';
+import { useRouter } from 'next/navigation';
+import {
+  PLAN_NAMES, PLAN_PRICES, PLAN_ORDER, PLAN_COLORS,
+  invalidateFeaturesCache,
+} from '@/hooks/useFeatures';
 
 interface UpgradeGateProps {
-  feature: string;                    // feature key (e.g. 'inventario', 'reportes')
+  feature: string;
   requiredPlan: string;
-  title: string;                      // what is being unlocked
-  description: string;                // benefit, not feature name
-  children: React.ReactNode;          // the actual widget (will be blurred)
-  blurAmount?: number;                // 0 = no blur (just lock overlay)
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  blurAmount?: number;
 }
-
-
-
-
 
 export default function UpgradeGate({
   feature,
@@ -36,110 +38,79 @@ export default function UpgradeGate({
   blurAmount = 6,
 }: UpgradeGateProps) {
   const { appUser } = useAuth();
+  const router = useRouter();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!appUser?.tenantId) { setLoading(false); return; }
     const supabase = createClient();
-    supabase
-      .from('tenants')
-      .select('plan')
-      .eq('id', appUser.tenantId)
-      .single()
+    supabase.from('tenants').select('plan').eq('id', appUser.tenantId).single()
       .then(({ data }) => {
-        // Normalize legacy plan names
-        const raw = data?.plan ?? 'operacion';
-        const LEGACY: Record<string, string> = {
-          basico: 'operacion', starter: 'operacion',
-          estandar: 'negocio', profesional: 'negocio',
-          premium: 'empresa', enterprise: 'empresa',
-        };
-        setCurrentPlan(LEGACY[raw] ?? raw);
+        setCurrentPlan(data?.plan ?? 'operacion');
         setLoading(false);
       });
   }, [appUser?.tenantId]);
 
-  // Determine if feature is available
-  
-  const hasAccess = PLAN_ORDER.indexOf(currentPlan ?? 'operacion') >= PLAN_ORDER.indexOf(requiredPlan);
+  if (loading) return null;
 
-  // While loading, render children normally (no flash)
-  if (loading || hasAccess) return <>{children}</>;
+  // "medida" plan: never show upgrade gate — module shouldn't be visible at all
+  // but if somehow reached, show content freely
+  if (currentPlan === 'medida') return <>{children}</>;
+
+  const planIdx = PLAN_ORDER.indexOf(currentPlan ?? 'operacion');
+  const reqIdx  = PLAN_ORDER.indexOf(requiredPlan);
+  const hasAccess = planIdx >= reqIdx;
+
+  if (hasAccess) return <>{children}</>;
+
+  const reqColor = PLAN_COLORS[requiredPlan] ?? '#f59e0b';
 
   return (
-    <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden' }}>
-      {/* Blurred children underneath */}
-      <div style={{
-        filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none',
-        opacity: 0.4,
-        pointerEvents: 'none',
-        userSelect: 'none',
-      }}>
+    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden' }}>
+      {/* Blurred content preview */}
+      <div style={{ filter: `blur(${blurAmount}px)`, pointerEvents: 'none',
+        userSelect: 'none', opacity: 0.4, maxHeight: 320, overflow: 'hidden' }}>
         {children}
       </div>
 
-      {/* Upgrade overlay */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column',
+      {/* Overlay */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(10, 12, 15, 0.75)',
-        backdropFilter: 'blur(2px)',
-        padding: '24px',
-        textAlign: 'center',
-      }}>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: '12px',
-          background: 'rgba(200,134,31,0.12)', border: '1px solid rgba(200,134,31,0.25)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginBottom: '14px',
-        }}>
-          <Lock size={18} style={{ color: '#c8861f' }} />
+        background: 'rgba(10,14,20,0.7)', backdropFilter: 'blur(2px)' }}>
+        <div style={{ textAlign: 'center', padding: '28px 32px', maxWidth: 380 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, margin: '0 auto 16px',
+            background: `${reqColor}18`, border: `1px solid ${reqColor}40`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Zap size={22} color={reqColor} />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', margin: '0 0 8px' }}>
+            {title}
+          </h3>
+          <p style={{ fontSize: 13, color: 'rgba(241,245,249,0.5)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            {description}
+          </p>
+          <button
+            onClick={() => router.push('/configuracion?section=plan')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '10px 22px', borderRadius: 10, border: 'none',
+              background: reqColor, color: '#080b10', fontSize: 13,
+              fontWeight: 700, cursor: 'pointer' }}>
+            Ver Plan {PLAN_NAMES[requiredPlan]}
+            <span style={{ fontSize: 11, opacity: 0.7 }}>
+              ${(PLAN_PRICES[requiredPlan] ?? 0).toLocaleString('es-MX')}/mes
+            </span>
+            <ArrowRight size={14} />
+          </button>
+          <p style={{ fontSize: 11, color: 'rgba(241,245,249,0.25)', marginTop: 12 }}>
+            O activa solo este módulo desde{' '}
+            <button onClick={() => router.push('/configuracion?section=plan')}
+              style={{ background: 'none', border: 'none', color: `${reqColor}99`,
+                fontSize: 11, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+              Plan → A tu medida
+            </button>
+          </p>
         </div>
-
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          padding: '4px 12px', borderRadius: '100px',
-          background: 'rgba(200,134,31,0.12)', border: '1px solid rgba(200,134,31,0.22)',
-          fontSize: '11px', color: '#dfa03a', fontWeight: 600,
-          marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em',
-        }}>
-          <Sparkles size={10} />
-          Plan {PLAN_NAMES[requiredPlan] ?? requiredPlan}
-        </div>
-
-        <h3 style={{
-          fontSize: '16px', fontWeight: 600, color: '#f4f1ec',
-          marginBottom: '8px', lineHeight: 1.3,
-        }}>
-          {title}
-        </h3>
-
-        <p style={{
-          fontSize: '13px', color: 'rgba(244,241,236,0.5)',
-          lineHeight: 1.6, marginBottom: '20px',
-          maxWidth: '260px', fontWeight: 300,
-        }}>
-          {description}
-        </p>
-
-        <a
-          href="/configuracion"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '9px 18px', borderRadius: '9px',
-            background: '#c8861f', color: '#09090b',
-            fontSize: '13px', fontWeight: 600,
-            textDecoration: 'none',
-            transition: 'background .15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#dfa03a')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#c8861f')}
-        >
-          Ver plan {PLAN_NAMES[requiredPlan] ?? requiredPlan} — {`$${(PLAN_PRICES[requiredPlan] ?? 0).toLocaleString('es-MX')}`}/mes
-          <ArrowRight size={13} />
-        </a>
       </div>
     </div>
   );
