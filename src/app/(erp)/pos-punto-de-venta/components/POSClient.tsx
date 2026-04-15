@@ -166,14 +166,21 @@ export default function POSClient() {
     setDeliveredLineIds(delivered);
   }, [supabase]);
   const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, cancelItemFromKDS } = useOrderFlow();
-  const { ivaPercent } = useSysConfig();
+  const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
   const discountAmount = discount.type === 'pct' ? subtotal * (discount.value / 100) : discount.value;
   const taxableAmount = subtotal - discountAmount;
-  const iva = taxableAmount * IVA_RATE;
-  const total = taxableAmount + iva;
+  // México: precios incluyen IVA por ley (Art. 18 LIVA)
+  // iva_included_in_price=true → extraemos el IVA del precio (total no cambia)
+  // iva_included_in_price=false → sumamos IVA encima (modo B2B/exportación)
+  const iva = ivaIncludedInPrice
+    ? taxableAmount - taxableAmount / (1 + IVA_RATE)   // extraer: IVA = total - total/1.16
+    : taxableAmount * IVA_RATE;                         // sumar encima
+  const total = ivaIncludedInPrice
+    ? taxableAmount                                      // precio ya incluye IVA
+    : taxableAmount + iva;
   const itemCount = orderItems.reduce((s, i) => s + i.quantity, 0);
 
   const [reservedTables, setReservedTables] = useState<string[]>([]);
@@ -972,7 +979,8 @@ export default function POSClient() {
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100)
       : Math.min(discount.value, newSubtotal);
-    const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+    const taxable = newSubtotal - discAmt;
+    const newTotal = ivaIncludedInPrice ? taxable : taxable * (1 + IVA_RATE);
     const groupIds = selectedTable.mergeGroupId
       ? tables.filter(t => t.mergeGroupId === selectedTable.mergeGroupId).map(t => t.id)
       : [selectedTable.id];
@@ -1013,7 +1021,7 @@ export default function POSClient() {
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100)
       : Math.min(discount.value, newSubtotal);
-    const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+    const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
     const groupIds = selectedTable.mergeGroupId
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
@@ -1038,7 +1046,7 @@ export default function POSClient() {
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
-      const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+      const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
       const groupIds = selectedTable.mergeGroupId
         ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
         : [selectedTable.id];
@@ -1073,7 +1081,7 @@ export default function POSClient() {
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
-      const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+      const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
       const groupIds = selectedTable.mergeGroupId
         ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
         : [selectedTable.id];
@@ -1092,7 +1100,7 @@ export default function POSClient() {
     const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100) : Math.min(discount.value, newSubtotal);
-    const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+    const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
     const groupIds = selectedTable.mergeGroupId
       ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
       : [selectedTable.id];
@@ -1121,7 +1129,7 @@ export default function POSClient() {
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
-      const newTotal = (newSubtotal - discAmt) * (1 + IVA_RATE);
+      const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
       const groupIds = selectedTable.mergeGroupId
         ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.id)
         : [selectedTable.id];

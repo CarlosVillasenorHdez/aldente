@@ -207,7 +207,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     </div>
   );
 
-  const fmtMXN = (n: number) => n === 0 ? '—' : '$' + Math.round(n).toLocaleString('es-MX');
+  const fmtMXN = (n: number) => n === 0 ? '—' : '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtP   = (n: number, base: number) => base > 0 ? (n / base * 100).toFixed(1) + '%' : '—';
   const fmtD   = (cur: number, prev: number) => {
     if (prev === 0) return '—';
@@ -694,7 +694,7 @@ export default function AnalisisFinanciero() {
     let horizontalHtml = '';
     if (plView === 'horizontal' && hData) {
       const { months: hMonths, rows: hRows, getVal: hGetVal } = hData;
-      const fmt2h = (n: number) => Math.round(n).toLocaleString('es-MX');
+      const fmt2h = (n: number) => n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const totH: MonthData = hMonths.reduce((acc, m) => ({
         label:'Total', ventas:acc.ventas+m.ventas, descuentos:acc.descuentos+m.descuentos,
         iva:acc.iva+m.iva, cogs:acc.cogs+m.cogs, merma:acc.merma+m.merma,
