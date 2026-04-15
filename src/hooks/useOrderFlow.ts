@@ -44,6 +44,7 @@ export interface OrderFlowItem {
   selectedOptions?: {
     groupId: string; optionId: string; name: string;
     price_delta: number; ingredient_id: string | null; qty_delta: number;
+    extra_ingredients?: { ingredient_id: string; qty_delta: number }[];
   }[];
 }
 
