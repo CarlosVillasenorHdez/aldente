@@ -30,18 +30,18 @@ export interface ExtraIngredient {
 }
 
 export interface OrderFlowItem {
-  lineId: string;            // unique per line — key for all operations
+  lineId: string;
   dishId: string;
   name: string;
   price: number;
   qty: number;
   emoji: string;
-  notes?: string;            // legacy general note
-  modifier?: string;         // per-line modifier shown prominently to kitchen
-  excludedIngredientIds?: string[]; // ingredient ids removed — skip deduction
-  extras?: ExtraIngredient[];       // extra ingredients added — deduct additionally
-  course?: number;                  // kept for DB compatibility
-  selectedOptions?: {               // modifier options chosen by customer
+  notes?: string;
+  modifier?: string;
+  excludedIngredientIds?: string[];
+  extras?: ExtraIngredient[];
+  course?: number;
+  selectedOptions?: {
     groupId: string; optionId: string; name: string;
     price_delta: number; ingredient_id: string | null; qty_delta: number;
   }[];
