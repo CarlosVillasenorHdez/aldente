@@ -76,8 +76,11 @@ interface MonthData {
 }
 type HView = 'pesos' | 'pct' | 'delta';
 
+// ─── RowDef — shared type for PLHorizontal rows ──────────────────────────────
+type RowDef = { label: string; key: keyof MonthData | null; tipo: 'header'|'line'|'sub'|'total'; derived?: (m: MonthData) => number; indent?: boolean; };
+
 // ─── PLHorizontal ─────────────────────────────────────────────────────────────
-function PLHorizontal({ tenantId }: { tenantId: string }) {
+function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; numMonths: number; onDataReady?: (months: MonthData[], rows: RowDef[], getVal: (r: RowDef, m: MonthData) => number) => void }) {
   const supabase = createClient();
   const [months, setMonths] = useState<MonthData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +92,7 @@ function PLHorizontal({ tenantId }: { tenantId: string }) {
       const results: MonthData[] = [];
       const now = new Date();
 
-      for (let i = 5; i >= 0; i--) {
+      for (let i = numMonths - 1; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
         const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
@@ -163,25 +166,7 @@ function PLHorizontal({ tenantId }: { tenantId: string }) {
       setLoading(false);
     }
     load();
-  }, [tenantId]); // eslint-disable-line
-
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: 48, color: '#9ca3af', fontSize: 13 }}>
-      Cargando comparativa de 6 meses…
-    </div>
-  );
-
-  const fmtMXN = (n: number) => n === 0 ? '—' : '$' + Math.round(n).toLocaleString('es-MX');
-  const fmtP   = (n: number, base: number) => base > 0 ? (n / base * 100).toFixed(1) + '%' : '—';
-  const fmtD   = (cur: number, prev: number) => {
-    if (prev === 0) return '—';
-    const d = ((cur - prev) / Math.abs(prev)) * 100;
-    const s = d >= 0 ? '▲' : '▼';
-    const col = d >= 0 ? '#16a34a' : '#dc2626';
-    return { text: s + ' ' + Math.abs(d).toFixed(1) + '%', color: col };
-  };
-
-  type RowDef = { label: string; key: keyof MonthData | null; tipo: 'header'|'line'|'sub'|'total'; derived?: (m: MonthData) => number; indent?: boolean; };
+  }, [tenantId, numMonths]); // eslint-disable-line
 
   const rows: RowDef[] = [
     { label: 'Ingresos', key: null, tipo: 'header' },
@@ -208,6 +193,31 @@ function PLHorizontal({ tenantId }: { tenantId: string }) {
   function getVal(row: RowDef, m: MonthData): number {
     return row.derived ? row.derived(m) : Number(m[row.key as keyof MonthData] ?? 0);
   }
+
+  // Notify parent when data is loaded (for CSV/PDF export)
+  useEffect(() => {
+    if (!loading && months.length > 0 && onDataReady) {
+      onDataReady(months, rows, getVal);
+    }
+  }, [loading, months]); // eslint-disable-line
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: 48, color: '#9ca3af', fontSize: 13 }}>
+      Cargando comparativa de 6 meses…
+    </div>
+  );
+
+  const fmtMXN = (n: number) => n === 0 ? '—' : '$' + Math.round(n).toLocaleString('es-MX');
+  const fmtP   = (n: number, base: number) => base > 0 ? (n / base * 100).toFixed(1) + '%' : '—';
+  const fmtD   = (cur: number, prev: number) => {
+    if (prev === 0) return '—';
+    const d = ((cur - prev) / Math.abs(prev)) * 100;
+    const s = d >= 0 ? '▲' : '▼';
+    const col = d >= 0 ? '#16a34a' : '#dc2626';
+    return { text: s + ' ' + Math.abs(d).toFixed(1) + '%', color: col };
+  };
+
+
 
   const C = { hdr:'#f9fafb', border:'#e5e7eb', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
   const thStyle: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 600, color: C.muted, textAlign: 'right', background: C.hdr, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
@@ -240,7 +250,7 @@ function PLHorizontal({ tenantId }: { tenantId: string }) {
             <tr>
               <th style={{ ...thStyle, textAlign: 'left', width: 180 }}>Concepto</th>
               {months.map(m => <th key={m.label} style={thStyle}>{m.label}</th>)}
-              <th style={{ ...thStyle, ...TOTAL_COL_STYLE }}>6 meses</th>
+              <th style={{ ...thStyle, ...TOTAL_COL_STYLE }}>{numMonths} meses</th>
             </tr>
           </thead>
           <tbody>
@@ -350,6 +360,8 @@ export default function AnalisisFinanciero() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pl'|'bs'|'flujo'>('pl');
   const [plView, setPlView] = useState<'vertical'|'horizontal'>('vertical');
+  const [numMonths, setNumMonths] = useState(6);
+  const [hData, setHData] = useState<{ months: MonthData[]; rows: RowDef[]; getVal: (r: RowDef, m: MonthData) => number } | null>(null);
 
   // Raw data
   const [ventas,       setVentas]       = useState(0);
@@ -616,18 +628,36 @@ export default function AnalisisFinanciero() {
 
   // ── Export CSV ───────────────────────────────────────────────────────────────
   const exportCSV = () => {
-    const rows = [
-      ['Concepto','Monto'],
-      ...plRows.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
-      ['---','---'],
-      ['BALANCE SHEET',''],
-      ...bsActivos.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
-      ...bsPasivos.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
-    ];
+    let rows: string[][];
+    if (plView === 'horizontal' && hData) {
+      const { months: hMonths, rows: hRows, getVal: hGetVal } = hData;
+      const totals: MonthData = hMonths.reduce((acc, m) => ({
+        label:'Total', ventas:acc.ventas+m.ventas, descuentos:acc.descuentos+m.descuentos,
+        iva:acc.iva+m.iva, cogs:acc.cogs+m.cogs, merma:acc.merma+m.merma,
+        nomina:acc.nomina+m.nomina, gastosOp:acc.gastosOp+m.gastosOp,
+        depreciacion:acc.depreciacion+m.depreciacion, financiero:acc.financiero+m.financiero,
+      }), { label:'Total', ventas:0, descuentos:0, iva:0, cogs:0, merma:0, nomina:0, gastosOp:0, depreciacion:0, financiero:0 });
+      const header = ['Concepto', ...hMonths.map(m => m.label), `Total ${numMonths}m`];
+      const dataRows = hRows
+        .filter(r => r.tipo !== 'header')
+        .map(r => [r.label, ...hMonths.map(m => hGetVal(r, m).toFixed(2)), hGetVal(r, totals).toFixed(2)]);
+      rows = [header, ...dataRows];
+    } else {
+      rows = [
+        ['Concepto','Monto'],
+        ...plRows.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
+        ['---','---'],
+        ['BALANCE SHEET',''],
+        ...bsActivos.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
+        ...bsPasivos.filter(r=>r.tipo!=='divider').map(r=>[r.concepto, r.monto.toFixed(2)]),
+      ];
+    }
     const csv = rows.map(r=>r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
-    a.download = `analisis-financiero-${dateRange.label.replace(/ /g,'-')}.csv`;
+    a.download = plView === 'horizontal'
+      ? `pl-horizontal-${numMonths}m-${new Date().toISOString().slice(0,7)}.csv`
+      : `analisis-financiero-${dateRange.label.replace(/ /g,'-')}.csv`;
     a.click();
   };
 
@@ -659,6 +689,33 @@ export default function AnalisisFinanciero() {
       const pad = 8 + (r.indent ?? 0) * 16;
       return `<tr class="${cls}"><td style="padding-left:${pad}px">${r.concepto}</td><td style="color:${col}">${amt}</td></tr>`;
     }).join('');
+
+    // Build horizontal P&L section if active
+    let horizontalHtml = '';
+    if (plView === 'horizontal' && hData) {
+      const { months: hMonths, rows: hRows, getVal: hGetVal } = hData;
+      const fmt2h = (n: number) => Math.round(n).toLocaleString('es-MX');
+      const totH: MonthData = hMonths.reduce((acc, m) => ({
+        label:'Total', ventas:acc.ventas+m.ventas, descuentos:acc.descuentos+m.descuentos,
+        iva:acc.iva+m.iva, cogs:acc.cogs+m.cogs, merma:acc.merma+m.merma,
+        nomina:acc.nomina+m.nomina, gastosOp:acc.gastosOp+m.gastosOp,
+        depreciacion:acc.depreciacion+m.depreciacion, financiero:acc.financiero+m.financiero,
+      }), { label:'Total', ventas:0, descuentos:0, iva:0, cogs:0, merma:0, nomina:0, gastosOp:0, depreciacion:0, financiero:0 });
+      const thH = ['Concepto', ...hMonths.map((m: MonthData) => m.label), 'Total'].map(h => '<th style="padding:5px 8px;text-align:right;background:#f8fafc;font-size:10px;border-bottom:1px solid #e5e7eb">' + h + '</th>').join('');
+      const bodyH = hRows.map((r: RowDef) => {
+        if (r.tipo === 'header') return '<tr><td colspan="' + (hMonths.length+2) + '" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;padding:5px 8px;background:#f8fafc">' + r.label + '</td></tr>';
+        const isTotal = r.tipo === 'total'; const isSub = r.tipo === 'sub';
+        const rowStyle = isTotal ? 'background:#eff6ff;font-weight:700' : isSub ? 'font-weight:600;border-top:1px solid #d1d5db' : '';
+        const indent = r.indent ? 'padding-left:18px' : 'padding:5px 8px';
+        const cells = [...hMonths.map((m: MonthData) => {
+          const v = hGetVal(r, m);
+          const col = (isTotal || isSub) && v < 0 ? '#dc2626' : '';
+          return '<td style="text-align:right;padding:5px 8px;font-size:10px' + (col ? ';color:'+col : '') + '">' + (v===0&&r.tipo!=='line'?'—':'$'+fmt2h(v)) + '</td>';
+        }), '<td style="text-align:right;padding:5px 8px;font-size:10px;font-weight:700;color:#1B3A6B">$' + fmt2h(hGetVal(r, totH)) + '</td>'].join('');
+        return '<tr style="' + rowStyle + '"><td style="' + indent + ';font-size:10px">' + r.label + '</td>' + cells + '</tr>';
+      }).join('');
+      horizontalHtml = '<h2>P&amp;L Horizontal — Últimos ' + numMonths + ' meses</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>' + thH + '</tr></thead><tbody>' + bodyH + '</tbody></table></div>';
+    }
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -720,6 +777,8 @@ export default function AnalisisFinanciero() {
   <span>Aldente ERP · Análisis Financiero</span>
   <span>Período: ${restaurantLabel}</span>
 </div>
+
+${horizontalHtml}
 
 <script>window.onload = () => { window.print(); }</script>
 </body>
@@ -850,9 +909,21 @@ export default function AnalisisFinanciero() {
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
                         background: plView==='horizontal' ? '#1B3A6B' : 'transparent',
                         color: plView==='horizontal' ? 'white' : '#6b7280' }}>
-                      <BarChart2 size={11} /> Horizontal 6m
+                      <BarChart2 size={11} /> Horizontal
                     </button>
                   </div>
+                  {plView === 'horizontal' && (
+                    <div style={{ display:'flex', gap:4, background:'#f3f4f6', borderRadius:8, padding:3 }}>
+                      {[3,6,12,24].map(n => (
+                        <button key={n} onClick={() => setNumMonths(n)}
+                          style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer',
+                            background: numMonths===n ? '#1B3A6B' : 'transparent',
+                            color: numMonths===n ? 'white' : '#6b7280' }}>
+                          {n}m
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {plView === 'vertical' ? (
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
@@ -862,7 +933,7 @@ export default function AnalisisFinanciero() {
                   </table>
                 ) : (
                   <div style={{ padding:20 }}>
-                    <PLHorizontal tenantId={appUser?.tenantId ?? getTenantId() ?? ''} />
+                    <PLHorizontal tenantId={appUser?.tenantId ?? getTenantId() ?? ''} numMonths={numMonths} onDataReady={(m, r, g) => setHData({ months: m, rows: r, getVal: g })} />
                   </div>
                 )}
               </div>
