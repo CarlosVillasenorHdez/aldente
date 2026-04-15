@@ -62,7 +62,8 @@ export default function RegistroPage() {
       const pinHash = await sha256(form.pin);
       const slug = slugify(form.restaurantName) || 'restaurante-' + Date.now();
       const { data, error: fnError } = await supabase.functions.invoke('create-tenant', {
-        body: { restaurantName: form.restaurantName.trim(), slug, adminName: form.adminName.trim(), phone: form.phone.trim(), pinHash },
+        body: { restaurantName: form.restaurantName.trim(), slug, adminName: form.adminName.trim(), phone: form.phone.trim(), pinHash, email: form.email.trim() },
+        headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
       });
       if (fnError) {
         // fnError.message often contains the raw HTTP error — show it for diagnosis
