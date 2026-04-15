@@ -1,6 +1,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import DashboardKPIs from './components/DashboardKPIs';
+import FirstStepsChecklist from './components/FirstStepsChecklist';
 import SalesChart from './components/SalesChart';
 import RecentOrders from './components/RecentOrders';
 import DashboardQuickActions from './components/DashboardQuickActions';
@@ -16,6 +17,8 @@ export default function DashboardPage() {
       subtitle="Resumen operativo del día"
     >
       <div className="flex flex-col gap-6">
+
+        <FirstStepsChecklist />
 
         {/* Quick actions — always visible */}
         <DashboardQuickActions />
