@@ -2,7 +2,8 @@
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Download, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Download, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info, BarChart2 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Period = 'mes_actual' | 'mes_anterior' | 'trimestre' | 'anio';
@@ -65,12 +66,286 @@ function BSRowComp({ row }: { row: BSRow }) {
   );
 }
 
+
+// ─── Interfaces for horizontal P&L ───────────────────────────────────────────
+interface MonthData {
+  label: string;
+  ventas: number; descuentos: number; iva: number;
+  cogs: number; merma: number; nomina: number;
+  gastosOp: number; depreciacion: number; financiero: number;
+}
+type HView = 'pesos' | 'pct' | 'delta';
+
+// ─── PLHorizontal ─────────────────────────────────────────────────────────────
+function PLHorizontal({ tenantId }: { tenantId: string }) {
+  const supabase = createClient();
+  const [months, setMonths] = useState<MonthData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<HView>('pesos');
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const results: MonthData[] = [];
+      const now = new Date();
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+        const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
+        const label = d.toLocaleString('es-MX', { month: 'short', year: '2-digit' });
+
+        const [ordRes, gastosRes, nomRes, depRes] = await Promise.all([
+          supabase.from('orders').select('total, subtotal, discount, iva')
+            .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
+            .gte('closed_at', start).lte('closed_at', end),
+          supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria')
+            .eq('tenant_id', tenantId),
+          supabase.from('employees').select('salary, salary_frequency')
+            .eq('tenant_id', tenantId).eq('status', 'activo'),
+          supabase.from('depreciaciones').select('valor_original, vida_util_anios, valor_residual, fecha_adquisicion')
+            .eq('tenant_id', tenantId),
+        ]);
+
+        const orders = ordRes.data ?? [];
+        const ventas = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+        const descuentos = orders.reduce((s, o) => s + Number(o.discount ?? 0), 0);
+        const ivaAmt = orders.reduce((s, o) => s + Number(o.iva ?? 0), 0);
+
+        // Nomina mensual
+        const FREQ: Record<string, number> = { diario: 30, semanal: 4.33, quincenal: 2, mensual: 1, bimestral: 0.5 };
+        const nomina = (nomRes.data ?? []).reduce((s, e) => {
+          const sal = Number(e.salary ?? 0);
+          const freq = FREQ[e.salary_frequency ?? 'mensual'] ?? 1;
+          return s + sal * freq;
+        }, 0);
+
+        // Gastos operativos mensual
+        const GFREQ: Record<string, number> = { diaria: 30, semanal: 4.33, quincenal: 2, mensual: 1, trimestral: 0.33, anual: 0.083 };
+        const gastosOp = (gastosRes.data ?? [])
+          .filter((g: any) => g.categoria !== 'nomina')
+          .reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
+
+        // Depreciacion mensual
+        const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => {
+          const meses = Number(a.vida_util_anios) * 12;
+          return s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(meses, 1);
+        }, 0);
+
+        // COGS from stock_movements — salida reason "Venta"
+        const { data: stockData } = await supabase.from('stock_movements')
+          .select('quantity, cost_per_unit:quantity')
+          .eq('tenant_id', tenantId).eq('movement_type', 'salida')
+          .gte('created_at', start).lte('created_at', end);
+
+        // Merma from orders with status cancelada
+        const { data: mermaData } = await supabase.from('orders')
+          .select('cost_actual')
+          .eq('tenant_id', tenantId).eq('is_comanda', false)
+          .in('status', ['cancelada'])
+          .gte('created_at', start).lte('created_at', end);
+        const merma = (mermaData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+
+        // COGS from orders cost_actual
+        const { data: cogsData } = await supabase.from('orders')
+          .select('cost_actual')
+          .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
+          .gte('closed_at', start).lte('closed_at', end);
+        const cogs = (cogsData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+
+        results.push({
+          label, ventas, descuentos, iva: ivaAmt, cogs, merma,
+          nomina, gastosOp, depreciacion, financiero: 0,
+        });
+      }
+
+      setMonths(results);
+      setLoading(false);
+    }
+    load();
+  }, [tenantId]); // eslint-disable-line
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: 48, color: '#9ca3af', fontSize: 13 }}>
+      Cargando comparativa de 6 meses…
+    </div>
+  );
+
+  const fmtMXN = (n: number) => n === 0 ? '—' : '$' + Math.round(n).toLocaleString('es-MX');
+  const fmtP   = (n: number, base: number) => base > 0 ? (n / base * 100).toFixed(1) + '%' : '—';
+  const fmtD   = (cur: number, prev: number) => {
+    if (prev === 0) return '—';
+    const d = ((cur - prev) / Math.abs(prev)) * 100;
+    const s = d >= 0 ? '▲' : '▼';
+    const col = d >= 0 ? '#16a34a' : '#dc2626';
+    return { text: s + ' ' + Math.abs(d).toFixed(1) + '%', color: col };
+  };
+
+  type RowDef = { label: string; key: keyof MonthData | null; tipo: 'header'|'line'|'sub'|'total'; derived?: (m: MonthData) => number; indent?: boolean; };
+
+  const rows: RowDef[] = [
+    { label: 'Ingresos', key: null, tipo: 'header' },
+    { label: 'Ventas brutas', key: 'ventas', tipo: 'line' },
+    { label: '(-) Descuentos', key: 'descuentos', tipo: 'line', indent: true },
+    { label: '(-) IVA', key: 'iva', tipo: 'line', indent: true },
+    { label: 'Ventas netas', key: null, tipo: 'sub', derived: m => m.ventas - m.descuentos - m.iva },
+    { label: 'Costos directos', key: null, tipo: 'header' },
+    { label: 'COGS (ingredientes)', key: 'cogs', tipo: 'line', indent: true },
+    { label: 'Merma y cancelaciones', key: 'merma', tipo: 'line', indent: true },
+    { label: 'Utilidad bruta', key: null, tipo: 'sub', derived: m => (m.ventas - m.descuentos - m.iva) - m.cogs - m.merma },
+    { label: 'Gastos operativos', key: null, tipo: 'header' },
+    { label: 'Nómina', key: 'nomina', tipo: 'line', indent: true },
+    { label: 'Gastos fijos/var', key: 'gastosOp', tipo: 'line', indent: true },
+    { label: 'EBITDA', key: null, tipo: 'sub', derived: m => (m.ventas - m.descuentos - m.iva) - m.cogs - m.merma - m.nomina - m.gastosOp },
+    { label: 'Otros', key: null, tipo: 'header' },
+    { label: 'Depreciación', key: 'depreciacion', tipo: 'line', indent: true },
+    { label: 'Gastos financieros', key: 'financiero', tipo: 'line', indent: true },
+    { label: 'Utilidad neta', key: null, tipo: 'total',
+      derived: m => (m.ventas - m.descuentos - m.iva) - m.cogs - m.merma - m.nomina - m.gastosOp - m.depreciacion - m.financiero
+    },
+  ];
+
+  function getVal(row: RowDef, m: MonthData): number {
+    return row.derived ? row.derived(m) : Number(m[row.key as keyof MonthData] ?? 0);
+  }
+
+  const C = { hdr:'#f9fafb', border:'#e5e7eb', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
+  const thStyle: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 600, color: C.muted, textAlign: 'right', background: C.hdr, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+  const TOTAL_COL_STYLE: React.CSSProperties = { fontWeight: 700, color: C.blue, background: '#f0f4ff' };
+
+  // Compute totals column
+  const totals: MonthData = months.reduce((acc, m) => ({
+    label: 'Total', ventas: acc.ventas + m.ventas, descuentos: acc.descuentos + m.descuentos,
+    iva: acc.iva + m.iva, cogs: acc.cogs + m.cogs, merma: acc.merma + m.merma,
+    nomina: acc.nomina + m.nomina, gastosOp: acc.gastosOp + m.gastosOp,
+    depreciacion: acc.depreciacion + m.depreciacion, financiero: acc.financiero + m.financiero,
+  }), { label:'Total', ventas:0, descuentos:0, iva:0, cogs:0, merma:0, nomina:0, gastosOp:0, depreciacion:0, financiero:0 });
+
+  return (
+    <div>
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {([['pesos','$ Pesos'], ['pct','% sobre ventas'], ['delta','Δ vs mes ant.']] as [HView,string][]).map(([v, lbl]) => (
+          <button key={v} onClick={() => setView(v)}
+            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+              background: view === v ? C.blue : '#f3f4f6', color: view === v ? 'white' : C.muted }}>
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${C.border}` }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th style={{ ...thStyle, textAlign: 'left', width: 180 }}>Concepto</th>
+              {months.map(m => <th key={m.label} style={thStyle}>{m.label}</th>)}
+              <th style={{ ...thStyle, ...TOTAL_COL_STYLE }}>6 meses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => {
+              if (row.tipo === 'header') {
+                return (
+                  <tr key={ri}>
+                    <td colSpan={months.length + 2}
+                      style={{ padding: '6px 10px', fontSize: 10, fontWeight: 600, color: C.muted,
+                        letterSpacing: '.08em', textTransform: 'uppercase', background: C.hdr,
+                        borderTop: `1px solid ${C.border}` }}>
+                      {row.label}
+                    </td>
+                  </tr>
+                );
+              }
+
+              const vals = months.map(m => getVal(row, m));
+              const totVal = getVal(row, totals);
+              const maxVal = Math.max(...vals.map(Math.abs), 1);
+              const isTotal = row.tipo === 'total';
+              const isSub   = row.tipo === 'sub';
+
+              return (
+                <tr key={ri} style={{ borderTop: (isTotal || isSub) ? `1px solid ${C.border}` : undefined }}>
+                  <td style={{ padding: '9px 10px', paddingLeft: row.indent ? 22 : 10,
+                    fontWeight: isTotal || isSub ? 600 : 400, color: C.text,
+                    background: isTotal ? '#eff6ff' : 'transparent',
+                    borderBottom: `1px solid ${C.border}` }}>
+                    {row.label}
+                  </td>
+                  {months.map((m, mi) => {
+                    const val = vals[mi];
+                    const prevVal = mi > 0 ? vals[mi - 1] : null;
+
+                    // Best/worst highlight for line rows
+                    const isMax = row.tipo === 'line' && val === Math.max(...vals);
+                    const isMin = row.tipo === 'line' && val === Math.min(...vals) && val !== Math.max(...vals);
+                    const cellBg = isMax ? 'rgba(22,163,74,0.05)' : isMin ? 'rgba(220,38,38,0.05)' : isTotal ? '#eff6ff' : 'transparent';
+
+                    let display: React.ReactNode;
+                    if (view === 'pesos') {
+                      const barW = Math.round(Math.min(Math.abs(val) / maxVal * 32, 32));
+                      display = (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          {(isSub || isTotal) && barW > 0 && (
+                            <span style={{ display: 'inline-block', height: 3, width: barW,
+                              borderRadius: 2, background: val >= 0 ? '#1d4ed8' : '#dc2626', flexShrink: 0 }} />
+                          )}
+                          <span style={{ color: isTotal ? (val >= 0 ? '#15803d' : '#dc2626') : C.text }}>
+                            {fmtMXN(val)}
+                          </span>
+                        </span>
+                      );
+                    } else if (view === 'pct') {
+                      const base = months[mi].ventas || 1;
+                      const pct  = val / base * 100;
+                      display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#dc2626' : C.text }}>{fmtP(val, base)}</span>;
+                    } else {
+                      if (prevVal === null || prevVal === 0) {
+                        display = <span style={{ color: '#d1d5db' }}>—</span>;
+                      } else {
+                        const result = fmtD(val, prevVal);
+                        display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
+                      }
+                    }
+
+                    return (
+                      <td key={mi}
+                        style={{ padding: '9px 10px', textAlign: 'right', fontWeight: isTotal || isSub ? 600 : 400,
+                          background: cellBg, borderBottom: `1px solid ${C.border}` }}>
+                        {display}
+                      </td>
+                    );
+                  })}
+                  {/* Total column */}
+                  <td style={{ ...TOTAL_COL_STYLE, padding: '9px 10px', textAlign: 'right',
+                    fontWeight: isTotal || isSub ? 700 : 400, borderBottom: `1px solid ${C.border}` }}>
+                    <span style={{ color: isTotal ? (totVal >= 0 ? '#15803d' : '#dc2626') : C.blue }}>
+                      {view === 'pesos' ? fmtMXN(totVal) :
+                       view === 'pct'   ? fmtP(totVal, totals.ventas) : '—'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 10 }}>
+        Verde = mejor mes de la fila · Rojo = peor mes · Las barras muestran magnitud relativa de utilidades
+      </p>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AnalisisFinanciero() {
   const supabase = createClient();
+  const { appUser } = useAuth();
   const [period, setPeriod] = useState<Period>('mes_actual');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pl'|'bs'|'flujo'>('pl');
+  const [plView, setPlView] = useState<'vertical'|'horizontal'>('vertical');
 
   // Raw data
   const [ventas,       setVentas]       = useState(0);
@@ -558,14 +833,34 @@ export default function AnalisisFinanciero() {
                 <div style={{ padding:'16px 20px', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div>
                     <h2 style={{ fontSize:15, fontWeight:700, color:'#1f2937', margin:0 }}>Estado de Resultados</h2>
-                    <p style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{dateRange.label} · NIF B-3</p>
+                    <p style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{plView === 'vertical' ? dateRange.label + ' · NIF B-3' : 'Últimos 6 meses · análisis horizontal'}</p>
+                  </div>
+                  <div style={{ display:'flex', gap:4, background:'#f3f4f6', borderRadius:8, padding:3 }}>
+                    <button onClick={() => setPlView('vertical')}
+                      style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
+                        background: plView==='vertical' ? '#1B3A6B' : 'transparent',
+                        color: plView==='vertical' ? 'white' : '#6b7280' }}>
+                      <span style={{ fontSize:12 }}>≡</span> Vertical
+                    </button>
+                    <button onClick={() => setPlView('horizontal')}
+                      style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
+                        background: plView==='horizontal' ? '#1B3A6B' : 'transparent',
+                        color: plView==='horizontal' ? 'white' : '#6b7280' }}>
+                      <BarChart2 size={11} /> Horizontal 6m
+                    </button>
                   </div>
                 </div>
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <tbody>
-                    {plRows.map((row, i) => <PLRowComp key={i} row={row} />)}
-                  </tbody>
-                </table>
+                {plView === 'vertical' ? (
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <tbody>
+                      {plRows.map((row, i) => <PLRowComp key={i} row={row} />)}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ padding:20 }}>
+                    <PLHorizontal tenantId={appUser?.tenantId ?? getTenantId() ?? ''} />
+                  </div>
+                )}
               </div>
 
               {/* Sidebar: ratios & breakdown */}
