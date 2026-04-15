@@ -1171,6 +1171,26 @@ export default function POSClient() {
 
   // ─── Cancel / Free table ──────────────────────────────────────────────────
 
+  // Discard a takeout order that was never sent to kitchen (en_edicion)
+  const handleDiscardTakeout = async () => {
+    if (!selectedTable || selectedTable.number !== 0) return;
+    const orderId = selectedTable.currentOrderId;
+    if (orderId) {
+      // Mark as cancelled — was never sent so no kitchen cleanup needed
+      await supabase.from('orders').update({
+        status: 'cancelada',
+        kitchen_status: 'cancelada',
+        cancel_reason: 'Descartada sin enviar',
+        updated_at: new Date().toISOString(),
+      }).eq('id', orderId).eq('kitchen_status', 'en_edicion');
+    }
+    setSelectedTable(null);
+    setOrderItems([]);
+    setView('tables');
+    setKitchenSent(false);
+    toast('Orden descartada');
+  };
+
   const handleCancelTable = async () => {
     if (!selectedTable) return;
     setShowCancelConfirm(true);
@@ -1466,7 +1486,12 @@ export default function POSClient() {
                   <button onClick={() => setShowTransferModal(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }} title="Trasladar orden a otra mesa">
                     ↔ Cambiar mesa
                   </button>
-                  <button onClick={handleCancelTable} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Cancelar y liberar mesa sin cobrar">
+                  {selectedTable?.number === 0 && !kitchenSent && (
+                  <button onClick={handleDiscardTakeout} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Descartar — nunca se envió a cocina">
+                    ✕ Descartar
+                  </button>
+                )}
+                <button onClick={handleCancelTable} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Cancelar y liberar mesa sin cobrar">
                     <X size={12} />Cancelar mesa
                   </button>
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>

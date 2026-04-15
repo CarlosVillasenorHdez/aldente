@@ -357,9 +357,12 @@ export function useOrderFlow() {
       const modIngredientIds = [
         ...new Set(
           items.flatMap(item =>
-            (item.selectedOptions ?? [])
-              .filter(o => o.ingredient_id && o.qty_delta > 0)
-              .map(o => o.ingredient_id as string)
+            (item.selectedOptions ?? []).flatMap(o => [
+              ...(o.ingredient_id && o.qty_delta > 0 ? [o.ingredient_id as string] : []),
+              ...(o.extra_ingredients ?? [])
+                .filter(ei => ei.ingredient_id && ei.qty_delta > 0)
+                .map(ei => ei.ingredient_id),
+            ])
           )
         )
       ];
@@ -372,20 +375,34 @@ export function useOrderFlow() {
 
         for (const item of items) {
           for (const opt of (item.selectedOptions ?? [])) {
-            if (!opt.ingredient_id || !opt.qty_delta) continue;
-            const ing = modIngMap[opt.ingredient_id];
-            if (!ing) continue;
-            const deductQty = Number(opt.qty_delta) * item.qty;
-            const currentStock = Number(ing.stock);
-            stockUpdates.push({
-              ingredientId: opt.ingredient_id,
-              deductQty,
-              currentStock,
-              newStock: Math.max(0, currentStock - deductQty),
-              dishName: `${item.name} [mod: ${opt.name}]`,
-              dishQty: item.qty,
-              costPerUnit: Number(ing.cost ?? 0),
-            });
+            // Primary ingredient
+            if (opt.ingredient_id && opt.qty_delta) {
+              const ing = modIngMap[opt.ingredient_id];
+              if (ing) {
+                const deductQty = Number(opt.qty_delta) * item.qty;
+                const currentStock = Number(ing.stock);
+                stockUpdates.push({
+                  ingredientId: opt.ingredient_id, deductQty, currentStock,
+                  newStock: Math.max(0, currentStock - deductQty),
+                  dishName: `${item.name} [mod: ${opt.name}]`, dishQty: item.qty,
+                  costPerUnit: Number(ing.cost ?? 0),
+                });
+              }
+            }
+            // Extra ingredients (multi-ingredient modifier options)
+            for (const ei of (opt.extra_ingredients ?? [])) {
+              if (!ei.ingredient_id || !ei.qty_delta) continue;
+              const ing = modIngMap[ei.ingredient_id];
+              if (!ing) continue;
+              const deductQty = Number(ei.qty_delta) * item.qty;
+              const currentStock = Number(ing.stock);
+              stockUpdates.push({
+                ingredientId: ei.ingredient_id, deductQty, currentStock,
+                newStock: Math.max(0, currentStock - deductQty),
+                dishName: `${item.name} [mod extra: ${opt.name}]`, dishQty: item.qty,
+                costPerUnit: Number(ing.cost ?? 0),
+              });
+            }
           }
         }
       }
