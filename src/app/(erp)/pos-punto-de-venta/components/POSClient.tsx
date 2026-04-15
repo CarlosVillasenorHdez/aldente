@@ -1608,25 +1608,25 @@ export default function POSClient() {
                             <button key={combo.id}
                               onClick={() => selectedTable ? handleAddCombo(combo) : toast.error('Selecciona una mesa primero')}
                               style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderRadius:12,
-                                background:'rgba(201,150,58,0.07)', border:'1px solid rgba(201,150,58,0.2)',
+                                background:'#fffbf0', border:'1px solid rgba(201,150,58,0.35)',
                                 cursor: selectedTable ? 'pointer' : 'not-allowed', textAlign:'left', transition:'all .15s',
                                 opacity: selectedTable ? 1 : 0.55 }}>
                               <span style={{ fontSize:24, flexShrink:0 }}>{combo.emoji ?? '🎁'}</span>
                               <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:14, fontWeight:700, color:'#f1f5f9', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{combo.name}</div>
-                                <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.5 }}>
+                                <div style={{ fontSize:14, fontWeight:700, color:'#1f2937', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{combo.name}</div>
+                                <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.5 }}>
                                   {(combo.items as any[]).map((i: any) => `${i.qty > 1 ? i.qty+'× ' : ''}${i.name}`).join(' · ')}
                                 </div>
                                 {savings > 0 && (
-                                  <div style={{ fontSize:11, color:'#4ade80', marginTop:4, fontWeight:500 }}>Ahorra ${Number(savings).toFixed(0)}</div>
+                                  <div style={{ fontSize:11, color:'#16a34a', marginTop:4, fontWeight:600 }}>El cliente ahorra ${Number(savings).toFixed(0)}</div>
                                 )}
                               </div>
                               <div style={{ textAlign:'right', flexShrink:0 }}>
-                                <div style={{ fontSize:15, fontWeight:800, color:'#f59e0b', fontFamily:'monospace' }}>
+                                <div style={{ fontSize:16, fontWeight:800, color:'#c9963a', fontFamily:'monospace' }}>
                                   ${Number(combo.total_price).toFixed(0)}
                                 </div>
                                 {savings > 0 && (
-                                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', textDecoration:'line-through', fontFamily:'monospace' }}>
+                                  <div style={{ fontSize:10, color:'#9ca3af', textDecoration:'line-through', fontFamily:'monospace' }}>
                                     ${(Number(combo.total_price) + Number(savings)).toFixed(0)}
                                   </div>
                                 )}
