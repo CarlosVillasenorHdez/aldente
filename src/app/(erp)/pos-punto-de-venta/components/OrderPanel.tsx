@@ -325,7 +325,7 @@ export default function OrderPanel({
               </div>
             )}
             <div className="flex justify-between text-sm text-gray-500">
-              <span>IVA (16%)</span>
+              <span style={{ fontStyle: "italic" }}>IVA incluido (desglose)</span>
               <span className="font-mono">${iva.toFixed(2)}</span>
             </div>
             <div
