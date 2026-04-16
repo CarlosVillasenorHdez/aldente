@@ -74,7 +74,7 @@ interface MonthData {
   cogs: number; merma: number; nomina: number;
   gastosOp: number; depreciacion: number; financiero: number;
 }
-type HView = 'pesos' | 'pct' | 'delta';
+type HView = 'pesos' | 'pct' | 'delta' | 'y2y';
 
 // ─── RowDef — shared type for PLHorizontal rows ──────────────────────────────
 type RowDef = { label: string; key: keyof MonthData | null; tipo: 'header'|'line'|'sub'|'total'; derived?: (m: MonthData) => number; indent?: boolean; };
@@ -85,6 +85,8 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
   const [months, setMonths] = useState<MonthData[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<HView>('pesos');
+  const [prevYearMonths, setPrevYearMonths] = useState<MonthData[]>([]);
+  const [loadingY2Y, setLoadingY2Y] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -196,6 +198,44 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
   const [showDetail, setShowDetail] = React.useState(false);
 
+  // Fetch previous year data for Y2Y comparison
+  async function fetchPrevYear() {
+    if (prevYearMonths.length > 0 || loadingY2Y) return; // already loaded
+    setLoadingY2Y(true);
+    const results: MonthData[] = [];
+    const now = new Date();
+    for (let i = numMonths - 1; i >= 0; i--) {
+      // Same months as current period but 1 year back
+      const d = new Date(now.getFullYear() - 1, now.getMonth() - i, 1);
+      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+      const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      const label = d.toLocaleString('es-MX', { month: 'short', year: '2-digit' });
+
+      const [ordRes, gastosRes, nomRes, depRes, cogsData] = await Promise.all([
+        supabase.from('orders').select('total, discount, iva')
+          .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
+          .gte('closed_at', start).lte('closed_at', end),
+        supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria').eq('tenant_id', tenantId),
+        supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', tenantId).eq('status', 'activo'),
+        supabase.from('depreciaciones').select('valor_original, vida_util_anios, valor_residual, fecha_adquisicion').eq('tenant_id', tenantId),
+        supabase.from('orders').select('cost_actual').eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', start).lte('closed_at', end),
+      ]);
+      const orders = ordRes.data ?? [];
+      const ventas = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+      const descuentos = orders.reduce((s, o) => s + Number(o.discount ?? 0), 0);
+      const ivaAmt = orders.reduce((s, o) => s + Number(o.iva ?? 0), 0);
+      const FREQ: Record<string, number> = { diario:30, semanal:4.33, quincenal:2, mensual:1, bimestral:0.5 };
+      const nomina = (nomRes.data ?? []).reduce((s, e) => s + Number(e.salary ?? 0) * (FREQ[(e as any).salary_frequency ?? 'mensual'] ?? 1), 0);
+      const GFREQ: Record<string, number> = { diaria:30, semanal:4.33, quincenal:2, mensual:1, trimestral:0.33, anual:0.083 };
+      const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
+      const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(Number(a.vida_util_anios) * 12, 1), 0);
+      const cogs = (cogsData.data ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+      results.push({ label, ventas, descuentos, iva: ivaAmt, cogs, merma: 0, nomina, gastosOp, depreciacion, financiero: 0 });
+    }
+    setPrevYearMonths(results);
+    setLoadingY2Y(false);
+  }
+
   // Notify parent when data is loaded (for CSV/PDF export)
   useEffect(() => {
     if (!loading && months.length > 0 && onDataReady) {
@@ -285,8 +325,8 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     <div>
       {/* ── View toggle ───────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-        {([['pesos','$ Pesos'], ['pct','% sobre ventas'], ['delta','Δ vs mes ant.']] as [HView,string][]).map(([v, lbl]) => (
-          <button key={v} onClick={() => setView(v)}
+        {([['pesos','$ Pesos'], ['pct','% sobre ventas'], ['delta','Δ vs mes ant.'], ['y2y','↕ vs año ant.']] as [HView,string][]).map(([v, lbl]) => (
+          <button key={v} onClick={() => { setView(v); if (v === 'y2y') fetchPrevYear(); }}
             style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
               background: view === v ? C.blue : '#f3f4f6', color: view === v ? 'white' : C.muted }}>
             {lbl}
@@ -410,6 +450,24 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                         const base = months[mi].ventas || 1;
                         const pct  = val / base * 100;
                         display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#dc2626' : C.text }}>{fmtP(val, base)}</span>;
+                      } else if (view === 'y2y') {
+                        const pyMonth = prevYearMonths[mi];
+                        const pyVal = pyMonth ? getVal(row, pyMonth) : null;
+                        if (!pyVal || pyVal === 0 || loadingY2Y) {
+                          display = <span style={{ color: '#d1d5db' }}>{loadingY2Y ? '…' : '—'}</span>;
+                        } else {
+                          const pct = ((val - pyVal) / Math.abs(pyVal)) * 100;
+                          const goodDir = row.tipo !== 'line' || !row.label.toLowerCase().includes('cost');
+                          const isGood = goodDir ? pct >= 0 : pct <= 0;
+                          const col = isGood ? '#16a34a' : '#dc2626';
+                          const s = pct >= 0 ? '▲' : '▼';
+                          display = (
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ color: col, fontWeight: 500, fontSize: 11 }}>{s} {Math.abs(pct).toFixed(1)}%</div>
+                              <div style={{ color: '#9ca3af', fontSize: 10 }}>{fmtMXN(pyVal)}</div>
+                            </div>
+                          );
+                        }
                       } else {
                         if (prevVal2 === null || prevVal2 === 0) {
                           display = <span style={{ color: '#d1d5db' }}>—</span>;
@@ -435,7 +493,13 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                       fontWeight: isTotal || isSub ? 700 : 400, borderBottom: `1px solid ${C.border}` }}>
                       <span style={{ color: isTotal ? (totVal >= 0 ? '#15803d' : '#dc2626') : C.blue }}>
                         {view === 'pesos' ? fmtMXN(totVal) :
-                         view === 'pct'   ? fmtP(totVal, totals.ventas) : '—'}
+                         view === 'pct'   ? fmtP(totVal, totals.ventas) :
+                         view === 'y2y'   ? (() => {
+                           const pyTot = prevYearMonths.reduce((s, m) => s + getVal(row, m), 0);
+                           if (!pyTot) return '—';
+                           const pct = ((totVal - pyTot) / Math.abs(pyTot)) * 100;
+                           return (pct >= 0 ? '▲' : '▼') + ' ' + Math.abs(pct).toFixed(1) + '%';
+                         })() : '—'}
                       </span>
                     </td>
                   </tr>

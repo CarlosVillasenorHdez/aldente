@@ -35,6 +35,88 @@ function SaveButton({ saved, onClick, label }: { saved: boolean; onClick: () => 
   );
 }
 
+
+// ─── WhatsApp Monthly Report Toggle ──────────────────────────────────────────
+function WhatsAppReportToggle() {
+  const supabase = createClient();
+  const { appUser } = useAuth();
+  const [enabled, setEnabled] = React.useState(false);
+  const [phone, setPhone] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!appUser?.tenantId) return;
+    supabase.from('system_config')
+      .select('config_key, config_value')
+      .eq('tenant_id', appUser.tenantId)
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        (data ?? []).forEach((r: any) => { map[r.config_key] = r.config_value; });
+        setEnabled(map['whatsapp_report_enabled'] === 'true');
+        setPhone(map['whatsapp_report_phone'] ?? '');
+      });
+  }, [appUser?.tenantId]); // eslint-disable-line
+
+  async function save() {
+    if (!appUser?.tenantId) return;
+    setSaving(true);
+    await supabase.from('system_config').upsert([
+      { config_key: 'whatsapp_report_enabled', config_value: String(enabled), tenant_id: appUser.tenantId },
+      { config_key: 'whatsapp_report_phone',   config_value: phone.trim(),    tenant_id: appUser.tenantId },
+    ], { onConflict: 'tenant_id,config_key' });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  return (
+    <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid rgba(37,211,102,0.2)' }}>
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span style={{ fontSize: 16 }}>📱</span>
+            <h3 className="text-sm font-bold" style={{ color: '#f1f5f9' }}>Reporte mensual por WhatsApp</h3>
+          </div>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+            El primer lunes de cada mes: ventas, prime cost y variación vs mes anterior. Sin necesidad de abrir la app.
+          </p>
+        </div>
+        <button
+          onClick={() => setEnabled(v => !v)}
+          style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
+            background: enabled ? '#25d366' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background .2s' }}>
+          <div style={{ position: 'absolute', top: 3, left: enabled ? 23 : 3, width: 18, height: 18,
+            borderRadius: '50%', background: 'white', transition: 'left .2s' }} />
+        </button>
+      </div>
+      {enabled && (
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
+              Número de WhatsApp
+            </label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+52 55 1234 5678"
+              style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 10, padding: '9px 12px', color: '#f1f5f9', fontSize: 14, outline: 'none' }} />
+          </div>
+          <button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ backgroundColor: '#25d366', color: '#000', opacity: saving ? 0.6 : 1, flexShrink: 0 }}>
+            {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+          </button>
+        </div>
+      )}
+      {!enabled && (
+        <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-xs font-semibold"
+          style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar preferencia'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 export default function ConfigSistema({ activeSection }: { activeSection: string }) {
   const supabase = createClient();
   const { appUser } = useAuth();
@@ -357,6 +439,9 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       {activeSection === 'sistema' && (
         <div className="max-w-2xl">
               <SectionTitle icon={Settings2} title="Configuración del Sistema" />
+
+              {/* WhatsApp monthly report */}
+              <WhatsAppReportToggle />
 
               {/* Reset system */}
               {resetSuccess && (
