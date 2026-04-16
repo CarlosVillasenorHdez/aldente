@@ -11,6 +11,10 @@ interface TenantRow {
   owner_email?: string;
   address?: string; colonia?: string; city?: string; state_region?: string; postal_code?: string;
   active_users?: number; active_branches?: number;
+  // CRM intelligence fields (fetched separately)
+  ordersLast7?: number;
+  healthGrade?: 'A' | 'B' | 'C' | 'D' | 'F';
+  healthColor?: string;
 }
 
 const PLAN_MXN: Record<string, number> = { operacion: 699, negocio: 1299, empresa: 2199 };
@@ -105,7 +109,16 @@ function PipelineCol({ title, color, bg, tenants, emptyText }: {
                 onMouseLeave={e=>(e.currentTarget.style.background='rgba(255,255,255,.03)')}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
                   <span style={{ fontSize:12, fontWeight:600, color:'#f1f5f9', lineHeight:1.3 }}>{t.name}</span>
-                  <span style={{ fontSize:10, fontWeight:700, color:pc, background:`${pc}15`, padding:'1px 6px', borderRadius:4, flexShrink:0, marginLeft:4 }}>{PLAN_LABEL[t.plan]??t.plan}</span>
+                  <div style={{ display:'flex', gap:4, alignItems:'center', flexShrink:0, marginLeft:4 }}>
+                    {t.healthGrade && (
+                      <span style={{ fontSize:10, fontWeight:800, color:t.healthColor, background:`${t.healthColor}20`,
+                        padding:'1px 6px', borderRadius:4, fontFamily:'monospace' }}
+                        title="Health Score">
+                        {t.healthGrade}
+                      </span>
+                    )}
+                    <span style={{ fontSize:10, fontWeight:700, color:pc, background:`${pc}15`, padding:'1px 6px', borderRadius:4 }}>{PLAN_LABEL[t.plan]??t.plan}</span>
+                  </div>
                 </div>
                 {t.city && <div style={{ fontSize:10, color:'rgba(255,255,255,.35)', marginBottom:3 }}>📍 {t.city}</div>}
                 {days !== null && (
@@ -131,10 +144,42 @@ export default function AdminDashboardPage() {
   const [view, setView] = useState<'pipeline'|'map'|'list'>('pipeline');
 
   useEffect(() => {
-    supabase.from('v_tenant_map')
-      .select('id,name,slug,plan,is_active,trial_ends_at,plan_valid_until,lat,lng,created_at,owner_email,address,colonia,city,state_region,postal_code,active_users,active_branches')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setTenants((data??[]) as TenantRow[]); setLoading(false); });
+    async function loadAll() {
+      const { data: rows } = await supabase.from('v_tenant_map')
+        .select('id,name,slug,plan,is_active,trial_ends_at,plan_valid_until,lat,lng,created_at,owner_email,address,colonia,city,state_region,postal_code,active_users,active_branches')
+        .order('created_at', { ascending: false });
+
+      if (!rows) { setLoading(false); return; }
+
+      // Fetch last-7-days order count per tenant for quick health signal
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: recentOrders } = await supabase
+        .from('orders')
+        .select('tenant_id')
+        .eq('is_comanda', false)
+        .neq('kitchen_status', 'en_edicion')
+        .gte('created_at', sevenDaysAgo);
+
+      const ordersByTenant: Record<string, number> = {};
+      (recentOrders ?? []).forEach((o: any) => {
+        ordersByTenant[o.tenant_id] = (ordersByTenant[o.tenant_id] ?? 0) + 1;
+      });
+
+      // Compute quick health grade per tenant
+      const gradeColor = (g: string) =>
+        g === 'A' ? '#16a34a' : g === 'B' ? '#65a30d' : g === 'C' ? '#d97706' : g === 'D' ? '#ea580c' : '#dc2626';
+
+      const enriched = (rows as TenantRow[]).map(t => {
+        const orders7 = ordersByTenant[t.id] ?? 0;
+        // Simple heuristic: A>=14 orders/week, B>=7, C>=3, D>=1, F=0
+        const grade = orders7 >= 14 ? 'A' : orders7 >= 7 ? 'B' : orders7 >= 3 ? 'C' : orders7 >= 1 ? 'D' : 'F';
+        return { ...t, ordersLast7: orders7, healthGrade: grade as TenantRow['healthGrade'], healthColor: gradeColor(grade) };
+      });
+
+      setTenants(enriched);
+      setLoading(false);
+    }
+    loadAll();
   }, [supabase]);
 
   const now = new Date();
@@ -195,6 +240,53 @@ export default function AdminDashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Fleet Health Distribution */}
+      {!loading && tenants.length > 0 && (
+        <div style={{ ...S.card, marginBottom: 20 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>⚡ Salud de la flota</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>
+              Basado en órdenes últimos 7 días · {tenants.length} restaurantes
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            {(['A','B','C','D','F'] as const).map(grade => {
+              const gradeColor = grade==='A'?'#16a34a':grade==='B'?'#65a30d':grade==='C'?'#d97706':grade==='D'?'#ea580c':'#dc2626';
+              const gradeLabel = grade==='A'?'Saludable':grade==='B'?'Estable':grade==='C'?'Atención':grade==='D'?'En riesgo':'Crítico';
+              const count = tenants.filter(t=>t.healthGrade===grade).length;
+              return (
+                <div key={grade} style={{ flex:1, minWidth:80, background:`${gradeColor}10`, border:`1px solid ${gradeColor}25`, borderRadius:10, padding:'10px 12px', textAlign:'center' }}>
+                  <div style={{ fontSize:20, fontWeight:800, color:gradeColor, fontFamily:'monospace' }}>{count}</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:gradeColor, marginTop:2 }}>{grade} — {gradeLabel}</div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Attention list: F-grade active tenants */}
+          {tenants.filter(t=>t.healthGrade==='F'&&t.is_active).length > 0 && (
+            <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid rgba(255,255,255,.06)' }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'rgba(239,68,68,.8)', marginBottom:8, textTransform:'uppercase', letterSpacing:'.06em' }}>
+                ⚠ Requieren atención inmediata — sin actividad 7 días
+              </div>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {tenants.filter(t=>t.healthGrade==='F'&&t.is_active).slice(0,6).map(t=>(
+                  <Link key={t.id} href={`/admin/tenants/${t.id}`} style={{ textDecoration:'none' }}>
+                    <div style={{ fontSize:12, padding:'5px 12px', borderRadius:8, background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', color:'#fca5a5', fontWeight:500, cursor:'pointer' }}>
+                      {t.name}
+                    </div>
+                  </Link>
+                ))}
+                {tenants.filter(t=>t.healthGrade==='F'&&t.is_active).length > 6 && (
+                  <div style={{ fontSize:12, padding:'5px 12px', borderRadius:8, background:'rgba(239,68,68,.05)', border:'1px solid rgba(239,68,68,.15)', color:'rgba(252,165,165,.6)' }}>
+                    +{tenants.filter(t=>t.healthGrade==='F'&&t.is_active).length - 6} más
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View toggle + search */}
       <div style={{ display:'flex', gap:10, marginBottom:18, flexWrap:'wrap', alignItems:'center' }}>

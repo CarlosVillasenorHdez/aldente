@@ -40,6 +40,52 @@ interface HealthSignal {
   label: string; status: 'ok' | 'warn' | 'risk'; detail: string;
 }
 
+interface FinancialSnapshot {
+  ventas4w: number; ventas4wPrev: number; // last 4 weeks vs prior 4 weeks
+  ordersPerDay: number;
+  yearsOperating: string;
+}
+
+interface HealthScore {
+  score: number;       // 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  color: string;
+  label: string;
+}
+
+function calcHealthScore(signals: HealthSignal[], fin: FinancialSnapshot | null, usage: UsageStats | null): HealthScore {
+  let score = 100;
+
+  // Activity penalties
+  const riskSignals = signals.filter(s => s.status === 'risk').length;
+  const warnSignals = signals.filter(s => s.status === 'warn').length;
+  score -= riskSignals * 20;
+  score -= warnSignals * 8;
+
+  // Financial trend
+  if (fin) {
+    if (fin.ventas4wPrev > 0) {
+      const trend = (fin.ventas4w - fin.ventas4wPrev) / fin.ventas4wPrev;
+      if (trend < -0.20) score -= 20;
+      else if (trend < -0.10) score -= 10;
+      else if (trend > 0.10) score += 5;
+    }
+  }
+
+  // Setup completeness bonus
+  if (usage) {
+    if (usage.dishesCount >= 10) score += 5;
+    if (usage.tablesCount >= 4) score += 3;
+    if (usage.employeesCount >= 2) score += 2;
+  }
+
+  score = Math.max(0, Math.min(100, score));
+  const grade: HealthScore['grade'] = score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F';
+  const color = score >= 80 ? '#16a34a' : score >= 65 ? '#65a30d' : score >= 50 ? '#d97706' : score >= 35 ? '#ea580c' : '#dc2626';
+  const label = score >= 80 ? 'Saludable' : score >= 65 ? 'Estable' : score >= 50 ? 'Atención' : score >= 35 ? 'En riesgo' : 'Crítico';
+  return { score, grade, color, label };
+}
+
 const card: React.CSSProperties = { background: '#1a2535', border: '1px solid #1e2d3d', borderRadius: 14, padding: '20px 22px', marginBottom: 16 };
 const label: React.CSSProperties = { fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6, display: 'block' };
 const val: React.CSSProperties = { fontSize: 14, color: '#f1f5f9' };
@@ -64,9 +110,11 @@ export default function TenantDetailPage() {
   const [pinModal, setPinModal]   = useState<AppUser | null>(null);
   const [newPin, setNewPin]       = useState('');
   const [showPins, setShowPins]   = useState<Record<string,boolean>>({});
-  const [activeTab, setActiveTab] = useState<'overview'|'sucursales'|'users'|'health'|'notes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview'|'sucursales'|'users'|'health'|'inteligencia'|'notes'>('overview');
   const [newUser, setNewUser]     = useState({ full_name: '', app_role: 'mesero', pin: '' });
   const [adminNote, setAdminNote] = useState('');
+  const [fin, setFin] = useState<FinancialSnapshot | null>(null);
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [branches, setBranches] = useState<BranchDetail[]>([]);
   const [savingNote, setSavingNote] = useState(false);
 
@@ -165,6 +213,28 @@ export default function TenantDetailPage() {
       signals.push({ label: 'Suscripción', status: 'warn', detail: `Pago vence en ${paidDays} días` });
 
     setHealth(signals);
+
+    // Financial snapshot — last 4 weeks vs prior 4 weeks
+    const now4wAgo = new Date(Date.now() - 28 * 86400000).toISOString();
+    const now8wAgo = new Date(Date.now() - 56 * 86400000).toISOString();
+    const [{ data: orders4w }, { data: orders4wPrev }, { data: sysConf }] = await Promise.all([
+      supabase.from('orders').select('total').eq('tenant_id', id).eq('is_comanda', false)
+        .eq('status', 'cerrada').gte('closed_at', now4wAgo),
+      supabase.from('orders').select('total').eq('tenant_id', id).eq('is_comanda', false)
+        .eq('status', 'cerrada').gte('closed_at', now8wAgo).lt('closed_at', now4wAgo),
+      supabase.from('system_config').select('config_key, config_value').eq('tenant_id', id),
+    ]);
+    const ventas4w = (orders4w ?? []).reduce((s: number, o: any) => s + Number(o.total), 0);
+    const ventas4wPrev = (orders4wPrev ?? []).reduce((s: number, o: any) => s + Number(o.total), 0);
+    const sysMap: Record<string, string> = {};
+    (sysConf ?? []).forEach((r: any) => { sysMap[r.config_key] = r.config_value; });
+    const finSnap: FinancialSnapshot = {
+      ventas4w, ventas4wPrev,
+      ordersPerDay: stats.activeDaysLast14 > 0 ? stats.ordersThisMonth / Math.max(stats.activeDaysLast14, 1) : 0,
+      yearsOperating: sysMap['years_operating'] ?? '',
+    };
+    setFin(finSnap);
+    setHealthScore(calcHealthScore(signals, finSnap, stats));
     setLoading(false);
   }, [id]);
 
@@ -332,9 +402,14 @@ export default function TenantDetailPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid #1e2d3d', marginBottom: 20, display: 'flex', gap: 0 }}>
-        {(['overview','sucursales','users','health','notes'] as const).map(t => (
+        {(['overview','sucursales','users','health','inteligencia','notes'] as const).map(t => (
           <button key={t} style={TAB_STYLE(t)} onClick={() => setActiveTab(t)}>
-            {t === 'overview' ? 'Suscripción' : t === 'sucursales' ? `Sucursales (${branches.length})` : t === 'users' ? 'Usuarios' : t === 'health' ? `Salud${riskCount+warnCount>0?' ('+( riskCount+warnCount)+')':''}` : 'Notas'}
+            {t === 'overview' ? 'Suscripción'
+              : t === 'sucursales' ? `Sucursales (${branches.length})`
+              : t === 'users' ? 'Usuarios'
+              : t === 'health' ? `Salud${riskCount+warnCount>0?' ('+(riskCount+warnCount)+')':''}`
+              : t === 'inteligencia' ? `⚡ Inteligencia`
+              : 'Notas'}
           </button>
         ))}
       </div>
@@ -550,6 +625,33 @@ export default function TenantDetailPage() {
       {/* TAB: Salud del cliente */}
       {activeTab === 'health' && (
         <div>
+          {/* Health Score banner */}
+          {healthScore && (
+            <div style={{ ...card, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', border: `3px solid ${healthScore.color}`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: healthScore.color, fontFamily: 'monospace', lineHeight: 1 }}>{healthScore.score}</span>
+                <span style={{ fontSize: 11, color: healthScore.color, fontWeight: 700 }}>{healthScore.grade}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: healthScore.color }}>{healthScore.label}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4, lineHeight: 1.6 }}>
+                  Score de salud calculado automáticamente desde actividad, configuración y tendencia financiera.
+                  {fin && fin.ventas4wPrev > 0 && (
+                    <span style={{ marginLeft: 8, color: fin.ventas4w >= fin.ventas4wPrev ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                      Ventas 4 sem: {fin.ventas4w >= fin.ventas4wPrev ? '▲' : '▼'} {Math.abs(((fin.ventas4w - fin.ventas4wPrev) / fin.ventas4wPrev) * 100).toFixed(1)}% vs período anterior
+                    </span>
+                  )}
+                </div>
+              </div>
+              {fin?.yearsOperating && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 2 }}>Madurez</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{fin.yearsOperating.replace('_', ' ').replace('-', '–')} años</div>
+                </div>
+              )}
+            </div>
+          )}
           <div style={card}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>Señales de salud</div>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
@@ -611,6 +713,158 @@ export default function TenantDetailPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+
+      {/* TAB: Inteligencia */}
+      {activeTab === 'inteligencia' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Financial trend */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Tendencia financiera</div>
+            {fin ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+                {[
+                  {
+                    label: 'Ventas últimas 4 semanas',
+                    value: '$' + Math.round(fin.ventas4w).toLocaleString('es-MX'),
+                    sub: fin.ventas4wPrev > 0
+                      ? (fin.ventas4w >= fin.ventas4wPrev ? '▲ ' : '▼ ') + Math.abs(((fin.ventas4w - fin.ventas4wPrev) / fin.ventas4wPrev) * 100).toFixed(1) + '% vs 4 sem anteriores'
+                      : 'Sin datos del período anterior',
+                    color: fin.ventas4wPrev > 0 ? (fin.ventas4w >= fin.ventas4wPrev ? '#22c55e' : '#ef4444') : 'rgba(255,255,255,0.3)',
+                  },
+                  {
+                    label: 'Órdenes / día activo',
+                    value: fin.ordersPerDay.toFixed(1),
+                    sub: 'promedio este mes',
+                    color: fin.ordersPerDay >= 10 ? '#22c55e' : fin.ordersPerDay >= 3 ? '#f59e0b' : '#ef4444',
+                  },
+                  {
+                    label: 'Antigüedad del negocio',
+                    value: fin.yearsOperating || 'No reportado',
+                    sub: 'años operando según registro',
+                    color: 'rgba(255,255,255,0.6)',
+                  },
+                ].map(m => (
+                  <div key={m.label} style={{ background: '#0f1923', borderRadius: 10, border: '1px solid #1e2d3d', padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>{m.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: m.color, fontFamily: 'monospace' }}>{m.value}</div>
+                    <div style={{ fontSize: 11, color: m.color, marginTop: 4 }}>{m.sub}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Sin datos financieros disponibles</div>
+            )}
+          </div>
+
+          {/* Intervention playbook */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>Playbook de intervención</div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 16, lineHeight: 1.6 }}>
+              Acciones recomendadas basadas en los datos del tenant. Nunca llegas con "tus números están mal" — llegas con insights.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+              {/* Score-based action */}
+              {healthScore && healthScore.score < 50 && (
+                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 14 }}>🚨</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#f87171' }}>Intervención proactiva recomendada</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+                    Score {healthScore.score}/100. Mensaje sugerido para WhatsApp:<br/>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>
+                      "Hola [nombre], estuve revisando el resumen de {tenant?.name} y noté algo interesante en los datos de este mes. ¿Tienes 15 minutos esta semana para platicarlo?"
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Trend deterioration */}
+              {fin && fin.ventas4wPrev > 0 && fin.ventas4w < fin.ventas4wPrev * 0.8 && (
+                <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>📉</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#fca5a5' }}>Caída de ventas {'>'} 20%</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                    Sus ventas cayeron {(((fin.ventas4wPrev - fin.ventas4w) / fin.ventas4wPrev) * 100).toFixed(0)}% vs el período anterior.
+                    Esto puede ser estacional o puede ser una señal de deterioro. Benchmark del sector puede ayudar a contextualizar.
+                    Acción: enviar reporte con benchmark anónimo de restaurantes similares.
+                  </div>
+                </div>
+              )}
+
+              {/* Low activity but active trial */}
+              {usage && usage.activeDaysLast14 < 5 && usage.ordersTotal > 0 && (
+                <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>💤</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#fcd34d' }}>Uso intermitente</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                    Solo {usage.activeDaysLast14}/14 días activos. Usó el sistema al inicio pero ha bajado.
+                    Puede necesitar refuerzo de adopción. Acción: compartir tip de la semana o caso de éxito similar.
+                  </div>
+                </div>
+              )}
+
+              {/* Healthy — growth opportunity */}
+              {healthScore && healthScore.score >= 80 && (
+                <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>🌱</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#86efac' }}>Cliente saludable — oportunidad de crecimiento</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                    Score {healthScore.score}/100. Este es el mejor momento para hablar de Aldente Insights o de expandir módulos.
+                    Los clientes satisfechos son los mejores candidatos para upsell y referidos.
+                  </div>
+                </div>
+              )}
+
+              {/* New tenant onboarding */}
+              {usage && usage.ordersTotal < 10 && (
+                <div style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 14 }}>🚀</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#93c5fd' }}>Tenant nuevo — etapa de adopción</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                    Menos de 10 órdenes registradas. Prioridad: asegurar que complete el setup (menú, mesas, equipo)
+                    y haga su primera orden real. El primer mes es crítico para la retención a largo plazo.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CRM touchpoint log */}
+          <div style={card}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>Próximo touchpoint sugerido</div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 14, lineHeight: 1.6 }}>
+              Basado en el estado actual del tenant.
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                healthScore && healthScore.score < 35 ? { label: '📞 Llamada de rescate', color: '#ef4444', desc: 'Urgente — deterioro crítico detectado' } : null,
+                healthScore && healthScore.score >= 35 && healthScore.score < 65 ? { label: '💬 WhatsApp de check-in', color: '#f59e0b', desc: 'Esta semana — antes de que empeore' } : null,
+                fin && fin.ventas4w > 0 ? { label: '📊 Compartir benchmark mensual', color: '#60a5fa', desc: 'Primer lunes del mes — datos del sector' } : null,
+                healthScore && healthScore.score >= 80 ? { label: '⭐ Invitar a Aldente Insights', color: '#a78bfa', desc: 'Cliente ideal para upsell' } : null,
+              ].filter(Boolean).map((action: any) => (
+                <div key={action.label} style={{ background: `${action.color}10`, border: `1px solid ${action.color}25`,
+                  borderRadius: 10, padding: '12px 16px', flex: 1, minWidth: 180 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: action.color, marginBottom: 4 }}>{action.label}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{action.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
 
