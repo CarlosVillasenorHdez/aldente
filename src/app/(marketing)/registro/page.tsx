@@ -14,11 +14,12 @@ interface FormData {
   pin: string;
   pinConfirm: string;
   establishmentType: string;
+  yearsOperating: string;
 }
 
 const INITIAL: FormData = {
   restaurantName: '', adminName: '', phone: '', email: '',
-  pin: '', pinConfirm: '', establishmentType: 'restaurante',
+  pin: '', pinConfirm: '', establishmentType: 'restaurante', yearsOperating: '',
 };
 
 const TYPES = [
@@ -88,6 +89,7 @@ export default function RegistroPage() {
           email: form.email.trim(),
           pinHash,
           establishmentType: form.establishmentType,
+          yearsOperating: form.yearsOperating,
         },
         headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
       });
@@ -277,6 +279,30 @@ export default function RegistroPage() {
                 <input className="inp" type="text" required value={form.adminName}
                   onChange={e => set('adminName', e.target.value)}
                   placeholder="María García López" />
+              </div>
+
+              {/* Years operating */}
+              <div>
+                <label className="lbl">¿Cuánto tiempo llevas operando? <span style={{ color: 'rgba(212,146,42,0.4)', fontWeight: 400 }}>(opcional)</span></label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { key: '',       label: 'No aplica / Nuevo' },
+                    { key: '0-1',    label: 'Menos de 1 año' },
+                    { key: '1-3',    label: '1 – 3 años' },
+                    { key: '3-5',    label: '3 – 5 años' },
+                    { key: '5-10',   label: '5 – 10 años' },
+                    { key: '10+',    label: 'Más de 10 años' },
+                  ].map(opt => (
+                    <button key={opt.key} type="button"
+                      onClick={() => set('yearsOperating', opt.key)}
+                      style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all .15s',
+                        background: form.yearsOperating === opt.key ? 'rgba(212,146,42,0.2)' : 'rgba(255,255,255,0.06)',
+                        color: form.yearsOperating === opt.key ? '#d4922a' : 'rgba(240,236,228,0.5)',
+                        outline: form.yearsOperating === opt.key ? '1px solid rgba(212,146,42,0.4)' : 'none' }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Phone + email */}

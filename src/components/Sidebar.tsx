@@ -57,6 +57,7 @@ const navGroups: { group: string; items: NavItem[] }[] = [
       { label: 'Personal', icon: Users, href: '/personal', pageKey: 'personal' },
       { label: 'Recursos Humanos', icon: UserCog, href: '/recursos-humanos', pageKey: 'recursos_humanos', feature: 'recursosHumanos' as keyof Features },
       { label: 'Gastos', icon: Receipt, href: '/gastos', pageKey: 'gastos', feature: 'gastos' as keyof Features },
+      { label: 'Proveedores', icon: Truck, href: '/proveedores', pageKey: 'proveedores' },
       { label: 'Multi-Sucursal', icon: Building2, href: '/sucursales', pageKey: 'sucursales', feature: 'multiSucursal' as keyof Features },
     ],
   },

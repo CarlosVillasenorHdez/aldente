@@ -166,6 +166,68 @@ function LiveDemo() {
   );
 }
 
+// ─── Interactive "A tu medida" plan card ─────────────────────────────────────
+const MODULOS = [
+  { key:'mesero',       name:'Mesero Móvil',      price:100, icon:'📱', desc:'Toma pedidos desde cualquier celular' },
+  { key:'inventario',   name:'Inventario',         price:200, icon:'📦', desc:'Stock en tiempo real por receta' },
+  { key:'pl',           name:'P&L & COGS',         price:200, icon:'📊', desc:'Estado de resultados real' },
+  { key:'gastos',       name:'Gastos',             price:100, icon:'🧾', desc:'Recurrentes, proveedores y pagos' },
+  { key:'reservaciones',name:'Reservaciones',      price:100, icon:'📅', desc:'Con confirmación automática' },
+  { key:'lealtad',      name:'Lealtad',            price:150, icon:'⭐', desc:'Puntos y niveles configurables' },
+  { key:'rrhh',         name:'RRHH & Nómina',      price:300, icon:'👥', desc:'LFT compliant, horas extra' },
+  { key:'delivery',     name:'Delivery',           price:200, icon:'🛵', desc:'Multi-canal con repartidores' },
+];
+
+function MedidaCard({ disc, color, tag }: { disc: number; color: string; tag: string }) {
+  const [active, setActive] = React.useState<Set<string>>(new Set());
+  const base = Math.round(399 * disc);
+  const extra = [...active].reduce((s,k) => {
+    const m = MODULOS.find(m => m.key === k);
+    return s + Math.round((m?.price ?? 0) * disc);
+  }, 0);
+  const total = base + extra;
+
+  return (
+    <div className="pcard" style={{ background:`linear-gradient(145deg,${color}08,rgba(255,255,255,.02))`, border:`1px solid ${color}25`, position:'relative' }}>
+      {tag && <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', background:color, color:'#07090f', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10, letterSpacing:'.06em', whiteSpace:'nowrap' }}>{tag}</div>}
+      <div style={{ fontSize:13, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color, marginBottom:16 }}>A tu medida</div>
+      <div style={{ marginBottom:4 }}>
+        <span style={{ fontSize:42, fontWeight:700, color:'#f0ece4', lineHeight:1, fontFamily:"'Playfair Display',serif" }}>${total.toLocaleString('es-MX')}</span>
+        <span style={{ fontSize:13, color:'rgba(240,236,228,.6)', marginLeft:6 }}>/mes</span>
+      </div>
+      <p style={{ fontSize:12, color:'rgba(240,236,228,.4)', marginBottom:4 }}>Base $399 (POS+KDS) + módulos elegidos</p>
+      <p style={{ fontSize:13, color:'rgba(240,236,228,.55)', fontStyle:'italic', marginBottom:16, lineHeight:1.4 }}>Solo pagas lo que usas.</p>
+
+      <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(240,236,228,.3)', marginBottom:8 }}>Activa los módulos que necesitas</p>
+      <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:16 }}>
+        {MODULOS.map(m => {
+          const on = active.has(m.key);
+          return (
+            <button key={m.key} onClick={() => {
+              setActive(prev => { const n = new Set(prev); on ? n.delete(m.key) : n.add(m.key); return n; });
+            }} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', cursor:'pointer', textAlign:'left', transition:'all .15s',
+              background: on ? `${color}18` : 'rgba(255,255,255,0.04)',
+              outline: on ? `1px solid ${color}40` : '1px solid transparent' }}>
+              <span style={{ fontSize:14 }}>{m.icon}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <span style={{ fontSize:12, fontWeight:600, color: on ? '#f0ece4' : 'rgba(240,236,228,.55)' }}>{m.name}</span>
+                <span style={{ fontSize:10, color:'rgba(240,236,228,.3)', marginLeft:6 }}>{m.desc}</span>
+              </div>
+              <span style={{ fontSize:11, fontWeight:700, fontFamily:'monospace', color: on ? color : 'rgba(240,236,228,.25)', flexShrink:0 }}>+${Math.round(m.price*disc).toLocaleString()}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <a href="/registro" style={{ display:'block', padding:'12px', borderRadius:12, background:`${color}18`, color, fontSize:14, fontWeight:600, textAlign:'center', border:`1px solid ${color}30`, marginBottom:0, transition:'all .2s' }}
+        onMouseEnter={e=>(e.currentTarget.style.background=`${color}30`)} onMouseLeave={e=>(e.currentTarget.style.background=`${color}18`)}>
+        Empezar en A tu medida →
+      </a>
+    </div>
+  );
+}
+
+
 export default function MarketingPage() {
   const [lang, setLang] = useState<Lang>('es');
   const t = T[lang];
@@ -581,9 +643,14 @@ export default function MarketingPage() {
               <span style={{fontSize:13,color:annual?'#f0ece4':'rgba(240,236,228,.35)'}}>Anual <span style={{color:'#c9963a',fontSize:11,fontWeight:700}}>−15%</span></span>
             </div>
           </div></FadeUp>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}} className="g3 plan-grid">
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,alignItems:'start'}} className="g4 plan-grid">
             {PLANS.map((plan,pi)=>{
               const fp=Math.round(plan.price*disc);
+              if (plan.key === 'medida') return (
+                <FadeUp key={plan.key} delay={pi*.1}>
+                  <MedidaCard disc={disc} color={plan.color} tag={plan.tag ?? ''} />
+                </FadeUp>
+              );
               return(
                 <FadeUp key={plan.key} delay={pi*.1}>
                   <div className="pcard" style={{background:`linear-gradient(145deg,${plan.color}08,rgba(255,255,255,.02))`,border:`1px solid ${plan.color}25`,position:'relative'}}>
