@@ -1,4 +1,10 @@
-import { Metadata } from 'next';
+import AppLayout from '@/components/AppLayout';
 import SuppliersManagement from './components/SuppliersManagement';
-export const metadata: Metadata = { title: 'Proveedores — Aldente' };
-export default function SuppliersPage() { return <SuppliersManagement />; }
+
+export default function SuppliersPage() {
+  return (
+    <AppLayout title="Proveedores" subtitle="Gestión de proveedores y cuenta corriente">
+      <SuppliersManagement />
+    </AppLayout>
+  );
+}
