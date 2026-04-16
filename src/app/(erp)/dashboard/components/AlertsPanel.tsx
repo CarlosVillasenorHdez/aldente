@@ -93,13 +93,14 @@ export default function AlertsPanel() {
       });
     });
 
-    // 2. Order alerts: open orders older than 30 min
+    // 2. Order alerts: open orders older than 30 min (exclude drafts never sent)
     const { data: openOrders } = await supabase
       .from('orders')
       .select('id, mesa, created_at, status')
       .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', false)
+      .neq('kitchen_status', 'en_edicion')
       .order('created_at', { ascending: true })
       .limit(5);
 
