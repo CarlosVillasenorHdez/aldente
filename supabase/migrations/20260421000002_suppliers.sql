@@ -36,9 +36,9 @@ SELECT
   s.name AS supplier_name,
   s.payment_terms,
   s.credit_limit,
-  COALESCE(SUM(CASE WHEN g.metodo = 'credito' AND g.status != 'pagado' THEN g.monto ELSE 0 END), 0) AS balance_pendiente,
+  COALESCE(SUM(CASE WHEN g.metodo_pago = 'credito' AND g.estado != 'pagado' THEN g.monto ELSE 0 END), 0) AS balance_pendiente,
   COALESCE(SUM(g.monto), 0) AS total_compras,
-  COUNT(g.id) FILTER (WHERE g.metodo = 'credito' AND g.status != 'pagado') AS facturas_pendientes
+  COUNT(g.id) FILTER (WHERE g.metodo_pago = 'credito' AND g.estado != 'pagado') AS facturas_pendientes
 FROM public.suppliers s
 LEFT JOIN public.gastos_recurrentes g ON g.supplier_id = s.id AND g.tenant_id = s.tenant_id
 WHERE s.active = true
