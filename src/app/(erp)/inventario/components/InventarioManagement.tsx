@@ -37,6 +37,7 @@ type Ingredient = {
   unit: UnitType;
   minStock: number;
   reorderPoint: number;
+  leadTimeDays: number;  // días de entrega del proveedor — para calcular RoP
   cost: number;
   supplier: string;
   supplierUrl: string;
@@ -119,6 +120,7 @@ const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: Re
 };
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Otros', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
+  leadTimeDays: 1,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
   purchasePrice: 0, purchaseQty: 1, purchaseUnit: '',
   brand: '', presentation: '',
@@ -227,6 +229,9 @@ export default function InventarioManagement() {
   const [allSuppliers, setAllSuppliers] = useState<{id: string; name: string}[]>([]);
   const [addingSupplier, setAddingSupplier] = useState(false);
   const [newIngSupplier, setNewIngSupplier] = useState({ supplierId: '', pricePerUnit: '', unit: '', notes: '' });
+  // RoP automático
+  const [autoRoP, setAutoRoP] = useState<number | null>(null);
+  const [ropOverride, setRopOverride] = useState(false); // true = usuario editó manualmente
   // Equivalences state
   const [equivModalOpen, setEquivModalOpen] = useState(false);
   const [equivForm, setEquivForm] = useState(emptyEquivForm());
@@ -263,6 +268,7 @@ export default function InventarioManagement() {
         notes: i.notes ?? '',
         brand: i.brand ?? '',
         presentation: i.presentation ?? '',
+        leadTimeDays: Number(i.lead_time_days ?? 1),
       })) as Ingredient[]);
     }
     setLoading(false);
@@ -419,8 +425,35 @@ export default function InventarioManagement() {
       return matchesSearch && matchesCategory && matchesLow;
     });
   }, [ingredients, search, activeCategory, filterLowStock]);
+  // ── Cálculo automático de RoP ────────────────────────────────────────────────
+  // RoP = (Demanda diaria promedio × Lead time) + Stock de seguridad (minStock)
+  async function calcAutoRoP(ingredientId: string, leadTimeDays: number, minStock: number): Promise<number> {
+    const since = new Date(Date.now() - 90 * 86400000).toISOString(); // 90 días de historia
+    const { data } = await supabase
+      .from('stock_movements')
+      .select('quantity, created_at')
+      .eq('tenant_id', getTenantId())
+      .eq('ingredient_id', ingredientId)
+      .eq('movement_type', 'salida')
+      .gte('created_at', since);
+
+    if (!data || data.length === 0) {
+      // Sin historia: RoP = minStock × 1.5 como estimado conservador
+      return Math.ceil(minStock * 1.5);
+    }
+
+    const totalConsumed = data.reduce((s: number, m: any) => s + Number(m.quantity), 0);
+    const daysWithData = Math.max(1, Math.ceil(
+      (Date.now() - new Date(data[data.length - 1].created_at).getTime()) / 86400000
+    ));
+    const avgDailyDemand = totalConsumed / daysWithData;
+    const rop = Math.ceil((avgDailyDemand * leadTimeDays) + minStock);
+    return Math.max(rop, minStock); // mínimo = stock de seguridad
+  }
+
   function openAdd() {
     setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true);
+    setAutoRoP(null); setRopOverride(false);
     // Load supplier list for selector
     supabase.from('suppliers').select('id, name').eq('tenant_id', getTenantId()).order('name')
       .then(({ data }) => setAllSuppliers((data || []).map((s: any) => ({ id: s.id, name: s.name }))));
@@ -436,12 +469,22 @@ export default function InventarioManagement() {
       purchasePrice: ing.purchasePrice ?? 0,
       brand: ing.brand ?? '',
       presentation: ing.presentation ?? '',
+      leadTimeDays: ing.leadTimeDays ?? 1,
     });
     setFormErrors({});
     setModalOpen(true);
+    setRopOverride(false);
     // Load supplier list for selector
     supabase.from('suppliers').select('id, name').eq('tenant_id', getTenantId()).order('name')
       .then(({ data }) => setAllSuppliers((data || []).map((s: any) => ({ id: s.id, name: s.name }))));
+    // Calcular RoP automático desde historial
+    calcAutoRoP(ing.id, ing.leadTimeDays ?? 1, ing.minStock).then(rop => {
+      setAutoRoP(rop);
+      // Si el RoP guardado es 0 o muy diferente al calculado, usar el automático
+      if (!ing.reorderPoint || Math.abs(ing.reorderPoint - rop) / Math.max(rop, 1) > 0.5) {
+        updateForm('reorderPoint', rop);
+      }
+    });
   }
   function closeModal() { setModalOpen(false); setEditingId(null); setForm(emptyForm()); setFormErrors({}); }
   function validate(): boolean {
@@ -467,6 +510,7 @@ export default function InventarioManagement() {
           notes: form.notes,
           brand: form.brand || null,
           presentation: form.presentation || null,
+          lead_time_days: form.leadTimeDays ?? 1,
           ...(form.purchaseUnit ? { purchase_unit: form.purchaseUnit } : {}),
           ...(form.purchaseQty && form.purchaseQty !== 1 ? { purchase_qty_per_unit: form.purchaseQty } : {}),
           ...(form.purchasePrice ? { purchase_price: form.purchasePrice } : {}),
@@ -494,6 +538,7 @@ export default function InventarioManagement() {
           notes: form.notes,
           brand: form.brand || null,
           presentation: form.presentation || null,
+          lead_time_days: form.leadTimeDays ?? 1,
           tenant_id: getTenantId(),
         };
         // Purchase fields — only add if migration has been applied
@@ -1378,6 +1423,7 @@ export default function InventarioManagement() {
                     { label: 'Stock actual', value: `${ing.stock} ${ing.unit}`, color: isLow ? '#f87171' : isNearRop ? '#f59e0b' : '#4ade80' },
                     { label: 'Stock mínimo', value: `${ing.minStock} ${ing.unit}`, color: 'rgba(255,255,255,0.6)' },
                     { label: 'Punto RoP', value: `${ing.reorderPoint} ${ing.unit}`, color: 'rgba(255,255,255,0.6)' },
+                  { label: 'Lead time', value: `${ing.leadTimeDays ?? 1} días`, color: 'rgba(255,255,255,0.6)' },
                   ].map(kpi => (
                     <div key={kpi.label} style={{ textAlign: 'center' }}>
                       <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</p>
@@ -1687,12 +1733,57 @@ export default function InventarioManagement() {
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                   value={form.minStock} onChange={e => updateForm('minStock', Number(e.target.value))} />
               </div>
-              {/* Punto de reorden */}
+              {/* Punto de reorden — calculado automáticamente */}
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Punto de reorden</label>
-                <input type="number" min={0} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  Lead time (días de entrega)
+                </label>
+                <input type="number" min={1} max={90} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.reorderPoint} onChange={e => updateForm('reorderPoint', Number(e.target.value))} />
+                  value={form.leadTimeDays ?? 1}
+                  onChange={async e => {
+                    const lt = Number(e.target.value);
+                    updateForm('leadTimeDays', lt);
+                    if (editingId && !ropOverride) {
+                      const rop = await calcAutoRoP(editingId, lt, form.minStock);
+                      setAutoRoP(rop);
+                      updateForm('reorderPoint', rop);
+                    }
+                  }} />
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>¿En cuántos días llega el pedido?</p>
+              </div>
+
+              {/* RoP — calculado o manual */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    Punto de reorden (RoP)
+                  </label>
+                  {autoRoP !== null && (
+                    <button
+                      type="button"
+                      onClick={() => { setRopOverride(false); updateForm('reorderPoint', autoRoP); }}
+                      className="text-xs"
+                      style={{ color: ropOverride ? '#f59e0b' : '#34d399', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {ropOverride ? '↺ Usar calculado' : '✓ Auto'}
+                    </button>
+                  )}
+                </div>
+                <input type="number" min={0} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: ropOverride ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${ropOverride ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}` }}
+                  value={form.reorderPoint}
+                  onChange={e => { setRopOverride(true); updateForm('reorderPoint', Number(e.target.value)); }} />
+                {autoRoP !== null && (
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Calculado: <strong style={{ color: '#34d399' }}>{autoRoP} {form.unit}</strong>
+                    {' '}= ({form.minStock || 0} stock seg. + demanda × {form.leadTimeDays || 1}d)
+                  </p>
+                )}
+                {autoRoP === null && (
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Se calculará automáticamente con el historial de salidas
+                  </p>
+                )}
               </div>
               {/* Presentación de compra + equivalencia + costo integrado */}
               <div className="col-span-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: '12px', padding: '16px' }}>
