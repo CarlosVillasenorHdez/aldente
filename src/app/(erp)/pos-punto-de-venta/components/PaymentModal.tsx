@@ -78,7 +78,7 @@ export default function PaymentModal({
   const [loyaltyConfig, setLoyaltyConfig] = React.useState({ pesosPerPoint: 10, pointValue: 0.50, minRedeem: 50, maxRedeemPct: 30 });
   React.useEffect(() => {
     if (!features.lealtad) return;
-    supabase.from('system_config').eq('tenant_id', getTenantId()).select('config_key, config_value').like('config_key', 'loyalty_%')
+    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).like('config_key', 'loyalty_%')
       .then(({ data }) => {
         const m: Record<string, string> = {};
         (data || []).forEach((r: any) => { m[r.config_key] = r.config_value; });
