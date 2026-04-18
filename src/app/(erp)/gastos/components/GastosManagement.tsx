@@ -59,6 +59,8 @@ interface Depreciacion {
   notas: string | null;
   proveedor?: string | null;
   metodo_pago?: string | null;
+  dias_credito?: number | null;
+  dia_pago?: number | null;
 }
 
 type ActiveTab = 'gastos' | 'depreciaciones' | 'calendario';
