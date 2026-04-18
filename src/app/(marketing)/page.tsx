@@ -101,9 +101,20 @@ function useInView(threshold = 0.12) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } }, { threshold });
+    // Check if already in viewport immediately
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setInView(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { threshold, rootMargin: '0px 0px -40px 0px' }
+    );
     obs.observe(el);
-    return () => obs.disconnect();
+    // Fallback: reveal after 2s in case observer never fires
+    const timeout = setTimeout(() => setInView(true), 2000);
+    return () => { obs.disconnect(); clearTimeout(timeout); };
   }, [threshold]);
   return { ref, inView };
 }

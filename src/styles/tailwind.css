@@ -234,6 +234,12 @@
   .stagger-reveal.revealed > *:nth-child(5) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 320ms; }
   .stagger-reveal.revealed > *:nth-child(6) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 400ms; }
 
+  /* Fallback: no-JS o observer lento — mostrar todo después de 3s via animation */
+  @keyframes revealFallback {
+    from { clip-path: inset(0 0 100% 0); opacity: 0; }
+    to   { clip-path: inset(0 0 0% 0);   opacity: 1; }
+  }
+
   /* Hold to delete — progress bar */
   @keyframes holdProgress {
     from { width: 0%; }
