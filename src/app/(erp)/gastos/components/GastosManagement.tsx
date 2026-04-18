@@ -57,6 +57,8 @@ interface Depreciacion {
   metodo: DepreciacionMetodo;
   activo: boolean;
   notas: string | null;
+  proveedor?: string | null;
+  metodo_pago?: string | null;
 }
 
 type ActiveTab = 'gastos' | 'depreciaciones' | 'calendario';
@@ -652,7 +654,7 @@ export default function GastosManagement() {
     if (proximo > today) return 0; // not due yet
     // Calculate months/periods overdue
     const FREC_DIAS: Record<GastoFrecuencia, number> = {
-      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+      unico:0, diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
     };
     const diasVencido = Math.floor((today.getTime() - proximo.getTime()) / 86400000);
     return Math.max(1, Math.ceil(diasVencido / FREC_DIAS[gasto.frecuencia]));
@@ -666,7 +668,7 @@ export default function GastosManagement() {
 
   function calcProximoPago(frecuencia: GastoFrecuencia, desde: Date): string {
     const FREC_DIAS: Record<GastoFrecuencia, number> = {
-      diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
+      unico:0, diario:1, semanal:7, quincenal:15, mensual:30, bimestral:60, trimestral:90, semestral:180, anual:365
     };
     const next = new Date(desde);
     next.setDate(next.getDate() + FREC_DIAS[frecuencia]);
@@ -855,8 +857,8 @@ export default function GastosManagement() {
               ) : (
                 <div className="space-y-2">
                   {filteredGastos.map(gasto => {
-                    const CatIcon = CATEGORIA_ICONS[gasto.categoria];
-                    const catColor = CATEGORIA_COLORS[gasto.categoria];
+                    const CatIcon = CATEGORIA_ICONS[gasto.categoria as GastoCategoria];
+                    const catColor = CATEGORIA_COLORS[gasto.categoria as GastoCategoria];
                     const dias = diasParaProximoPago(gasto.proximo_pago);
                     const esUrgente = dias !== null && dias >= 0 && dias <= 3;
                     const esProximo = dias !== null && dias >= 0 && dias <= 7;
@@ -882,7 +884,7 @@ export default function GastosManagement() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-600 text-gray-900 truncate" style={{ fontWeight: 600 }}>{gasto.nombre}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
-                              {CATEGORIA_LABELS[gasto.categoria]}
+                              {CATEGORIA_LABELS[gasto.categoria as GastoCategoria]}
                             </span>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                               {FRECUENCIA_LABELS[gasto.frecuencia]}
@@ -1003,7 +1005,7 @@ export default function GastosManagement() {
                                 {isAmort ? 'Amortización' : 'Depreciación'}
                               </span>
                               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                                {METODO_LABELS[dep.metodo]}
+                                {METODO_LABELS[dep.metodo as DepreciacionMetodo]}
                               </span>
                               {!dep.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Inactivo</span>}
                             </div>
