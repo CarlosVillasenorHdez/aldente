@@ -149,7 +149,7 @@ function aguinaldo(salary: number, freq: string): number {
 
 // ─── Modal base ───────────────────────────────────────────────────────────────
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children?: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl" style={{ backgroundColor: '#1e2d4a', border: '1px solid #243f72' }}>

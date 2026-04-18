@@ -42,7 +42,7 @@ const BranchContext = createContext<BranchContextValue>({
 const CAN_SWITCH_ROLES = ['admin', 'gerente'];
 const ACTIVE_BRANCH_KEY = 'aldente_active_branch';
 
-export function BranchProvider({ children }: { children: React.ReactNode }) {
+export function BranchProvider({ children }: { children?: React.ReactNode }) {
   const { appUser } = useAuth();
   const supabase = createClient();
 

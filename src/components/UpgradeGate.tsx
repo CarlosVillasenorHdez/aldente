@@ -25,7 +25,7 @@ interface UpgradeGateProps {
   requiredPlan: string;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   blurAmount?: number;
 }
 

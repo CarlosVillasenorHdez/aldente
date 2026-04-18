@@ -1096,7 +1096,7 @@ ${horizontalHtml}
                 {plView === 'vertical' ? (
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <tbody>
-                      {plRows.map((row, i) => <PLRowComp key={i} row={row} />)}
+                      {plRows.map((row, i) => <React.Fragment key={i}><PLRowComp row={row as PLRow} /></React.Fragment>)}
                     </tbody>
                   </table>
                 ) : (
@@ -1171,7 +1171,7 @@ ${horizontalHtml}
                   <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Lo que tiene el negocio</div>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <tbody>{bsActivos.map((r, i) => <BSRowComp key={i} row={r} />)}</tbody>
+                  <tbody>{bsActivos.map((r, i) => <React.Fragment key={i}><BSRowComp row={r as BSRow} /></React.Fragment>)}</tbody>
                 </table>
               </div>
               <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
@@ -1180,7 +1180,7 @@ ${horizontalHtml}
                   <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Lo que debe + patrimonio</div>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <tbody>{bsPasivos.map((r, i) => <BSRowComp key={i} row={r} />)}</tbody>
+                  <tbody>{bsPasivos.map((r, i) => <React.Fragment key={i}><BSRowComp row={r as BSRow} /></React.Fragment>)}</tbody>
                 </table>
               </div>
 
@@ -1235,7 +1235,7 @@ ${horizontalHtml}
                       { concepto:'Flujo financiero', monto: flujoFin, tipo:'total' as const },
                       { concepto:'', monto:0, tipo:'divider' as const },
                       { concepto:'💧 FLUJO DE CAJA NETO', monto: flujoNeto, tipo:'total' as const },
-                    ].map((row, i) => <PLRowComp key={i} row={row} />)}
+                    ].map((row, i) => <React.Fragment key={i}><PLRowComp row={row as PLRow} /></React.Fragment>)}
                   </tbody>
                 </table>
               </div>

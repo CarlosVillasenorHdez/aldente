@@ -12,7 +12,7 @@ import Topbar from './Topbar';
 import OfflineIndicator from './OfflineIndicator';
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   title: string;
   subtitle?: string;
 }
