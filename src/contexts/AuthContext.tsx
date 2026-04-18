@@ -35,7 +35,7 @@ interface AuthContextValue {
   reloadBrandConfig: () => Promise<void>;
   tenantId: string | null;
   branchId: string | null;
-  signIn: (userId: string, pin: string) => Promise<{ error?: string }>;
+  signIn: (userId: string, pin: string) => Promise<{ error?: string; user?: AppUser }>;
   signOut: () => Promise<void>;
   createUser: (
     username: string,
@@ -189,7 +189,7 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
 
   // ── Sign in: verify PIN against app_users ────────────────────────────────
   const signIn = useCallback(
-    async (userId: string, pin: string): Promise<{ error?: string }> => {
+    async (userId: string, pin: string): Promise<{ error?: string; user?: AppUser }> => {
       if (!userId || !pin) return { error: 'Selecciona un usuario e ingresa el PIN' };
 
       const { data, error } = await supabase
@@ -263,7 +263,7 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       saveSession(user);
       setCurrentTenantId(user.tenantId);
       setAppUser(user);
-      return {};
+      return { user };
     },
     [supabase]
   );
