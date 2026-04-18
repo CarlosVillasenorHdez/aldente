@@ -317,7 +317,7 @@ export default function KitchenModule() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [readyItems, setReadyItems] = useState<Set<string>>(new Set());
-  const toggleReadyItem = (key: string) => setReadyItems(prev => {
+  const toggleReadyItem = (key: string): void => setReadyItems(prev => {
     const next = new Set(prev);
     if (next.has(key)) { next.delete(key); } else { next.add(key); }
     return next;

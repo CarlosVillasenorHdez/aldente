@@ -526,13 +526,15 @@ export default function MarketingPage() {
               <div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a'}}>{t.diffUs}</div>
             </div>
             {DIFFS.map((d,i)=>(
-              <ClipReveal key={i} delay={i*0.06}>
+              <div key={i}>
+              <ClipReveal delay={i*0.06}>
                 <div className="diff-row diff-grid" style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2}}>
                   <div className="diff-label" style={{padding:'18px 16px',display:'flex',alignItems:'center',borderRadius:'10px 0 0 10px',background:'rgba(255,255,255,.02)',borderRight:'1px solid rgba(255,255,255,.04)'}}><span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.6)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span></div>
                   <div style={{padding:'18px 22px',background:'rgba(255,255,255,.018)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'rgba(239,68,68,.5)',fontSize:13,flexShrink:0}}>✗</span><p style={{fontSize:13,color:'rgba(240,236,228,.4)',lineHeight:1.65}}>{d.them}</p></div>
                   <div style={{padding:'18px 22px',background:'rgba(201,150,58,.04)',borderRadius:'0 10px 10px 0',border:'1px solid rgba(201,150,58,.1)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'#c9963a',fontSize:13,flexShrink:0}}>✓</span><p style={{fontSize:13,color:'rgba(240,236,228,.8)',lineHeight:1.65}}>{d.us}</p></div>
                 </div>
               </ClipReveal>
+              </div>
             ))}
           </div>
           <FadeUp delay={0.2}><div style={{marginTop:48,padding:'36px 44px',borderRadius:20,background:'rgba(201,150,58,.05)',border:'1px solid rgba(201,150,58,.18)',display:'flex',gap:48,alignItems:'center',flexWrap:'wrap'}}>
@@ -675,12 +677,12 @@ export default function MarketingPage() {
             {PLANS.map((plan,pi)=>{
               const fp=Math.round(plan.price*disc);
               if (plan.key === 'medida') return (
-                <FadeUp key={plan.key} delay={pi*.1}>
+                <div key={plan.key}><FadeUp delay={pi*.1}>
                   <MedidaCard disc={disc} color={plan.color} tag={plan.tag ?? ''} />
-                </FadeUp>
+                </FadeUp></div>
               );
               return(
-                <FadeUp key={plan.key} delay={pi*.1}>
+                <div key={plan.key}><FadeUp delay={pi*.1}>
                   <div className="pcard" style={{background:`linear-gradient(145deg,${plan.color}08,rgba(255,255,255,.02))`,border:`1px solid ${plan.color}25`,position:'relative'}}>
                       <div style={{fontSize:13,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:plan.color,marginBottom:16}}>{plan.name}</div>
                     <div style={{marginBottom:4}}>
@@ -705,7 +707,7 @@ export default function MarketingPage() {
                       ))}
                     </div>
                   </div>
-                </FadeUp>
+                </FadeUp></div>
               );
             })}
           </div>

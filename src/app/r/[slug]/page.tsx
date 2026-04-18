@@ -180,7 +180,6 @@ export default function RestaurantLoginPage() {
                   </optgroup>
                   );
                 })}
-                ))}
               </select>
             </div>
 
