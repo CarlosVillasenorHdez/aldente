@@ -550,7 +550,7 @@ export default function RHManagement() {
                     ) : filterList(permisos).map((p: any) => (
                       <tr key={p.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{p.employees?.name ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-300">{PERM_TIPO_LABELS[p.tipo]}</td>
+                        <td className="px-4 py-3 text-gray-300">{PERM_TIPO_LABELS[p.tipo as PermTipo]}</td>
                         <td className="px-4 py-3 text-gray-300">{formatDate(p.fecha)}</td>
                         <td className="px-4 py-3 text-gray-300">{p.horas}h</td>
                         <td className="px-4 py-3">
