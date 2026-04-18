@@ -585,8 +585,8 @@ export default function KitchenModule() {
     const now = new Date().toISOString();
 
     // Get parent_order_id of this comanda to find siblings
-    const { data: thisOrder } = await supabase.from('orders').eq('tenant_id', getTenantId())
-      .select('parent_order_id').eq('id', orderId).single();
+    const { data: thisOrder } = await supabase.from('orders')
+      .select('parent_order_id').eq('tenant_id', getTenantId()).eq('id', orderId).single();
 
     // Cancel this comanda
     const { error } = await supabase.from('orders').update({
@@ -604,8 +604,9 @@ export default function KitchenModule() {
     // If there's a parent, also cancel sibling comandas still in KDS
     // (other comandas of the same mesa that are active)
     if (thisOrder?.parent_order_id) {
-      const { data: siblings } = await supabase.from('orders').eq('tenant_id', getTenantId())
+      const { data: siblings } = await supabase.from('orders')
         .select('id, kitchen_status')
+        .eq('tenant_id', getTenantId())
         .eq('parent_order_id', thisOrder.parent_order_id)
         .eq('is_comanda', true)
         .neq('id', orderId)
