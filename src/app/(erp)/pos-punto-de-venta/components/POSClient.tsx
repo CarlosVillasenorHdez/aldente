@@ -167,7 +167,7 @@ export default function POSClient() {
     setDeliveredLineIds(delivered);
   }, [supabase]);
   const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, cancelItemFromKDS } = useOrderFlow();
-  const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
+  const { ivaPercent, ivaIncludedInPrice, takeoutPayBeforeKitchen } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
@@ -1399,6 +1399,25 @@ export default function POSClient() {
 
     if (!ok) return;
 
+    // ── Modo cafetería: enviar a cocina automáticamente después del cobro ──
+    if (takeoutPayBeforeKitchen && selectedTable.number === 0 && !kitchenSent) {
+      const itemsToSend = orderItems.map(oi => ({
+        name: oi.menuItem.name, qty: oi.quantity,
+        notes: oi.notes, modifier: oi.modifier, emoji: oi.menuItem.emoji,
+      }));
+      await sendToKitchen(
+        orderId,
+        itemsToSend,
+        {
+          mesa: selectedTable.name,
+          mesaNum: 0,
+          mesero: selectedTable.waiter || appUser?.fullName || 'Cajero',
+          tenantId: appUser?.tenantId ?? '',
+          branch: appUser?.branchId ?? null,
+        }
+      );
+    }
+
     await fetchTables();
     setShowPaymentModal(false);
     setOrderItems([]); setSelectedTable(null); setView('tables');
@@ -1664,6 +1683,11 @@ export default function POSClient() {
             deliveredLineIds={deliveredLineIds}
             onDiscountChange={setDiscount}
             onCheckout={() => {
+              // Modo cafetería: cobrar primero, cocina después automáticamente
+              if (takeoutPayBeforeKitchen && selectedTable?.number === 0) {
+                setShowPaymentModal(true);
+                return;
+              }
               if (!kitchenSent && orderItems.length > 0) {
                 setShowNoKitchenConfirm(true);
                 return;
@@ -1680,6 +1704,8 @@ export default function POSClient() {
             kitchenSent={kitchenSent}
             sendingToKitchen={sendingToKitchen}
             onSendKitchenNote={handleSendKitchenNote}
+            takeoutPayBeforeKitchen={takeoutPayBeforeKitchen}
+            orderType={selectedTable?.number === 0 ? 'para_llevar' : 'mesa'}
           />
           </div>
         </div>

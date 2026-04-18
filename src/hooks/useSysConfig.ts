@@ -66,5 +66,10 @@ export function useSysConfig() {
   // false = precios sin IVA, se suma encima (modo exportación/B2B)
   const ivaIncludedInPrice = config['iva_included_in_price'] !== 'false'; // default true
 
-  return { config, ivaPercent, currencySymbol, currencyLocale, currencyCode, restaurantName, ivaIncludedInPrice };
+  // takeout_pay_before_kitchen:
+  // true  = cobrar ANTES de enviar a cocina (cafeterías, pago inmediato)
+  // false = mantener orden abierta hasta entrega (restaurantes tradicionales)
+  const takeoutPayBeforeKitchen = config['takeout_pay_before_kitchen'] === 'true'; // default false
+
+  return { config, ivaPercent, currencySymbol, currencyLocale, currencyCode, restaurantName, ivaIncludedInPrice, takeoutPayBeforeKitchen };
 }
