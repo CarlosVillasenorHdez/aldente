@@ -34,6 +34,8 @@ type Ingredient = {
   purchasePrice?: number;
   purchaseQty?: number;
   purchaseUnit?: string;
+  brand?: string;
+  presentation?: string;
 };
 type StockMovement = {
   id: string;
@@ -108,6 +110,7 @@ const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Otros', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
   purchasePrice: 0, purchaseQty: 1, purchaseUnit: '',
+  brand: '', presentation: '',
 });
 const emptyMovementForm = () => ({
   ingredientId: '',
@@ -241,6 +244,8 @@ export default function InventarioManagement() {
         purchaseQty: Number(i.purchase_qty_per_unit ?? 1),
         purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
+        brand: i.brand ?? '',
+        presentation: i.presentation ?? '',
       })) as Ingredient[]);
     }
     setLoading(false);
@@ -430,6 +435,8 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          brand: form.brand || null,
+          presentation: form.presentation || null,
           ...(form.purchaseUnit ? { purchase_unit: form.purchaseUnit } : {}),
           ...(form.purchaseQty && form.purchaseQty !== 1 ? { purchase_qty_per_unit: form.purchaseQty } : {}),
           ...(form.purchasePrice ? { purchase_price: form.purchasePrice } : {}),
@@ -455,6 +462,8 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          brand: form.brand || null,
+          presentation: form.presentation || null,
           tenant_id: getTenantId(),
         };
         // Purchase fields — only add if migration has been applied
@@ -1362,8 +1371,10 @@ export default function InventarioManagement() {
                 {[
                   { label: 'Costo unitario', value: `$${ing.cost.toFixed(2)}/${ing.unit}` },
                   { label: 'Valor en stock', value: `$${(ing.stock * ing.cost).toFixed(2)}` },
-                  { label: 'Proveedor', value: ing.supplier || 'No asignado' },
-                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQty} ${ing.unit})` : 'Misma unidad' },
+                  { label: 'Marca', value: ing.brand || '—' },
+                  { label: 'Presentación', value: ing.presentation || (ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQty} ${ing.unit})` : 'Misma unidad') },
+                  { label: 'Proveedor principal', value: ing.supplier || 'No asignado' },
+                  { label: 'Unidad de compra', value: ing.purchaseUnit ? `${ing.purchaseUnit} × ${ing.purchaseQty} ${ing.unit}` : 'Misma unidad' },
                 ].map(item => (
                   <div key={item.label}>
                     <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{item.label}</p>
@@ -1598,9 +1609,25 @@ export default function InventarioManagement() {
                   value={form.cost} onChange={e => updateForm('cost', Number(e.target.value))} />
                 <p className="text-xs mt-1" style={{ color:'rgba(255,255,255,0.3)' }}>Edítalo si necesitas ajustar</p>
               </div>
+              {/* Marca */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Marca</label>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  value={form.brand ?? ''} onChange={e => updateForm('brand', e.target.value)}
+                  placeholder="ej. Bimbo, Lala, Herdez" />
+              </div>
+              {/* Presentación */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Presentación</label>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  value={form.presentation ?? ''} onChange={e => updateForm('presentation', e.target.value)}
+                  placeholder="ej. Madre Masa 600g, Caja 12 pz" />
+              </div>
               {/* Proveedor */}
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor</label>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
                 <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                   value={form.supplier} onChange={e => updateForm('supplier', e.target.value)}
