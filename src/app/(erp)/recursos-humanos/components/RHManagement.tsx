@@ -512,7 +512,7 @@ export default function RHManagement() {
                         <td className="px-4 py-3 text-gray-300">{formatDate(v.fecha_fin)}</td>
                         <td className="px-4 py-3 text-gray-300">{v.dias_solicitados}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[v.estado]}`}>{ESTADO_LABELS[v.estado]}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[v.estado as Estado]}`}>{ESTADO_LABELS[v.estado as Estado]}</span>
                         </td>
                         <td className="px-4 py-3 text-gray-400 max-w-[160px] truncate">{v.notas ?? '—'}</td>
                         <td className="px-4 py-3">
@@ -559,7 +559,7 @@ export default function RHManagement() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[p.estado]}`}>{ESTADO_LABELS[p.estado]}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[p.estado as Estado]}`}>{ESTADO_LABELS[p.estado as Estado]}</span>
                         </td>
                         <td className="px-4 py-3 text-gray-400 max-w-[140px] truncate">{p.motivo ?? '—'}</td>
                         <td className="px-4 py-3">
@@ -607,7 +607,7 @@ export default function RHManagement() {
                             {hr > 0 ? `$${costoExtra.toFixed(2)}` : '—'}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[t.estado]}`}>{ESTADO_LABELS[t.estado]}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[t.estado as Estado]}`}>{ESTADO_LABELS[t.estado as Estado]}</span>
                           </td>
                           <td className="px-4 py-3 text-gray-400 max-w-[140px] truncate">{t.descripcion ?? '—'}</td>
                           <td className="px-4 py-3">
