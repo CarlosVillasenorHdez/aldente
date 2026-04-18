@@ -425,6 +425,11 @@ export default function InventarioManagement() {
       name: ing.name, category: ing.category, stock: ing.stock, unit: ing.unit,
       minStock: ing.minStock, reorderPoint: ing.reorderPoint, cost: ing.cost,
       supplier: ing.supplier, supplierUrl: ing.supplierUrl, supplierPhone: ing.supplierPhone, notes: ing.notes,
+      purchaseQty: ing.purchaseQty ?? 1,
+      purchaseUnit: ing.purchaseUnit ?? '',
+      purchasePrice: ing.purchasePrice ?? 0,
+      brand: ing.brand ?? '',
+      presentation: ing.presentation ?? '',
     });
     setFormErrors({});
     setModalOpen(true);
