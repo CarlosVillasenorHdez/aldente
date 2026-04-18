@@ -206,14 +206,17 @@ function LiveDemo() {
 
 // ─── Interactive "A tu medida" plan card ─────────────────────────────────────
 const MODULOS = [
-  { key:'mesero',       name:'Mesero Móvil',      price:100, icon:'📱', desc:'Toma pedidos desde cualquier celular' },
-  { key:'inventario',   name:'Inventario',         price:200, icon:'📦', desc:'Stock en tiempo real por receta' },
-  { key:'pl',           name:'P&L & COGS',         price:200, icon:'📊', desc:'Estado de resultados real' },
-  { key:'gastos',       name:'Gastos',             price:100, icon:'🧾', desc:'Recurrentes, proveedores y pagos' },
-  { key:'reservaciones',name:'Reservaciones',      price:100, icon:'📅', desc:'Con confirmación automática' },
-  { key:'lealtad',      name:'Lealtad',            price:150, icon:'⭐', desc:'Puntos y niveles configurables' },
-  { key:'rrhh',         name:'RRHH & Nómina',      price:300, icon:'👥', desc:'LFT compliant, horas extra' },
-  { key:'delivery',     name:'Delivery',           price:200, icon:'🛵', desc:'Multi-canal con repartidores' },
+  { key:'mesero',       name:'Mesero Móvil',       price:150, icon:'📱', desc:'Toma pedidos desde cualquier celular' },
+  { key:'inventario',   name:'Inventario',          price:200, icon:'📦', desc:'Stock en tiempo real + analítica' },
+  { key:'pl',           name:'P&L & Reportes',      price:200, icon:'📊', desc:'Estado de resultados real' },
+  { key:'gastos',       name:'Gastos',              price:100, icon:'🧾', desc:'Recurrentes, proveedores y pagos' },
+  { key:'reservaciones',name:'Reservaciones',       price:150, icon:'📅', desc:'Con confirmación automática' },
+  { key:'lealtad',      name:'Lealtad',             price:150, icon:'⭐', desc:'Puntos, niveles y WhatsApp' },
+  { key:'extras',       name:'Tienda de Extras',    price:100, icon:'🛍️', desc:'Membresías, merch y otros ingresos' },
+  { key:'alarmas',      name:'Alarmas',             price:100, icon:'🔔', desc:'Stock bajo, órdenes lentas, mesas' },
+  { key:'rrhh',         name:'RRHH & Nómina',       price:150, icon:'👥', desc:'LFT compliant, horas extra' },
+  { key:'delivery',     name:'Delivery',            price:150, icon:'🛵', desc:'Multi-canal con repartidores' },
+  { key:'sucursales',   name:'Multi-sucursal',      price:300, icon:'🏪', desc:'Hasta 5 sucursales centralizadas' },
 ];
 
 function MedidaCard({ disc, color, tag }: { disc: number; color: string; tag: string }) {

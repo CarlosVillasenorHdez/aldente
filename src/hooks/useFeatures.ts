@@ -11,6 +11,7 @@ export interface Features {
   reportes: boolean;
   reservaciones: boolean;
   lealtad: boolean;
+  extrasStore: boolean;
   alarmas: boolean;
   recursosHumanos: boolean;
   delivery: boolean;
@@ -25,16 +26,17 @@ export const MODULE_CATALOG: {
   price: number;
   icon: string;
 }[] = [
-  { key: 'meseroMovil',     label: 'Mesero Móvil',    desc: 'Tomar órdenes desde el celular del mesero',              price: 150, icon: '📱' },
-  { key: 'inventario',      label: 'Inventario',       desc: 'Stock en tiempo real, recetas, alertas de merma',        price: 200, icon: '📦' },
-  { key: 'reportes',        label: 'P&L + Reportes',   desc: 'Costos reales, margen por platillo, reportes de ventas', price: 200, icon: '📊' },
-  { key: 'gastos',          label: 'Gastos',           desc: 'Gastos fijos, variables y depreciaciones',               price: 100, icon: '🧾' },
-  { key: 'reservaciones',   label: 'Reservaciones',    desc: 'Agenda de reservas, link público para clientes',         price: 150, icon: '📅' },
-  { key: 'lealtad',         label: 'Lealtad',          desc: 'Puntos, recompensas, historial por cliente',             price: 150, icon: '⭐' },
-  { key: 'alarmas',         label: 'Alarmas',          desc: 'Alertas de stock bajo, órdenes lentas, picos de venta',  price: 100, icon: '🔔' },
-  { key: 'recursosHumanos', label: 'RRHH',             desc: 'Nómina, turnos, prima cost por empleado',                price: 150, icon: '👥' },
-  { key: 'delivery',        label: 'Delivery',         desc: 'Órdenes a domicilio, zonas, tracking',                   price: 150, icon: '🛵' },
-  { key: 'multiSucursal',   label: 'Multi-sucursal',   desc: 'Hasta 5 sucursales, dashboard centralizado',             price: 300, icon: '🏪' },
+  { key: 'meseroMovil',     label: 'Mesero Móvil',       desc: 'Tomar órdenes desde el celular del mesero',                          price: 150, icon: '📱' },
+  { key: 'inventario',      label: 'Inventario',          desc: 'Stock en tiempo real, recetas, alertas de merma y analítica',         price: 200, icon: '📦' },
+  { key: 'reportes',        label: 'P&L + Reportes',      desc: 'Costos reales, margen por platillo, reportes de ventas',              price: 200, icon: '📊' },
+  { key: 'gastos',          label: 'Gastos',              desc: 'Gastos fijos, variables, depreciaciones y proveedores',               price: 100, icon: '🧾' },
+  { key: 'reservaciones',   label: 'Reservaciones',       desc: 'Agenda de reservas, link público para clientes',                      price: 150, icon: '📅' },
+  { key: 'lealtad',         label: 'Lealtad',             desc: 'Puntos, niveles, canjes, auto-expiración y WhatsApp',                 price: 150, icon: '⭐' },
+  { key: 'extrasStore',     label: 'Tienda de Extras',    desc: 'Venta de membresías, merch y productos fuera del menú',              price: 100, icon: '🛍️' },
+  { key: 'alarmas',         label: 'Alarmas',             desc: 'Alertas de stock bajo, órdenes lentas, picos de venta',              price: 100, icon: '🔔' },
+  { key: 'recursosHumanos', label: 'RRHH',                desc: 'Nómina, turnos, vacaciones, permisos, prima cost',                    price: 150, icon: '👥' },
+  { key: 'delivery',        label: 'Delivery',            desc: 'Órdenes a domicilio, zonas, tracking',                               price: 150, icon: '🛵' },
+  { key: 'multiSucursal',   label: 'Multi-sucursal',      desc: 'Hasta 5 sucursales, dashboard centralizado',                         price: 300, icon: '🏪' },
 ];
 
 export const BASE_PRICE = 399; // POS + KDS incluido
@@ -42,8 +44,8 @@ export const BASE_PRICE = 399; // POS + KDS incluido
 // ── Planes bundle ─────────────────────────────────────────────────────────────
 export const PLAN_FEATURES: Record<string, (keyof Features)[]> = {
   operacion: ['meseroMovil'],
-  negocio:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','reportes','alarmas'],
-  empresa:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','reportes','alarmas','recursosHumanos','delivery','multiSucursal'],
+  negocio:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','extrasStore','reportes','alarmas'],
+  empresa:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','extrasStore','reportes','alarmas','recursosHumanos','delivery','multiSucursal'],
 };
 
 export const PLAN_NAMES: Record<string, string> = {
@@ -72,7 +74,8 @@ export const PLAN_ORDER = ['medida', 'operacion', 'negocio', 'empresa'];
 export const DEFAULT_FEATURES: Features = {
   meseroMovil: true, inventario: false, gastos: false,
   reportes: false, reservaciones: false, lealtad: false,
-  alarmas: false, recursosHumanos: false, delivery: false, multiSucursal: false,
+  extrasStore: false, alarmas: false, recursosHumanos: false,
+  delivery: false, multiSucursal: false,
 };
 
 // ── Legacy name normalization ─────────────────────────────────────────────────
@@ -156,6 +159,7 @@ export const FEATURE_KEYS: Record<keyof Features, string> = {
   meseroMovil: 'feature_mesero_movil', inventario: 'feature_inventario',
   gastos: 'feature_gastos', reportes: 'feature_reportes',
   reservaciones: 'feature_reservaciones', lealtad: 'feature_lealtad',
+  extrasStore: 'feature_extras_store',
   alarmas: 'feature_alarmas', recursosHumanos: 'feature_recursos_humanos',
   delivery: 'feature_delivery', multiSucursal: 'feature_multi_sucursal',
 };

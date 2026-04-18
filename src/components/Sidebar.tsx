@@ -33,46 +33,56 @@ const navGroups: { group: string; items: NavItem[] }[] = [
   {
     group: 'OPERACIONES',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', pageKey: 'dashboard' },
-      { label: 'Punto de Venta', icon: ShoppingCart, href: '/pos-punto-de-venta', pageKey: 'pos' },
-      { label: 'Mesero Móvil', icon: Smartphone, href: '/mesero', pageKey: 'mesero', feature: 'meseroMovil' as keyof Features },
-      { label: 'Órdenes', icon: ClipboardList, href: '/orders-management', pageKey: 'orders' },
-      { label: 'Corte de Caja', icon: Scissors, href: '/corte-caja', pageKey: 'corte_caja' },
-      { label: 'Cocina', icon: ChefHat, href: '/cocina', pageKey: 'cocina' },
-      { label: 'Delivery', icon: Truck, href: '/delivery', pageKey: 'delivery', feature: 'delivery' as keyof Features },
+      { label: 'Dashboard',       icon: LayoutDashboard, href: '/dashboard',           pageKey: 'dashboard' },
+      { label: 'Punto de Venta',  icon: ShoppingCart,    href: '/pos-punto-de-venta',  pageKey: 'pos' },
+      { label: 'Mesero Móvil',    icon: Smartphone,      href: '/mesero',              pageKey: 'mesero',       feature: 'meseroMovil'   as keyof Features },
+      { label: 'Órdenes',         icon: ClipboardList,   href: '/orders-management',   pageKey: 'orders' },
+      { label: 'Corte de Caja',   icon: Scissors,        href: '/corte-caja',          pageKey: 'corte_caja' },
+      { label: 'Cocina',          icon: ChefHat,         href: '/cocina',              pageKey: 'cocina' },
+      { label: 'Delivery',        icon: Truck,           href: '/delivery',            pageKey: 'delivery',     feature: 'delivery'      as keyof Features },
+    ],
+  },
+  {
+    group: 'CLIENTES',
+    items: [
+      { label: 'Lealtad',         icon: Star,            href: '/lealtad',             pageKey: 'lealtad',      feature: 'lealtad'       as keyof Features },
+      { label: 'Tienda de Extras',icon: ShoppingBag,     href: '/extras-store',        pageKey: 'extras_store', feature: 'extrasStore'   as keyof Features },
+      { label: 'Reservaciones',   icon: Calendar,        href: '/reservaciones',       pageKey: 'reservaciones',feature: 'reservaciones' as keyof Features },
     ],
   },
   {
     group: 'GESTIÓN',
     items: [
-      { label: 'Menú', icon: UtensilsCrossed, href: '/menu', pageKey: 'menu' },
-      { label: 'Inventario', icon: Package, href: '/inventario', pageKey: 'inventario', feature: 'inventario' as keyof Features },
-      { label: 'Reservaciones', icon: Calendar, href: '/reservaciones', pageKey: 'reservaciones', feature: 'reservaciones' as keyof Features },
-      { label: 'Lealtad', icon: Star, href: '/lealtad', pageKey: 'lealtad', feature: 'lealtad' as keyof Features },
-      { label: 'Tienda de Extras', icon: ShoppingBag, href: '/extras-store', pageKey: 'extras_store', feature: 'lealtad' as keyof Features },
+      { label: 'Menú',            icon: UtensilsCrossed, href: '/menu',                pageKey: 'menu' },
+      { label: 'Inventario',      icon: Package,         href: '/inventario',          pageKey: 'inventario',   feature: 'inventario'    as keyof Features },
+      { label: 'Proveedores',     icon: GitBranch,       href: '/proveedores',         pageKey: 'proveedores',  feature: 'gastos'        as keyof Features },
+    ],
+  },
+  {
+    group: 'FINANZAS',
+    items: [
+      { label: 'Gastos',          icon: Receipt,         href: '/gastos',              pageKey: 'gastos',       feature: 'gastos'        as keyof Features },
+      { label: 'Reportes & P&L',  icon: BarChart3,       href: '/reportes',            pageKey: 'reportes',     feature: 'reportes'      as keyof Features },
     ],
   },
   {
     group: 'PERSONAS',
     items: [
-      { label: 'Personal', icon: Users, href: '/personal', pageKey: 'personal' },
-      { label: 'Recursos Humanos', icon: UserCog, href: '/recursos-humanos', pageKey: 'recursos_humanos', feature: 'recursosHumanos' as keyof Features },
-      { label: 'Gastos', icon: Receipt, href: '/gastos', pageKey: 'gastos', feature: 'gastos' as keyof Features },
-      { label: 'Proveedores', icon: Truck, href: '/proveedores', pageKey: 'proveedores' },
-      { label: 'Multi-Sucursal', icon: Building2, href: '/sucursales', pageKey: 'sucursales', feature: 'multiSucursal' as keyof Features },
+      { label: 'Personal',        icon: Users,           href: '/personal',            pageKey: 'personal' },
+      { label: 'Recursos Humanos',icon: UserCog,         href: '/recursos-humanos',    pageKey: 'recursos_humanos', feature: 'recursosHumanos' as keyof Features },
     ],
   },
   {
-    group: 'ANÁLISIS',
+    group: 'EMPRESA',
     items: [
-      { label: 'Reportes', icon: BarChart3, href: '/reportes', pageKey: 'reportes', feature: 'reportes' as keyof Features },
+      { label: 'Multi-Sucursal',  icon: Building2,       href: '/sucursales',          pageKey: 'sucursales',   feature: 'multiSucursal' as keyof Features },
     ],
   },
   {
     group: 'SISTEMA',
     items: [
-      { label: 'Alarmas', icon: BellRing, href: '/alarmas', pageKey: 'alarmas', feature: 'alarmas' as keyof Features },
-      { label: 'Configuración', icon: Settings, href: '/configuracion', pageKey: 'configuracion' },
+      { label: 'Alarmas',         icon: BellRing,        href: '/alarmas',             pageKey: 'alarmas',      feature: 'alarmas'       as keyof Features },
+      { label: 'Configuración',   icon: Settings,        href: '/configuracion',       pageKey: 'configuracion' },
     ],
   },
 ];
