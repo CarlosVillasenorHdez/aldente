@@ -359,6 +359,7 @@ export default function POSClient() {
     // Cargar nombre de sucursal desde system_config
     supabase.from('system_config')
       .select('config_key, config_value')
+      .eq('tenant_id', getTenantId())
       .in('config_key', ['branch_name', 'restaurant_name'])
       .then(({ data }) => {
         data?.forEach((r: any) => {

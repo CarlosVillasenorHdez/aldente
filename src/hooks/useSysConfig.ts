@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 // Module-level cache so all components share one DB fetch per session
 let _cache: Record<string, string> | null = null;
@@ -17,9 +18,14 @@ async function loadConfig() {
   if (_loading) return null;
   _loading = true;
   const supabase = createClient();
-  const { data } = await supabase
+  const tid = getTenantId();
+  const query = supabase
     .from('system_config')
     .select('config_key, config_value');
+  // Filter by tenant_id when available (avoids cross-tenant data leaks)
+  const { data } = tid
+    ? await query.eq('tenant_id', tid)
+    : await query;
   const map: Record<string, string> = {};
   (data || []).forEach((r: { config_key: string; config_value: string }) => {
     map[r.config_key] = r.config_value;
@@ -32,6 +38,9 @@ async function loadConfig() {
 
 export function invalidateSysConfigCache() {
   _cache = null;
+  _loading = false;
+  // Re-load and notify all active listeners immediately
+  loadConfig();
 }
 
 /**
@@ -42,34 +51,26 @@ export function useSysConfig() {
   const [config, setConfig] = useState<Record<string, string>>(_cache ?? {});
 
   useEffect(() => {
-    if (_cache) {
-      setConfig(_cache);
-      return;
-    }
     const listener = (cfg: Record<string, string>) => setConfig(cfg);
     _listeners.push(listener);
-    loadConfig();
+    if (_cache) {
+      setConfig(_cache);
+    } else {
+      loadConfig();
+    }
     return () => {
       const idx = _listeners.indexOf(listener);
       if (idx >= 0) _listeners.splice(idx, 1);
     };
   }, []);
 
-  // Typed accessors
   const ivaPercent = parseFloat(config['iva_percent'] ?? '16');
   const currencySymbol = config['currency_symbol'] ?? '$';
   const currencyLocale = config['currency_locale'] ?? 'es-MX';
   const currencyCode = config['currency_code'] ?? 'MXN';
   const restaurantName = config['restaurant_name'] ?? 'Aldente';
-
-  // iva_included_in_price: true = precios ya incluyen IVA (México estándar)
-  // false = precios sin IVA, se suma encima (modo exportación/B2B)
-  const ivaIncludedInPrice = config['iva_included_in_price'] !== 'false'; // default true
-
-  // takeout_pay_before_kitchen:
-  // true  = cobrar ANTES de enviar a cocina (cafeterías, pago inmediato)
-  // false = mantener orden abierta hasta entrega (restaurantes tradicionales)
-  const takeoutPayBeforeKitchen = config['takeout_pay_before_kitchen'] === 'true'; // default false
+  const ivaIncludedInPrice = config['iva_included_in_price'] !== 'false';
+  const takeoutPayBeforeKitchen = config['takeout_pay_before_kitchen'] === 'true';
 
   return { config, ivaPercent, currencySymbol, currencyLocale, currencyCode, restaurantName, ivaIncludedInPrice, takeoutPayBeforeKitchen };
 }
