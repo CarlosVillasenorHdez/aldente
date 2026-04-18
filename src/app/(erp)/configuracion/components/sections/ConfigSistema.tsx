@@ -125,12 +125,13 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const [featuresSaving, setFeaturesSaving] = useState(false);
   const [featuresSaved, setFeaturesSaved] = useState(false);
 
-  const [loyaltyName, setLoyaltyName] = useState('');
-  const [loyaltyPesosPerPoint, setLoyaltyPesosPerPoint] = useState(100);
-  const [loyaltyPointValue, setLoyaltyPointValue] = useState(1);
-  const [loyaltyExpiryDays, setLoyaltyExpiryDays] = useState(0);
-  const [loyaltyMinRedeem, setLoyaltyMinRedeem] = useState(0);
-  const [loyaltyMaxRedeemPct, setLoyaltyMaxRedeemPct] = useState(100);
+  const [loyaltyName, setLoyaltyName] = useState('Club de Puntos');
+  const [loyaltyPesosPerPoint, setLoyaltyPesosPerPoint] = useState(10);
+  const [loyaltyPointValue, setLoyaltyPointValue] = useState(0.5);
+  const [loyaltyMinRedeem, setLoyaltyMinRedeem] = useState(50);
+  const [loyaltyPointsExpireDays, setLoyaltyPointsExpireDays] = useState<number|null>(null);
+  const [loyaltyAutoExpire, setLoyaltyAutoExpire] = useState(true);
+  const [loyaltyWhatsapp, setLoyaltyWhatsapp] = useState(false);
   const [loyaltyLevels, setLoyaltyLevels] = useState<{ name: string; min: number; color: string; benefit: string }[]>([
     { name: 'Bronce', min: 0,    color: '#cd7f32', benefit: '' },
     { name: 'Plata',  min: 500,  color: '#9ca3af', benefit: '' },
@@ -156,12 +157,14 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
         if (key in map) loaded[feat as keyof Features] = map[key] === 'true';
       });
       setFeatures(loaded);
-      if (map['loyalty_name']) setLoyaltyName(map['loyalty_name']);
+      if (map['loyalty_program_name']) setLoyaltyName(map['loyalty_program_name']);
       if (map['loyalty_pesos_per_point']) setLoyaltyPesosPerPoint(Number(map['loyalty_pesos_per_point']));
       if (map['loyalty_point_value']) setLoyaltyPointValue(Number(map['loyalty_point_value']));
-      if (map['loyalty_expiry_days']) setLoyaltyExpiryDays(Number(map['loyalty_expiry_days']));
+      if (map['loyalty_points_expire_days']) setLoyaltyPointsExpireDays(Number(map['loyalty_points_expire_days']));
+      else setLoyaltyPointsExpireDays(null);
       if (map['loyalty_min_redeem']) setLoyaltyMinRedeem(Number(map['loyalty_min_redeem']));
-      if (map['loyalty_max_redeem_pct']) setLoyaltyMaxRedeemPct(Number(map['loyalty_max_redeem_pct']));
+      setLoyaltyAutoExpire(map['loyalty_auto_expire_memberships'] !== 'false');
+      setLoyaltyWhatsapp(map['loyalty_whatsapp_notifications'] === 'true');
       if (map['loyalty_levels']) { try { setLoyaltyLevels(JSON.parse(map['loyalty_levels'])); } catch { /* ignore */ } }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,13 +192,14 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const handleSaveLoyalty = async () => {
     setLoyaltySaving(true);
     await supabase.from('system_config').upsert([
-      { config_key: 'loyalty_program_name',    config_value: loyaltyName,                           tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_pesos_per_point', config_value: String(loyaltyPesosPerPoint),           tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_point_value',     config_value: String(loyaltyPointValue),              tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_expiry_days',     config_value: String(loyaltyExpiryDays),              tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_min_redeem',      config_value: String(loyaltyMinRedeem),               tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_max_redeem_pct',  config_value: String(loyaltyMaxRedeemPct),            tenant_id: appUser?.tenantId },
-      { config_key: 'loyalty_levels',          config_value: JSON.stringify(loyaltyLevels),          tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_program_name',             config_value: loyaltyName,                                    tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_pesos_per_point',          config_value: String(loyaltyPesosPerPoint),                    tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_point_value',              config_value: String(loyaltyPointValue),                       tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_points_expire_days',       config_value: loyaltyPointsExpireDays != null ? String(loyaltyPointsExpireDays) : '', tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_min_redeem',               config_value: String(loyaltyMinRedeem),                        tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_auto_expire_memberships',  config_value: String(loyaltyAutoExpire),                       tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_whatsapp_notifications',   config_value: String(loyaltyWhatsapp),                         tenant_id: appUser?.tenantId },
+      { config_key: 'loyalty_levels',                   config_value: JSON.stringify(loyaltyLevels),                   tenant_id: appUser?.tenantId },
     ], { onConflict: 'tenant_id,config_key' });
     setLoyaltySaving(false);
     setLoyaltySaved(true);
@@ -295,148 +299,124 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
             </div>
       )}
       {activeSection === 'lealtad_config' && (
-        <div className="max-w-2xl space-y-5">
-              <SectionTitle
-                icon={Star}
-                title="Configuración del Programa de Lealtad"
-                subtitle="Define cómo se acumulan y canjean los puntos, y los niveles de tus clientes."
-              />
+        <div className="max-w-2xl" style={{display:'flex',flexDirection:'column',gap:16}}>
+          <SectionTitle icon={Star} title="Configuración del Programa de Lealtad" />
 
-              {/* Program name */}
-              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb' }}>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del programa</label>
-                <input type="text" value={loyaltyName} onChange={e => setLoyaltyName(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  style={{ borderColor: '#e5e7eb' }} placeholder="Ej: Club VIP, Programa de Puntos..." />
-                <p className="text-xs text-gray-400 mt-1.5">Aparece en el módulo de Lealtad y al cobrar.</p>
-              </div>
+          {/* Nombre */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px'}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:4}}>Nombre del programa</p>
+            <p style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:10}}>Aparece en tickets y notificaciones</p>
+            <input value={loyaltyName} onChange={e=>setLoyaltyName(e.target.value)} placeholder="Club de Puntos"
+              style={{width:'100%',padding:'9px 12px',borderRadius:8,background:'#0f1923',border:'1px solid #2a3f5f',color:'#f1f5f9',fontSize:13,outline:'none',boxSizing:'border-box'}}/>
+          </div>
 
-              {/* Points economy */}
-              <div className="bg-white rounded-xl border p-5 space-y-4" style={{ borderColor: '#e5e7eb' }}>
-                <h3 className="text-sm font-semibold text-gray-700">Economía de puntos</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Pesos gastados para ganar 1 punto</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
-                      <input type="number" min={1} value={loyaltyPesosPerPoint}
-                        onChange={e => setLoyaltyPesosPerPoint(Number(e.target.value))}
-                        className="w-full pl-7 pr-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                        style={{ borderColor: '#e5e7eb' }} />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">Ej: $10 → por cada $10 gastados, el cliente gana 1 punto.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Valor de 1 punto al canjear</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
-                      <input type="number" min={0.01} step={0.01} value={loyaltyPointValue}
-                        onChange={e => setLoyaltyPointValue(Number(e.target.value))}
-                        className="w-full pl-7 pr-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                        style={{ borderColor: '#e5e7eb' }} />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">Ej: $0.50 → 100 puntos = $50 de descuento.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Mínimo de puntos para canjear</label>
-                    <input type="number" min={0} value={loyaltyMinRedeem}
-                      onChange={e => setLoyaltyMinRedeem(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                      style={{ borderColor: '#e5e7eb' }} />
-                    <p className="text-xs text-gray-400 mt-1">0 = sin mínimo requerido.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Máx. del total pagable con puntos (%)</label>
-                    <div className="relative">
-                      <input type="number" min={1} max={100} value={loyaltyMaxRedeemPct}
-                        onChange={e => setLoyaltyMaxRedeemPct(Number(e.target.value))}
-                        className="w-full pr-8 px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                        style={{ borderColor: '#e5e7eb' }} />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">%</span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">Ej: 30% → no puede cubrir más del 30% de la cuenta.</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Expiración de puntos (días · 0 = nunca expiran)</label>
-                    <input type="number" min={0} value={loyaltyExpiryDays}
-                      onChange={e => setLoyaltyExpiryDays(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                      style={{ borderColor: '#e5e7eb' }} />
-                  </div>
+          {/* Reglas de puntos */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px'}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:12}}>Reglas de puntos</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+              {[
+                {label:'$ por 1 punto',key:'pesosPerPoint',val:loyaltyPesosPerPoint,set:setLoyaltyPesosPerPoint,color:'#f59e0b',step:1,min:1,hint:'pesos para ganar 1 pto'},
+                {label:'$ por punto al canjear',key:'pointValue',val:loyaltyPointValue,set:setLoyaltyPointValue,color:'#34d399',step:0.01,min:0.01,hint:'valor de cada punto'},
+                {label:'Mínimo para canjear',key:'minRedeem',val:loyaltyMinRedeem,set:setLoyaltyMinRedeem,color:'#f1f5f9',step:1,min:0,hint:'puntos mínimos'},
+              ].map(f=>(
+                <div key={f.key}>
+                  <p style={{fontSize:11,color:'rgba(255,255,255,0.5)',marginBottom:6}}>{f.label}</p>
+                  <input type="number" min={f.min} step={f.step} value={f.val}
+                    onChange={e=>f.set(Number(e.target.value) as any)}
+                    style={{width:'100%',padding:'8px 10px',borderRadius:8,background:'#0f1923',border:'1px solid #2a3f5f',color:f.color,fontSize:14,fontWeight:700,outline:'none',boxSizing:'border-box'}}/>
+                  <p style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:3}}>{f.hint}</p>
                 </div>
-                {/* Live preview */}
-                <div className="rounded-xl p-4" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
-                  <p className="text-xs font-semibold text-amber-800 mb-1.5">Vista previa</p>
-                  <p className="text-xs text-amber-700">
-                    Un cliente que gasta <strong>$500</strong> acumula{' '}
-                    <strong>{Math.floor(500 / loyaltyPesosPerPoint)} puntos</strong>.
-                    Si los canjea, obtiene{' '}
-                    <strong>${(Math.floor(500 / loyaltyPesosPerPoint) * loyaltyPointValue).toFixed(2)}</strong> de descuento.
-                  </p>
-                </div>
-              </div>
-
-              {/* Levels */}
-              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb' }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-700">Niveles de cliente</h3>
-                  <button
-                    onClick={() => setLoyaltyLevels(prev => [...prev, { name: 'Nuevo nivel', min: 0, color: '#6b7280', benefit: '' }])}
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                    style={{ backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                    + Agregar nivel
-                  </button>
-                </div>
-                <div className="space-y-2 mb-4">
-                  {loyaltyLevels.map((level, idx) => (
-                    <div key={idx} className="flex items-center gap-2 p-3 rounded-xl border" style={{ borderColor: '#f3f4f6' }}>
-                      <input type="color" value={level.color}
-                        onChange={e => setLoyaltyLevels(prev => prev.map((l, i) => i === idx ? { ...l, color: e.target.value } : l))}
-                        className="w-8 h-8 rounded-lg border-0 cursor-pointer" title="Color del nivel" />
-                      <div className="flex-1 grid grid-cols-3 gap-2">
-                        <input type="text" value={level.name} placeholder="Nombre"
-                          onChange={e => setLoyaltyLevels(prev => prev.map((l, i) => i === idx ? { ...l, name: e.target.value } : l))}
-                          className="px-2 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-300"
-                          style={{ borderColor: '#e5e7eb' }} />
-                        <input type="number" min={0} value={level.min} placeholder="Pts mínimos"
-                          onChange={e => setLoyaltyLevels(prev => prev.map((l, i) => i === idx ? { ...l, min: Number(e.target.value) } : l))}
-                          className="px-2 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-300"
-                          style={{ borderColor: '#e5e7eb' }} />
-                        <input type="text" value={level.benefit} placeholder="Beneficio"
-                          onChange={e => setLoyaltyLevels(prev => prev.map((l, i) => i === idx ? { ...l, benefit: e.target.value } : l))}
-                          className="px-2 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-300"
-                          style={{ borderColor: '#e5e7eb' }} />
-                      </div>
-                      {loyaltyLevels.length > 1 && (
-                        <button onClick={() => setLoyaltyLevels(prev => prev.filter((_, i) => i !== idx))}
-                          className="text-red-400 hover:text-red-600 font-bold w-5 text-sm flex-shrink-0">✕</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {/* Level preview badges */}
-                <div className="flex gap-2 flex-wrap pt-3 border-t" style={{ borderColor: '#f3f4f6' }}>
-                  {[...loyaltyLevels].sort((a, b) => a.min - b.min).map((l, i) => (
-                    <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white"
-                      style={{ backgroundColor: l.color }}>
-                      {l.name} · {l.min}+ pts
-                      {l.benefit ? ` · ${l.benefit}` : ''}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button onClick={handleSaveLoyalty} disabled={loyaltySaving}
-                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ backgroundColor: '#1B3A6B' }}>
-                  {loyaltySaving ? 'Guardando...' : 'Guardar configuración'}
-                </button>
-                {loyaltySaved && <span className="text-sm font-semibold text-green-600">✓ Configuración guardada</span>}
-              </div>
+              ))}
             </div>
+            <div style={{marginTop:12,padding:'10px 14px',borderRadius:8,background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)',fontSize:12,color:'#fbbf24',lineHeight:1.7}}>
+              Ejemplo: compra de <strong>$500</strong> → <strong>{Math.floor(500/loyaltyPesosPerPoint)} puntos</strong> · canjear <strong>{loyaltyMinRedeem} puntos</strong> = <strong>${(loyaltyMinRedeem*loyaltyPointValue).toFixed(2)}</strong> de descuento
+            </div>
+          </div>
+
+          {/* Expiración de puntos */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px'}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:4}}>Expiración de puntos</p>
+            <p style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Puntos que no se usan después del período configurado</p>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {([null,90,180,365] as (number|null)[]).map(d=>(
+                <button key={String(d)} onClick={()=>setLoyaltyPointsExpireDays(d)} style={{padding:'7px 16px',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',border:`1px solid ${loyaltyPointsExpireDays===d?'rgba(245,158,11,0.4)':'#2a3f5f'}`,background:loyaltyPointsExpireDays===d?'rgba(245,158,11,0.1)':'#0f1923',color:loyaltyPointsExpireDays===d?'#f59e0b':'rgba(255,255,255,0.5)'}}>
+                  {d===null?'No expiran':d===90?'3 meses':d===180?'6 meses':'1 año'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-expiración */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:3}}>Auto-expiración de membresías</p>
+              <p style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>Desactivar automáticamente miembros cuya membresía venció. Sin esto, es manual.</p>
+            </div>
+            <button onClick={()=>setLoyaltyAutoExpire(v=>!v)} style={{position:'relative',width:48,height:26,borderRadius:13,border:'none',cursor:'pointer',flexShrink:0,transition:'background .2s',background:loyaltyAutoExpire?'#f59e0b':'#2a3f5f'}}>
+              <span style={{position:'absolute',top:3,width:20,height:20,borderRadius:10,background:'#fff',transition:'left .2s',left:loyaltyAutoExpire?25:3}}/>
+            </button>
+          </div>
+
+          {/* WhatsApp */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:3}}>
+                Notificaciones WhatsApp
+                <span style={{fontSize:10,background:'rgba(16,185,129,0.15)',color:'#34d399',borderRadius:4,padding:'2px 7px',marginLeft:6}}>Próximamente</span>
+              </p>
+              <p style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>Enviar saldo de puntos, recordatorios de vencimiento y promos por WhatsApp</p>
+            </div>
+            <button onClick={()=>setLoyaltyWhatsapp(v=>!v)} style={{position:'relative',width:48,height:26,borderRadius:13,border:'none',cursor:'pointer',flexShrink:0,transition:'background .2s',background:loyaltyWhatsapp?'#f59e0b':'#2a3f5f'}}>
+              <span style={{position:'absolute',top:3,width:20,height:20,borderRadius:10,background:'#fff',transition:'left .2s',left:loyaltyWhatsapp?25:3}}/>
+            </button>
+          </div>
+
+          {/* Niveles */}
+          <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <div>
+                <p style={{fontSize:13,fontWeight:700,color:'#f1f5f9',marginBottom:2}}>Niveles de lealtad</p>
+                <p style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>Bronce, Plata, Oro — configúralos como quieras</p>
+              </div>
+              <button onClick={()=>setLoyaltyLevels(prev=>[...prev,{name:'Nuevo nivel',min:100,color:'#f59e0b',benefit:''}])}
+                style={{display:'flex',alignItems:'center',gap:5,padding:'6px 14px',borderRadius:8,background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.25)',color:'#f59e0b',fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                + Agregar nivel
+              </button>
+            </div>
+            {loyaltyLevels.length===0?(
+              <p style={{fontSize:12,color:'rgba(255,255,255,0.3)',fontStyle:'italic',textAlign:'center',padding:'16px 0'}}>Sin niveles — todos los miembros son iguales</p>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {loyaltyLevels.map((lv,idx)=>(
+                  <div key={idx} style={{display:'grid',gridTemplateColumns:'1fr 90px 1fr 28px',gap:8,alignItems:'center'}}>
+                    <input value={lv.name} onChange={e=>setLoyaltyLevels(prev=>prev.map((l,i)=>i===idx?{...l,name:e.target.value}:l))} placeholder="Nombre"
+                      style={{padding:'7px 10px',borderRadius:7,background:'#0f1923',border:`1px solid ${lv.color}55`,color:'#f1f5f9',fontSize:13,outline:'none'}}/>
+                    <input type="number" min={0} value={lv.min} onChange={e=>setLoyaltyLevels(prev=>prev.map((l,i)=>i===idx?{...l,min:Number(e.target.value)}:l))}
+                      style={{width:'100%',padding:'7px 8px',borderRadius:7,background:'#0f1923',border:'1px solid #2a3f5f',color:'#f59e0b',fontSize:13,fontWeight:700,outline:'none'}}/>
+                    <input value={lv.benefit} onChange={e=>setLoyaltyLevels(prev=>prev.map((l,i)=>i===idx?{...l,benefit:e.target.value}:l))} placeholder="Beneficio (ej. 10% dto)"
+                      style={{padding:'7px 10px',borderRadius:7,background:'#0f1923',border:'1px solid #2a3f5f',color:'rgba(255,255,255,0.7)',fontSize:12,outline:'none'}}/>
+                    <button onClick={()=>setLoyaltyLevels(prev=>prev.filter((_,i)=>i!==idx))}
+                      style={{width:28,height:28,borderRadius:7,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'#f87171',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <p style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:4}}>Min. puntos = umbral para alcanzar ese nivel</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button onClick={handleSaveLoyalty} disabled={loyaltySaving}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: '#1B3A6B' }}>
+              {loyaltySaving ? 'Guardando...' : 'Guardar configuración'}
+            </button>
+            {loyaltySaved && <span className="text-sm font-semibold text-green-600">✓ Configuración guardada</span>}
+          </div>
+        </div>
       )}
-      {activeSection === 'sistema' && (
+            {activeSection === 'sistema' && (
         <div className="max-w-2xl">
               <SectionTitle icon={Settings2} title="Configuración del Sistema" />
 
