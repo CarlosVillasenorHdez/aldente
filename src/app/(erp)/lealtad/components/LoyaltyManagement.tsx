@@ -71,6 +71,33 @@ export default function LoyaltyManagement() {
     });
   },[customers,cfg.autoExpireMemberships,supabase]);
 
+  // ── WhatsApp manual ──────────────────────────────────────────────────────────
+  async function sendWhatsAppNotification(customer: LoyaltyCustomer, event: string) {
+    if (!customer.phone) { toast.error('El cliente no tiene teléfono registrado'); return; }
+    const tid = getTenantId();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/loyalty-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          tenantId: tid,
+          event,
+          customer: { id: customer.id, name: customer.name, phone: customer.phone },
+          points: customer.points,
+          pointsValue: (customer.points * cfg.pointValue).toFixed(2),
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) toast.success(`WhatsApp enviado a ${customer.name}`);
+      else toast.error(`Error WhatsApp: ${data.reason ?? data.error ?? 'desconocido'}`);
+    } catch (e: any) {
+      toast.error('Error al enviar WhatsApp: ' + e.message);
+    }
+  }
+
   const loadTransactions=async(customerId:string)=>{
     const {data}=await supabase.from('loyalty_transactions').select('*').eq('tenant_id',getTenantId()).eq('customer_id',customerId).order('created_at',{ascending:false}).limit(20);
     setTransactions((data||[]).map((t:any)=>({id:t.id,customerId:t.customer_id,type:t.type,points:t.points,amount:Number(t.amount),notes:t.notes,createdAt:t.created_at})));
@@ -216,6 +243,16 @@ export default function LoyaltyManagement() {
                   <button onClick={()=>{setSelectedCustomer(customer);setShowTransaction('acumulacion');setTxForm({amount:0,notes:''}); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{backgroundColor:'#f59e0b'}}><ArrowUpCircle size={12}/> Acumular</button>
                   <button onClick={()=>{setSelectedCustomer(customer);setShowTransaction('canje');setTxForm({amount:0,notes:''});}} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{backgroundColor:'#10b981'}}><Gift size={12}/> Canjear</button>
                   <button onClick={()=>{setSelectedCustomer(customer);loadTransactions(customer.id);setShowHistory(true);}} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100"><History size={12}/> Historial</button>
+                  {cfg.whatsappNotifications && customer.phone && (
+                    <button
+                      onClick={() => sendWhatsAppNotification(customer, 'points_balance')}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                      style={{ backgroundColor: '#25D366' }}
+                      title="Enviar saldo de puntos por WhatsApp"
+                    >
+                      📱 WA
+                    </button>
+                  )}
                 </div>
               </div>
             );
