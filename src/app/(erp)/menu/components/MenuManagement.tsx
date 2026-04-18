@@ -48,6 +48,7 @@ export interface RecipeItem {
   quantity: number;
   unit: string;
   notes: string;
+  costPerUnit?: number;
 }
 
 const CATEGORIES: Category[] = [

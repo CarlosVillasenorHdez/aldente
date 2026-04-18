@@ -108,7 +108,7 @@ function useInView(threshold = 0.12) {
   return { ref, inView };
 }
 
-function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function FadeUp({ children, delay = 0 }: { children?: React.ReactNode; delay?: number }) {
   const { ref, inView } = useInView(0.08);
   return (
     <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? 'translateY(0)' : 'translateY(36px)', transition: `opacity 0.75s ${delay}s ease, transform 0.75s ${delay}s cubic-bezier(0.22,1,0.36,1)` }}>
@@ -118,7 +118,7 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 // Emil Kowalski — clip-path reveal from bottom
-function ClipReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function ClipReveal({ children, delay = 0 }: { children?: React.ReactNode; delay?: number }) {
   const { ref, inView } = useInView(0.1);
   return (
     <div
@@ -135,7 +135,7 @@ function ClipReveal({ children, delay = 0 }: { children: React.ReactNode; delay?
 }
 
 // Stagger reveal — each child reveals with increasing delay
-function StaggerReveal({ children }: { children: React.ReactNode }) {
+function StaggerReveal({ children }: { children?: React.ReactNode }) {
   const { ref, inView } = useInView(0.08);
   return (
     <div ref={ref} className={`stagger-reveal${inView ? ' revealed' : ''}`}>
@@ -641,14 +641,18 @@ export default function MarketingPage() {
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>Qué tan rápido empiezas</div>
             <h2 className="serif" style={{fontSize:'clamp(30px,4vw,50px)',fontWeight:700,lineHeight:1.12}}>Configurado y operando<br/><em style={{color:'#c9963a'}}>el mismo día.</em></h2>
           </div></ClipReveal>
-          <StaggerReveal>
-            {STEPS.map((s,i)=>(
-              <div key={i} style={{padding:'32px 28px',borderRadius:18,background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',height:'100%',display:'grid',gridTemplateColumns:'40px 1fr',gap:16,alignItems:'start'}}>
-                <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(201,150,58,.1)',border:'1px solid rgba(201,150,58,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#c9963a'}}>{s.n}</div>
-                <div><h3 style={{fontSize:17,fontWeight:600,color:'#f0ece4',marginBottom:10}}>{s.t}</h3><p style={{fontSize:14,color:'rgba(240,236,228,.5)',lineHeight:1.7}}>{s.b}</p></div>
-              </div>
-            ))}
-          </StaggerReveal>
+          <div className="stagger-reveal-wrapper">
+            <StaggerReveal>
+              <>
+                {STEPS.map((s,i)=>(
+                  <div key={i} style={{padding:'32px 28px',borderRadius:18,background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',height:'100%',display:'grid',gridTemplateColumns:'40px 1fr',gap:16,alignItems:'start'}}>
+                    <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(201,150,58,.1)',border:'1px solid rgba(201,150,58,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#c9963a'}}>{s.n}</div>
+                    <div><h3 style={{fontSize:17,fontWeight:600,color:'#f0ece4',marginBottom:10}}>{s.t}</h3><p style={{fontSize:14,color:'rgba(240,236,228,.5)',lineHeight:1.7}}>{s.b}</p></div>
+                  </div>
+                ))}
+              </>
+            </StaggerReveal>
+          </div>
         </div>
       </section>
 

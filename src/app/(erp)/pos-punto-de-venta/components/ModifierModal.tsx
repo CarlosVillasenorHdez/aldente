@@ -210,7 +210,7 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
     if (row.note.trim()) modParts.push(row.note.trim());
 
     // Build selectedOptions from modifier group selections
-    const chosenOptions = Object.entries(selectedOptions).flatMap(([gid, oids]) =>
+    const chosenOptions = Object.entries(selectedOptions).flatMap(([gid, oids]: [string, string[]]) =>
       oids.map(oid => {
         const grp = modGroups.find(g => g.id === gid);
         const opt = grp?.options.find(o => o.id === oid);

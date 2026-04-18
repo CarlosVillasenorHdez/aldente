@@ -168,14 +168,18 @@ export default function RestaurantLoginPage() {
                 style={{ ...inp, appearance: 'none', color: selectedUserId ? '#f1f5f9' : 'rgba(255,255,255,0.35)' }}
               >
                 <option value="" disabled>Selecciona tu nombre</option>
-                {Object.entries(grouped).map(([roleLabel, roleUsers]) => (
+                {Object.entries(grouped).map(([roleLabel, roleUsers]) => {
+                  const users = roleUsers as { id: string; fullName: string }[];
+                  return (
                   <optgroup key={roleLabel} label={`── ${roleLabel}`} style={{ color: '#f59e0b', backgroundColor: '#0f1923' }}>
-                    {roleUsers.map(u => (
+                    {users.map(u => (
                       <option key={u.id} value={u.id} style={{ color: '#f1f5f9', backgroundColor: '#1a2535' }}>
                         {u.fullName}
                       </option>
                     ))}
                   </optgroup>
+                  );
+                })}
                 ))}
               </select>
             </div>
