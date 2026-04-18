@@ -117,6 +117,33 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
+// Emil Kowalski — clip-path reveal from bottom
+function ClipReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { ref, inView } = useInView(0.1);
+  return (
+    <div
+      ref={ref}
+      style={{
+        clipPath: inView ? 'inset(0 0 0% 0)' : 'inset(0 0 100% 0)',
+        opacity: inView ? 1 : 0,
+        transition: `clip-path 700ms ${delay}s cubic-bezier(0.77,0,0.175,1), opacity 400ms ${delay}s ease-out`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Stagger reveal — each child reveals with increasing delay
+function StaggerReveal({ children }: { children: React.ReactNode }) {
+  const { ref, inView } = useInView(0.08);
+  return (
+    <div ref={ref} className={`stagger-reveal${inView ? ' revealed' : ''}`}>
+      {children}
+    </div>
+  );
+}
+
 // Count-up animation
 function CountUp({ target, suffix, decimals = 0, active }: { target: number; suffix: string; decimals?: number; active: boolean }) {
   const [val, setVal] = React.useState(0);
@@ -476,10 +503,10 @@ export default function MarketingPage() {
       {/* DEMO */}
       <section className="sec" id="demo" style={{background:'#0d0f17'}}>
         <div className="wrap">
-          <FadeUp><div style={{textAlign:'center',marginBottom:56}}>
+          <ClipReveal><div style={{textAlign:'center',marginBottom:56}}>
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>{t.demoEyebrow}</div>
             <h2 className="serif" style={{fontSize:'clamp(30px,4.5vw,54px)',fontWeight:700,lineHeight:1.12}}>{t.demoH}<br/><em style={{color:'#c9963a'}}>{t.demoHEm}</em></h2>
-          </div></FadeUp>
+          </div></ClipReveal>
           <FadeUp delay={0.1}><LiveDemo/></FadeUp>
           <p style={{textAlign:'center',fontSize:12,color:'rgba(240,236,228,.2)',marginTop:20}}>{t.demoNote}</p>
         </div>
@@ -488,24 +515,24 @@ export default function MarketingPage() {
       {/* DIFFERENCES */}
       <section className="sec" id="diferencia" style={{background:'#07090f'}}>
         <div className="wrap">
-          <FadeUp><div style={{maxWidth:600,marginBottom:64}}>
+          <ClipReveal><div style={{maxWidth:600,marginBottom:64}}>
             <div className="eyebrow" style={{marginBottom:20}}>{t.diffEyebrow}</div>
             <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,54px)',fontWeight:700,lineHeight:1.1,marginBottom:20}}>{t.diffH}<br/><em style={{color:'#c9963a'}}>{t.diffHEm}</em></h2>
             <p style={{fontSize:15,color:'rgba(240,236,228,.5)',lineHeight:1.75}}>{t.diffBody}</p>
-          </div></FadeUp>
+          </div></ClipReveal>
           <div style={{display:'flex',flexDirection:'column',gap:2}}>
             <div style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2,marginBottom:6}}>
               <div/><div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'rgba(240,236,228,.55)'}}>{t.diffThem}</div>
               <div style={{padding:'8px 20px',fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#c9963a'}}>{t.diffUs}</div>
             </div>
             {DIFFS.map((d,i)=>(
-              <FadeUp key={i} delay={i*0.07}>
+              <ClipReveal key={i} delay={i*0.06}>
                 <div className="diff-row diff-grid" style={{display:'grid',gridTemplateColumns:'100px 1fr 1fr',gap:2}}>
                   <div className="diff-label" style={{padding:'18px 16px',display:'flex',alignItems:'center',borderRadius:'10px 0 0 10px',background:'rgba(255,255,255,.02)',borderRight:'1px solid rgba(255,255,255,.04)'}}><span style={{fontSize:10,fontWeight:700,color:'rgba(240,236,228,.6)',letterSpacing:'.08em',textTransform:'uppercase'}}>{d.label}</span></div>
                   <div style={{padding:'18px 22px',background:'rgba(255,255,255,.018)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'rgba(239,68,68,.5)',fontSize:13,flexShrink:0}}>✗</span><p style={{fontSize:13,color:'rgba(240,236,228,.4)',lineHeight:1.65}}>{d.them}</p></div>
                   <div style={{padding:'18px 22px',background:'rgba(201,150,58,.04)',borderRadius:'0 10px 10px 0',border:'1px solid rgba(201,150,58,.1)',display:'flex',alignItems:'center',gap:10}}><span style={{color:'#c9963a',fontSize:13,flexShrink:0}}>✓</span><p style={{fontSize:13,color:'rgba(240,236,228,.8)',lineHeight:1.65}}>{d.us}</p></div>
                 </div>
-              </FadeUp>
+              </ClipReveal>
             ))}
           </div>
           <FadeUp delay={0.2}><div style={{marginTop:48,padding:'36px 44px',borderRadius:20,background:'rgba(201,150,58,.05)',border:'1px solid rgba(201,150,58,.18)',display:'flex',gap:48,alignItems:'center',flexWrap:'wrap'}}>
@@ -525,7 +552,7 @@ export default function MarketingPage() {
       {/* PRIME COST — el número que nadie más calcula */}
       <section className="sec" style={{background:'#07090f',borderTop:'1px solid rgba(255,255,255,.04)'}}>
         <div className="wrap">
-          <FadeUp><div style={{textAlign:'center',marginBottom:56}}>
+          <ClipReveal><div style={{textAlign:'center',marginBottom:56}}>
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:16}}>El número que ningún sistema te da</div>
             <h2 className="serif" style={{fontSize:'clamp(28px,4vw,48px)',fontWeight:700,lineHeight:1.12,marginBottom:16}}>
               El margen que ves<br/><em style={{color:'#c9963a'}}>no es el que tienes.</em>
@@ -533,7 +560,7 @@ export default function MarketingPage() {
             <p style={{fontSize:15,color:'rgba(240,236,228,.5)',maxWidth:520,margin:'0 auto',lineHeight:1.75}}>
               La mayoría de los sistemas — y la mayoría de los dueños — calculan el margen sobre ingredientes. Ese número siempre se ve bien. El problema es lo que no está ahí.
             </p>
-          </div></FadeUp>
+          </div></ClipReveal>
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:3,maxWidth:820,margin:'0 auto 48px'}} className="g2">
 
@@ -610,28 +637,25 @@ export default function MarketingPage() {
       {/* HOW IT WORKS */}
       <section className="sec" style={{background:'#0d0f17'}}>
         <div className="wrap">
-          <FadeUp><div style={{textAlign:'center',marginBottom:52}}>
+          <ClipReveal><div style={{textAlign:'center',marginBottom:52}}>
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>Qué tan rápido empiezas</div>
             <h2 className="serif" style={{fontSize:'clamp(30px,4vw,50px)',fontWeight:700,lineHeight:1.12}}>Configurado y operando<br/><em style={{color:'#c9963a'}}>el mismo día.</em></h2>
-          </div></FadeUp>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20}} className="g3">
+          </div></ClipReveal>
+          <StaggerReveal>
             {STEPS.map((s,i)=>(
-              <FadeUp key={i} delay={i*.12}>
-                <div style={{padding:'32px 28px',borderRadius:18,background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',height:'100%'}}>
-                  <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(201,150,58,.1)',border:'1px solid rgba(201,150,58,.25)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:20,fontSize:14,fontWeight:700,color:'#c9963a'}}>{s.n}</div>
-                  <h3 style={{fontSize:17,fontWeight:600,color:'#f0ece4',marginBottom:10}}>{s.t}</h3>
-                  <p style={{fontSize:14,color:'rgba(240,236,228,.5)',lineHeight:1.7}}>{s.b}</p>
-                </div>
-              </FadeUp>
+              <div key={i} style={{padding:'32px 28px',borderRadius:18,background:'rgba(255,255,255,.02)',border:'1px solid rgba(255,255,255,.07)',height:'100%',display:'grid',gridTemplateColumns:'40px 1fr',gap:16,alignItems:'start'}}>
+                <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(201,150,58,.1)',border:'1px solid rgba(201,150,58,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#c9963a'}}>{s.n}</div>
+                <div><h3 style={{fontSize:17,fontWeight:600,color:'#f0ece4',marginBottom:10}}>{s.t}</h3><p style={{fontSize:14,color:'rgba(240,236,228,.5)',lineHeight:1.7}}>{s.b}</p></div>
+              </div>
             ))}
-          </div>
+          </StaggerReveal>
         </div>
       </section>
 
       {/* PLANS */}
       <section className="sec" id="planes" style={{background:'#07090f'}}>
         <div className="wrap">
-          <FadeUp><div style={{textAlign:'center',marginBottom:52}}>
+          <ClipReveal><div style={{textAlign:'center',marginBottom:52}}>
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>{t.plansEyebrow}</div>
             <h2 className="serif" style={{fontSize:'clamp(32px,4.5vw,58px)',fontWeight:700,lineHeight:1.08,marginBottom:16}}>{t.plansH}<br/><em style={{color:'#c9963a'}}>{t.plansHEm}</em></h2>
             <p style={{fontSize:15,color:'rgba(240,236,228,.45)',maxWidth:460,margin:'0 auto 32px',lineHeight:1.75}}>Cuando tu restaurante crece, cambias de plan. No compras módulos uno por uno. Sin contratos. Cambia de plan cuando quieras.</p>
@@ -642,7 +666,7 @@ export default function MarketingPage() {
               </button>
               <span style={{fontSize:13,color:annual?'#f0ece4':'rgba(240,236,228,.35)'}}>Anual <span style={{color:'#c9963a',fontSize:11,fontWeight:700}}>−15%</span></span>
             </div>
-          </div></FadeUp>
+          </div></ClipReveal>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,alignItems:'start'}} className="g4 plan-grid">
             {PLANS.map((plan,pi)=>{
               const fp=Math.round(plan.price*disc);
