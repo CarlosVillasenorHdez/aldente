@@ -81,8 +81,8 @@ export default function SalesChart() {
 
       let ordersQ = supabase
         .from('orders')
-        .eq('tenant_id', getTenantId())
         .select('total, created_at, closed_at')
+        .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada');
       if (activeBranchId) ordersQ = ordersQ.eq('branch_id', activeBranchId);
@@ -136,8 +136,8 @@ export default function SalesChart() {
 
       const { data: weekOrders, error: weekError } = await supabase
         .from('orders')
-        .eq('tenant_id', getTenantId())
         .select('total, created_at')
+        .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
         .gte('created_at', weekStart.toISOString());

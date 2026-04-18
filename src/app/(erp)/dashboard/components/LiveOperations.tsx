@@ -30,8 +30,8 @@ export default function LiveOperations() {
   const fetchLive = useCallback(async () => {
     const { data } = await supabase
       .from('orders')
-      .eq('tenant_id', getTenantId())
       .select('id, mesa, mesero, kitchen_status, created_at, parent_order_id')
+      .eq('tenant_id', getTenantId())
       .eq('is_comanda', true)                         // only kitchen comanda cards
       .in('kitchen_status', ['pendiente', 'preparacion', 'lista'])
       .neq('status', 'cancelada')

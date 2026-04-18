@@ -132,8 +132,8 @@ export default function OrdersTable() {
     // Base query — si hay filtro de fechas no ponemos límite; si no, cap en 500
     let query = supabase
       .from('orders')
-      .eq('tenant_id', getTenantId())
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
+      .eq('tenant_id', getTenantId())
       .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
       .neq('kitchen_status', 'en_edicion')  // exclude abandoned drafts never sent to kitchen
       .order('created_at', { ascending: false });
