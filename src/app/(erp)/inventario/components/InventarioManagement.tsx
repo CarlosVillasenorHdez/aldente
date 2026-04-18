@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
 import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart';
+import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInventario';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste';
-type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras';
+type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica';
 
 type IngredientSupplier = {
   id: string;
@@ -418,7 +419,12 @@ export default function InventarioManagement() {
       return matchesSearch && matchesCategory && matchesLow;
     });
   }, [ingredients, search, activeCategory, filterLowStock]);
-  function openAdd() { setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true); }
+  function openAdd() {
+    setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true);
+    // Load supplier list for selector
+    supabase.from('suppliers').select('id, name').eq('tenant_id', getTenantId()).order('name')
+      .then(({ data }) => setAllSuppliers((data || []).map((s: any) => ({ id: s.id, name: s.name }))));
+  }
   function openEdit(ing: Ingredient) {
     setEditingId(ing.id);
     setForm({
@@ -433,6 +439,9 @@ export default function InventarioManagement() {
     });
     setFormErrors({});
     setModalOpen(true);
+    // Load supplier list for selector
+    supabase.from('suppliers').select('id, name').eq('tenant_id', getTenantId()).order('name')
+      .then(({ data }) => setAllSuppliers((data || []).map((s: any) => ({ id: s.id, name: s.name }))));
   }
   function closeModal() { setModalOpen(false); setEditingId(null); setForm(emptyForm()); setFormErrors({}); }
   function validate(): boolean {
@@ -747,7 +756,8 @@ export default function InventarioManagement() {
           { key: 'inventario', label: 'Inventario', icon: <Package size={14} /> },
           { key: 'movimientos', label: 'Historial de Movimientos', icon: <History size={14} /> },
           { key: 'alertas', label: `Alertas (${lowStockItems.length + reorderItems.length})`, icon: <Bell size={14} /> },
-          { key: 'analisis', label: 'Análisis de Desperdicio', icon: <BarChart2 size={14} /> },
+          { key: 'analitica', label: 'Analítica', icon: <BarChart2 size={14} /> },
+          { key: 'analisis', label: 'Desperdicio', icon: <TrendingDown size={14} /> },
           { key: 'pronostico', label: 'Pronóstico 7 días', icon: <TrendingUp size={14} /> },
           { key: 'compras', label: 'Lista de Compras', icon: <Download size={14} /> },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
@@ -1134,6 +1144,7 @@ export default function InventarioManagement() {
         </div>
       )}
       {/* ── TAB: ANÁLISIS DE DESPERDICIO ── */}
+      {activeTab === 'analitica' && <AnalyticaInventario />}
       {activeTab === 'analisis' && <AnalisisDesperdicioTab />}
       {/* ── TAB: PRONÓSTICO ── */}
       {activeTab === 'pronostico' && <ForecastingChart />}
@@ -1809,10 +1820,19 @@ export default function InventarioManagement() {
               {/* Proveedor */}
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.supplier} onChange={e => updateForm('supplier', e.target.value)}
-                  placeholder="Nombre del proveedor" />
+                  value={form.supplier} onChange={e => updateForm('supplier', e.target.value)}>
+                  <option value="">— Sin proveedor —</option>
+                  {allSuppliers.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+                {allSuppliers.length === 0 && (
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    Agrega proveedores en la sección de Proveedores primero
+                  </p>
+                )}
               </div>
               {/* Tel proveedor */}
               <div>
