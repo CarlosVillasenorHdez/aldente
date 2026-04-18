@@ -223,6 +223,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
   const [currencyCode, setCurrencyCode] = useState('MXN');
   const [currencyLocale, setCurrencyLocale] = useState('es-MX');
   const [operacionSaved, setOperacionSaved] = useState(false);
+  const [takeoutPayBeforeKitchen, setTakeoutPayBeforeKitchen] = useState(false);
 
   // Load system config on mount
   useEffect(() => {
@@ -261,6 +262,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (map.currency_symbol) setCurrencySymbol(map.currency_symbol);
       if (map.currency_code) setCurrencyCode(map.currency_code);
       if (map.currency_locale) setCurrencyLocale(map.currency_locale);
+      if (map.takeout_pay_before_kitchen) setTakeoutPayBeforeKitchen(map.takeout_pay_before_kitchen === 'true');
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -345,10 +347,11 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   async function handleSaveOperacion() {
     const rows = [
-      { config_key: 'iva_percent', config_value: String(ivaPercentDraft), tenant_id: appUser?.tenantId ?? undefined },
-      { config_key: 'currency_symbol', config_value: currencySymbol, tenant_id: appUser?.tenantId ?? undefined },
-      { config_key: 'currency_code', config_value: currencyCode, tenant_id: appUser?.tenantId ?? undefined },
-      { config_key: 'currency_locale', config_value: currencyLocale, tenant_id: appUser?.tenantId ?? undefined },
+      { config_key: 'iva_percent', config_value: String(ivaPercentDraft), tenant_id: appUser?.tenantId },
+      { config_key: 'currency_symbol', config_value: currencySymbol, tenant_id: appUser?.tenantId },
+      { config_key: 'currency_code', config_value: currencyCode, tenant_id: appUser?.tenantId },
+      { config_key: 'currency_locale', config_value: currencyLocale, tenant_id: appUser?.tenantId },
+      { config_key: 'takeout_pay_before_kitchen', config_value: String(takeoutPayBeforeKitchen), tenant_id: appUser?.tenantId },
     ];
     await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
     setIvaPercent(ivaPercentDraft);
@@ -573,6 +576,27 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
             </div>
           </div>
         </div>
+
+        {/* ── Flujo para llevar ── */}
+        <div className="rounded-xl p-5 mb-5 flex items-center justify-between gap-4" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#f1f5f9' }}>Cobrar antes de enviar a cocina (Para Llevar)</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Actívalo en cafeterías y negocios de pago inmediato. El cajero cobra primero y la comanda
+              se envía a cocina automáticamente al confirmar el pago. Desactívalo si prefieres mantener
+              órdenes para llevar abiertas hasta la entrega.
+            </p>
+          </div>
+          <button
+            onClick={() => setTakeoutPayBeforeKitchen(v => !v)}
+            className="relative flex-shrink-0 w-12 h-6 rounded-full transition-all duration-200"
+            style={{ backgroundColor: takeoutPayBeforeKitchen ? '#f59e0b' : '#2a3f5f' }}
+          >
+            <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200"
+              style={{ backgroundColor: '#fff', left: takeoutPayBeforeKitchen ? '22px' : '2px' }} />
+          </button>
+        </div>
+
         <SaveButton saved={operacionSaved} onClick={handleSaveOperacion} />
       </div>}
     </div>

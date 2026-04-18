@@ -18,6 +18,16 @@ type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' |
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste';
 type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras';
+
+type IngredientSupplier = {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  pricePerUnit: number | null;
+  unit: string;
+  notes: string;
+  isPreferred: boolean;
+};
 type Ingredient = {
   id: string;
   name: string;
@@ -31,9 +41,11 @@ type Ingredient = {
   supplierUrl: string;
   supplierPhone: string;
   notes: string;
-  purchasePrice?: number | null;
-  purchaseQtyPerUnit: number;
-  purchaseUnit?: string | null;
+  purchasePrice?: number;
+  purchaseQty?: number;
+  purchaseUnit?: string;
+  brand?: string;
+  presentation?: string;
 };
 type StockMovement = {
   id: string;
@@ -107,7 +119,8 @@ const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: Re
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Otros', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
   cost: 0, supplier: '', supplierUrl: '', supplierPhone: '', notes: '',
-  purchasePrice: 0, purchaseQtyPerUnit: 1, purchaseUnit: '',
+  purchasePrice: 0, purchaseQty: 1, purchaseUnit: '',
+  brand: '', presentation: '',
 });
 const emptyMovementForm = () => ({
   ingredientId: '',
@@ -207,6 +220,12 @@ export default function InventarioManagement() {
   const [detailMovements, setDetailMovements] = useState<StockMovement[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [historyIngredientId, setHistoryIngredientId] = useState<string | null>(null);
+
+  // ── Multi-proveedor ──────────────────────────────────────────────────────────
+  const [ingSuppliers, setIngSuppliers] = useState<IngredientSupplier[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<{id: string; name: string}[]>([]);
+  const [addingSupplier, setAddingSupplier] = useState(false);
+  const [newIngSupplier, setNewIngSupplier] = useState({ supplierId: '', pricePerUnit: '', unit: '', notes: '' });
   // Equivalences state
   const [equivModalOpen, setEquivModalOpen] = useState(false);
   const [equivForm, setEquivForm] = useState(emptyEquivForm());
@@ -241,6 +260,8 @@ export default function InventarioManagement() {
         purchaseQtyPerUnit: Number(i.purchase_qty_per_unit ?? 1),
         purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
+        brand: i.brand ?? '',
+        presentation: i.presentation ?? '',
       })) as Ingredient[]);
     }
     setLoading(false);
@@ -433,6 +454,8 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          brand: form.brand || null,
+          presentation: form.presentation || null,
           ...(form.purchaseUnit ? { purchase_unit: form.purchaseUnit } : {}),
           ...(form.purchaseQtyPerUnit && form.purchaseQtyPerUnit !== 1 ? { purchase_qty_per_unit: form.purchaseQtyPerUnit } : {}),
           ...(form.purchasePrice ? { purchase_price: form.purchasePrice } : {}),
@@ -458,6 +481,8 @@ export default function InventarioManagement() {
           min_stock: form.minStock, reorder_point: form.reorderPoint, cost: form.cost,
           supplier: form.supplier, supplier_url: form.supplierUrl, supplier_phone: form.supplierPhone,
           notes: form.notes,
+          brand: form.brand || null,
+          presentation: form.presentation || null,
           tenant_id: getTenantId(),
         };
         // Purchase fields — only add if migration has been applied
@@ -542,6 +567,8 @@ export default function InventarioManagement() {
   async function openDetail(id: string) {
     setDetailIngId(id);
     setDetailLoading(true);
+    setIngSuppliers([]);
+    setAddingSupplier(false);
     const { data } = await supabase
       .from('stock_movements')
       .select('*')
@@ -556,7 +583,67 @@ export default function InventarioManagement() {
       reason: m.reason, createdBy: m.created_by, createdAt: m.created_at,
       unit: '',
     })));
+    // Cargar proveedores vinculados
+    const { data: isData } = await supabase
+      .from('ingredient_suppliers')
+      .select('*, suppliers(name)')
+      .eq('ingredient_id', id)
+      .order('is_preferred', { ascending: false });
+    if (isData) {
+      setIngSuppliers(isData.map((r: any) => ({
+        id: r.id,
+        supplierId: r.supplier_id,
+        supplierName: r.suppliers?.name ?? '—',
+        pricePerUnit: r.price_per_unit ? Number(r.price_per_unit) : null,
+        unit: r.unit ?? '',
+        notes: r.notes ?? '',
+        isPreferred: r.is_preferred ?? false,
+      })));
+    }
+    // Cargar lista de proveedores del tenant para el selector
+    const { data: supData } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .eq('tenant_id', getTenantId())
+      .order('name');
+    setAllSuppliers((supData || []).map((s: any) => ({ id: s.id, name: s.name })));
     setDetailLoading(false);
+  }
+
+  async function handleAddIngSupplier() {
+    if (!detailIngId || !newIngSupplier.supplierId) return;
+    const { error } = await supabase.from('ingredient_suppliers').insert({
+      ingredient_id: detailIngId,
+      supplier_id: newIngSupplier.supplierId,
+      price_per_unit: newIngSupplier.pricePerUnit ? Number(newIngSupplier.pricePerUnit) : null,
+      unit: newIngSupplier.unit || null,
+      notes: newIngSupplier.notes || null,
+      is_preferred: ingSuppliers.length === 0, // primero = preferido
+      tenant_id: getTenantId(),
+    });
+    if (error) { toast.error('Error al vincular proveedor'); return; }
+    toast.success('Proveedor vinculado');
+    setAddingSupplier(false);
+    setNewIngSupplier({ supplierId: '', pricePerUnit: '', unit: '', notes: '' });
+    await openDetail(detailIngId);
+  }
+
+  async function handleRemoveIngSupplier(isId: string) {
+    await supabase.from('ingredient_suppliers').delete().eq('id', isId);
+    toast.success('Proveedor desvinculado');
+    if (detailIngId) await openDetail(detailIngId);
+  }
+
+  async function handleSetPreferredSupplier(isId: string) {
+    if (!detailIngId) return;
+    // Quitar preferido de todos, poner en este
+    await supabase.from('ingredient_suppliers')
+      .update({ is_preferred: false })
+      .eq('ingredient_id', detailIngId);
+    await supabase.from('ingredient_suppliers')
+      .update({ is_preferred: true })
+      .eq('id', isId);
+    await openDetail(detailIngId);
   }
 
   // ─── Equivalences CRUD ───────────────────────────────────────────────────
@@ -1328,6 +1415,104 @@ export default function InventarioManagement() {
                 )}
               </div>
 
+              {/* ── Proveedores vinculados (multi-proveedor) ── */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Proveedores vinculados</p>
+                  {!addingSupplier && (
+                    <button
+                      onClick={() => setAddingSupplier(true)}
+                      style={{ fontSize: '11px', fontWeight: 600, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer' }}
+                    >+ Vincular</button>
+                  )}
+                </div>
+
+                {/* Formulario nuevo proveedor */}
+                {addingSupplier && (
+                  <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <select
+                      value={newIngSupplier.supplierId}
+                      onChange={e => setNewIngSupplier(p => ({ ...p, supplierId: e.target.value }))}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
+                    >
+                      <option value="">— Selecciona proveedor —</option>
+                      {allSuppliers.filter(s => !ingSuppliers.some(is => is.supplierId === s.id)).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <input
+                        type="number" min={0} step="0.01" placeholder="Precio/unidad"
+                        value={newIngSupplier.pricePerUnit}
+                        onChange={e => setNewIngSupplier(p => ({ ...p, pricePerUnit: e.target.value }))}
+                        style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
+                      />
+                      <input
+                        type="text" placeholder="Unidad (ej. caja)"
+                        value={newIngSupplier.unit}
+                        onChange={e => setNewIngSupplier(p => ({ ...p, unit: e.target.value }))}
+                        style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
+                      />
+                    </div>
+                    <input
+                      type="text" placeholder="Notas (opcional)"
+                      value={newIngSupplier.notes}
+                      onChange={e => setNewIngSupplier(p => ({ ...p, notes: e.target.value }))}
+                      style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={handleAddIngSupplier}
+                        style={{ flex: 1, padding: '7px', borderRadius: '7px', background: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '12px', border: 'none', cursor: 'pointer' }}>
+                        Vincular
+                      </button>
+                      <button onClick={() => { setAddingSupplier(false); setNewIngSupplier({ supplierId: '', pricePerUnit: '', unit: '', notes: '' }); }}
+                        style={{ flex: 1, padding: '7px', borderRadius: '7px', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontSize: '12px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista de proveedores vinculados */}
+                {ingSuppliers.length === 0 ? (
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', fontStyle: 'italic' }}>Sin proveedores vinculados</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {ingSuppliers.map(is => (
+                      <div key={is.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: is.isPreferred ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '8px', border: `1px solid ${is.isPreferred ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{is.supplierName}</span>
+                            {is.isPreferred && <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>PREFERIDO</span>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+                            {is.pricePerUnit != null ? `$${is.pricePerUnit.toFixed(2)}` : '—'}
+                            {is.unit ? ` / ${is.unit}` : ''}
+                            {is.notes ? ` · ${is.notes}` : ''}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                          {!is.isPreferred && (
+                            <button
+                              onClick={() => handleSetPreferredSupplier(is.id)}
+                              title="Marcar como preferido"
+                              style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', cursor: 'pointer' }}>
+                              ★
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemoveIngSupplier(is.id)}
+                            title="Desvincular"
+                            style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer' }}>
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Movement history */}
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Historial de movimientos</p>
@@ -1367,8 +1552,10 @@ export default function InventarioManagement() {
                 {[
                   { label: 'Costo unitario', value: `$${ing.cost.toFixed(2)}/${ing.unit}` },
                   { label: 'Valor en stock', value: `$${(ing.stock * ing.cost).toFixed(2)}` },
-                  { label: 'Proveedor', value: ing.supplier || 'No asignado' },
-                  { label: 'Presentación', value: ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQtyPerUnit} ${ing.unit})` : 'Misma unidad' },
+                  { label: 'Marca', value: ing.brand || '—' },
+                  { label: 'Presentación', value: ing.presentation || (ing.purchaseUnit ? `${ing.purchaseUnit} (${ing.purchaseQty} ${ing.unit})` : 'Misma unidad') },
+                  { label: 'Proveedor principal', value: ing.supplier || 'No asignado' },
+                  { label: 'Unidad de compra', value: ing.purchaseUnit ? `${ing.purchaseUnit} × ${ing.purchaseQty} ${ing.unit}` : 'Misma unidad' },
                 ].map(item => (
                   <div key={item.label}>
                     <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' }}>{item.label}</p>
@@ -1604,9 +1791,25 @@ export default function InventarioManagement() {
                   value={form.cost} onChange={e => updateForm('cost', Number(e.target.value))} />
                 <p className="text-xs mt-1" style={{ color:'rgba(255,255,255,0.3)' }}>Edítalo si necesitas ajustar</p>
               </div>
+              {/* Marca */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Marca</label>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  value={form.brand ?? ''} onChange={e => updateForm('brand', e.target.value)}
+                  placeholder="ej. Bimbo, Lala, Herdez" />
+              </div>
+              {/* Presentación */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Presentación</label>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  value={form.presentation ?? ''} onChange={e => updateForm('presentation', e.target.value)}
+                  placeholder="ej. Madre Masa 600g, Caja 12 pz" />
+              </div>
               {/* Proveedor */}
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor</label>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
                 <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                   value={form.supplier} onChange={e => updateForm('supplier', e.target.value)}

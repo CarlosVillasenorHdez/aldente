@@ -29,6 +29,9 @@ interface OrderPanelProps {
   onStay?: () => void;
   isOnHold?: boolean;
   onSendKitchenNote?: (note: string) => void;
+  /** Si true y es para llevar: cobrar antes de enviar a cocina */
+  takeoutPayBeforeKitchen?: boolean;
+  orderType?: 'mesa' | 'para_llevar';
 }
 
 export default function OrderPanel({
@@ -55,6 +58,8 @@ export default function OrderPanel({
   onStay,
   isOnHold,
   onSendKitchenNote,
+  takeoutPayBeforeKitchen = false,
+  orderType,
 }: OrderPanelProps) {
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
@@ -388,29 +393,60 @@ export default function OrderPanel({
                   <Clock size={15} />
                 </button>
               )}
-              {/* Send: envía a cocina todo lo pendiente */}
-              <button
-                onClick={onSendToKitchen}
-                disabled={sendingToKitchen || orderItems.length === 0 || !selectedTable.currentOrderId}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                style={{ backgroundColor: isOnHold ? '#d97706' : '#059669', color: 'white' }}
-              >
-                <Send size={15} />
-                {sendingToKitchen ? 'Enviando...' : isOnHold ? 'Enviar ahora' : 'Enviar comanda'}
-              </button>
-              {kitchenSent && onSendKitchenNote && (
-                <button
-                  onClick={() => setShowKitchenNote(true)}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-                  style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)', flex: '0 0 auto' }}
-                  title="Nota urgente a cocina"
-                >
-                  <MessageSquare size={13} />
-                </button>
+              {/* ── Modo cafetería: cobrar primero, cocina después ── */}
+              {takeoutPayBeforeKitchen && orderType === 'para_llevar' ? (
+                // Si ya cobró (kitchenSent equivale a "ya pagó y mandó"), solo nota
+                kitchenSent ? (
+                  onSendKitchenNote ? (
+                    <button
+                      onClick={() => setShowKitchenNote(true)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-semibold transition-all"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
+                      title="Nota urgente a cocina"
+                    >
+                      <MessageSquare size={13} /> Nota a cocina
+                    </button>
+                  ) : null
+                ) : (
+                  // Botón único: cobrar → envía a cocina automáticamente desde POSClient
+                  <button
+                    onClick={onCheckout}
+                    disabled={orderItems.length === 0 || !selectedTable.currentOrderId}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                    style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}
+                  >
+                    <ShoppingCart size={15} />
+                    Cobrar y enviar — ${total.toFixed(2)}
+                  </button>
+                )
+              ) : (
+                // ── Flujo normal: enviar a cocina independiente ──
+                <>
+                  <button
+                    onClick={onSendToKitchen}
+                    disabled={sendingToKitchen || orderItems.length === 0 || !selectedTable.currentOrderId}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                    style={{ backgroundColor: isOnHold ? '#d97706' : '#059669', color: 'white' }}
+                  >
+                    <Send size={15} />
+                    {sendingToKitchen ? 'Enviando...' : isOnHold ? 'Enviar ahora' : 'Enviar comanda'}
+                  </button>
+                  {kitchenSent && onSendKitchenNote && (
+                    <button
+                      onClick={() => setShowKitchenNote(true)}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)', flex: '0 0 auto' }}
+                      title="Nota urgente a cocina"
+                    >
+                      <MessageSquare size={13} />
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
-
+            {/* Botón cobrar — solo en flujo normal (cafetería lo tiene arriba integrado) */}
+            {!(takeoutPayBeforeKitchen && orderType === 'para_llevar') && (
             <div className="flex gap-2">
               <button
                 onClick={onCheckout}
@@ -430,6 +466,7 @@ export default function OrderPanel({
                 </button>
               )}
             </div>
+            )}
 
             {/* Cierre parcial modal */}
             {showPartial && (

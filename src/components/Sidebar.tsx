@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-
-import { LayoutDashboard, ShoppingCart, UtensilsCrossed, ClipboardList, Package, Users, BarChart3, Settings, ChevronLeft, ChevronRight, GitBranch, Receipt, ChefHat, Calendar, Truck, Star, Building2, Smartphone, UserCog, BellRing, Scissors, LogOut } from 'lucide-react';
+import AppLogo from '@/components/ui/AppLogo';
+import { LayoutDashboard, ShoppingCart, UtensilsCrossed, ClipboardList, Package, Users, BarChart3, Settings, ChevronLeft, ChevronRight, Bell, GitBranch, Receipt, ChefHat, Calendar, Truck, Star, Building2, Smartphone, UserCog, BellRing, Scissors, LogOut, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { createClient } from '@/lib/supabase/client';
@@ -49,6 +49,7 @@ const navGroups: { group: string; items: NavItem[] }[] = [
       { label: 'Inventario', icon: Package, href: '/inventario', pageKey: 'inventario', feature: 'inventario' as keyof Features },
       { label: 'Reservaciones', icon: Calendar, href: '/reservaciones', pageKey: 'reservaciones', feature: 'reservaciones' as keyof Features },
       { label: 'Lealtad', icon: Star, href: '/lealtad', pageKey: 'lealtad', feature: 'lealtad' as keyof Features },
+      { label: 'Tienda de Extras', icon: ShoppingBag, href: '/extras-store', pageKey: 'extras_store', feature: 'lealtad' as keyof Features },
     ],
   },
   {

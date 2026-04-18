@@ -189,17 +189,58 @@
   .modal-overlay {
     @apply fixed inset-0 z-50 flex items-center justify-center;
     background-color: rgba(0,0,0,0.5);
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(4px);
+    animation: overlayIn 200ms ease-out;
   }
 
   .modal-content {
     @apply bg-white rounded-2xl shadow-2xl w-full mx-4;
-    animation: modalIn 0.15s ease-out;
+    animation: modalIn 280ms cubic-bezier(0.77,0,0.175,1);
+  }
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.95) translateY(8px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from { opacity: 0; transform: scale(0.96) translateY(12px); clip-path: inset(4% 2% 0% 2% round 16px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    clip-path: inset(0% 0% 0% 0% round 16px); }
+  }
+
+  /* Scroll reveal — clip-path from bottom */
+  .reveal-on-scroll {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    transition: clip-path 700ms cubic-bezier(0.77,0,0.175,1),
+                opacity   400ms ease-out;
+  }
+  .reveal-on-scroll.revealed {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+
+  /* Stagger children reveal */
+  .stagger-reveal > * {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    transition: clip-path 600ms cubic-bezier(0.77,0,0.175,1),
+                opacity   350ms ease-out;
+  }
+  .stagger-reveal.revealed > *:nth-child(1) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 0ms; }
+  .stagger-reveal.revealed > *:nth-child(2) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 80ms; }
+  .stagger-reveal.revealed > *:nth-child(3) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 160ms; }
+  .stagger-reveal.revealed > *:nth-child(4) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 240ms; }
+  .stagger-reveal.revealed > *:nth-child(5) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 320ms; }
+  .stagger-reveal.revealed > *:nth-child(6) { clip-path: inset(0 0 0% 0); opacity: 1; transition-delay: 400ms; }
+
+  /* Hold to delete — progress bar */
+  @keyframes holdProgress {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+  .hold-progress {
+    animation: holdProgress 700ms linear forwards;
   }
 
   .menu-item-card {

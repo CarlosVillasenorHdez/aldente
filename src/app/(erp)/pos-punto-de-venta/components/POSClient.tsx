@@ -167,7 +167,7 @@ export default function POSClient() {
     setDeliveredLineIds(delivered);
   }, [supabase]);
   const { closeOrder, cancelOrder: cancelOrderFlow, sendToKitchen, cancelItemFromKDS } = useOrderFlow();
-  const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
+  const { ivaPercent, ivaIncludedInPrice, takeoutPayBeforeKitchen } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
@@ -1397,6 +1397,25 @@ export default function POSClient() {
 
     if (!ok) return;
 
+    // ── Modo cafetería: enviar a cocina automáticamente después del cobro ──
+    if (takeoutPayBeforeKitchen && selectedTable.number === 0 && !kitchenSent) {
+      const itemsToSend = orderItems.map(oi => ({
+        name: oi.menuItem.name, qty: oi.quantity,
+        notes: oi.notes, modifier: oi.modifier, emoji: oi.menuItem.emoji,
+      }));
+      await sendToKitchen(
+        orderId,
+        itemsToSend,
+        {
+          mesa: selectedTable.name,
+          mesaNum: 0,
+          mesero: selectedTable.waiter || appUser?.fullName || 'Cajero',
+          tenantId: appUser?.tenantId ?? '',
+          branch: appUser?.branchId ?? null,
+        }
+      );
+    }
+
     await fetchTables();
     setShowPaymentModal(false);
     setOrderItems([]); setSelectedTable(null); setView('tables');
@@ -1478,11 +1497,60 @@ export default function POSClient() {
         <Topbar title="Punto de Venta" subtitle="Gestión de mesas y órdenes" />
         <div className="flex-1 flex overflow-hidden pb-14 md:pb-0">
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tab bar */}
+            {/* Tab bar — clip-path tabs (Emil Kowalski technique) */}
             <div className="flex items-center gap-1 px-4 pt-3 pb-0 bg-white border-b flex-shrink-0" style={{ borderColor: '#e5e7eb' }}>
-              <button onClick={() => setView('tables')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'tables' ? '#f59e0b' : 'transparent', color: view === 'tables' ? '#d97706' : '#6b7280' }}>
-                Mapa de Mesas
-              </button>
+              {/* Clip-path tab container */}
+              <div className="relative flex items-center" style={{ position: 'relative' }}>
+                {/* Base tabs (inactive style) */}
+                <div className="flex" style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setView('tables')}
+                    className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150"
+                    style={{ color: '#6b7280' }}
+                  >
+                    Mapa de Mesas
+                  </button>
+                  <button
+                    onClick={() => setView('menu')}
+                    className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150"
+                    style={{ color: '#6b7280' }}
+                  >
+                    Menú
+                    {selectedTable && (
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                        {mergeGroupLabel ?? selectedTable.name}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Active overlay — clip-path reveals only the active tab in amber */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 flex pointer-events-none"
+                  style={{
+                    clipPath: view === 'tables'
+                      ? 'inset(0 50% 0 0)'
+                      : 'inset(0 0 0 50%)',
+                    transition: 'clip-path 220ms cubic-bezier(0.77,0,0.175,1)',
+                    borderBottom: '2px solid #f59e0b',
+                  }}
+                >
+                  <span className="px-4 py-2.5 text-sm font-semibold" style={{ color: '#d97706', whiteSpace: 'nowrap' }}>
+                    Mapa de Mesas
+                  </span>
+                  <span className="px-4 py-2.5 text-sm font-semibold" style={{ color: '#d97706', whiteSpace: 'nowrap' }}>
+                    Menú
+                    {selectedTable && (
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                        {mergeGroupLabel ?? selectedTable.name}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Para Llevar — fuera del clip-path group */}
               {establishmentType === 'cafeteria' ? (
                 <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-2 ml-2 px-4 py-2 rounded-lg text-sm font-bold transition-all" style={{ backgroundColor: '#1e4080', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.45)', fontSize: 14 }}>
                   🥡 Nuevo pedido para llevar
@@ -1492,14 +1560,6 @@ export default function POSClient() {
                   🥡 Para Llevar
                 </button>
               )}
-              <button onClick={() => setView('menu')} className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150" style={{ borderColor: view === 'menu' ? '#f59e0b' : 'transparent', color: view === 'menu' ? '#d97706' : '#6b7280' }}>
-                Menú
-                {selectedTable && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                    {mergeGroupLabel ?? selectedTable.name}
-                  </span>
-                )}
-              </button>
 
               {selectedTable && (
                 <div className="ml-auto flex items-center gap-2 pb-1">
@@ -1662,6 +1722,11 @@ export default function POSClient() {
             deliveredLineIds={deliveredLineIds}
             onDiscountChange={setDiscount}
             onCheckout={() => {
+              // Modo cafetería: cobrar primero, cocina después automáticamente
+              if (takeoutPayBeforeKitchen && selectedTable?.number === 0) {
+                setShowPaymentModal(true);
+                return;
+              }
               if (!kitchenSent && orderItems.length > 0) {
                 setShowNoKitchenConfirm(true);
                 return;
@@ -1678,6 +1743,8 @@ export default function POSClient() {
             kitchenSent={kitchenSent}
             sendingToKitchen={sendingToKitchen}
             onSendKitchenNote={handleSendKitchenNote}
+            takeoutPayBeforeKitchen={takeoutPayBeforeKitchen}
+            orderType={selectedTable?.number === 0 ? 'para_llevar' : 'mesa'}
           />
           </div>
         </div>

@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "project": "Aldente ERP SaaS",
+    "version": "v14",
+    "last_commit": "308e7e0",
+    "date": "2026-04-18",
+    "communication_style": "CAVEMAN — respuestas cortas, directas, sin explicaciones largas a menos que se pidan. Código siempre. Sin preámbulos. Sin postámbulos. Máximo 3 líneas de texto por respuesta a menos que sea análisis solicitado explícitamente."
+  },
+
+  "repo": {
+    "github": "https://github.com/CarlosVillasenorHdez/aldente",
+    "token": "TOKEN_SAME_AS_BEFORE",
+    "local": "/home/claude/aldente2",
+    "deploy": "Vercel (auto en push a main)",
+    "live_url": "https://aldente.vercel.app"
+  },
+
+  "infra": {
+    "supabase_project": "ocrfaojxnpbxbljskkmz",
+    "supabase_url": "https://ocrfaojxnpbxbljskkmz.supabase.co",
+    "framework": "Next.js 14 App Router + TypeScript",
+    "ui": "Tailwind CSS + inline styles (dark sidebar, light content)",
+    "auth": "PIN-based (app_users table), no Supabase Auth"
+  },
+
+  "credentials": {
+    "superadmin_url": "/admin/login",
+    "superadmin_email": "cvillasenorhdez@gmail.com",
+    "superadmin_pass": "CVill@$3norHdez7",
+    "demo_tenants": [
+      { "name": "Barista Coffee Club", "slug": "barista", "pin": "1234" },
+      { "name": "Dragon Wok", "slug": "dragon-wok", "pin": "1234" }
+    ]
+  },
+
+  "architecture_invariants": {
+    "IVA_mexico": "Precios del menú YA incluyen IVA (Art. 18 LIVA). IVA se EXTRAE, no se suma. iva_included_in_price=true (default). Total no cambia — solo se desglosa en ticket.",
+    "comandas": "is_comanda=true = cocina (KDS). is_comanda=false = billing. NUNCA mostrar comandas en gestión de órdenes.",
+    "draft_orders": "kitchen_status='en_edicion' = borrador nunca enviado. SIEMPRE filtrar con .neq('kitchen_status','en_edicion') en consultas de gestión y alertas.",
+    "tenant_isolation": "TODAS las queries llevan .eq('tenant_id', getTenantId())",
+    "hooks_rule": "useState/useEffect SIEMPRE antes de cualquier return condicional",
+    "plan_medida": "features desde system_config, no desde PLAN_FEATURES map"
+  },
+
+  "plans_pricing": {
+    "medida": { "base": 399, "description": "POS+KDS incluido, módulos adicionales activables" },
+    "operacion": { "price": 699, "modules": ["POS", "KDS", "MeseroMovil"] },
+    "negocio": { "price": 1299, "modules": ["operacion", "Inventario", "P&L", "Gastos", "Reservaciones", "Lealtad", "Alarmas"] },
+    "empresa": { "price": 2199, "modules": ["negocio", "RRHH", "Delivery", "MultiSucursal"] },
+    "modules_addons": {
+      "meseroMovil": 150, "inventario": 200, "reportes": 200, "gastos": 100,
+      "reservaciones": 150, "lealtad": 150, "alarmas": 100, "recursosHumanos": 150,
+      "delivery": 150, "multiSucursal": 300
+    }
+  },
+
+  "key_files": {
+    "pos": "src/app/(erp)/pos-punto-de-venta/components/POSClient.tsx",
+    "order_flow": "src/hooks/useOrderFlow.ts",
+    "modifier_modal": "src/app/(erp)/pos-punto-de-venta/components/ModifierModal.tsx",
+    "modifier_groups_modal": "src/app/(erp)/menu/components/ModifierGroupsModal.tsx",
+    "menu_grid": "src/app/(erp)/pos-punto-de-venta/components/MenuGrid.tsx",
+    "order_panel": "src/app/(erp)/pos-punto-de-venta/components/OrderPanel.tsx",
+    "kds": "src/app/(erp)/cocina/components/KitchenModule.tsx",
+    "financial_analysis": "src/app/(erp)/reportes/components/AnalisisFinanciero.tsx",
+    "sys_config": "src/hooks/useSysConfig.ts",
+    "features": "src/hooks/useFeatures.ts",
+    "sidebar": "src/components/Sidebar.tsx",
+    "suppliers": "src/app/(erp)/proveedores/components/SuppliersManagement.tsx",
+    "admin_dashboard": "src/app/(admin)/admin/page.tsx",
+    "admin_tenant_detail": "src/app/(admin)/admin/tenants/[id]/page.tsx",
+    "marketing_page": "src/app/(marketing)/page.tsx",
+    "registro": "src/app/(marketing)/registro/page.tsx",
+    "edge_function": "supabase/functions/create-tenant/index.ts",
+    "orders_management": "src/app/(erp)/orders-management/components/OrdersTable.tsx",
+    "alerts_panel": "src/app/(erp)/dashboard/components/AlertsPanel.tsx"
+  },
+
+  "db_tables": {
+    "core": ["tenants", "app_users", "system_config", "branches"],
+    "pos": ["orders", "order_items", "order_item_modifiers"],
+    "menu": ["dishes", "combos", "combo_items", "categories"],
+    "modifiers": ["modifier_groups", "modifier_options", "modifier_option_ingredients"],
+    "inventory": ["ingredients", "stock_movements", "recipes", "recipe_ingredients"],
+    "expenses": ["gastos_recurrentes", "gastos_fijos", "depreciaciones"],
+    "suppliers": ["suppliers", "supplier_payments"],
+    "hr": ["employees"],
+    "layout": ["restaurant_layout", "restaurant_tables"],
+    "loyalty": ["loyalty_customers", "loyalty_transactions"],
+    "crm": ["v_tenant_map (view)", "v_supplier_balance (view)"]
+  },
+
+  "pending_migrations_apply_in_supabase": [
+    "20260421000000_labor_cost_per_dish.sql",
+    "20260421000001_preparation_area.sql",
+    "20260421000002_suppliers.sql",
+    "20260423000000_modifier_groups.sql",
+    "20260424000000_modifier_option_ingredients.sql",
+    "20260425000000_suppliers_linking.sql"
+  ],
+
+  "completed_features": {
+    "POS": [
+      "POS con mesas + mapa drag-and-drop",
+      "Para llevar con flujo de nombre de cliente",
+      "Modificadores con grupos (obligatorio/opcional/múltiple)",
+      "Modificadores multi-ingrediente (extra_ingredients)",
+      "Badge OPC en tarjetas con opciones",
+      "Combos con modificadores por platillo",
+      "Precio efectivo = precio base + priceDelta de opciones",
+      "IVA extraído del precio (no sumado encima)",
+      "Modo offline con IndexedDB queue",
+      "Cancelar platillo individual desde orden activa",
+      "Discards takeout (✕ Descartar) para órdenes no enviadas",
+      "Cobro parcial por líneas seleccionadas"
+    ],
+    "KDS": [
+      "Kitchen Display System en tiempo real",
+      "Estados: pendiente → en_preparación → listo",
+      "Muestra extra_ingredients en morado",
+      "Filtro por área de preparación"
+    ],
+    "financial": [
+      "P&L vertical (Estado de Resultados) — un período",
+      "P&L horizontal — hasta 24 meses con 4 vistas: pesos/% sobre ventas/Δ mes ant./Y2Y",
+      "Sparklines de tendencia por métrica",
+      "5 KPI cards resumen arriba, tabla colapsable abajo",
+      "Balance General + Flujo de Caja",
+      "Export CSV y PDF respetan la vista activa",
+      "IVA correcto: extracción del precio, no suma"
+    ],
+    "suppliers": [
+      "Lista con cuenta corriente (balance = credito - pagado)",
+      "Detalle con 3 tabs: Resumen, Insumos, Pagos",
+      "Vincular/desvincular insumos al proveedor (1 clic)",
+      "Registrar pagos con fecha, método, referencia",
+      "Alerta visual si balance supera límite de crédito"
+    ],
+    "crm_intelligence": [
+      "Health Score 0-100 por tenant (A/B/C/D/F)",
+      "Cálculo desde actividad + tendencia financiera + setup",
+      "Tab Inteligencia en ficha tenant con playbook de intervención",
+      "Fleet Health Dashboard en admin: distribución A-F de toda la flota",
+      "Lista de atención inmediata (grado F activos)",
+      "Badge de grado en cada card del pipeline kanban",
+      "Fetches ventas 4 semanas vs 4 semanas anteriores",
+      "Lee years_operating desde system_config"
+    ],
+    "marketing": [
+      "Landing page dark con 4 columnas de planes",
+      "MedidaCard interactivo con toggle de módulos en tiempo real",
+      "Página /registro con tipo de negocio + años de operación",
+      "OnboardingFlow standalone (3 pasos: mesas, equipo, plan)",
+      "TrialBanner flotante con colores por urgencia"
+    ],
+    "config": [
+      "WhatsApp toggle — reporte mensual opt-in",
+      "Plan medida — tienda de módulos con precio en tiempo real",
+      "ConfigSistema con IVA, horarios, etc."
+    ],
+    "admin_crm": [
+      "SuperAdmin pipeline kanban (Trial/Pagados/Riesgo/Churned)",
+      "Mapa Leaflet con markers por plan",
+      "Ficha tenant con tabs: Suscripción/Sucursales/Usuarios/Salud/Inteligencia/Notas",
+      "Eliminar tenant con confirmación por slug"
+    ]
+  },
+
+  "business_model": {
+    "vision": "Aldente = plataforma de orquestación, no solo software. Vende certeza operativa, no una app.",
+    "niveles": [
+      "Nivel 1 — App (replicable)",
+      "Nivel 2 — Inteligencia (datos agregados, Health Score, benchmarks anónimos)",
+      "Nivel 3 — Red (proveedores, fintechs, comunidad)"
+    ],
+    "forever_transaction": "El cliente contrata para no preocuparse por la salud de su negocio, no para usar software",
+    "revenue_streams": [
+      "Suscripción software $399-$2199/mes",
+      "Aldente Insights Premium +$500/mes (reporte mensual + benchmark + sesión asesor)",
+      "Marketplace proveedores (comisión por leads cualificados)",
+      "Financiamiento basado en datos (revenue-based, 12-18 meses)"
+    ],
+    "intervention_language": "NUNCA 'tus finanzas están mal'. SIEMPRE 'tus datos muestran algo interesante'",
+    "touchpoints": [
+      "Reporte WhatsApp primer lunes del mes (opt-in en config)",
+      "Benchmark anónimo vs restaurantes similares",
+      "Evento comunidad mensual (8-10 dueños, no competidores directos)",
+      "Alerta proactiva opt-in (el dueño la pidió)"
+    ]
+  },
+
+  "pending_work": {
+    "high_priority": [
+      "Mesero Móvil — revisar a fondo, puede tener bugs no detectados",
+      "Multi-sucursal — no revisado, posibles bugs",
+      "CFDI 4.0 — facturación electrónica para México (actualmente solo desglose IVA en ticket)",
+      "Integraciones delivery — Uber Eats / Rappi / DiDi Food (FUDO las tiene, nosotros no)"
+    ],
+    "medium_priority": [
+      "WhatsApp Chatbot IA para pedidos 24/7 (FUDO lo tiene como diferenciador)",
+      "Tienda online propia para pedidos sin comisión a apps",
+      "Y2Y mejorado — visualización más clara en el P&L",
+      "Benchmark anónimo entre tenants (nivel 2 de inteligencia)"
+    ],
+    "low_priority": [
+      "CRM — alertas automáticas cuando Health Score cae (email/WhatsApp al equipo Aldente)",
+      "Módulo de proveedores — vincular gastos a proveedor desde pantalla de Gastos",
+      "Marketing page — SEO, meta tags, blog"
+    ]
+  },
+
+  "competitive_context": {
+    "main_competitor": "FUDO (fu.do/es-mx)",
+    "fudo_pricing_mx": {
+      "inicial": 360, "avanzado": 690, "pro": 1050,
+      "kds_addon": 200, "mesas_addon": 100, "cfdi_addon": 200
+    },
+    "aldente_advantages": [
+      "P&L real con COGS por receta (FUDO solo gastos manuales)",
+      "KDS incluido en base (FUDO cobra $200 extra)",
+      "Gestión de mesas incluida (FUDO cobra $100 extra)",
+      "Modificadores multi-ingrediente",
+      "Health Score CRM con intervención proactiva",
+      "Nativamente mexicano (IVA correcto, CDMX-first)"
+    ],
+    "fudo_advantages": [
+      "Integraciones Uber Eats / Rappi / Justo / DiDi Food",
+      "Tienda online propia + Uber Direct",
+      "WhatsApp Chatbot IA para pedidos",
+      "Años en el mercado = confianza"
+    ]
+  },
+
+  "typescript_patterns": {
+    "always": [
+      "npx tsc --noEmit antes de cada commit",
+      "useState ANTES de cualquier return condicional (Rules of Hooks)",
+      "filter TS errors con grep -v 'node_modules|2307|7006|7026|7031|7053|2741|2503|2591|2339|admin/login|layout.tsx|api/|r/\\[slug\\]|KitchenModule'"
+    ],
+    "common_errors": [
+      "Type '... | null' — usar ?? '' o narrow antes de asignar",
+      "Property X does not exist — revisar si el tipo padre tiene la prop",
+      "Rules of Hooks — mover todos los useState/useEffect antes del primer return"
+    ]
+  },
+
+  "git_workflow": {
+    "branch": "main",
+    "commit_then_push": "git add -A && git commit -m '...' && git push origin main",
+    "ts_check_first": "npx tsc --noEmit 2>&1 | grep 'error TS' | grep -v 'node_modules|2307...'",
+    "last_working_commit": "308e7e0"
+  },
+
+  "session_start_instructions": "Cuando inicies la sesión: 1) cd /home/claude/aldente2 && git pull origin main 2) npx tsc --noEmit para verificar estado limpio 3) Confirma con el usuario qué tarea atacar primero. USA ESTILO CAVEMAN: respuestas cortas, código directo, sin preámbulos."
+}
