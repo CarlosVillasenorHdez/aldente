@@ -134,6 +134,12 @@ const emptyMovementForm = () => ({
   quantity: 0,
   reason: '',
   createdBy: 'Administrador',
+  // WACC / COGS
+  supplierId: '',        // proveedor de esta compra
+  purchaseUnitName: '',  // presentación (ej. costal 25kg)
+  purchaseQtyPerUnit: 1, // unidades base por presentación
+  purchasePriceTotal: 0, // precio pagado por la presentación
+  unitCost: 0,           // calculado: purchasePriceTotal / purchaseQtyPerUnit
 });
 const emptyEquivForm = () => ({
   ingredientId: '',
@@ -218,6 +224,7 @@ export default function InventarioManagement() {
   const [movementForm, setMovementForm] = useState(emptyMovementForm());
   const [movInputMode, setMovInputMode] = useState<'direct'|'purchase'>('direct');
   const [movPurchaseQty, setMovPurchaseQty] = useState(1);
+  const [movSuppliers, setMovSuppliers] = useState<IngredientSupplier[]>([]); // proveedores del ing. seleccionado
   const [ingSearch, setIngSearch] = useState('');
   const [ingDropOpen, setIngDropOpen] = useState(false);
   const [detailIngId, setDetailIngId] = useState<string | null>(null);
@@ -591,32 +598,93 @@ export default function InventarioManagement() {
     const ing = ingredients.find((i) => i.id === movementForm.ingredientId);
     if (!ing) return;
 
-    // Convert purchase units to stock units if in purchase mode
+    // ── Calcular cantidad en unidades base ──────────────────────────────────
     let stockQty = movementForm.quantity;
     let reasonSuffix = '';
     if (movInputMode === 'purchase' && movementForm.movementType === 'entrada') {
       const convFactor = ing.purchaseQty ?? 1;
       stockQty = movPurchaseQty * convFactor;
-      reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/presentación = ${stockQty} ${ing.unit})`;
+      reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/pres. = ${stockQty} ${ing.unit})`;
     }
 
-    const delta = movementForm.movementType === 'salida' ? -stockQty : stockQty;
+    const isEntrada = movementForm.movementType === 'entrada';
+    const delta = isEntrada ? stockQty : -stockQty;
     const newStock = Math.max(0, ing.stock + delta);
 
-    await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
+    // ── WACC para entradas ──────────────────────────────────────────────────
+    let unitCost = movementForm.unitCost || ing.cost; // fallback al costo actual
+    let waccBefore = ing.cost;
+    let waccAfter = ing.cost;
+    let totalCost = unitCost * stockQty;
+
+    if (isEntrada) {
+      // Si ingresaron precio por presentación, calcular costo por unidad base
+      if (movementForm.purchasePriceTotal > 0 && movementForm.purchaseQtyPerUnit > 0) {
+        unitCost = movementForm.purchasePriceTotal / movementForm.purchaseQtyPerUnit;
+        totalCost = unitCost * stockQty;
+      }
+
+      waccBefore = ing.cost;
+      // WACC = (stock_anterior × costo_anterior + cantidad_nueva × costo_nuevo) / (stock_anterior + cantidad_nueva)
+      const stockAnterior = Math.max(0, ing.stock);
+      if (stockAnterior + stockQty > 0) {
+        waccAfter = ((stockAnterior * waccBefore) + (stockQty * unitCost)) / (stockAnterior + stockQty);
+      } else {
+        waccAfter = unitCost;
+      }
+    } else {
+      // Para salidas y merma: usar el WACC actual como costo
+      unitCost = ing.cost;
+      totalCost = unitCost * stockQty;
+    }
+
+    // ── Insertar movimiento ─────────────────────────────────────────────────
+    await supabase.from('stock_movements').insert({
+      tenant_id: getTenantId(),
       ingredient_id: movementForm.ingredientId,
       movement_type: movementForm.movementType,
       quantity: stockQty,
       previous_stock: ing.stock,
       new_stock: newStock,
-      reason: (movementForm.reason || (movementForm.movementType === 'entrada' ? 'Compra' : 'Salida')) + reasonSuffix,
+      reason: (movementForm.reason || (isEntrada ? 'Compra' : movementForm.movementType === 'merma' ? 'Merma' : 'Salida')) + reasonSuffix,
       created_by: movementForm.createdBy,
+      // WACC / COGS fields
+      supplier_id: movementForm.supplierId || null,
+      unit_cost: unitCost,
+      purchase_unit: movementForm.purchaseUnitName || null,
+      purchase_qty: movementForm.purchaseQtyPerUnit || null,
+      total_cost: totalCost,
+      wacc_before: isEntrada ? waccBefore : null,
+      wacc_after: isEntrada ? waccAfter : null,
     });
-    await supabase.from('ingredients').update({ stock: newStock, updated_at: new Date().toISOString() }).eq('id', movementForm.ingredientId);
+
+    // ── Actualizar stock e insumo ───────────────────────────────────────────
+    const updatePayload: Record<string, unknown> = {
+      stock: newStock,
+      updated_at: new Date().toISOString(),
+    };
+    // Solo actualizar el costo si es una entrada con precio
+    if (isEntrada && movementForm.purchasePriceTotal > 0) {
+      updatePayload.cost = waccAfter;
+    }
+    await supabase.from('ingredients').update(updatePayload).eq('id', movementForm.ingredientId);
+
+    // Feedback
+    if (isEntrada && movementForm.purchasePriceTotal > 0) {
+      const savings = waccAfter - waccBefore;
+      toast.success(
+        `Entrada registrada — WACC actualizado: $${waccBefore.toFixed(4)} → $${waccAfter.toFixed(4)}/${ing.unit}` +
+        (Math.abs(savings) > 0.001 ? ` (${savings > 0 ? '+' : ''}${savings.toFixed(4)})` : '')
+      );
+    } else {
+      toast.success('Movimiento registrado');
+    }
+
     setMovementModalOpen(false);
     setMovementForm(emptyMovementForm());
     setMovInputMode('direct');
     setMovPurchaseQty(1);
+    setMovSuppliers([]);
     setIngSearch('');
     setIngDropOpen(false);
     await fetchIngredients();
@@ -2119,7 +2187,42 @@ export default function InventarioManagement() {
                           .slice(0, 20)
                           .map(i => (
                             <button type="button" key={i.id}
-                              onClick={() => { setMovementForm(p => ({ ...p, ingredientId: i.id })); setIngDropOpen(false); setIngSearch(''); setMovInputMode('direct'); setMovPurchaseQty(1); }}
+                              onClick={async () => {
+                                setMovementForm(p => ({ ...p, ingredientId: i.id, supplierId: '' }));
+                                setIngDropOpen(false); setIngSearch('');
+                                setMovInputMode('direct'); setMovPurchaseQty(1);
+                                // Cargar proveedores vinculados a este insumo
+                                const { data } = await supabase.from('ingredient_suppliers')
+                                  .select('*, suppliers(name)')
+                                  .eq('ingredient_id', i.id)
+                                  .order('is_preferred', { ascending: false });
+                                if (data) {
+                                  setMovSuppliers(data.map((r: any) => {
+                                    const price = r.price_per_unit ? Number(r.price_per_unit) : null;
+                                    const qty = Number(r.purchase_qty ?? 1);
+                                    return {
+                                      id: r.id, supplierId: r.supplier_id, supplierName: r.suppliers?.name ?? '—',
+                                      pricePerUnit: price, purchaseQty: qty,
+                                      purchaseUnit: r.purchase_unit ?? '', unit: r.unit ?? '',
+                                      costPerBaseUnit: price != null && qty > 0 ? price / qty : null,
+                                      notes: r.notes ?? '', isPreferred: r.is_preferred ?? false,
+                                    };
+                                  }));
+                                  // Pre-seleccionar proveedor preferido
+                                  const preferred = data.find((r: any) => r.is_preferred);
+                                  if (preferred) {
+                                    const qty = Number(preferred.purchase_qty ?? 1);
+                                    setMovementForm(p => ({
+                                      ...p, ingredientId: i.id,
+                                      supplierId: preferred.supplier_id,
+                                      purchaseUnitName: preferred.purchase_unit ?? '',
+                                      purchaseQtyPerUnit: qty,
+                                      purchasePriceTotal: preferred.price_per_unit ? Number(preferred.price_per_unit) : 0,
+                                      unitCost: preferred.price_per_unit && qty > 0 ? Number(preferred.price_per_unit) / qty : 0,
+                                    }));
+                                  }
+                                }
+                              }}
                               className="w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10"
                               style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                               <span style={{ fontWeight: 500 }}>{i.name}</span>
@@ -2179,6 +2282,109 @@ export default function InventarioManagement() {
                   );
                 })()}
               </div>
+              {/* ── WACC: campos de compra (solo para entradas) ── */}
+              {movementForm.movementType === 'entrada' && (
+                <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    💰 Costo de compra — COGS
+                  </p>
+
+                  {/* Selector de proveedor */}
+                  {movSuppliers.length > 0 && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 5 }}>Proveedor</label>
+                      <select
+                        value={movementForm.supplierId}
+                        onChange={e => {
+                          const sup = movSuppliers.find(s => s.supplierId === e.target.value);
+                          if (sup) {
+                            setMovementForm(p => ({
+                              ...p, supplierId: e.target.value,
+                              purchaseUnitName: sup.purchaseUnit,
+                              purchaseQtyPerUnit: sup.purchaseQty,
+                              purchasePriceTotal: sup.pricePerUnit ?? 0,
+                              unitCost: sup.costPerBaseUnit ?? 0,
+                            }));
+                          } else {
+                            setMovementForm(p => ({ ...p, supplierId: e.target.value }));
+                          }
+                        }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none' }}>
+                        <option value="">— Sin proveedor específico —</option>
+                        {movSuppliers.map(s => (
+                          <option key={s.supplierId} value={s.supplierId}>
+                            {s.supplierName}{s.isPreferred ? ' ★' : ''}{s.costPerBaseUnit ? ` · $${s.costPerBaseUnit.toFixed(4)}/${ingredients.find(i => i.id === movementForm.ingredientId)?.unit ?? 'u'}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Presentación + cantidad + precio */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: 8 }}>
+                    <input type="text" placeholder="Presentación (ej. costal 25kg)"
+                      value={movementForm.purchaseUnitName}
+                      onChange={e => setMovementForm(p => ({ ...p, purchaseUnitName: e.target.value }))}
+                      style={{ padding: '7px 10px', borderRadius: 7, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 12, outline: 'none' }} />
+                    <input type="number" min={1} step="0.001" placeholder="Cant."
+                      value={movementForm.purchaseQtyPerUnit || ''}
+                      onChange={e => {
+                        const q = Number(e.target.value);
+                        setMovementForm(p => ({
+                          ...p, purchaseQtyPerUnit: q,
+                          unitCost: p.purchasePriceTotal > 0 && q > 0 ? p.purchasePriceTotal / q : p.unitCost,
+                        }));
+                      }}
+                      style={{ padding: '7px 10px', borderRadius: 7, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b', fontSize: 13, fontWeight: 700, outline: 'none' }} />
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>$</span>
+                    <input type="number" min={0} step="0.01" placeholder="Precio total de la presentación"
+                      value={movementForm.purchasePriceTotal || ''}
+                      onChange={e => {
+                        const price = Number(e.target.value);
+                        const q = movementForm.purchaseQtyPerUnit || 1;
+                        setMovementForm(p => ({ ...p, purchasePriceTotal: price, unitCost: q > 0 ? price / q : 0 }));
+                      }}
+                      style={{ width: '100%', padding: '7px 10px 7px 22px', borderRadius: 7, background: '#0f1923', border: '1px solid #2a3f5f', color: '#34d399', fontSize: 13, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+
+                  {/* WACC preview */}
+                  {movementForm.purchasePriceTotal > 0 && movementForm.purchaseQtyPerUnit > 0 && (() => {
+                    const selIng = ingredients.find(i => i.id === movementForm.ingredientId);
+                    if (!selIng) return null;
+                    const qty = movInputMode === 'purchase' ? movPurchaseQty * (selIng.purchaseQty ?? 1) : movementForm.quantity;
+                    const unitCostNew = movementForm.purchasePriceTotal / movementForm.purchaseQtyPerUnit;
+                    const stockAnterior = Math.max(0, selIng.stock);
+                    const waccNew = stockAnterior + qty > 0
+                      ? ((stockAnterior * selIng.cost) + (qty * unitCostNew)) / (stockAnterior + qty)
+                      : unitCostNew;
+                    const diff = waccNew - selIng.cost;
+                    return (
+                      <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.4)' }}>Costo/unidad esta compra</span>
+                          <span style={{ color: '#f59e0b', fontWeight: 700 }}>${unitCostNew.toFixed(4)}/{selIng.unit}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.4)' }}>WACC anterior</span>
+                          <span style={{ color: 'rgba(255,255,255,0.6)' }}>${selIng.cost.toFixed(4)}/{selIng.unit}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'rgba(255,255,255,0.4)' }}>WACC nuevo</span>
+                          <span style={{ color: '#34d399', fontWeight: 700 }}>
+                            ${waccNew.toFixed(4)}/{selIng.unit}
+                            {' '}<span style={{ color: diff > 0 ? '#f87171' : diff < 0 ? '#34d399' : 'rgba(255,255,255,0.3)', fontSize: 10 }}>
+                              ({diff > 0 ? '+' : ''}{diff.toFixed(4)})
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Motivo */}
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>

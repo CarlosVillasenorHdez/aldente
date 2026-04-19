@@ -137,26 +137,47 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
           return s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(meses, 1);
         }, 0);
 
-        // COGS from stock_movements — salida reason "Venta"
-        const { data: stockData } = await supabase.from('stock_movements')
-          .select('quantity, cost_per_unit:quantity')
+        // COGS desde stock_movements.total_cost (WACC real)
+        // Prioridad: si el movimiento tiene total_cost (nuevo), usarlo. Si no, fallback a cost_actual de órdenes.
+        const { data: stockMovData } = await supabase.from('stock_movements')
+          .select('total_cost, quantity, unit_cost')
           .eq('tenant_id', tenantId).eq('movement_type', 'salida')
           .gte('created_at', start).lte('created_at', end);
 
-        // Merma from orders with status cancelada
-        const { data: mermaData } = await supabase.from('orders')
+        const cogsFromMovements = (stockMovData ?? []).reduce((s, m) => {
+          // Si tiene total_cost (WACC preciso), usarlo; si no, quantity × unit_cost como fallback
+          const tc = m.total_cost != null ? Number(m.total_cost) : (Number(m.quantity) * Number(m.unit_cost ?? 0));
+          return s + tc;
+        }, 0);
+
+        // Merma — desde stock_movements tipo 'merma' con total_cost
+        const { data: mermaMovData } = await supabase.from('stock_movements')
+          .select('total_cost, quantity, unit_cost')
+          .eq('tenant_id', tenantId).eq('movement_type', 'merma')
+          .gte('created_at', start).lte('created_at', end);
+
+        const mermaFromMovements = (mermaMovData ?? []).reduce((s, m) => {
+          const tc = m.total_cost != null ? Number(m.total_cost) : (Number(m.quantity) * Number(m.unit_cost ?? 0));
+          return s + tc;
+        }, 0);
+
+        // Fallback: si no hay movimientos con total_cost, usar cost_actual de órdenes
+        const { data: cogsOrdersData } = await supabase.from('orders')
+          .select('cost_actual')
+          .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
+          .gte('closed_at', start).lte('closed_at', end);
+        const cogsFromOrders = (cogsOrdersData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+
+        const { data: mermaOrdersData } = await supabase.from('orders')
           .select('cost_actual')
           .eq('tenant_id', tenantId).eq('is_comanda', false)
           .in('status', ['cancelada'])
           .gte('created_at', start).lte('created_at', end);
-        const merma = (mermaData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+        const mermaFromOrders = (mermaOrdersData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
 
-        // COGS from orders cost_actual
-        const { data: cogsData } = await supabase.from('orders')
-          .select('cost_actual')
-          .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
-          .gte('closed_at', start).lte('closed_at', end);
-        const cogs = (cogsData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+        // Usar WACC si hay datos, sino fallback a cost_actual
+        const cogs = cogsFromMovements > 0 ? cogsFromMovements : cogsFromOrders;
+        const merma = mermaFromMovements > 0 ? mermaFromMovements : mermaFromOrders;
 
         results.push({
           label, ventas, descuentos, iva: ivaAmt, cogs, merma,
@@ -229,7 +250,11 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const GFREQ: Record<string, number> = { diaria:30, semanal:4.33, quincenal:2, mensual:1, trimestral:0.33, anual:0.083 };
       const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
       const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(Number(a.vida_util_anios) * 12, 1), 0);
-      const cogs = (cogsData.data ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+      const cogs = (() => {
+        // Usar total_cost de stock_movements si disponible, sino cost_actual de órdenes
+        const fromOrders = (cogsData.data ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+        return fromOrders;
+      })();
       results.push({ label, ventas, descuentos, iva: ivaAmt, cogs, merma: 0, nomina, gastosOp, depreciacion, financiero: 0 });
     }
     setPrevYearMonths(results);

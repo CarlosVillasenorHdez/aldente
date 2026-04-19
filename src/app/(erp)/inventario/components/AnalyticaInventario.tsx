@@ -71,16 +71,19 @@ export default function AnalyticaInventario() {
     // ── Ingredientes ──────────────────────────────────────────────────────────
     const [{ data: ings }, { data: movements }, { data: recipes }, { data: orderItems }] = await Promise.all([
       supabase.from('ingredients').select('id, name, unit, category, stock, min_stock, cost, supplier').eq('tenant_id', tid).order('name'),
-      supabase.from('stock_movements').select('ingredient_id, movement_type, quantity').eq('tenant_id', tid).gte('created_at', since),
+      supabase.from('stock_movements').select('ingredient_id, movement_type, quantity, total_cost, unit_cost').eq('tenant_id', tid).gte('created_at', since),
       supabase.from('recipe_ingredients').select('ingredient_id, dish_id, quantity').eq('tenant_id', tid),
       supabase.from('order_items').select('dish_id, qty, price').eq('tenant_id', tid).gte('created_at', since),
     ]);
 
-    const ingMap = new Map<string, { consumed: number; wasted: number }>();
+    const ingMap = new Map<string, { consumed: number; wasted: number; costImpact: number }>();
     (movements || []).forEach((m: any) => {
-      const cur = ingMap.get(m.ingredient_id) ?? { consumed: 0, wasted: 0 };
-      if (m.movement_type === 'salida') cur.consumed += Number(m.quantity);
-      if (m.movement_type === 'merma') cur.wasted += Number(m.quantity);
+      const cur = ingMap.get(m.ingredient_id) ?? { consumed: 0, wasted: 0, costImpact: 0 };
+      const qty = Number(m.quantity);
+      // Usar total_cost si existe (WACC real), sino calcular
+      const tc = m.total_cost != null ? Number(m.total_cost) : (qty * Number(m.unit_cost ?? 0));
+      if (m.movement_type === 'salida') { cur.consumed += qty; cur.costImpact += tc; }
+      if (m.movement_type === 'merma') cur.wasted += qty;
       ingMap.set(m.ingredient_id, cur);
     });
 
@@ -93,11 +96,13 @@ export default function AnalyticaInventario() {
 
     const days = getDaysBack(period);
     const ingAnalytics: IngredientAnalytics[] = (ings || []).map((i: any) => {
-      const mv = ingMap.get(i.id) ?? { consumed: 0, wasted: 0 };
+      const mv = ingMap.get(i.id) ?? { consumed: 0, wasted: 0, costImpact: 0 };
       const total = mv.consumed + mv.wasted;
       const wasteRate = total > 0 ? (mv.wasted / total) * 100 : 0;
       const avgDaily = mv.consumed / days;
       const daysLeft = avgDaily > 0 ? Math.floor(i.stock / avgDaily) : 999;
+      // costImpact: usar total_cost real (WACC) si disponible, sino fallback a costo estático
+      const costImpact = mv.costImpact > 0 ? mv.costImpact : mv.consumed * Number(i.cost);
       return {
         id: i.id, name: i.name, unit: i.unit, category: i.category,
         stock: Number(i.stock), minStock: Number(i.min_stock), cost: Number(i.cost),
@@ -106,7 +111,7 @@ export default function AnalyticaInventario() {
         wasteRate, stockValue: Number(i.stock) * Number(i.cost),
         dishCount: ingDishCount.get(i.id)?.size ?? 0,
         avgDailyUse: avgDaily, daysOfStock: daysLeft,
-        costImpact: mv.consumed * Number(i.cost),
+        costImpact,
       };
     });
 
