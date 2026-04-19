@@ -94,6 +94,85 @@ function MenuSkeleton() {
   );
 }
 
+// ── TakeoutCard — tarjeta de pedido para llevar en el panel kanban ──────────────
+interface TakeoutOrder {
+  id: string; customerName: string; kitchenStatus: string; status: string;
+  items: { name: string; qty: number; emoji?: string }[];
+  total: number; openedAt: string; payBefore: boolean;
+}
+
+function TakeoutCard({
+  order, mode, onDeliver, onPay, payBefore,
+}: {
+  order: TakeoutOrder;
+  mode: 'cooking' | 'ready';
+  onDeliver: () => void | Promise<void>;
+  onPay: () => void | Promise<void>;
+  payBefore?: boolean;
+}) {
+  const elapsed = Math.floor((Date.now() - new Date(order.openedAt).getTime()) / 60000);
+  const isLate = elapsed > 20;
+
+  return (
+    <div style={{
+      background: mode === 'ready' ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${mode === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
+      borderRadius: 9, padding: '10px 12px',
+    }}>
+      {/* Header: nombre + tiempo */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
+          {order.customerName}
+        </p>
+        <span style={{ fontSize: 10, fontWeight: 700, color: isLate ? '#f87171' : 'rgba(255,255,255,0.4)', background: isLate ? 'rgba(239,68,68,0.1)' : 'transparent', padding: isLate ? '1px 6px' : 0, borderRadius: 4 }}>
+          ⏱ {elapsed}m
+        </span>
+      </div>
+
+      {/* Items */}
+      <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {order.items.slice(0, 3).map((item, i) => (
+          <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+            {item.emoji || '🍽️'} {item.qty}× {item.name}
+          </p>
+        ))}
+        {order.items.length > 3 && (
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>+{order.items.length - 3} más</p>
+        )}
+      </div>
+
+      {/* Total */}
+      <p style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700, marginBottom: 8 }}>
+        ${order.total.toFixed(2)}
+        {order.status === 'pagada' && <span style={{ fontSize: 10, color: '#34d399', marginLeft: 6 }}>✓ Pagado</span>}
+      </p>
+
+      {/* Acciones según estado y modo de pago */}
+      {mode === 'ready' && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Si es modo post-pago (cobrar después) → mostrar botón cobrar */}
+          {!payBefore && order.status !== 'pagada' && (
+            <button onClick={onPay}
+              style={{ flex: 1, padding: '6px 8px', borderRadius: 7, background: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: 11, border: 'none', cursor: 'pointer' }}>
+              💳 Cobrar
+            </button>
+          )}
+          {/* Si ya está pagado o es modo pre-pago → solo entregar */}
+          <button onClick={onDeliver}
+            style={{ flex: 1, padding: '6px 8px', borderRadius: 7, background: '#10b981', color: 'white', fontWeight: 700, fontSize: 11, border: 'none', cursor: 'pointer' }}>
+            ✅ Entregar
+          </button>
+        </div>
+      )}
+      {mode === 'cooking' && (
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>
+          {order.kitchenStatus === 'pendiente' ? 'Esperando cocina...' : 'En preparación...'}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function POSClient() {
   const { appUser } = useAuth();
   const { isOnline, pendingCount, syncing, sync } = useOfflineSync();
@@ -116,7 +195,10 @@ export default function POSClient() {
   const [loadingTables, setLoadingTables] = useState(true);
   const [loadingMenu, setLoadingMenu] = useState(true);
   // View starts on tables for restaurants, but we'll switch to takeout-first for cafeterias
-  const [view, setView] = useState<'tables' | 'menu' | 'order_mobile'>('tables');
+  const [view, setView] = useState<'tables' | 'menu' | 'order_mobile' | 'takeout'>('tables');
+
+  // ── Takeout orders tracking ──────────────────────────────────────────────────
+  const [takeoutOrders, setTakeoutOrders] = useState<TakeoutOrder[]>([]);
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [kitchenSent, setKitchenSent] = useState(false);
@@ -322,6 +404,44 @@ export default function POSClient() {
     fetchTables();
     fetchMenu();
   }, [fetchTables, fetchMenu]);
+
+  // ── Fetch active takeout orders ──────────────────────────────────────────────
+  const fetchTakeoutOrders = useCallback(async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('id, customer_name, kitchen_status, status, total, opened_at, pay_method, order_items(name, qty, emoji)')
+      .eq('tenant_id', getTenantId())
+      .eq('order_type', 'para_llevar')
+      .eq('is_comanda', false)
+      .neq('kitchen_status', 'en_edicion')
+      .in('status', ['abierta', 'pagada']) // pagada = cobro antes, en espera entrega
+      .order('opened_at', { ascending: true });
+
+    if (data) {
+      setTakeoutOrders(data.map((o: any) => ({
+        id: o.id,
+        customerName: o.customer_name || 'Para llevar',
+        kitchenStatus: o.kitchen_status ?? 'pendiente',
+        status: o.status,
+        items: (o.order_items || []).map((i: any) => ({ name: i.name, qty: i.qty, emoji: i.emoji })),
+        total: Number(o.total ?? 0),
+        openedAt: o.opened_at,
+        payBefore: o.status === 'pagada', // si ya está pagada, fue cobro-antes
+      })));
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchTakeoutOrders();
+    // Realtime para actualizar estado de cocina en tiempo real
+    const channel = supabase.channel('takeout-orders-pos')
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'orders',
+        filter: `tenant_id=eq.${getTenantId()}`,
+      }, () => { fetchTakeoutOrders(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchTakeoutOrders, supabase]);
 
   const [restaurantName, setRestaurantName] = useState('');
   const [printerConfigData, setPrinterConfigData] = useState<any>(null);
@@ -1204,7 +1324,6 @@ export default function POSClient() {
     if (!selectedTable || selectedTable.number !== 0) return;
     const orderId = selectedTable.currentOrderId;
     if (orderId) {
-      // Mark as cancelled — was never sent so no kitchen cleanup needed
       await supabase.from('orders').update({
         status: 'cancelada',
         kitchen_status: 'cancelada',
@@ -1217,6 +1336,51 @@ export default function POSClient() {
     setView('tables');
     setKitchenSent(false);
     toast('Orden descartada');
+  };
+
+  // ── Takeout panel actions ────────────────────────────────────────────────────
+  const handleTakeoutDeliver = async (orderId: string) => {
+    // Marcar como cerrada (entregada + cobrada en modo post-pago)
+    await supabase.from('orders').update({
+      status: 'cerrada',
+      kitchen_status: 'entregada',
+      closed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', orderId);
+    toast.success('✅ Pedido entregado y cerrado');
+    fetchTakeoutOrders();
+    fetchTables();
+  };
+
+  const handleTakeoutOpenForPayment = async (orderId: string) => {
+    // Seleccionar esta orden en el POS para cobrar (modo post-pago)
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('id', orderId)
+      .single();
+    if (!orderData) { toast.error('No se pudo cargar la orden'); return; }
+
+    // Crear una tabla virtual para esta orden
+    const virtualTable: Table = {
+      id: `takeout-${orderId}`,
+      number: 0,
+      name: orderData.customer_name || 'Para llevar',
+      capacity: 1,
+      status: 'ocupada',
+      currentOrderId: orderId,
+      waiter: orderData.mesero,
+      openedAt: orderData.opened_at,
+    };
+    setSelectedTable(virtualTable);
+    setOrderItems((orderData.order_items || []).map((i: any) => ({
+      id: i.id, dishId: i.dish_id, name: i.name, price: Number(i.price),
+      quantity: i.qty, emoji: i.emoji || '🍽️', category: i.category || '',
+      notes: i.notes || '', modifiers: [],
+    })));
+    setKitchenSent(true);
+    setView('menu');
+    toast('Orden cargada — lista para cobrar');
   };
 
   const handleCancelTable = async () => {
@@ -1564,6 +1728,23 @@ export default function POSClient() {
                 </button>
               )}
 
+              {/* Tab Panel Para Llevar */}
+              <button
+                onClick={() => setView(view === 'takeout' ? 'tables' : 'takeout')}
+                className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: view === 'takeout' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: view === 'takeout' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
+                  border: `1px solid ${view === 'takeout' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                }}>
+                📋 En curso
+                {takeoutOrders.filter(o => o.status !== 'cerrada').length > 0 && (
+                  <span style={{ background: takeoutOrders.some(o => o.kitchenStatus === 'lista') ? '#ef4444' : '#f59e0b', color: 'white', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                    {takeoutOrders.filter(o => o.status !== 'cerrada').length}
+                  </span>
+                )}
+              </button>
+
               {selectedTable && (
                 <div className="ml-auto flex items-center gap-2 pb-1">
                   {selectedTable.mergeGroupId && (
@@ -1622,7 +1803,81 @@ export default function POSClient() {
             )}
 
             <div className="flex-1 overflow-y-auto scrollbar-thin">
-              {view === 'tables' ? (
+              {view === 'takeout' ? (
+                // ── Panel de pedidos para llevar en curso ────────────────────
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Pedidos Para Llevar en Curso</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                        {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0
+                          ? `🔔 ${takeoutOrders.filter(o => o.kitchenStatus === 'lista').length} listo(s) para entregar`
+                          : 'Actualizado en tiempo real desde cocina'}
+                      </p>
+                    </div>
+                    <button onClick={() => setShowTakeoutModal(true)}
+                      style={{ padding: '7px 14px', borderRadius: 8, background: '#1e4080', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      + Nuevo pedido
+                    </button>
+                  </div>
+
+                  {takeoutOrders.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
+                      <p style={{ fontSize: 32, marginBottom: 8 }}>🥡</p>
+                      <p style={{ fontSize: 13 }}>Sin pedidos para llevar activos</p>
+                    </div>
+                  ) : (
+                    // Kanban — 3 columnas
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, alignItems: 'start' }}>
+                      {/* Columna: En Cocina */}
+                      {(['pendiente', 'en_preparacion'] as const).map(col => (
+                        <div key={col} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                          <div style={{ padding: '10px 14px', background: col === 'pendiente' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: col === 'pendiente' ? '#93c5fd' : '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              {col === 'pendiente' ? '⏳ Pendiente' : '🔥 En Cocina'}
+                            </p>
+                          </div>
+                          <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {(takeoutOrders.filter(o => o.kitchenStatus === col) as TakeoutOrder[]).map(order => (
+                              <div key={order.id}>
+                                <TakeoutCard order={order} mode="cooking"
+                                  onDeliver={() => handleTakeoutDeliver(order.id)}
+                                  onPay={() => handleTakeoutOpenForPayment(order.id)} />
+                              </div>
+                            ))}
+                            {takeoutOrders.filter(o => o.kitchenStatus === col).length === 0 && (
+                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0', fontStyle: 'italic' }}>Vacío</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Columna: Listo para entregar */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(16,185,129,0.25)', overflow: 'hidden' }}>
+                        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', borderBottom: '1px solid rgba(16,185,129,0.2)' }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            ✅ Listo — Entregar
+                          </p>
+                        </div>
+                        <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(takeoutOrders.filter(o => o.kitchenStatus === 'lista') as TakeoutOrder[]).map(order => (
+                            <div key={order.id}>
+                              <TakeoutCard order={order} mode="ready"
+                                onDeliver={() => handleTakeoutDeliver(order.id)}
+                                onPay={() => handleTakeoutOpenForPayment(order.id)}
+                                payBefore={takeoutPayBeforeKitchen} />
+                            </div>
+                          ))}
+                          {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length === 0 && (
+                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0', fontStyle: 'italic' }}>Vacío</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : view === 'tables' ? (
                 loadingTables ? <TableSkeleton /> : (
                   <TableMap
                     tables={tables}
