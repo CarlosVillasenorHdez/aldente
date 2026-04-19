@@ -204,7 +204,7 @@ export default function AlarmasManagement() {
 
   useEffect(() => {
     fetchAlertas();
-    const interval = setInterval(fetchAlertas, 60000);
+    const interval = setInterval(fetchAlertas, 30000); // cada 30s
     return () => clearInterval(interval);
   }, [fetchAlertas]);
 

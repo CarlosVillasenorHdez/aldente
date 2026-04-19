@@ -10,7 +10,7 @@ import { useAudit } from '@/hooks/useAudit';
 import { useSysConfig } from '@/hooks/useSysConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CreditCard, Banknote, TrendingUp, Plus, Minus, ChevronDown, ChevronUp, Printer, Lock, Unlock, Receipt, Users, ShoppingBag, AlertTriangle } from 'lucide-react';
+import { CreditCard, Banknote, TrendingUp, Plus, Minus, ChevronDown, ChevronUp, Printer, Lock, Unlock, Receipt, Users, ShoppingBag, AlertTriangle, Download } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -345,6 +345,40 @@ export default function CorteCaja() {
 
   // ── Print corte ─────────────────────────────────────────────────────────────
   const handlePrint = () => { window.print(); };
+
+  const handleExportCSV = () => {
+    if (!summary) return;
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const lines = [
+      ['Corte de Caja — Aldente'],
+      ['Fecha', hoy],
+      [],
+      ['VENTAS'],
+      ['Total ventas', summary.ventas_total.toFixed(2)],
+      ['Efectivo', summary.ventas_efectivo.toFixed(2)],
+      ['Tarjeta', summary.ventas_tarjeta.toFixed(2)],
+      ['Órdenes', summary.ordenes_count],
+      ['Descuentos', summary.descuentos_total.toFixed(2)],
+      ['IVA cobrado', summary.iva_total.toFixed(2)],
+      ...(summary.propinas_total ? [['Propinas', summary.propinas_total.toFixed(2)]] : []),
+      [],
+      ['COSTOS'],
+      ['COGS', summary.costo_total.toFixed(2)],
+      ['Merma', summary.merma_total.toFixed(2)],
+      ['Utilidad bruta', summary.utilidad_bruta.toFixed(2)],
+      ['Margen %', summary.margen_pct.toFixed(1) + '%'],
+      [],
+      ['POR MESERO'],
+      ['Mesero', 'Ventas', 'Órdenes'],
+      ...summary.por_mesero.map(m => [m.nombre, m.total.toFixed(2), m.ordenes]),
+    ];
+    const csv = lines.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `corte-caja-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   if (loading) {
     return (
@@ -709,6 +743,11 @@ export default function CorteCaja() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all"
                 style={{ borderColor: '#e5e7eb', color: '#374151' }}>
                 <Printer size={15} /> Imprimir
+              </button>
+              <button onClick={handleExportCSV}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all"
+                style={{ borderColor: '#d1fae5', color: '#065f46', background: '#f0fdf4' }}>
+                <Download size={15} /> Exportar CSV
               </button>
               <button onClick={handleCerrarCaja} disabled={cerrando || !cierrePor.trim()}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"

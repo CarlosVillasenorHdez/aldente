@@ -1385,6 +1385,39 @@ export default function MenuManagement() {
   };
 
   const openAdd = () => { setEditingDish(null); setFormOpen(true); };
+
+  // ── Importación masiva desde CSV ─────────────────────────────────────────────
+  // Formato esperado: nombre,descripcion,precio,categoria,emoji
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    // Saltar encabezado si empieza con 'nombre' o 'name'
+    const start = lines[0]?.toLowerCase().startsWith('nombre') || lines[0]?.toLowerCase().startsWith('name') ? 1 : 0;
+    const rows = lines.slice(start).map(l => {
+      const [name, description, price, category, emoji] = l.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+      return { name, description: description || '', price: parseFloat(price) || 0, category: category || 'Otros', emoji: emoji || '🍽️' };
+    }).filter(r => r.name);
+
+    if (rows.length === 0) { toast.error('No se encontraron platillos en el CSV'); return; }
+
+    const toastId = toast.loading(`Importando ${rows.length} platillos...`);
+    let ok = 0, fail = 0;
+    for (const row of rows) {
+      const { error } = await supabase.from('dishes').insert({
+        name: row.name, description: row.description, price: row.price,
+        category: row.category, emoji: row.emoji, available: true,
+        tenant_id: getTenantId(),
+      });
+      if (error) fail++; else ok++;
+    }
+    toast.dismiss(toastId);
+    if (ok > 0) toast.success(`${ok} platillo(s) importados${fail > 0 ? `, ${fail} fallaron` : ''}`);
+    else toast.error('No se pudo importar ningún platillo');
+    if (ok > 0) fetchDishes();
+    e.target.value = ''; // reset input
+  };
   const openEdit = (dish: Dish) => { setEditingDish(dish); setFormOpen(true); };
 
   return (
@@ -1442,6 +1475,10 @@ export default function MenuManagement() {
             title="Gestionar listas de precios">
             🏷 Listas
           </button>
+          <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }} title="Importar platillos desde CSV">
+            <Upload size={15} />CSV
+            <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+          </label>
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
             <Plus size={16} />Agregar platillo
           </button>

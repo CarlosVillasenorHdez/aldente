@@ -4,7 +4,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -462,6 +462,42 @@ export default function InventarioManagement() {
     return Math.max(rop, minStock); // mínimo = stock de seguridad
   }
 
+  // ── Importación masiva desde CSV ────────────────────────────────────────────
+  // Formato: nombre,categoria,unidad,costo,stock_minimo
+  const handleImportIngredientsCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    const start = lines[0]?.toLowerCase().startsWith('nombre') || lines[0]?.toLowerCase().startsWith('name') ? 1 : 0;
+    const rows = lines.slice(start).map(l => {
+      const [name, category, unit, cost, minStock] = l.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+      return {
+        name, category: (category || 'Otros') as Exclude<Category, 'Todas'>,
+        unit: (unit || 'kg') as UnitType,
+        cost: parseFloat(cost) || 0,
+        minStock: parseFloat(minStock) || 0,
+      };
+    }).filter(r => r.name);
+
+    if (rows.length === 0) { toast.error('No se encontraron insumos en el CSV'); return; }
+    const toastId = toast.loading(`Importando ${rows.length} insumos...`);
+    let ok = 0, fail = 0;
+    for (const row of rows) {
+      const { error } = await supabase.from('ingredients').insert({
+        name: row.name, category: row.category, unit: row.unit,
+        cost: row.cost, min_stock: row.minStock,
+        stock: 0, reorder_point: 0, lead_time_days: 1,
+        tenant_id: getTenantId(),
+      });
+      if (error) fail++; else ok++;
+    }
+    toast.dismiss(toastId);
+    if (ok > 0) { toast.success(`${ok} insumo(s) importados${fail > 0 ? `, ${fail} fallaron` : ''}`); fetchIngredients(); }
+    else toast.error('No se importó ningún insumo');
+    e.target.value = '';
+  };
+
   function openAdd() {
     setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true);
     setAutoRoP(null); setRopOverride(false);
@@ -881,6 +917,10 @@ export default function InventarioManagement() {
             <RefreshCw size={15} />
             Registrar Movimiento
           </button>
+          <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-all hover:opacity-90" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }} title="Importar insumos desde CSV">
+            <Upload size={14} />CSV
+            <input type="file" accept=".csv" className="hidden" onChange={handleImportIngredientsCSV} />
+          </label>
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
             <Plus size={16} />
             Agregar Ingrediente
