@@ -1520,7 +1520,7 @@ export default function POSClient() {
     toast.success('Nota enviada a cocina');
   };
 
-  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null) => {
+  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number) => {
     if (!selectedTable) return;
 
     const groupIds = selectedTable.mergeGroupId
@@ -1576,6 +1576,11 @@ export default function POSClient() {
     });
 
     if (!ok) return;
+
+    // Guardar propina si la hay
+    if (tip && tip > 0) {
+      await supabase.from('orders').update({ tip_amount: tip }).eq('id', orderId);
+    }
 
     // ── Modo cafetería: enviar a cocina automáticamente después del cobro ──
     if (takeoutPayBeforeKitchen && selectedTable.number === 0 && !kitchenSent) {

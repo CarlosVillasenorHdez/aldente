@@ -38,7 +38,7 @@ interface PaymentModalProps {
     showDiscount?: boolean; showUnitPrice?: boolean;
   };
   onClose: () => void;
-  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null) => void;
+  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number) => void;
 }
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
@@ -124,7 +124,12 @@ export default function PaymentModal({
     : 0;
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const pointsDiscount = redeemPoints ? pointsToRedeem * POINTS_VALUE : 0;
-  const effectiveTotal = Math.max(0, total - pointsDiscount);
+
+  // ── Propina ──────────────────────────────────────────────────────────────────
+  const [tipPct, setTipPct] = useState(0); // 0, 10, 15, 20 %
+  const [tipCustom, setTipCustom] = useState(''); // monto fijo manual
+  const tipAmount = tipCustom ? parseFloat(tipCustom) || 0 : Math.round(total * tipPct / 100 * 100) / 100;
+  const effectiveTotal = Math.max(0, total - pointsDiscount + tipAmount);
 
   React.useEffect(() => { setRedeemPoints(false); setPointsToRedeem(0); }, [selectedCustomer]);
   // Modes: 'single' | 'split_amount' | 'split_items'
@@ -269,7 +274,7 @@ export default function PaymentModal({
     await doRedeemIfNeeded();
     await new Promise(r => setTimeout(r, 300));
     setLoading(false);
-    onComplete(method, method === 'efectivo' ? cashAmount : effectiveTotal, selectedCustomer?.id ?? null);
+    onComplete(method, method === 'efectivo' ? cashAmount : effectiveTotal, selectedCustomer?.id ?? null, tipAmount > 0 ? tipAmount : undefined);
   };
 
   const handleConfirmSplitAmount = async () => {
@@ -278,7 +283,7 @@ export default function PaymentModal({
     await doRedeemIfNeeded();
     await new Promise(r => setTimeout(r, 300));
     setLoading(false);
-    onComplete(amountParts[0].method, effectiveTotal, selectedCustomer?.id ?? null);
+    onComplete(amountParts[0].method, effectiveTotal, selectedCustomer?.id ?? null, tipAmount > 0 ? tipAmount : undefined);
   };
 
   const handleConfirmSplitItems = async () => {
@@ -373,14 +378,40 @@ export default function PaymentModal({
 
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
 
+          {/* ── PROPINA ── */}
+          <div className="rounded-xl p-3" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Propina</p>
+            <div className="flex gap-2 mb-2">
+              {[0, 10, 15, 20].map(pct => (
+                <button key={pct} onClick={() => { setTipPct(pct); setTipCustom(''); }}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={{ background: tipPct === pct && !tipCustom ? '#f59e0b' : '#fff', color: tipPct === pct && !tipCustom ? '#1B3A6B' : '#92400e', border: '1px solid #fcd34d' }}>
+                  {pct === 0 ? 'Sin propina' : `${pct}%`}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-amber-700">$ monto fijo:</span>
+              <input type="number" min={0} step="1" placeholder="0.00"
+                value={tipCustom}
+                onChange={e => { setTipCustom(e.target.value); setTipPct(0); }}
+                className="flex-1 px-2 py-1 rounded-lg text-sm text-amber-900 font-bold outline-none"
+                style={{ border: '1px solid #fcd34d', background: '#fff' }} />
+              {tipAmount > 0 && (
+                <span className="text-xs font-bold text-amber-700">= ${tipAmount.toFixed(2)}</span>
+              )}
+            </div>
+          </div>
+
           {/* Total */}
           <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total a cobrar</p>
-            {pointsDiscount > 0 ? (
+            {(pointsDiscount > 0 || tipAmount > 0) ? (
               <>
                 <p className="font-mono text-lg line-through text-gray-400">${total.toFixed(2)}</p>
+                {tipAmount > 0 && <p className="text-xs font-semibold text-amber-600">+ ${tipAmount.toFixed(2)} propina</p>}
+                {pointsDiscount > 0 && <p className="text-xs font-semibold text-green-600">− ${pointsDiscount.toFixed(2)} en puntos</p>}
                 <p className="font-mono font-bold text-3xl" style={{ color: method === 'cortesia' ? '#7c3aed' : '#15803d' }}>{method === 'cortesia' ? '🎁 $0.00 — Cortesía' : `$${effectiveTotal.toFixed(2)}`}</p>
-                <p className="text-xs font-semibold text-green-600 mt-0.5">− ${pointsDiscount.toFixed(2)} en puntos canjeados</p>
               </>
             ) : (
               <p className="font-mono font-bold text-3xl" style={{ color: '#1B3A6B' }}>${total.toFixed(2)}</p>

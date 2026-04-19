@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from '@/lib/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,16 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 requests per IP per 10 minutos
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+  const limit = rateLimit(ip, 5, 10 * 60_000);
+  if (!limit.ok) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta en unos minutos.' }, {
+      status: 429,
+      headers: { 'Retry-After': String(Math.ceil(limit.resetIn / 1000)) },
+    });
+  }
+
   try {
     const body = await req.json();
 

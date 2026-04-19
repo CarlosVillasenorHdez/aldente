@@ -180,7 +180,7 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
       supabase
         .from('orders')
-        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type, tip')
+        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type, tip_amount')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
@@ -205,7 +205,7 @@ export default function CorteCaja() {
     const ventas_efectivo   = orders.filter(o => o.pay_method === 'efectivo').reduce((s, o) => s + Number(o.total), 0);
     const ventas_mesa       = orders.filter(o => !o.order_type || o.order_type === 'mesa').reduce((s, o) => s + Number(o.total), 0);
     const ventas_para_llevar = orders.filter(o => o.order_type === 'para_llevar').reduce((s, o) => s + Number(o.total), 0);
-    const propinas_total = orders.reduce((s, o) => s + Number((o as any).tip ?? 0), 0);
+    const propinas_total = orders.reduce((s, o) => s + Number((o as any).tip_amount ?? 0), 0);
     const ventas_tarjeta  = orders.filter(o => o.pay_method === 'tarjeta').reduce((s, o) => s + Number(o.total), 0);
     const ventas_total    = orders.reduce((s, o) => s + Number(o.total), 0);
     const descuentos_total = orders.reduce((s, o) => s + Number(o.discount), 0);

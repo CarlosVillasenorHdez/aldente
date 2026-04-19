@@ -189,6 +189,13 @@ export default function ReservacionesManagement() {
       } else {
         const { data, error } = await supabase.from('reservations').insert(payload).select().single();
         if (error) throw error;
+        // Si hay mesa asignada y la reserva es para hoy, marcar mesa en espera
+        if (form.tableId && form.reservationDate === new Date().toISOString().split('T')[0]) {
+          await supabase.from('restaurant_tables').update({
+            status: 'espera',
+            updated_at: new Date().toISOString(),
+          }).eq('id', form.tableId).eq('status', 'libre'); // solo si está libre
+        }
         // Send confirmation email if email provided
         if (form.guestEmail && form.status === 'confirmada') {
           setSendingEmail(true);
