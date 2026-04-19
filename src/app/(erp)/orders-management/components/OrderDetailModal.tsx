@@ -153,6 +153,12 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
               <span>IVA (16%)</span>
               <span className="font-mono">${order.iva.toFixed(2)}</span>
             </div>
+            {(order as any).tip_amount > 0 && (
+              <div className="flex justify-between text-sm text-amber-600">
+                <span>Propina</span>
+                <span className="font-mono">+${Number((order as any).tip_amount).toFixed(2)}</span>
+              </div>
+            )}
             <div
               className="flex justify-between text-base font-700 pt-2 border-t"
               style={{ borderColor: '#e2e8f0', fontWeight: 700 }}
