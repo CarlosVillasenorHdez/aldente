@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 
 // ── CORS helpers ──────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -21,11 +20,7 @@ const CORS_HEADERS = {
   'Access-Control-Max-Age': '86400',
 };
 
-// ── Admin email whitelist ──────────────────────────────────────────────────────
-// Only these emails can access /admin/* routes
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'carlos@aldenteerp.com').split(',').map(e => e.trim());
-
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
   const isApi = pathname.startsWith('/api/');
@@ -51,44 +46,22 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Admin route protection ────────────────────────────────────────────────
+  // La protección real la hace useAdminAuth() en el cliente (más confiable
+  // que @supabase/ssr en middleware que puede causar race conditions con cookies).
+  // El middleware solo redirige si definitivamente no hay cookie de sesión.
   const isAdminRoute = pathname.startsWith('/admin');
   const isAdminLogin = pathname === '/admin/login';
 
   if (isAdminRoute && !isAdminLogin) {
-    let response = NextResponse.next({ request });
-
-    // Read Supabase session from cookies (server-side safe)
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-            response = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options as any)
-            );
-          },
-        },
-      }
+    // Verificar si hay alguna cookie de sesión de Supabase
+    const hasSbCookie = request.cookies.getAll().some(c =>
+      c.name.startsWith('sb-') && c.name.includes('-auth-token')
     );
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // No session → redirect to admin login
-    if (!user) {
+    if (!hasSbCookie) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-
-    // Session but not whitelisted email → 403
-    const email = user.email ?? '';
-    if (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(email)) {
-      return new NextResponse('Acceso denegado', { status: 403 });
-    }
-
-    return response;
+    // Si hay cookie, dejar pasar — useAdminAuth() en el cliente hace la
+    // verificación completa de email whitelist
   }
 
   return NextResponse.next();

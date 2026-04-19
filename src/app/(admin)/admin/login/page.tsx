@@ -70,7 +70,10 @@ export default function AdminLoginPage() {
       }
 
       setSubmitStep('redirect');
-      router.replace('/admin');
+      // Usar window.location en lugar de router.replace para que
+      // el navegador haga una carga completa y las cookies de sesión
+      // estén disponibles antes de que el middleware las verifique
+      window.location.href = '/admin';
     } catch (err: any) {
       setError(err.message === 'El servidor tardó demasiado. Intenta de nuevo.'
         ? err.message

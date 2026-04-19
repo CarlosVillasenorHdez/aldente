@@ -4,11 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-/**
- * useAdminAuth — protects admin pages client-side.
- * Checks Supabase Auth session. If no session → redirect to /admin/login.
- * Much faster than middleware: no extra network round-trip on every request.
- */
 export function useAdminAuth() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -16,13 +11,29 @@ export function useAdminAuth() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) {
         router.replace('/admin/login');
-      } else {
-        setEmail(session.user.email ?? null);
-        setChecking(false);
+        return;
       }
+
+      // Verificar que tenga rol superadmin en app_users
+      const { data: adminRow } = await supabase
+        .from('app_users')
+        .select('app_role')
+        .eq('auth_user_id', session.user.id)
+        .eq('app_role', 'superadmin')
+        .maybeSingle();
+
+      if (!adminRow) {
+        await supabase.auth.signOut();
+        router.replace('/admin/login');
+        return;
+      }
+
+      setEmail(session.user.email ?? null);
+      setChecking(false);
     });
   }, [router]);
 
