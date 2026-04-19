@@ -36,7 +36,7 @@ export const MODULE_CATALOG: {
   { key: 'alarmas',         label: 'Alarmas',             desc: 'Alertas de stock bajo, órdenes lentas, picos de venta',              price: 100, icon: '🔔' },
   { key: 'recursosHumanos', label: 'RRHH',                desc: 'Nómina, turnos, vacaciones, permisos, prima cost',                    price: 150, icon: '👥' },
   { key: 'delivery',        label: 'Delivery',            desc: 'Órdenes a domicilio, zonas, tracking',                               price: 150, icon: '🛵' },
-  { key: 'multiSucursal',   label: 'Multi-sucursal',      desc: 'Hasta 5 sucursales, dashboard centralizado',                         price: 300, icon: '🏪' },
+  { key: 'multiSucursal',   label: 'Multi-sucursal',      desc: 'Hasta 5 sucursales, dashboard centralizado',                         price: 350, icon: '🏪' },
 ];
 
 export const BASE_PRICE = 399; // POS + KDS incluido
