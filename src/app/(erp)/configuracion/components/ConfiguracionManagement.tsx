@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield , Layers , DollarSign } from 'lucide-react';
+import { Store, Hash, LayoutGrid, Clock, Printer, Zap, Star, Settings2, Users, Shield, Layers, DollarSign, Database } from 'lucide-react';
 import ConfigRestaurante  from './sections/ConfigRestaurante';
 import ConfigLayout       from './sections/ConfigLayout';
 import ConfigOperaciones  from './sections/ConfigOperaciones';
 import ConfigSistema      from './sections/ConfigSistema';
-import AuditLog              from './sections/AuditLog';
-import ConfigPlan from './sections/ConfigPlan';
-import ConfigEstablecimiento  from './sections/ConfigEstablecimiento';
+import AuditLog           from './sections/AuditLog';
+import ConfigPlan         from './sections/ConfigPlan';
+import ConfigEstablecimiento from './sections/ConfigEstablecimiento';
+import MisDatos           from './sections/MisDatos';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -26,6 +27,7 @@ const SECTIONS = [
   { id: 'sistema',       label: 'Sistema',             icon: Settings2,  group: 'Sistema' },
   { id: 'usuarios',      label: 'Usuarios & Roles',    icon: Users,      group: 'Sistema' },
   { id: 'auditoria',     label: 'Auditoría',            icon: Shield,     group: 'Sistema' },
+  { id: 'mis-datos',    label: 'Mis Datos',             icon: Database,   group: 'Sistema' },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
@@ -42,6 +44,7 @@ function resolveComponent(section: SectionId): string {
   if (section === 'layout') return 'layout';
   if (section === 'horarios' || section === 'impresora' || section === 'costos') return 'operaciones';
   if (section === 'auditoria') return 'auditoria';
+  if (section === 'mis-datos') return 'mis-datos';
   return 'sistema';
 }
 
@@ -108,6 +111,7 @@ export default function ConfiguracionManagement() {
           {activeComponent === 'operaciones' && <ConfigOperaciones activeSection={activeSection} />}
           {activeComponent === 'sistema'     && <ConfigSistema activeSection={activeSection} />}
           {activeComponent === 'auditoria'    && <AuditLog />}
+          {activeComponent === 'mis-datos'    && <MisDatos activeSection={activeSection} />}
         </div>
       </div>
     </div>
