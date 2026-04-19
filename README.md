@@ -291,3 +291,23 @@ Incluye lo que más le aporta valor:
 ---
 
 *Aldente v4.6 — Abril 2026*
+
+## CI/CD
+
+![CI](https://github.com/CarlosVillasenorHdez/aldente/actions/workflows/ci.yml/badge.svg)
+
+| Branch | Pipeline |
+|--------|----------|
+| `main` | Tests → Build → Deploy producción |
+| `develop` | Tests → Build → Deploy staging (preview) |
+
+### Correr tests localmente
+
+```bash
+npm test              # 59 unit tests (Vitest)
+npx playwright test   # E2E tests (requiere: npx playwright install chromium)
+```
+
+### Variables de entorno
+
+Ver `.env.example` para la lista completa de variables necesarias.
