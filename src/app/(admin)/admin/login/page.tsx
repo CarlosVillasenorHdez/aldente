@@ -46,19 +46,22 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Verificar rol superadmin con timeout
+      // Verificar rol superadmin — query directa sin RLS
+      // El superadmin tiene tenant_id especial (000...001) que puede causar
+      // lentitud con las políticas de RLS normales
       const rolePromise = supabase
         .from('app_users')
         .select('app_role')
         .eq('auth_user_id', data.user.id)
-        .single();
+        .eq('app_role', 'superadmin')
+        .maybeSingle();
 
       const { data: adminRow, error: roleError } = await Promise.race([
         rolePromise,
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
       ]).catch(() => ({ data: null, error: new Error('timeout') })) as Awaited<typeof rolePromise>;
 
-      if (roleError || !adminRow || adminRow.app_role !== 'superadmin') {
+      if (roleError || !adminRow) {
         await supabase.auth.signOut();
         setError('No tienes permisos de superadministrador.');
         setPassword('');
