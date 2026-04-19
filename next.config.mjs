@@ -21,14 +21,14 @@ const nextConfig = {
 
     const csp = [
       `default-src 'self'`,
-      `script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://static.rocket.new`,
+      `script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com`,
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com`,
       `font-src 'self' https://fonts.gstatic.com`,
       `img-src 'self' data: blob: https://${supabaseHost} https://*.cartocdn.com https://*.openstreetmap.org https://unpkg.com`,
-      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org https://*.builtwithrocket.new wss://*.builtwithrocket.new https://rocket.new https://www.rocket.new`,
+      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org`,
       `worker-src 'self' blob:`,
       `frame-src 'none'`,
-      `frame-ancestors 'self' https://*.builtwithrocket.new https://rocket.new https://www.rocket.new`,
+      `frame-ancestors 'self'`,
       `object-src 'none'`,
       `base-uri 'self'`,
       `form-action 'self'`,

@@ -4,9 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const ALLOWED_ORIGINS = [
   'https://aldenteerp.com',
   'https://www.aldenteerp.com',
-  'https://rocket.new',
 ];
-const ALLOWED_SUFFIXES = ['.builtwithrocket.new', '.vercel.app'];
+const ALLOWED_SUFFIXES = ['.vercel.app'];
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
