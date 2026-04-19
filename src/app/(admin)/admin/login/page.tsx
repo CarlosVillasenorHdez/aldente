@@ -12,37 +12,69 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState<'idle'|'auth'|'role'|'redirect'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!email.trim()) { setError('Ingresa tu correo'); return; }
     if (!password) { setError('Ingresa tu contraseña'); return; }
-    setSubmitting(true);
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (authError || !data.user) {
-      setError('Credenciales incorrectas');
+    setSubmitStep('auth');
+
+    try {
+      // Timeout de 10 segundos para evitar que se quede colgado
+      const authPromise = supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      );
+
+      const { data, error: authError } = await Promise.race([authPromise, timeoutPromise])
+        .catch((err) => {
+          if (err.message === 'timeout') throw new Error('El servidor tardó demasiado. Intenta de nuevo.');
+          throw err;
+        }) as Awaited<typeof authPromise>;
+
+      if (authError || !data.user) {
+        setError(authError?.message === 'Invalid login credentials'
+          ? 'Correo o contraseña incorrectos'
+          : authError?.message ?? 'Error al iniciar sesión');
+        setPassword('');
+        setSubmitStep('idle');
+        return;
+      }
+
+      // Verificar rol superadmin con timeout
+      const rolePromise = supabase
+        .from('app_users')
+        .select('app_role')
+        .eq('auth_user_id', data.user.id)
+        .single();
+
+      const { data: adminRow, error: roleError } = await Promise.race([
+        rolePromise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+      ]).catch(() => ({ data: null, error: new Error('timeout') })) as Awaited<typeof rolePromise>;
+
+      if (roleError || !adminRow || adminRow.app_role !== 'superadmin') {
+        await supabase.auth.signOut();
+        setError('No tienes permisos de superadministrador.');
+        setPassword('');
+        setSubmitStep('idle');
+        return;
+      }
+
+      setSubmitStep('redirect');
+      router.replace('/admin');
+    } catch (err: any) {
+      setError(err.message === 'El servidor tardó demasiado. Intenta de nuevo.'
+        ? err.message
+        : 'Error de conexión. Verifica tu internet e intenta de nuevo.');
       setPassword('');
-      setSubmitting(false);
-      return;
+      setSubmitStep('idle');
     }
-    const { data: adminRow } = await supabase
-      .from('app_users')
-      .select('app_role')
-      .eq('auth_user_id', data.user.id)
-      .single();
-    if (!adminRow || adminRow.app_role !== 'superadmin') {
-      await supabase.auth.signOut();
-      setError('Acceso denegado.');
-      setPassword('');
-      setSubmitting(false);
-      return;
-    }
-    router.replace('/admin');
   };
 
   return (
@@ -89,10 +121,10 @@ export default function AdminLoginPage() {
             {error && <p style={{ color: '#ef4444', fontSize: '13px', margin: 0 }}>⚠️ {error}</p>}
             <button
               type="submit"
-              disabled={submitting || !email || !password}
-              style={{ width: '100%', padding: '11px', borderRadius: '10px', backgroundColor: submitting || !email || !password ? '#1e2d3d' : '#2563eb', color: submitting || !email || !password ? '#475569' : '#fff', fontSize: '14px', fontWeight: 600, border: 'none', cursor: submitting || !email || !password ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}
+              disabled={submitStep !== 'idle' || !email || !password}
+              style={{ width: '100%', padding: '11px', borderRadius: '10px', backgroundColor: submitStep !== 'idle' || !email || !password ? '#1e2d3d' : '#2563eb', color: submitStep !== 'idle' || !email || !password ? '#475569' : '#fff', fontSize: '14px', fontWeight: 600, border: 'none', cursor: submitStep !== 'idle' || !email || !password ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}
             >
-              {submitting ? 'Verificando...' : 'Entrar al panel'}
+              {submitStep === 'auth' ? 'Verificando credenciales...' : submitStep === 'role' ? 'Verificando permisos...' : submitStep === 'redirect' ? 'Entrando...' : 'Entrar al panel'}
             </button>
           </form>
         </div>
