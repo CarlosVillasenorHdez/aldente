@@ -22,20 +22,15 @@ const CORS_HEADERS = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get('origin');
-  const isApi = pathname.startsWith('/api/');
 
-  // ── CORS for API routes ──────────────────────────────────────────────────
-  if (isApi) {
-    if (request.method === 'OPTIONS') {
-      const res = new NextResponse(null, { status: 200 });
-      Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
-      if (isAllowedOrigin(origin)) {
-        res.headers.set('Access-Control-Allow-Origin', origin!);
-        res.headers.set('Vary', 'Origin');
-      }
-      return res;
-    }
-    const res = NextResponse.next();
+  // Solo interceptar API routes para CORS
+  // Las rutas /admin/* las protege useAdminAuth() en el cliente
+  if (!pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  if (request.method === 'OPTIONS') {
+    const res = new NextResponse(null, { status: 200 });
     Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
     if (isAllowedOrigin(origin)) {
       res.headers.set('Access-Control-Allow-Origin', origin!);
@@ -44,30 +39,15 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  // ── Admin route protection ────────────────────────────────────────────────
-  // La protección real la hace useAdminAuth() en el cliente (más confiable
-  // que @supabase/ssr en middleware que puede causar race conditions con cookies).
-  // El middleware solo redirige si definitivamente no hay cookie de sesión.
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isAdminLogin = pathname === '/admin/login';
-
-  if (isAdminRoute && !isAdminLogin) {
-    // Verificar si hay alguna cookie de sesión de Supabase
-    // Supabase genera cookies con formato: sb-{project-ref}-auth-token
-    const cookies = request.cookies.getAll();
-    const hasSbCookie = cookies.some(c =>
-      c.name.startsWith('sb-') ||
-      c.name === 'supabase-auth-token' ||
-      c.name.includes('auth-token')
-    );
-    if (!hasSbCookie) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
+  const res = NextResponse.next();
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
+  if (isAllowedOrigin(origin)) {
+    res.headers.set('Access-Control-Allow-Origin', origin!);
+    res.headers.set('Vary', 'Origin');
   }
-
-  return NextResponse.next();
+  return res;
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/admin/:path*'],
+  matcher: ['/api/:path*'],
 };
