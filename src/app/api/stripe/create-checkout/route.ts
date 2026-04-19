@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripePlan } from '@/lib/stripe';
 import { rateLimit } from '@/lib/rateLimit';
+import { parseAndValidate, CHECKOUT_SCHEMA } from '@/lib/apiValidation';
 
 /**
  * POST /api/stripe/create-checkout
@@ -26,19 +27,15 @@ export async function POST(req: NextRequest) {
   });
 
   try {
-    const { tenantId, plan, customerEmail } = await req.json() as {
-      tenantId: string;
-      plan: string;
-      customerEmail?: string;
-    };
+    const { body, error: validationError } = await parseAndValidate(req, CHECKOUT_SCHEMA);
+    if (validationError) return validationError;
+    const tenantId = body!.tenantId as string;
+    const plan = body!.plan as string;
+    const customerEmail = body!.customerEmail as string | undefined;
 
-    if (!tenantId || !plan) {
-      return NextResponse.json({ error: 'tenantId y plan son requeridos' }, { status: 400 });
-    }
-
-    const planConfig = getStripePlan(plan);
+    const planConfig = getStripePlan(plan as string);
     if (!planConfig) {
-      return NextResponse.json({ error: `Plan inválido: ${plan}` }, { status: 400 });
+      return NextResponse.json({ error: `Plan no configurado: ${plan}` }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://aldente.vercel.app';
