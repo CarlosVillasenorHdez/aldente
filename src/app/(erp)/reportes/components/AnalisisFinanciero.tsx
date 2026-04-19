@@ -232,14 +232,19 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59).toISOString();
       const label = d.toLocaleString('es-MX', { month: 'short', year: '2-digit' });
 
-      const [ordRes, gastosRes, nomRes, depRes, cogsData] = await Promise.all([
+      const [ordRes, gastosRes, nomRes, depRes, cogsData, mermaData] = await Promise.all([
         supabase.from('orders').select('total, discount, iva')
           .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
           .gte('closed_at', start).lte('closed_at', end),
         supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria').eq('tenant_id', tenantId),
         supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', tenantId).eq('status', 'activo'),
         supabase.from('depreciaciones').select('valor_original, vida_util_anios, valor_residual, fecha_adquisicion').eq('tenant_id', tenantId),
-        supabase.from('orders').select('cost_actual').eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', start).lte('closed_at', end),
+        supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
+          .eq('tenant_id', tenantId).eq('movement_type', 'salida')
+          .gte('created_at', start).lte('created_at', end),
+        supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
+          .eq('tenant_id', tenantId).eq('movement_type', 'merma')
+          .gte('created_at', start).lte('created_at', end),
       ]);
       const orders = ordRes.data ?? [];
       const ventas = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
@@ -250,12 +255,18 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const GFREQ: Record<string, number> = { diaria:30, semanal:4.33, quincenal:2, mensual:1, trimestral:0.33, anual:0.083 };
       const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
       const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(Number(a.vida_util_anios) * 12, 1), 0);
-      const cogs = (() => {
-        // Usar total_cost de stock_movements si disponible, sino cost_actual de órdenes
-        const fromOrders = (cogsData.data ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
-        return fromOrders;
-      })();
-      results.push({ label, ventas, descuentos, iva: ivaAmt, cogs, merma: 0, nomina, gastosOp, depreciacion, financiero: 0 });
+      // COGS — priorizar WACC real de stock_movements
+      const cogsFromMovements = (cogsData.data ?? []).reduce((s: number, m: any) => {
+        const tc = m.total_cost != null ? Number(m.total_cost) : Number(m.quantity) * Number(m.unit_cost ?? 0);
+        return s + tc;
+      }, 0);
+      const mermaFromMovements = (mermaData.data ?? []).reduce((s: number, m: any) => {
+        const tc = m.total_cost != null ? Number(m.total_cost) : Number(m.quantity) * Number(m.unit_cost ?? 0);
+        return s + tc;
+      }, 0);
+      const cogs = cogsFromMovements; // ya incluye WACC real
+      const merma = mermaFromMovements;
+      results.push({ label, ventas, descuentos, iva: ivaAmt, cogs, merma, nomina, gastosOp, depreciacion, financiero: 0 });
     }
     setPrevYearMonths(results);
     setLoadingY2Y(false);

@@ -818,19 +818,20 @@ export default function KitchenModule() {
                       ) : (
                         <>
                           {colOrders.map((order) => (
-                            <OrderCard
-                              key={order.id}
-                              order={order}
-                              onAdvance={handleAdvance}
-                              onDeliver={handleDeliver}
-                              onCancel={handleCancelFromKitchen}
-                              tick={tick}
-                              isDragging={draggingId === order.id}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              readyItems={readyItems}
-                              onToggleItem={toggleReadyItem}
-                            />
+                            <div key={order.id}>
+                              <OrderCard
+                                order={order}
+                                onAdvance={handleAdvance}
+                                onDeliver={handleDeliver}
+                                onCancel={handleCancelFromKitchen}
+                                tick={tick}
+                                isDragging={draggingId === order.id}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                readyItems={readyItems}
+                                onToggleItem={toggleReadyItem}
+                              />
+                            </div>
                           ))}
                           {/* Drop indicator at bottom when column has cards */}
                           {isDragTarget && (

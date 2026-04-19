@@ -438,6 +438,10 @@ export function useOrderFlow() {
             new_stock: u.newStock,
             reason: `Venta: ${u.dishName} x${u.dishQty} — Orden ${orderId}`,
             created_by: 'Sistema',
+            // WACC / COGS — costo congelado al momento de la venta
+            unit_cost: u.costPerUnit,
+            total_cost: u.deductQty * u.costPerUnit,
+            tenant_id: DEFAULT_TENANT,
           })
         ),
       ]);
