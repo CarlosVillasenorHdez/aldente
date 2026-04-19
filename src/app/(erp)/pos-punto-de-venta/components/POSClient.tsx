@@ -404,15 +404,19 @@ export default function POSClient() {
 
   // ── Fetch active takeout orders ──────────────────────────────────────────────
   const fetchTakeoutOrders = useCallback(async () => {
+    // Solo órdenes de las últimas 8 horas para evitar basura histórica
+    const since = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString();
+
     const { data } = await supabase
       .from('orders')
-      .select('id, customer_name, kitchen_status, status, total, opened_at, pay_method, order_items(name, qty, emoji)')
+      .select('id, customer_name, kitchen_status, status, total, opened_at, pay_method, closed_at, order_items(name, qty, emoji)')
       .eq('tenant_id', getTenantId())
       .eq('order_type', 'para_llevar')
       .eq('is_comanda', false)
-      // Mostrar órdenes que están activas en cocina o esperando entrega
-      // excluir: en_edicion (no enviadas), entregada (cerradas del ciclo), cancelada
+      // Excluir: no enviadas, ya entregadas, canceladas
       .not('kitchen_status', 'in', '("en_edicion","entregada","cancelada")')
+      // Solo órdenes recientes (evita basura de pruebas anteriores)
+      .gte('opened_at', since)
       .order('opened_at', { ascending: true });
 
     if (data) {
@@ -424,7 +428,7 @@ export default function POSClient() {
         items: (o.order_items || []).map((i: any) => ({ name: i.name, qty: i.qty, emoji: i.emoji })),
         total: Number(o.total ?? 0),
         openedAt: o.opened_at,
-        payBefore: o.status === 'cerrada' || o.status === 'pagada', // ya cobrado
+        payBefore: o.status === 'cerrada' || o.status === 'pagada',
       })));
     }
   }, [supabase]);
