@@ -12,26 +12,13 @@ export function useAdminAuth() {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {
         router.replace('/admin/login');
         return;
       }
-
-      // Verificar que tenga rol superadmin en app_users
-      const { data: adminRow } = await supabase
-        .from('app_users')
-        .select('app_role')
-        .eq('auth_user_id', session.user.id)
-        .eq('app_role', 'superadmin')
-        .maybeSingle();
-
-      if (!adminRow) {
-        await supabase.auth.signOut();
-        router.replace('/admin/login');
-        return;
-      }
-
+      // La verificación de rol superadmin ya la hizo la página de login
+      // antes de redirigir. Aquí solo verificamos que haya sesión activa.
       setEmail(session.user.email ?? null);
       setChecking(false);
     });

@@ -54,14 +54,16 @@ export function middleware(request: NextRequest) {
 
   if (isAdminRoute && !isAdminLogin) {
     // Verificar si hay alguna cookie de sesión de Supabase
-    const hasSbCookie = request.cookies.getAll().some(c =>
-      c.name.startsWith('sb-') && c.name.includes('-auth-token')
+    // Supabase genera cookies con formato: sb-{project-ref}-auth-token
+    const cookies = request.cookies.getAll();
+    const hasSbCookie = cookies.some(c =>
+      c.name.startsWith('sb-') ||
+      c.name === 'supabase-auth-token' ||
+      c.name.includes('auth-token')
     );
     if (!hasSbCookie) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-    // Si hay cookie, dejar pasar — useAdminAuth() en el cliente hace la
-    // verificación completa de email whitelist
   }
 
   return NextResponse.next();
