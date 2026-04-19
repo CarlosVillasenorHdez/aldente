@@ -539,6 +539,37 @@ export default function KitchenModule() {
     const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
     if (error) { toast.error('Error al actualizar estado: ' + error.message); return; }
 
+    // ── Propagar estado a la orden padre (para panel de para llevar) ───────────
+    const thisOrder = orders.find(o => o.id === orderId);
+    if (thisOrder?.parentOrderId) {
+      // Verificar si hay otras comandas activas del mismo padre
+      const { data: siblings } = await supabase.from('orders')
+        .select('kitchen_status')
+        .eq('parent_order_id', thisOrder.parentOrderId)
+        .eq('is_comanda', true)
+        .neq('id', orderId)
+        .neq('status', 'cancelada');
+
+      // El estado del padre = el estado más avanzado entre todas las comandas
+      // Si todas están 'lista' → padre = 'lista'. Si alguna está 'preparacion' → 'en_preparacion'
+      const siblingsStatuses = (siblings || []).map(s => s.kitchen_status);
+      siblingsStatuses.push(next); // incluir el estado nuevo de esta comanda
+
+      let parentStatus: string = next;
+      if (siblingsStatuses.includes('lista') && siblingsStatuses.every(s => s === 'lista')) {
+        parentStatus = 'lista';
+      } else if (siblingsStatuses.some(s => s === 'preparacion')) {
+        parentStatus = 'preparacion'; // al menos una en preparación
+      } else if (siblingsStatuses.some(s => s === 'lista')) {
+        parentStatus = 'preparacion'; // parcialmente listo, sigue en proceso
+      }
+
+      await supabase.from('orders').update({
+        kitchen_status: parentStatus,
+        updated_at: now,
+      }).eq('id', thisOrder.parentOrderId);
+    }
+
     // ── Notify mesero when order is ready ─────────────────────────────────────
     if (next === 'lista') {
       const readyOrder = orders.find(o => o.id === orderId);

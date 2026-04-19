@@ -166,8 +166,7 @@ function TakeoutCard({
         <p style={{ fontSize: 10, color: '#9ca3af', fontStyle: 'italic' }}>
           {order.kitchenStatus === 'pendiente' ? 'Esperando cocina...' : 'En preparación...'}
         </p>
-      )}
-    </div>
+      )}    </div>
   );
 }
 
@@ -411,8 +410,9 @@ export default function POSClient() {
       .eq('tenant_id', getTenantId())
       .eq('order_type', 'para_llevar')
       .eq('is_comanda', false)
-      .neq('kitchen_status', 'en_edicion')
-      .in('status', ['abierta', 'pagada']) // pagada = cobro antes, en espera entrega
+      // Mostrar órdenes que están activas en cocina o esperando entrega
+      // excluir: en_edicion (no enviadas), entregada (cerradas del ciclo), cancelada
+      .not('kitchen_status', 'in', '("en_edicion","entregada","cancelada")')
       .order('opened_at', { ascending: true });
 
     if (data) {
@@ -424,7 +424,7 @@ export default function POSClient() {
         items: (o.order_items || []).map((i: any) => ({ name: i.name, qty: i.qty, emoji: i.emoji })),
         total: Number(o.total ?? 0),
         openedAt: o.opened_at,
-        payBefore: o.status === 'pagada', // si ya está pagada, fue cobro-antes
+        payBefore: o.status === 'cerrada' || o.status === 'pagada', // ya cobrado
       })));
     }
   }, [supabase]);
@@ -1338,14 +1338,25 @@ export default function POSClient() {
 
   // ── Takeout panel actions ────────────────────────────────────────────────────
   const handleTakeoutDeliver = async (orderId: string) => {
-    // Marcar como cerrada (entregada + cobrada en modo post-pago)
-    await supabase.from('orders').update({
-      status: 'cerrada',
-      kitchen_status: 'entregada',
-      closed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', orderId);
-    toast.success('✅ Pedido entregado y cerrado');
+    const order = takeoutOrders.find(o => o.id === orderId);
+    const now = new Date().toISOString();
+
+    if (order?.payBefore) {
+      // Ya cobrada — solo marcar entregada en kitchen_status
+      await supabase.from('orders').update({
+        kitchen_status: 'entregada',
+        updated_at: now,
+      }).eq('id', orderId);
+    } else {
+      // Post-pago — cerrar la orden completa
+      await supabase.from('orders').update({
+        status: 'cerrada',
+        kitchen_status: 'entregada',
+        closed_at: now,
+        updated_at: now,
+      }).eq('id', orderId);
+    }
+    toast.success('✅ Pedido entregado');
     fetchTakeoutOrders();
     fetchTables();
   };
@@ -1839,7 +1850,7 @@ export default function POSClient() {
                     // Kanban — 3 columnas
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, alignItems: 'start' }}>
                       {/* Columna: Pendiente / En Cocina */}
-                      {(['pendiente', 'en_preparacion'] as const).map(col => (
+                      {(['pendiente', 'preparacion'] as const).map(col => (
                         <div key={col} style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                           <div style={{ padding: '10px 14px', background: col === 'pendiente' ? '#eff6ff' : '#fffbeb', borderBottom: `1px solid ${col === 'pendiente' ? '#bfdbfe' : '#fde68a'}` }}>
                             <p style={{ fontSize: 11, fontWeight: 700, color: col === 'pendiente' ? '#1d4ed8' : '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
