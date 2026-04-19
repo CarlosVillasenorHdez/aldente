@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from '@/lib/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,6 +43,13 @@ interface RappiItem {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 60 requests por IP por minuto (webhook de plataformas externas)
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+  const limit = rateLimit(ip, 60, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
+
   try {
     const body = await req.json();
     const platform = req.nextUrl.searchParams.get('platform') || 'manual';

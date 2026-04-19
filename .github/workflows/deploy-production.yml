@@ -1,0 +1,72 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+    # Solo despliega a producción si los tests pasan
+  workflow_dispatch:
+
+jobs:
+  # Guard: tests deben pasar antes de producción
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Unit tests (requerido para producción)
+        run: npm test
+        env:
+          CI: true
+
+  deploy-production:
+    name: Deploy to Production (Vercel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality-gate
+
+    environment:
+      name: production
+      url: https://aldente.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment (production)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for production
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Notify deploy success
+        if: success()
+        run: |
+          echo "✅ Production deploy successful: ${{ steps.deploy.outputs.url }}"
+
+      # Opcional: notificar en Slack si tienes webhook
+      # - name: Slack notification
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     payload: '{"text":"✅ Aldente producción deployado: ${{ steps.deploy.outputs.url }}"}'
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
