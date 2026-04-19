@@ -115,16 +115,16 @@ function TakeoutCard({
 
   return (
     <div style={{
-      background: mode === 'ready' ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${mode === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
+      background: mode === 'ready' ? '#f0fdf4' : '#fafafa',
+      border: `1px solid ${mode === 'ready' ? '#86efac' : '#e5e7eb'}`,
       borderRadius: 9, padding: '10px 12px',
     }}>
       {/* Header: nombre + tiempo */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
           {order.customerName}
         </p>
-        <span style={{ fontSize: 10, fontWeight: 700, color: isLate ? '#f87171' : 'rgba(255,255,255,0.4)', background: isLate ? 'rgba(239,68,68,0.1)' : 'transparent', padding: isLate ? '1px 6px' : 0, borderRadius: 4 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: isLate ? '#dc2626' : '#9ca3af', background: isLate ? '#fee2e2' : '#f3f4f6', padding: '1px 6px', borderRadius: 4 }}>
           ⏱ {elapsed}m
         </span>
       </div>
@@ -132,32 +132,30 @@ function TakeoutCard({
       {/* Items */}
       <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {order.items.slice(0, 3).map((item, i) => (
-          <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+          <p key={i} style={{ fontSize: 11, color: '#6b7280' }}>
             {item.emoji || '🍽️'} {item.qty}× {item.name}
           </p>
         ))}
         {order.items.length > 3 && (
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>+{order.items.length - 3} más</p>
+          <p style={{ fontSize: 10, color: '#9ca3af', fontStyle: 'italic' }}>+{order.items.length - 3} más</p>
         )}
       </div>
 
       {/* Total */}
-      <p style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700, marginBottom: 8 }}>
+      <p style={{ fontSize: 12, color: '#d97706', fontWeight: 700, marginBottom: 8 }}>
         ${order.total.toFixed(2)}
-        {order.status === 'pagada' && <span style={{ fontSize: 10, color: '#34d399', marginLeft: 6 }}>✓ Pagado</span>}
+        {order.status === 'pagada' && <span style={{ fontSize: 10, color: '#059669', marginLeft: 6, fontWeight: 600 }}>✓ Pagado</span>}
       </p>
 
-      {/* Acciones según estado y modo de pago */}
+      {/* Acciones */}
       {mode === 'ready' && (
         <div style={{ display: 'flex', gap: 6 }}>
-          {/* Si es modo post-pago (cobrar después) → mostrar botón cobrar */}
           {!payBefore && order.status !== 'pagada' && (
             <button onClick={onPay}
-              style={{ flex: 1, padding: '6px 8px', borderRadius: 7, background: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: 11, border: 'none', cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '6px 8px', borderRadius: 7, background: '#f59e0b', color: 'white', fontWeight: 700, fontSize: 11, border: 'none', cursor: 'pointer' }}>
               💳 Cobrar
             </button>
           )}
-          {/* Si ya está pagado o es modo pre-pago → solo entregar */}
           <button onClick={onDeliver}
             style={{ flex: 1, padding: '6px 8px', borderRadius: 7, background: '#10b981', color: 'white', fontWeight: 700, fontSize: 11, border: 'none', cursor: 'pointer' }}>
             ✅ Entregar
@@ -165,7 +163,7 @@ function TakeoutCard({
         </div>
       )}
       {mode === 'cooking' && (
-        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>
+        <p style={{ fontSize: 10, color: '#9ca3af', fontStyle: 'italic' }}>
           {order.kitchenStatus === 'pendiente' ? 'Esperando cocina...' : 'En preparación...'}
         </p>
       )}
@@ -1719,27 +1717,37 @@ export default function POSClient() {
 
               {/* Para Llevar — fuera del clip-path group */}
               {establishmentType === 'cafeteria' ? (
-                <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-2 ml-2 px-4 py-2 rounded-lg text-sm font-bold transition-all" style={{ backgroundColor: '#1e4080', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.45)', fontSize: 14 }}>
-                  🥡 Nuevo pedido para llevar
+                <button onClick={() => setShowTakeoutModal(true)}
+                  className="flex items-center gap-2 ml-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                  style={{ backgroundColor: '#1B3A6B', color: 'white', fontSize: 13 }}>
+                  🥡 Nuevo pedido
                 </button>
               ) : (
-                <button onClick={() => setShowTakeoutModal(true)} className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: '#1e3a5f', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}>
+                <button onClick={() => setShowTakeoutModal(true)}
+                  className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
+                  style={{ backgroundColor: '#1B3A6B', color: 'white', border: '1px solid #2a4f8a' }}>
                   🥡 Para Llevar
                 </button>
               )}
 
-              {/* Tab Panel Para Llevar */}
+              {/* Pedidos en curso — siempre visible */}
               <button
                 onClick={() => setView(view === 'takeout' ? 'tables' : 'takeout')}
                 className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: view === 'takeout' ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: view === 'takeout' ? '#f59e0b' : 'rgba(255,255,255,0.5)',
-                  border: `1px solid ${view === 'takeout' ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  backgroundColor: view === 'takeout' ? '#f59e0b' : '#f3f4f6',
+                  color: view === 'takeout' ? '#1B3A6B' : '#374151',
+                  border: `1px solid ${view === 'takeout' ? '#d97706' : '#d1d5db'}`,
+                  boxShadow: view === 'takeout' ? '0 1px 4px rgba(245,158,11,0.3)' : 'none',
                 }}>
-                📋 En curso
+                🥡 En curso
                 {takeoutOrders.filter(o => o.status !== 'cerrada').length > 0 && (
-                  <span style={{ background: takeoutOrders.some(o => o.kitchenStatus === 'lista') ? '#ef4444' : '#f59e0b', color: 'white', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                  <span style={{
+                    background: takeoutOrders.some(o => o.kitchenStatus === 'lista') ? '#ef4444' : '#6b7280',
+                    color: 'white', borderRadius: '50%', width: 18, height: 18,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  }}>
                     {takeoutOrders.filter(o => o.status !== 'cerrada').length}
                   </span>
                 )}
@@ -1805,37 +1813,40 @@ export default function POSClient() {
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               {view === 'takeout' ? (
                 // ── Panel de pedidos para llevar en curso ────────────────────
-                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: '#f9fafb', minHeight: '100%' }}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Pedidos Para Llevar en Curso</p>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Pedidos Para Llevar en Curso</p>
+                      <p style={{ fontSize: 12, color: takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0 ? '#dc2626' : '#6b7280', marginTop: 2, fontWeight: takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0 ? 600 : 400 }}>
                         {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0
                           ? `🔔 ${takeoutOrders.filter(o => o.kitchenStatus === 'lista').length} listo(s) para entregar`
                           : 'Actualizado en tiempo real desde cocina'}
                       </p>
                     </div>
                     <button onClick={() => setShowTakeoutModal(true)}
-                      style={{ padding: '7px 14px', borderRadius: 8, background: '#1e4080', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      style={{ padding: '7px 14px', borderRadius: 8, background: '#1B3A6B', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       + Nuevo pedido
                     </button>
                   </div>
 
                   {takeoutOrders.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.25)' }}>
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: '#9ca3af' }}>
                       <p style={{ fontSize: 32, marginBottom: 8 }}>🥡</p>
                       <p style={{ fontSize: 13 }}>Sin pedidos para llevar activos</p>
                     </div>
                   ) : (
                     // Kanban — 3 columnas
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, alignItems: 'start' }}>
-                      {/* Columna: En Cocina */}
+                      {/* Columna: Pendiente / En Cocina */}
                       {(['pendiente', 'en_preparacion'] as const).map(col => (
-                        <div key={col} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                          <div style={{ padding: '10px 14px', background: col === 'pendiente' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: col === 'pendiente' ? '#93c5fd' : '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <div key={col} style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                          <div style={{ padding: '10px 14px', background: col === 'pendiente' ? '#eff6ff' : '#fffbeb', borderBottom: `1px solid ${col === 'pendiente' ? '#bfdbfe' : '#fde68a'}` }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: col === 'pendiente' ? '#1d4ed8' : '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                               {col === 'pendiente' ? '⏳ Pendiente' : '🔥 En Cocina'}
+                            </p>
+                            <p style={{ fontSize: 10, color: col === 'pendiente' ? '#3b82f6' : '#f59e0b', marginTop: 1 }}>
+                              {takeoutOrders.filter(o => o.kitchenStatus === col).length} pedido(s)
                             </p>
                           </div>
                           <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1847,17 +1858,20 @@ export default function POSClient() {
                               </div>
                             ))}
                             {takeoutOrders.filter(o => o.kitchenStatus === col).length === 0 && (
-                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0', fontStyle: 'italic' }}>Vacío</p>
+                              <p style={{ fontSize: 11, color: '#d1d5db', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
                             )}
                           </div>
                         </div>
                       ))}
 
                       {/* Columna: Listo para entregar */}
-                      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(16,185,129,0.25)', overflow: 'hidden' }}>
-                        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', borderBottom: '1px solid rgba(16,185,129,0.2)' }}>
-                          <p style={{ fontSize: 11, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <div style={{ background: 'white', borderRadius: 12, border: '1px solid #6ee7b7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16,185,129,0.15)' }}>
+                        <div style={{ padding: '10px 14px', background: '#ecfdf5', borderBottom: '1px solid #6ee7b7' }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             ✅ Listo — Entregar
+                          </p>
+                          <p style={{ fontSize: 10, color: '#10b981', marginTop: 1 }}>
+                            {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length} pedido(s)
                           </p>
                         </div>
                         <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1870,7 +1884,7 @@ export default function POSClient() {
                             </div>
                           ))}
                           {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length === 0 && (
-                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '12px 0', fontStyle: 'italic' }}>Vacío</p>
+                            <p style={{ fontSize: 11, color: '#d1d5db', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
                           )}
                         </div>
                       </div>
