@@ -17,7 +17,7 @@ import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInve
 
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
-type MovementType = 'entrada' | 'salida' | 'ajuste';
+type MovementType = 'entrada' | 'salida' | 'ajuste' | 'merma';
 type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica';
 
 type IngredientSupplier = {
@@ -118,8 +118,9 @@ const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
 };
 const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: React.ReactNode }> = {
   entrada: { bg: 'bg-green-900/30 text-green-300', text: 'Entrada', icon: <ArrowDownCircle size={13} className="text-green-400" /> },
-  salida: { bg: 'bg-red-900/30 text-red-300', text: 'Salida', icon: <ArrowUpCircle size={13} className="text-red-400" /> },
-  ajuste: { bg: 'bg-blue-900/30 text-blue-300', text: 'Ajuste', icon: <RefreshCw size={13} className="text-blue-400" /> },
+  salida:  { bg: 'bg-red-900/30 text-red-300',   text: 'Salida',  icon: <ArrowUpCircle size={13} className="text-red-400" /> },
+  ajuste:  { bg: 'bg-blue-900/30 text-blue-300', text: 'Ajuste',  icon: <RefreshCw size={13} className="text-blue-400" /> },
+  merma:   { bg: 'bg-orange-900/30 text-orange-300', text: 'Merma', icon: <ArrowUpCircle size={13} className="text-orange-400" /> },
 };
 const emptyForm = (): Omit<Ingredient, 'id'> => ({
   name: '', category: 'Otros', stock: 0, unit: 'kg', minStock: 0, reorderPoint: 0,
