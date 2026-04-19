@@ -24,8 +24,11 @@ type IngredientSupplier = {
   id: string;
   supplierId: string;
   supplierName: string;
-  pricePerUnit: number | null;
-  unit: string;
+  pricePerUnit: number | null;    // precio de la presentación completa
+  purchaseQty: number;            // unidades base por presentación (ej: 25 para costal 25kg)
+  purchaseUnit: string;           // nombre presentación (ej: "costal 25kg")
+  costPerBaseUnit: number | null; // calculado: pricePerUnit / purchaseQty
+  unit: string;                   // unidad base del insumo
   notes: string;
   isPreferred: boolean;
 };
@@ -228,7 +231,7 @@ export default function InventarioManagement() {
   const [ingSuppliers, setIngSuppliers] = useState<IngredientSupplier[]>([]);
   const [allSuppliers, setAllSuppliers] = useState<{id: string; name: string}[]>([]);
   const [addingSupplier, setAddingSupplier] = useState(false);
-  const [newIngSupplier, setNewIngSupplier] = useState({ supplierId: '', pricePerUnit: '', unit: '', notes: '' });
+  const [newIngSupplier, setNewIngSupplier] = useState({ supplierId: '', pricePerUnit: '', purchaseQty: '1', purchaseUnit: '', notes: '' });
   // RoP automático
   const [autoRoP, setAutoRoP] = useState<number | null>(null);
   const [ropOverride, setRopOverride] = useState(false); // true = usuario editó manualmente
@@ -646,15 +649,23 @@ export default function InventarioManagement() {
       .eq('ingredient_id', id)
       .order('is_preferred', { ascending: false });
     if (isData) {
-      setIngSuppliers(isData.map((r: any) => ({
-        id: r.id,
-        supplierId: r.supplier_id,
-        supplierName: r.suppliers?.name ?? '—',
-        pricePerUnit: r.price_per_unit ? Number(r.price_per_unit) : null,
-        unit: r.unit ?? '',
-        notes: r.notes ?? '',
-        isPreferred: r.is_preferred ?? false,
-      })));
+      setIngSuppliers(isData.map((r: any) => {
+        const price = r.price_per_unit ? Number(r.price_per_unit) : null;
+        const qty = Number(r.purchase_qty ?? 1);
+        const costPerBase = price != null && qty > 0 ? price / qty : null;
+        return {
+          id: r.id,
+          supplierId: r.supplier_id,
+          supplierName: r.suppliers?.name ?? '—',
+          pricePerUnit: price,
+          purchaseQty: qty,
+          purchaseUnit: r.purchase_unit ?? '',
+          costPerBaseUnit: costPerBase,
+          unit: r.unit ?? '',
+          notes: r.notes ?? '',
+          isPreferred: r.is_preferred ?? false,
+        };
+      }));
     }
     // Cargar lista de proveedores del tenant para el selector
     const { data: supData } = await supabase
@@ -668,19 +679,38 @@ export default function InventarioManagement() {
 
   async function handleAddIngSupplier() {
     if (!detailIngId || !newIngSupplier.supplierId) return;
+    const price = newIngSupplier.pricePerUnit ? Number(newIngSupplier.pricePerUnit) : null;
+    const qty = Math.max(1, Number(newIngSupplier.purchaseQty) || 1);
+    const costPerBase = price != null ? price / qty : null;
+    const isFirst = ingSuppliers.length === 0;
+
     const { error } = await supabase.from('ingredient_suppliers').insert({
       ingredient_id: detailIngId,
       supplier_id: newIngSupplier.supplierId,
-      price_per_unit: newIngSupplier.pricePerUnit ? Number(newIngSupplier.pricePerUnit) : null,
-      unit: newIngSupplier.unit || null,
+      price_per_unit: price,
+      purchase_qty: qty,
+      purchase_unit: newIngSupplier.purchaseUnit || null,
+      unit: null, // deprecated — use purchase_unit
       notes: newIngSupplier.notes || null,
-      is_preferred: ingSuppliers.length === 0, // primero = preferido
+      is_preferred: isFirst,
       tenant_id: getTenantId(),
     });
     if (error) { toast.error('Error al vincular proveedor'); return; }
-    toast.success('Proveedor vinculado');
+
+    // Si es el primero (preferido), actualizar costo del insumo
+    if (isFirst && costPerBase != null) {
+      await supabase.from('ingredients')
+        .update({ cost: costPerBase, updated_at: new Date().toISOString() })
+        .eq('id', detailIngId);
+      // Refrescar lista local de ingredientes
+      setIngredients(prev => prev.map(i => i.id === detailIngId ? { ...i, cost: costPerBase } : i));
+      toast.success(`Proveedor vinculado — costo actualizado a $${costPerBase.toFixed(4)}/${ingredients.find(i => i.id === detailIngId)?.unit ?? 'u'}`);
+    } else {
+      toast.success('Proveedor vinculado');
+    }
+
     setAddingSupplier(false);
-    setNewIngSupplier({ supplierId: '', pricePerUnit: '', unit: '', notes: '' });
+    setNewIngSupplier({ supplierId: '', pricePerUnit: '', purchaseQty: '1', purchaseUnit: '', notes: '' });
     await openDetail(detailIngId);
   }
 
@@ -692,6 +722,8 @@ export default function InventarioManagement() {
 
   async function handleSetPreferredSupplier(isId: string) {
     if (!detailIngId) return;
+    const supplier = ingSuppliers.find(s => s.id === isId);
+
     // Quitar preferido de todos, poner en este
     await supabase.from('ingredient_suppliers')
       .update({ is_preferred: false })
@@ -699,6 +731,19 @@ export default function InventarioManagement() {
     await supabase.from('ingredient_suppliers')
       .update({ is_preferred: true })
       .eq('id', isId);
+
+    // Actualizar costo del insumo al costo/unidad de este proveedor
+    if (supplier?.costPerBaseUnit != null) {
+      await supabase.from('ingredients')
+        .update({ cost: supplier.costPerBaseUnit, updated_at: new Date().toISOString() })
+        .eq('id', detailIngId);
+      setIngredients(prev => prev.map(i => i.id === detailIngId ? { ...i, cost: supplier.costPerBaseUnit! } : i));
+      const ing = ingredients.find(i => i.id === detailIngId);
+      toast.success(`Proveedor preferido: ${supplier.supplierName} — costo actualizado a $${supplier.costPerBaseUnit.toFixed(4)}/${ing?.unit ?? 'u'}`);
+    } else {
+      toast.success(`Proveedor preferido: ${supplier?.supplierName ?? ''}`);
+    }
+
     await openDetail(detailIngId);
   }
 
@@ -1477,95 +1522,145 @@ export default function InventarioManagement() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Proveedores vinculados</p>
                   {!addingSupplier && (
-                    <button
-                      onClick={() => setAddingSupplier(true)}
-                      style={{ fontSize: '11px', fontWeight: 600, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer' }}
-                    >+ Vincular</button>
+                    <button onClick={() => setAddingSupplier(true)}
+                      style={{ fontSize: '11px', fontWeight: 600, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer' }}>
+                      + Vincular
+                    </button>
                   )}
                 </div>
 
                 {/* Formulario nuevo proveedor */}
-                {addingSupplier && (
-                  <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <select
-                      value={newIngSupplier.supplierId}
-                      onChange={e => setNewIngSupplier(p => ({ ...p, supplierId: e.target.value }))}
-                      style={{ width: '100%', padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
-                    >
-                      <option value="">— Selecciona proveedor —</option>
-                      {allSuppliers.filter(s => !ingSuppliers.some(is => is.supplierId === s.id)).map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input
-                        type="number" min={0} step="0.01" placeholder="Precio/unidad"
-                        value={newIngSupplier.pricePerUnit}
-                        onChange={e => setNewIngSupplier(p => ({ ...p, pricePerUnit: e.target.value }))}
-                        style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
-                      />
-                      <input
-                        type="text" placeholder="Unidad (ej. caja)"
-                        value={newIngSupplier.unit}
-                        onChange={e => setNewIngSupplier(p => ({ ...p, unit: e.target.value }))}
-                        style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
-                      />
+                {addingSupplier && (() => {
+                  const price = Number(newIngSupplier.pricePerUnit) || 0;
+                  const qty = Math.max(1, Number(newIngSupplier.purchaseQty) || 1);
+                  const costPerBase = price > 0 ? price / qty : null;
+                  const ing = ingredients.find(i => i.id === detailIngId);
+                  return (
+                    <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Proveedor */}
+                      <select value={newIngSupplier.supplierId}
+                        onChange={e => setNewIngSupplier(p => ({ ...p, supplierId: e.target.value }))}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}>
+                        <option value="">— Selecciona proveedor —</option>
+                        {allSuppliers.filter(s => !ingSuppliers.some(is => is.supplierId === s.id)).map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+
+                      {/* Presentación: nombre + cantidad */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '6px' }}>
+                        <input type="text" placeholder={`Presentación (ej. costal 25${ing?.unit ?? 'kg'})`}
+                          value={newIngSupplier.purchaseUnit}
+                          onChange={e => setNewIngSupplier(p => ({ ...p, purchaseUnit: e.target.value }))}
+                          style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }} />
+                        <input type="number" min={1} step="0.001" placeholder={`Cant. (${ing?.unit ?? 'u'})`}
+                          value={newIngSupplier.purchaseQty}
+                          onChange={e => setNewIngSupplier(p => ({ ...p, purchaseQty: e.target.value }))}
+                          style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b', fontSize: '13px', fontWeight: 700, outline: 'none' }} />
+                      </div>
+
+                      {/* Precio de la presentación */}
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>$</span>
+                        <input type="number" min={0} step="0.01" placeholder="Precio de la presentación"
+                          value={newIngSupplier.pricePerUnit}
+                          onChange={e => setNewIngSupplier(p => ({ ...p, pricePerUnit: e.target.value }))}
+                          style={{ width: '100%', padding: '7px 10px 7px 22px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#34d399', fontSize: '13px', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+                      </div>
+
+                      {/* Cálculo automático costo/unidad */}
+                      {costPerBase != null && costPerBase > 0 && (
+                        <div style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: '7px', padding: '8px 10px', fontSize: '12px', color: '#34d399' }}>
+                          💡 Costo por {ing?.unit ?? 'unidad'}: <strong>${costPerBase.toFixed(4)}</strong>
+                          {' '}= ${price.toFixed(2)} ÷ {qty} {ing?.unit ?? 'u'}
+                        </div>
+                      )}
+
+                      <input type="text" placeholder="Notas (opcional — condiciones de pago, contacto...)"
+                        value={newIngSupplier.notes}
+                        onChange={e => setNewIngSupplier(p => ({ ...p, notes: e.target.value }))}
+                        style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: 'rgba(255,255,255,0.7)', fontSize: '13px', outline: 'none' }} />
+
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={handleAddIngSupplier}
+                          style={{ flex: 1, padding: '7px', borderRadius: '7px', background: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '12px', border: 'none', cursor: 'pointer' }}>
+                          Vincular{ingSuppliers.length === 0 ? ' y aplicar costo' : ''}
+                        </button>
+                        <button onClick={() => { setAddingSupplier(false); setNewIngSupplier({ supplierId: '', pricePerUnit: '', purchaseQty: '1', purchaseUnit: '', notes: '' }); }}
+                          style={{ flex: 1, padding: '7px', borderRadius: '7px', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontSize: '12px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      type="text" placeholder="Notas (opcional)"
-                      value={newIngSupplier.notes}
-                      onChange={e => setNewIngSupplier(p => ({ ...p, notes: e.target.value }))}
-                      style={{ padding: '7px 10px', borderRadius: '7px', background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: '13px', outline: 'none' }}
-                    />
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={handleAddIngSupplier}
-                        style={{ flex: 1, padding: '7px', borderRadius: '7px', background: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '12px', border: 'none', cursor: 'pointer' }}>
-                        Vincular
-                      </button>
-                      <button onClick={() => { setAddingSupplier(false); setNewIngSupplier({ supplierId: '', pricePerUnit: '', unit: '', notes: '' }); }}
-                        style={{ flex: 1, padding: '7px', borderRadius: '7px', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontSize: '12px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                        Cancelar
-                      </button>
+                  );
+                })()}
+
+                {/* Comparativa de precios entre proveedores */}
+                {ingSuppliers.length > 1 && (() => {
+                  const withCost = ingSuppliers.filter(s => s.costPerBaseUnit != null);
+                  if (withCost.length < 2) return null;
+                  const cheapest = withCost.reduce((a, b) => (a.costPerBaseUnit! < b.costPerBaseUnit! ? a : b));
+                  const expensive = withCost.reduce((a, b) => (a.costPerBaseUnit! > b.costPerBaseUnit! ? a : b));
+                  const savings = expensive.costPerBaseUnit! - cheapest.costPerBaseUnit!;
+                  const ing = ingredients.find(i => i.id === detailIngId);
+                  return (
+                    <div style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: '8px', padding: '8px 12px', marginBottom: '8px', fontSize: '11px', color: '#34d399' }}>
+                      💰 Comprando con <strong>{cheapest.supplierName}</strong> ahorras <strong>${savings.toFixed(4)}/{ing?.unit ?? 'u'}</strong> vs {expensive.supplierName}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Lista de proveedores vinculados */}
                 {ingSuppliers.length === 0 ? (
                   <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', fontStyle: 'italic' }}>Sin proveedores vinculados</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {ingSuppliers.map(is => (
-                      <div key={is.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: is.isPreferred ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '8px', border: `1px solid ${is.isPreferred ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{is.supplierName}</span>
-                            {is.isPreferred && <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>PREFERIDO</span>}
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                            {is.pricePerUnit != null ? `$${is.pricePerUnit.toFixed(2)}` : '—'}
-                            {is.unit ? ` / ${is.unit}` : ''}
-                            {is.notes ? ` · ${is.notes}` : ''}
+                    {ingSuppliers.map(is => {
+                      const ing = ingredients.find(i => i.id === detailIngId);
+                      return (
+                        <div key={is.id} style={{ padding: '10px 12px', background: is.isPreferred ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '9px', border: `1px solid ${is.isPreferred ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{is.supplierName}</span>
+                                {is.isPreferred && <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>PREFERIDO · COSTO ACTIVO</span>}
+                              </div>
+                              {/* Presentación y precios */}
+                              <div style={{ marginTop: '5px', display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px' }}>
+                                {is.purchaseUnit && (
+                                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>📦 {is.purchaseUnit}</span>
+                                )}
+                                {is.pricePerUnit != null && (
+                                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                    ${is.pricePerUnit.toFixed(2)}{is.purchaseQty > 1 ? ` / ${is.purchaseQty} ${ing?.unit ?? 'u'}` : ''}
+                                  </span>
+                                )}
+                                {is.costPerBaseUnit != null && (
+                                  <span style={{ color: '#34d399', fontWeight: 700 }}>
+                                    = ${is.costPerBaseUnit.toFixed(4)}/{ing?.unit ?? 'u'}
+                                  </span>
+                                )}
+                                {is.notes && <span style={{ color: 'rgba(255,255,255,0.35)' }}>· {is.notes}</span>}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                              {!is.isPreferred && (
+                                <button onClick={() => handleSetPreferredSupplier(is.id)}
+                                  title="Usar este proveedor y aplicar su costo al insumo"
+                                  style={{ fontSize: '10px', padding: '4px 8px', borderRadius: '5px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', cursor: 'pointer', lineHeight: 1.3, textAlign: 'center' }}>
+                                  ★ Usar
+                                </button>
+                              )}
+                              <button onClick={() => handleRemoveIngSupplier(is.id)}
+                                title="Desvincular"
+                                style={{ fontSize: '10px', padding: '4px 8px', borderRadius: '5px', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer' }}>
+                                ✕
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                          {!is.isPreferred && (
-                            <button
-                              onClick={() => handleSetPreferredSupplier(is.id)}
-                              title="Marcar como preferido"
-                              style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', cursor: 'pointer' }}>
-                              ★
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemoveIngSupplier(is.id)}
-                            title="Desvincular"
-                            style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer' }}>
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
