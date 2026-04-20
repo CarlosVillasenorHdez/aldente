@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import SubscriptionWall from '@/components/SubscriptionWall';
+import { useOnlineSync } from '@/hooks/useOnlineSync';
 
 interface TenantStatus {
   is_active: boolean;
@@ -24,6 +25,9 @@ export default function ErpGroupLayout({ children }: { children: React.ReactNode
   const { appUser, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<TenantStatus | null>(null);
   const [checking, setChecking] = useState(true);
+
+  // Sync offline queue automáticamente al reconectar
+  useOnlineSync();
 
   useEffect(() => {
     if (authLoading) return;
