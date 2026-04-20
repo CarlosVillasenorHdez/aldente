@@ -1,5 +1,6 @@
 import { imageHosts } from './image-hosts.config.mjs';
 import withPWA from '@ducanh2912/next-pwa';
+import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -63,7 +64,7 @@ const nextConfig = {
   }
 };
 
-export default withPWA({
+const pwaConfig = withPWA({
   dest: 'public',
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
@@ -108,3 +109,14 @@ export default withPWA({
     ],
   },
 })(nextConfig);
+
+// Envolver con Sentry — solo activo si NEXT_PUBLIC_SENTRY_DSN está definido
+export default withSentryConfig(pwaConfig, {
+  org: 'aldente-erp',
+  project: 'aldente-nextjs',
+  silent: true,              // No spam en el build log
+  widenClientFileUpload: true,
+  hideSourceMaps: true,      // No exponer sourcemaps en producción
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
