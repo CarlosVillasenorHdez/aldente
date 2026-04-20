@@ -117,13 +117,12 @@ const hasSentry = !!process.env.NEXT_PUBLIC_SENTRY_DSN ||
 
 export default hasSentry
   ? withSentryConfig(pwaConfig, {
-      // Obtén org y project desde sentry.io → Settings → Projects
-      org: process.env.SENTRY_ORG ?? 'aldente-erp',
-      project: process.env.SENTRY_PROJECT ?? 'aldente-nextjs',
+      org: 'aldente-u7',
+      project: 'javascript-nextjs',
       silent: true,
       widenClientFileUpload: true,
       hideSourceMaps: true,
       disableLogger: true,
-      automaticVercelMonitors: false, // activar cuando estés en Vercel Pro
+      automaticVercelMonitors: false,
     })
   : pwaConfig;

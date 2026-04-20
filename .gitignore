@@ -36,3 +36,4 @@ jest-test-results.json
 turbo/.env.local
 .env*
 !.env.example
+.sentryclirc
