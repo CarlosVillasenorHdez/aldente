@@ -16,6 +16,7 @@ export default function SentryTestPage() {
       `NODE_ENV: ${process.env.NODE_ENV ?? 'undefined'}`,
       `VERCEL_ENV: ${process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'undefined'}`,
       `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ presente' : '❌ ausente'}`,
+      `SENTRY_TEST: ${(process.env as any).NEXT_PUBLIC_SENTRY_TEST ?? '❌ ausente'}`,
     ]);
   }, []);
 
