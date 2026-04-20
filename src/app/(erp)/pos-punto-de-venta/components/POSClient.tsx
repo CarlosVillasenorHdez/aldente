@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useOrderFlow } from '@/hooks/useOrderFlow';
 
-import { Merge, X } from 'lucide-react';
+import { Merge, X, QrCode } from 'lucide-react';
 
 export type TableStatus = 'libre' | 'ocupada' | 'espera';
 
@@ -446,6 +446,7 @@ export default function POSClient() {
   }, [fetchTakeoutOrders, supabase]);
 
   const [restaurantName, setRestaurantName] = useState('');
+  const [tenantSlug, setTenantSlug] = useState<string | null>(null);
   const [printerConfigData, setPrinterConfigData] = useState<any>(null);
   const [businessHours, setBusinessHours] = useState<{day:string;open:boolean;from:string;to:string}[]>([]);
   const [outsideHours, setOutsideHours] = useState(false);
@@ -489,6 +490,10 @@ export default function POSClient() {
           if (r.config_key === 'restaurant_name') setRestaurantName(r.config_value);
         });
       });
+
+    // Cargar slug del tenant para la carta QR pública
+    supabase.from('tenants').select('slug').eq('id', getTenantId()).single()
+      .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
 
     // Cargar config de impresora
     supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single()
@@ -1679,7 +1684,26 @@ export default function POSClient() {
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Topbar title="Punto de Venta" subtitle="Gestión de mesas y órdenes" />
+        <Topbar title="Punto de Venta" subtitle="Gestión de mesas y órdenes">
+          {tenantSlug && (
+            <a
+              href={`/carta/${tenantSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 8,
+                background: 'rgba(27,58,107,0.07)',
+                border: '1px solid rgba(27,58,107,0.15)',
+                color: '#1B3A6B', fontSize: 13, fontWeight: 500,
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}
+            >
+              <QrCode size={14} />
+              Carta digital
+            </a>
+          )}
+        </Topbar>
         <div className="flex-1 flex overflow-hidden pb-14 md:pb-0">
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab bar — clip-path tabs (Emil Kowalski technique) */}

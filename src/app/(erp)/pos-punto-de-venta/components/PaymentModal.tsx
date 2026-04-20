@@ -283,7 +283,9 @@ export default function PaymentModal({
     await doRedeemIfNeeded();
     await new Promise(r => setTimeout(r, 300));
     setLoading(false);
-    onComplete(amountParts[0].method, effectiveTotal, selectedCustomer?.id ?? null, tipAmount > 0 ? tipAmount : undefined);
+    // Usar el método de la primera parte (simplificación — split mixto no soportado aún)
+    const dominantMethod = amountParts[0].method ?? 'efectivo';
+    onComplete(dominantMethod, effectiveTotal, selectedCustomer?.id ?? null, tipAmount > 0 ? tipAmount : undefined);
   };
 
   const handleConfirmSplitItems = async () => {
@@ -291,7 +293,9 @@ export default function PaymentModal({
     await doRedeemIfNeeded();
     await new Promise(r => setTimeout(r, 300));
     setLoading(false);
-    onComplete('efectivo', effectiveTotal, selectedCustomer?.id ?? null);
+    // Usar el método de la primera persona con items asignados
+    const firstPersonMethod = persons.find(p => Object.keys(p.itemSplit).length > 0)?.method ?? 'efectivo';
+    onComplete(firstPersonMethod, effectiveTotal, selectedCustomer?.id ?? null, tipAmount > 0 ? tipAmount : undefined);
   };
 
   // Assign / remove qty from active person

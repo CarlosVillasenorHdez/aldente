@@ -104,7 +104,29 @@ export default function AlarmasManagement() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<AlertCategory | 'todas'>('todas');
   const [soloAltas, setSoloAltas] = useState(false);
+  const prevAlertIdsRef = React.useRef<Set<string>>(new Set());
   const supabase = createClient();
+
+  // ── Sonido para alarmas críticas ──────────────────────────────────────────
+  const playAlarmSound = React.useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Dos beeps cortos y uno largo — patrón de alerta
+      const times = [0, 0.18, 0.36];
+      times.forEach((t, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + (i === 2 ? 0.4 : 0.12));
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.5);
+      });
+    } catch { /* AudioContext no disponible — sin sonido silencioso */ }
+  }, []);
 
   const fetchAlertas = useCallback(async () => {
     setLoading(true);
@@ -193,6 +215,12 @@ export default function AlarmasManagement() {
       // ── Ordenar: alta → media → baja ─────────────────────────────────────────
       const orden: Record<AlertSeverity, number> = { alta: 0, media: 1, baja: 2 };
       nuevas.sort((a, b) => orden[a.severidad] - orden[b.severidad]);
+
+      // Detectar alarmas altas que no existían antes → reproducir sonido
+      const prevIds = prevAlertIdsRef.current;
+      const nuevasAltas = nuevas.filter(a => a.severidad === 'alta' && !prevIds.has(a.id));
+      if (nuevasAltas.length > 0) playAlarmSound();
+      prevAlertIdsRef.current = new Set(nuevas.map(a => a.id));
 
       setAlertas(nuevas);
     } catch (err: unknown) {

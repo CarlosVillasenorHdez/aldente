@@ -208,6 +208,15 @@ export default function DeliveryManagement() {
         }
       }
       toast.success(`Pedido enviado a cocina · ${STATUS_LABELS[nextStatus]}`);
+    } else if (nextStatus === 'entregado') {
+      // Cerrar la orden en el KDS para que aparezca en el corte de caja
+      const orderId = `DEL-${order.id.slice(-8).toUpperCase()}`;
+      await supabase.from('orders').update({
+        status: 'cerrada',
+        closed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', orderId).eq('tenant_id', getTenantId());
+      toast.success(`Pedido entregado · ${STATUS_LABELS[nextStatus]}`);
     } else {
       toast.success(`Estado: ${STATUS_LABELS[nextStatus]}`);
     }

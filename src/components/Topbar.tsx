@@ -28,9 +28,10 @@ interface TopbarProps {
   title: string;
   subtitle?: string;
   onMenuToggle?: () => void;
+  children?: React.ReactNode;
 }
 
-export default function Topbar({ title, subtitle, onMenuToggle }: TopbarProps) {
+export default function Topbar({ title, subtitle, onMenuToggle, children }: TopbarProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -206,6 +207,9 @@ export default function Topbar({ title, subtitle, onMenuToggle }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Children — contenido extra inyectado por cada módulo (ej. botón de carta QR) */}
+          {children}
+
           {/* Auto "Actualizado" indicator */}
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 mr-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />

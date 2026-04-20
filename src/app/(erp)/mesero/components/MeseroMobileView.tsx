@@ -508,6 +508,12 @@ export default function MeseroMobileView() {
       loyaltyCustomerId: loyaltyCustomerId ?? null,
     });
     if (!ok) return;
+
+    // Guardar propina si la hay
+    if (tip && tip > 0) {
+      const supabaseClient = createClient();
+      await supabaseClient.from('orders').update({ tip_amount: tip }).eq('id', currentOrderId);
+    }
     setShowPayment(false);
     setShowCart(false);
     setOrderItems([]);
