@@ -110,13 +110,20 @@ const pwaConfig = withPWA({
   },
 })(nextConfig);
 
-// Envolver con Sentry — solo activo si NEXT_PUBLIC_SENTRY_DSN está definido
-export default withSentryConfig(pwaConfig, {
-  org: 'aldente-erp',
-  project: 'aldente-nextjs',
-  silent: true,              // No spam en el build log
-  widenClientFileUpload: true,
-  hideSourceMaps: true,      // No exponer sourcemaps en producción
-  disableLogger: true,
-  automaticVercelMonitors: true,
-});
+// Envolver con Sentry solo cuando el DSN está configurado
+// Sin DSN, el build es idéntico — no hay overhead ni errores
+const hasSentry = !!process.env.NEXT_PUBLIC_SENTRY_DSN ||
+                  !!process.env.SENTRY_DSN;
+
+export default hasSentry
+  ? withSentryConfig(pwaConfig, {
+      // Obtén org y project desde sentry.io → Settings → Projects
+      org: process.env.SENTRY_ORG ?? 'aldente-erp',
+      project: process.env.SENTRY_PROJECT ?? 'aldente-nextjs',
+      silent: true,
+      widenClientFileUpload: true,
+      hideSourceMaps: true,
+      disableLogger: true,
+      automaticVercelMonitors: false, // activar cuando estés en Vercel Pro
+    })
+  : pwaConfig;
