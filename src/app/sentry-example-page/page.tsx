@@ -10,7 +10,13 @@ export default function SentryTestPage() {
   useEffect(() => {
     const d = process.env.NEXT_PUBLIC_SENTRY_DSN ?? '';
     setDsn(d ? d.slice(0, 40) + '...' : 'NO CONFIGURADO');
-    setLog(prev => [...prev, d ? '✅ DSN encontrado' : '❌ DSN no encontrado']);
+    setLog(prev => [
+      ...prev,
+      d ? '✅ DSN encontrado' : '❌ NEXT_PUBLIC_SENTRY_DSN no disponible en el cliente',
+      `NODE_ENV: ${process.env.NODE_ENV ?? 'undefined'}`,
+      `VERCEL_ENV: ${process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'undefined'}`,
+      `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ presente' : '❌ ausente'}`,
+    ]);
   }, []);
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
