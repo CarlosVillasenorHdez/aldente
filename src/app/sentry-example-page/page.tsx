@@ -1,66 +1,89 @@
 'use client';
 
 import * as Sentry from '@sentry/nextjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function SentryTestPage() {
-  const [sent, setSent] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+  const [dsn, setDsn] = useState('');
 
-  const triggerError = () => {
+  useEffect(() => {
+    const d = process.env.NEXT_PUBLIC_SENTRY_DSN ?? '';
+    setDsn(d ? d.slice(0, 40) + '...' : 'NO CONFIGURADO');
+    setLog(prev => [...prev, d ? '✅ DSN encontrado' : '❌ DSN no encontrado']);
+  }, []);
+
+  const addLog = (msg: string) => setLog(prev => [...prev, msg]);
+
+  const testCapture = () => {
     try {
-      // Error intencionado para probar Sentry
-      throw new Error('Test error de Aldente ERP — Sentry funcionando correctamente');
-    } catch (e) {
-      Sentry.captureException(e);
-      setSent(true);
+      addLog('⏳ Enviando error a Sentry...');
+      const eventId = Sentry.captureException(
+        new Error('Test Aldente ERP — ' + new Date().toISOString())
+      );
+      addLog(eventId
+        ? `✅ Enviado — event ID: ${eventId}`
+        : '❌ Sentry.captureException devolvió vacío — Sentry no inicializado');
+    } catch (e: any) {
+      addLog('❌ Error: ' + e.message);
     }
   };
 
-  const triggerUnhandled = () => {
-    // Error no capturado — Sentry lo atrapa automáticamente
-    (undefined as any).nonExistentFunction();
+  const testMessage = () => {
+    addLog('⏳ Enviando mensaje...');
+    const eventId = Sentry.captureMessage('Test message Aldente — ' + new Date().toISOString(), 'info');
+    addLog(eventId ? `✅ Mensaje enviado — ${eventId}` : '❌ No enviado');
+  };
+
+  const testUnhandled = () => {
+    addLog('⏳ Lanzando error no capturado...');
+    setTimeout(() => { throw new Error('Unhandled test — Aldente Sentry'); }, 100);
+  };
+
+  const box: React.CSSProperties = {
+    background: '#0d1b2a', border: '1px solid #1e2d3d',
+    borderRadius: 12, padding: '20px 24px', width: '100%', maxWidth: 560,
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#060d18', flexDirection: 'column', gap: 16, padding: 32,
-    }}>
-      <h1 style={{ color: '#f1f5f9', fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-        Sentry — Prueba de integración
-      </h1>
-      <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
-        Aldente ERP · {process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development'}
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background:'#060d18', flexDirection:'column', gap:16, padding:24 }}>
+      <h1 style={{ color:'#f1f5f9', fontSize:20, fontWeight:700 }}>Sentry — Diagnóstico</h1>
+
+      <div style={box}>
+        <p style={{ color:'#64748b', fontSize:12, marginBottom:8 }}>DSN configurado:</p>
+        <code style={{ color: dsn.includes('NO') ? '#ef4444':'#4ade80', fontSize:11 }}>{dsn}</code>
+      </div>
+
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
+        <button onClick={testCapture} style={{ padding:'10px 18px', borderRadius:8, background:'#2563eb',
+          color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
+          captureException
+        </button>
+        <button onClick={testMessage} style={{ padding:'10px 18px', borderRadius:8, background:'#7c3aed',
+          color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
+          captureMessage
+        </button>
+        <button onClick={testUnhandled} style={{ padding:'10px 18px', borderRadius:8, background:'#dc2626',
+          color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
+          Error no capturado
+        </button>
+      </div>
+
+      <div style={{ ...box, fontFamily:'monospace' }}>
+        <p style={{ color:'#475569', fontSize:11, marginBottom:8 }}>Log:</p>
+        {log.length === 0
+          ? <p style={{ color:'#334155', fontSize:12 }}>Sin actividad aún</p>
+          : log.map((l, i) => (
+            <p key={i} style={{ color: l.startsWith('✅') ? '#4ade80' : l.startsWith('❌') ? '#ef4444' : '#94a3b8',
+              fontSize:12, margin:'2px 0' }}>{l}</p>
+          ))}
+      </div>
+
+      <p style={{ color:'#334155', fontSize:11, textAlign:'center', maxWidth:400 }}>
+        Si el event ID aparece en el log, el error llegó a Sentry.<br/>
+        Ve a sentry.io → Issues para confirmarlo.
       </p>
-
-      <button onClick={triggerError} style={{
-        padding: '12px 24px', borderRadius: 10, background: '#2563eb',
-        color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer',
-      }}>
-        {sent ? '✅ Error enviado a Sentry — revisa sentry.io' : 'Enviar error de prueba (capturado)'}
-      </button>
-
-      <button onClick={triggerUnhandled} style={{
-        padding: '12px 24px', borderRadius: 10, background: '#dc2626',
-        color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer',
-      }}>
-        Lanzar error no capturado
-      </button>
-
-      <p style={{ color: '#475569', fontSize: 12, marginTop: 16, textAlign: 'center' }}>
-        Después de hacer clic, ve a sentry.io → tu proyecto → Issues<br />
-        Si ves el error ahí, Sentry está funcionando correctamente.
-      </p>
-
-      {sent && (
-        <div style={{
-          marginTop: 16, padding: '12px 20px', borderRadius: 10,
-          background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-          color: '#4ade80', fontSize: 13,
-        }}>
-          Error enviado. Revisa sentry.io → Issues en unos segundos.
-        </div>
-      )}
     </div>
   );
 }
