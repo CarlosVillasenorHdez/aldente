@@ -3,15 +3,16 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E config — Aldente ERP
  *
- * Instalar: npx playwright install chromium
- * Correr:   npx playwright test
- * UI mode:  npx playwright test --ui
- * Report:   npx playwright show-report
+ * Correr en local:      npm run dev && npx playwright test
+ * Correr en producción: PLAYWRIGHT_BASE_URL=https://aldente.vercel.app npx playwright test
+ * UI mode:              npx playwright test --ui
+ * Report:               npx playwright show-report
  */
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+const IS_PROD  = BASE_URL.includes('vercel.app') || BASE_URL.includes('aldenteerp');
 
-// Tenant de prueba — Barista en staging
+// Tenant de prueba
 const TEST_SLUG       = process.env.TEST_TENANT_SLUG   ?? 'barista';
 const TEST_ADMIN_PIN  = process.env.TEST_ADMIN_PIN      ?? '1234';
 const TEST_USER_NAME  = process.env.TEST_USER_NAME      ?? 'Admin';
@@ -60,13 +61,16 @@ export default defineConfig({
     },
   ],
 
-  // Levantar Next.js en dev si no está corriendo
-  webServer: {
-    command: 'npm run dev',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Levantar Next.js en dev solo cuando se corre en local
+  // En producción (PLAYWRIGHT_BASE_URL apuntando a vercel.app) no levantar nada
+  ...(IS_PROD ? {} : {
+    webServer: {
+      command: 'npm run dev',
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  }),
 
   // Pasar variables a los tests
   globalSetup: './src/e2e/global-setup.ts',
