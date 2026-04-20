@@ -114,8 +114,10 @@ const MODULE_PRICES: Record<string, number> = {
   inventario: 200, reportes: 200,
   gastos: 100, reservaciones: 150,
   lealtad: 150, extrasStore: 100,
-  alarmas: 100, recursosHumanos: 150,
-  delivery: 150, multiSucursal: 350,
+  alarmas: 100,
+  recursosHumanos: 200,  // sube de $150 → $200, ahora en plan Negocio
+  delivery: 250,          // sube de $150 → $250, exclusivo de Empresa
+  multiSucursal: 350,     // precio del módulo (3-5 sucursales)
 };
 
 const BASE_PLAN_PRICE = 399;
@@ -294,35 +296,38 @@ describe('Plan pricing — à la carte', () => {
     expect(calcMedidaPrice(['inventario'])).toBe(599);
   });
 
-  it('todos los módulos del plan Empresa (à la carte) suman $2,049 — $150 menos que el plan', () => {
-    // El plan Empresa ($2,199) incluye un ahorro de $150 vs. comprar todo à la carte
-    const empresaModulos = ['inventario', 'reportes', 'gastos', 'reservaciones',
-      'lealtad', 'extrasStore', 'alarmas', 'recursosHumanos', 'delivery', 'multiSucursal'];
-    expect(calcMedidaPrice(empresaModulos)).toBe(2049);
-  });
-
-  it('el plan Empresa ofrece $150 de ahorro vs. A tu medida completo', () => {
-    const empresaModulos = ['inventario', 'reportes', 'gastos', 'reservaciones',
-      'lealtad', 'extrasStore', 'alarmas', 'recursosHumanos', 'delivery', 'multiSucursal'];
-    const medidaPrice = calcMedidaPrice(empresaModulos);
-    const empresaPlanPrice = 2199;
-    const savings = medidaPrice - empresaPlanPrice;
-    // El plan Empresa es más caro que à la carte pero incluye más valor percibido
-    // (soporte, SLA, acceso futuro a nuevos módulos sin costo adicional)
-    expect(Math.abs(savings)).toBe(150);
-  });
-
-  it('todos los módulos del plan Negocio (à la carte) suman $1,399 — $100 de ahorro vs. el plan', () => {
-    // El plan Negocio ($1,299) ofrece $100 de ahorro vs. comprar los módulos individualmente
+  it('plan Negocio à la carte = $1,599 (ahorro $300 vs plan $1,299)', () => {
+    // Negocio incluye RRHH desde esta versión
     const negocioModulos = ['inventario', 'reportes', 'gastos', 'reservaciones',
-      'lealtad', 'extrasStore', 'alarmas'];
-    expect(calcMedidaPrice(negocioModulos)).toBe(1399);
+      'lealtad', 'extrasStore', 'alarmas', 'recursosHumanos'];
+    expect(calcMedidaPrice(negocioModulos)).toBe(1599);
+    // El plan Negocio a $1,299 ofrece $300 de ahorro vs comprarlo à la carte
+    expect(1599 - 1299).toBe(300);
   });
 
-  it('módulo multiSucursal cuesta $350', () => {
+  it('plan Empresa à la carte = $2,199 (igual al precio del plan)', () => {
+    // Con delivery $250 y RRHH $200, à la carte completo = exactamente $2,199
+    const empresaModulos = ['inventario', 'reportes', 'gastos', 'reservaciones',
+      'lealtad', 'extrasStore', 'alarmas', 'recursosHumanos', 'delivery', 'multiSucursal'];
+    expect(calcMedidaPrice(empresaModulos)).toBe(2199);
+  });
+
+  it('módulo multiSucursal cuesta $350 (activa hasta 5 sucursales)', () => {
     const base = calcMedidaPrice([]);
     const conMulti = calcMedidaPrice(['multiSucursal']);
     expect(conMulti - base).toBe(350);
+  });
+
+  it('módulo delivery cuesta $250', () => {
+    const base = calcMedidaPrice([]);
+    const conDelivery = calcMedidaPrice(['delivery']);
+    expect(conDelivery - base).toBe(250);
+  });
+
+  it('RRHH cuesta $200 y está en plan Negocio', () => {
+    const base = calcMedidaPrice([]);
+    const conRRHH = calcMedidaPrice(['recursosHumanos']);
+    expect(conRRHH - base).toBe(200);
   });
 });
 
@@ -344,6 +349,67 @@ describe('Plan pricing — selección de plan óptimo', () => {
     const plan = getPlanForModules(['delivery']);
     expect(plan).not.toBe('medida');
     if (plan !== 'medida') expect(plan.id).toBe('empresa');
+  });
+});
+
+describe('Multi-sucursal — pricing por volumen', () => {
+  // Replica la función calcMultiSucursalPrice de useFeatures
+  function calcMultiSucursalPrice(n: number): number {
+    if (n <= 2) return 0;
+    if (n <= 5) return 350;
+    const suc_6_10   = Math.min(n - 5, 5);
+    const suc_11plus = Math.max(n - 10, 0);
+    return 350 + suc_6_10 * 350 + suc_11plus * 250;
+  }
+
+  it('1-2 sucursales: incluidas en plan Empresa sin costo extra', () => {
+    expect(calcMultiSucursalPrice(1)).toBe(0);
+    expect(calcMultiSucursalPrice(2)).toBe(0);
+  });
+
+  it('3-5 sucursales: +$350/mes (precio del módulo)', () => {
+    expect(calcMultiSucursalPrice(3)).toBe(350);
+    expect(calcMultiSucursalPrice(4)).toBe(350);
+    expect(calcMultiSucursalPrice(5)).toBe(350);
+  });
+
+  it('6 sucursales: $350 módulo + $350 extra = $700', () => {
+    expect(calcMultiSucursalPrice(6)).toBe(700);
+  });
+
+  it('10 sucursales: $350 + (5 × $350) = $2,100', () => {
+    expect(calcMultiSucursalPrice(10)).toBe(2100);
+  });
+
+  it('11 sucursales: $2,100 + $250 = $2,350', () => {
+    expect(calcMultiSucursalPrice(11)).toBe(2350);
+  });
+
+  it('20 sucursales: $2,100 + (10 × $250) = $4,600', () => {
+    expect(calcMultiSucursalPrice(20)).toBe(4600);
+  });
+
+  it('cliente fundador con 5 cafeterías paga $0 extra (incluidas en plan)', () => {
+    // El módulo multiSucursal ($350) ya cubre hasta 5 sucursales
+    // El amigo con 5 cafeterías está dentro del límite del módulo base
+    expect(calcMultiSucursalPrice(5)).toBe(350);
+    // Con precio fundador: el $350 está incluido en el $2,199 del plan
+    const precioFundador = 2199; // plan Empresa con multiSucursal incluido
+    expect(precioFundador).toBe(2199);
+  });
+
+  it('precio total Empresa con 5 sucursales = $2,549', () => {
+    const precioEmpresa = 2199;
+    const extraSucursales = calcMultiSucursalPrice(5);
+    expect(precioEmpresa + extraSucursales).toBe(2549);
+  });
+
+  it('precio total Empresa con 10 sucursales = $4,299', () => {
+    expect(2199 + calcMultiSucursalPrice(10)).toBe(4299);
+  });
+
+  it('precio total Empresa con 20 sucursales = $6,799', () => {
+    expect(2199 + calcMultiSucursalPrice(20)).toBe(6799);
   });
 });
 

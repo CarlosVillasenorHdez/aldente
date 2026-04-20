@@ -34,9 +34,9 @@ export const MODULE_CATALOG: {
   { key: 'lealtad',         label: 'Lealtad',             desc: 'Puntos, niveles, canjes, auto-expiración y WhatsApp',                 price: 150, icon: '⭐' },
   { key: 'extrasStore',     label: 'Tienda de Extras',    desc: 'Venta de membresías, merch y productos fuera del menú',              price: 100, icon: '🛍️' },
   { key: 'alarmas',         label: 'Alarmas',             desc: 'Alertas de stock bajo, órdenes lentas, picos de venta',              price: 100, icon: '🔔' },
-  { key: 'recursosHumanos', label: 'RRHH',                desc: 'Nómina, turnos, vacaciones, permisos, prima cost',                    price: 150, icon: '👥' },
-  { key: 'delivery',        label: 'Delivery',            desc: 'Órdenes a domicilio, zonas, tracking',                               price: 150, icon: '🛵' },
-  { key: 'multiSucursal',   label: 'Multi-sucursal',      desc: 'Hasta 5 sucursales, dashboard centralizado',                         price: 350, icon: '🏪' },
+  { key: 'recursosHumanos', label: 'RRHH',                desc: 'Nómina, turnos, vacaciones, permisos, prima cost',                    price: 200, icon: '👥' },
+  { key: 'delivery',        label: 'Delivery',            desc: 'Órdenes a domicilio con integración a plataformas externas',          price: 250, icon: '🛵' },
+  { key: 'multiSucursal',   label: 'Multi-sucursal',      desc: '3–5 sucursales, dashboard centralizado. Suc. 6+: $350/mes c/u',      price: 350, icon: '🏪' },
 ];
 
 export const BASE_PRICE = 399; // POS + KDS incluido
@@ -44,7 +44,7 @@ export const BASE_PRICE = 399; // POS + KDS incluido
 // ── Planes bundle ─────────────────────────────────────────────────────────────
 export const PLAN_FEATURES: Record<string, (keyof Features)[]> = {
   operacion: ['meseroMovil'],
-  negocio:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','extrasStore','reportes','alarmas'],
+  negocio:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','extrasStore','reportes','alarmas','recursosHumanos'],
   empresa:   ['meseroMovil','inventario','gastos','reservaciones','lealtad','extrasStore','reportes','alarmas','recursosHumanos','delivery','multiSucursal'],
 };
 
@@ -61,6 +61,33 @@ export const PLAN_PRICES: Record<string, number> = {
   negocio:   1299,
   empresa:   2199,
 };
+
+// ── Multi-sucursal: precio por sucursal adicional ─────────────────────────────
+// Plan Empresa incluye 2 sucursales.
+// Módulo multiSucursal activa hasta 5 (+$350/mes).
+// Sucursales 6-10: +$350/mes cada una.
+// Sucursales 11+:  +$250/mes cada una (descuento por volumen).
+export const MULTI_SUCURSAL_PRICING = {
+  incluidas:          2,    // sucursales incluidas en plan Empresa sin costo extra
+  modulo_hasta_5:     350,  // precio del módulo multiSucursal (activa hasta 5 suc)
+  precio_suc_6_10:    350,  // MXN/mes por cada sucursal 6-10
+  precio_suc_11_plus: 250,  // MXN/mes por cada sucursal 11+
+} as const;
+
+export function calcMultiSucursalPrice(totalSucursales: number): number {
+  if (totalSucursales <= 2) return 0;
+  if (totalSucursales <= 5) return MULTI_SUCURSAL_PRICING.modulo_hasta_5;
+  const suc_6_10   = Math.min(totalSucursales - 5, 5);
+  const suc_11plus = Math.max(totalSucursales - 10, 0);
+  return MULTI_SUCURSAL_PRICING.modulo_hasta_5
+    + suc_6_10   * MULTI_SUCURSAL_PRICING.precio_suc_6_10
+    + suc_11plus * MULTI_SUCURSAL_PRICING.precio_suc_11_plus;
+}
+
+// ── Precio total del plan Empresa con N sucursales ────────────────────────────
+export function calcEmpresaTotalPrice(totalSucursales: number): number {
+  return PLAN_PRICES.empresa + calcMultiSucursalPrice(totalSucursales);
+}
 
 export const PLAN_COLORS: Record<string, string> = {
   medida:    '#60a5fa',
