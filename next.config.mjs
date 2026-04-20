@@ -29,7 +29,7 @@ const nextConfig = {
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com`,
       `font-src 'self' https://fonts.gstatic.com`,
       `img-src 'self' data: blob: https://${supabaseHost} https://*.cartocdn.com https://*.openstreetmap.org https://unpkg.com`,
-      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org`,
+      `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://nominatim.openstreetmap.org https://*.ingest.sentry.io https://*.ingest.us.sentry.io`,
       `worker-src 'self' blob:`,
       `frame-src 'none'`,
       `frame-ancestors 'self'`,
