@@ -1,0 +1,69 @@
+name: E2E Tests (Producción)
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Production"]
+    types: [completed]
+
+jobs:
+  e2e:
+    name: Playwright E2E — aldente.vercel.app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    env:
+      PLAYWRIGHT_BASE_URL: https://aldente.vercel.app
+      TEST_TENANT_SLUG: ${{ secrets.TEST_TENANT_SLUG }}
+      TEST_ADMIN_PIN: ${{ secrets.TEST_ADMIN_PIN }}
+      TEST_USER_NAME: ${{ secrets.TEST_USER_NAME || 'Admin' }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npx playwright test --reporter=html,list
+        continue-on-error: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload screenshots de fallos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-screenshots-${{ github.run_id }}
+          path: test-results/
+          retention-days: 14
+
+      - name: Resumen de resultados
+        if: always()
+        run: |
+          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Base URL: $PLAYWRIGHT_BASE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "Tenant: $TEST_TENANT_SLUG" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ver artefacto 'playwright-report' para el reporte completo." >> $GITHUB_STEP_SUMMARY
