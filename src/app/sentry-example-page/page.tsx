@@ -8,11 +8,13 @@ export default function SentryTestPage() {
   const [dsn, setDsn] = useState('');
 
   useEffect(() => {
-    const d = process.env.NEXT_PUBLIC_SENTRY_DSN ?? '';
-    setDsn(d ? d.slice(0, 40) + '...' : 'NO CONFIGURADO');
+    const fromEnv = process.env.NEXT_PUBLIC_SENTRY_DSN ?? '';
+    const hardcoded = 'https://c484992d71784b7a0f6fd00c75d2078a@o4511253102788608.ingest.us.sentry.io/4511254691512320';
+    const d = fromEnv || hardcoded;
+    setDsn(d.slice(0, 50) + '...');
     setLog(prev => [
       ...prev,
-      d ? '✅ DSN encontrado' : '❌ NEXT_PUBLIC_SENTRY_DSN no disponible en el cliente',
+      fromEnv ? '✅ DSN desde env var' : '⚠️ DSN hardcodeado (env var no disponible)',
       `NODE_ENV: ${process.env.NODE_ENV ?? 'undefined'}`,
       `VERCEL_ENV: ${process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'undefined'}`,
       `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ presente' : '❌ ausente'}`,
