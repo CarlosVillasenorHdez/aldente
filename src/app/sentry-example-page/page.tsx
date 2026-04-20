@@ -1,97 +1,88 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+const SENTRY_DSN = 'https://c484992d71784b7a0f6fd00c75d2078a@o4511253102788608.ingest.us.sentry.io/4511254691512320';
 
 export default function SentryTestPage() {
   const [log, setLog] = useState<string[]>([]);
-  const [dsn, setDsn] = useState('');
+
+  const add = (msg: string) => setLog(prev => [...prev, msg]);
 
   useEffect(() => {
-    const fromEnv = process.env.NEXT_PUBLIC_SENTRY_DSN ?? '';
-    const hardcoded = 'https://c484992d71784b7a0f6fd00c75d2078a@o4511253102788608.ingest.us.sentry.io/4511254691512320';
-    const d = fromEnv || hardcoded;
-    setDsn(d.slice(0, 50) + '...');
-    setLog(prev => [
-      ...prev,
-      fromEnv ? '✅ DSN desde env var' : '⚠️ DSN hardcodeado (env var no disponible)',
-      `NODE_ENV: ${process.env.NODE_ENV ?? 'undefined'}`,
-      `VERCEL_ENV: ${process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'undefined'}`,
-      `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ presente' : '❌ ausente'}`,
-      `SENTRY_TEST: ${(process.env as any).NEXT_PUBLIC_SENTRY_TEST ?? '❌ ausente'}`,
-    ]);
+    add(`NODE_ENV: ${process.env.NODE_ENV}`);
+    add(`DSN hardcodeado: ${SENTRY_DSN.slice(0, 50)}...`);
   }, []);
 
-  const addLog = (msg: string) => setLog(prev => [...prev, msg]);
-
-  const testCapture = () => {
+  const testFetch = async () => {
+    add('⏳ Enviando evento directo a la API de Sentry...');
     try {
-      addLog('⏳ Enviando error a Sentry...');
-      const eventId = Sentry.captureException(
-        new Error('Test Aldente ERP — ' + new Date().toISOString())
-      );
-      addLog(eventId
-        ? `✅ Enviado — event ID: ${eventId}`
-        : '❌ Sentry.captureException devolvió vacío — Sentry no inicializado');
+      // Enviar evento directo a la API de Sentry sin SDK
+      const projectId = '4511254691512320';
+      const key = 'c484992d71784b7a0f6fd00c75d2078a';
+      const url = `https://o4511253102788608.ingest.us.sentry.io/api/${projectId}/envelope/`;
+
+      const envelope = `{"dsn":"${SENTRY_DSN}","sdk":{"name":"sentry.javascript.nextjs","version":"10.0.0"}}
+{"type":"event"}
+{"event_id":"${crypto.randomUUID().replace(/-/g,'')}","level":"error","message":"Test directo Aldente ERP ${new Date().toISOString()}","platform":"javascript","environment":"production"}`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-sentry-envelope',
+          'X-Sentry-Auth': `Sentry sentry_version=7,sentry_client=aldente/1.0,sentry_key=${key}`,
+        },
+        body: envelope,
+      });
+
+      add(res.ok ? `✅ HTTP ${res.status} — evento enviado directo a Sentry` : `❌ HTTP ${res.status} — ${await res.text()}`);
     } catch (e: any) {
-      addLog('❌ Error: ' + e.message);
+      add('❌ Error: ' + e.message);
     }
   };
 
-  const testMessage = () => {
-    addLog('⏳ Enviando mensaje...');
-    const eventId = Sentry.captureMessage('Test message Aldente — ' + new Date().toISOString(), 'info');
-    addLog(eventId ? `✅ Mensaje enviado — ${eventId}` : '❌ No enviado');
-  };
-
-  const testUnhandled = () => {
-    addLog('⏳ Lanzando error no capturado...');
-    setTimeout(() => { throw new Error('Unhandled test — Aldente Sentry'); }, 100);
-  };
-
-  const box: React.CSSProperties = {
-    background: '#0d1b2a', border: '1px solid #1e2d3d',
-    borderRadius: 12, padding: '20px 24px', width: '100%', maxWidth: 560,
+  const testSdk = async () => {
+    add('⏳ Cargando SDK de Sentry...');
+    try {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.init({ dsn: SENTRY_DSN, enabled: true, environment: 'production' });
+      const id = Sentry.captureMessage('Test SDK Aldente ' + new Date().toISOString(), 'error');
+      add(id ? `✅ SDK — event ID: ${id}` : '❌ SDK devolvió ID vacío');
+    } catch (e: any) {
+      add('❌ SDK error: ' + e.message);
+    }
   };
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background:'#060d18', flexDirection:'column', gap:16, padding:24 }}>
-      <h1 style={{ color:'#f1f5f9', fontSize:20, fontWeight:700 }}>Sentry — Diagnóstico</h1>
+      background:'#060d18', flexDirection:'column', gap:12, padding:24 }}>
+      <h1 style={{ color:'#f1f5f9', fontSize:20, fontWeight:700 }}>Sentry — Diagnóstico v3</h1>
 
-      <div style={box}>
-        <p style={{ color:'#64748b', fontSize:12, marginBottom:8 }}>DSN configurado:</p>
-        <code style={{ color: dsn.includes('NO') ? '#ef4444':'#4ade80', fontSize:11 }}>{dsn}</code>
-      </div>
-
-      <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
-        <button onClick={testCapture} style={{ padding:'10px 18px', borderRadius:8, background:'#2563eb',
+      <div style={{ display:'flex', gap:8 }}>
+        <button onClick={testFetch} style={{ padding:'10px 18px', borderRadius:8, background:'#059669',
           color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
-          captureException
+          Envío directo (fetch)
         </button>
-        <button onClick={testMessage} style={{ padding:'10px 18px', borderRadius:8, background:'#7c3aed',
+        <button onClick={testSdk} style={{ padding:'10px 18px', borderRadius:8, background:'#2563eb',
           color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
-          captureMessage
-        </button>
-        <button onClick={testUnhandled} style={{ padding:'10px 18px', borderRadius:8, background:'#dc2626',
-          color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
-          Error no capturado
+          Via SDK
         </button>
       </div>
 
-      <div style={{ ...box, fontFamily:'monospace' }}>
+      <div style={{ background:'#0d1b2a', border:'1px solid #1e2d3d', borderRadius:10,
+        padding:'16px 20px', width:'100%', maxWidth:560, fontFamily:'monospace' }}>
         <p style={{ color:'#475569', fontSize:11, marginBottom:8 }}>Log:</p>
-        {log.length === 0
-          ? <p style={{ color:'#334155', fontSize:12 }}>Sin actividad aún</p>
-          : log.map((l, i) => (
-            <p key={i} style={{ color: l.startsWith('✅') ? '#4ade80' : l.startsWith('❌') ? '#ef4444' : '#94a3b8',
-              fontSize:12, margin:'2px 0' }}>{l}</p>
-          ))}
+        {log.map((l, i) => (
+          <p key={i} style={{ fontSize:12, margin:'2px 0',
+            color: l.startsWith('✅') ? '#4ade80' : l.startsWith('❌') ? '#ef4444' : '#94a3b8' }}>
+            {l}
+          </p>
+        ))}
       </div>
 
-      <p style={{ color:'#334155', fontSize:11, textAlign:'center', maxWidth:400 }}>
-        Si el event ID aparece en el log, el error llegó a Sentry.<br/>
-        Ve a sentry.io → Issues para confirmarlo.
+      <p style={{ color:'#334155', fontSize:11, textAlign:'center' }}>
+        "Envío directo" bypasea el SDK y habla con Sentry directamente.<br/>
+        Si da ✅, Sentry está activo. Si da ❌, el DSN está mal.
       </p>
     </div>
   );
