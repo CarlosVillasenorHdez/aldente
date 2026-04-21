@@ -47,13 +47,14 @@ function isExpired(expiresAt: string | null): boolean {
 }
 
 interface Props {
-  loyaltyEnabled: boolean;
-  benefitLabel:   string;          // de useLoyaltyConfig — etiqueta del beneficio activo
-  onConfirm:      (name: string, memberId?: string) => void;
-  onCancel:       () => void;
+  loyaltyEnabled:   boolean;
+  benefitLabel:     string;
+  benefitProductId: string;        // UUID del producto gratis configurado
+  onConfirm:        (name: string, memberId?: string, benefitProductId?: string) => void;
+  onCancel:         () => void;
 }
 
-export default function TakeoutModal({ loyaltyEnabled, benefitLabel, onConfirm, onCancel }: Props) {
+export default function TakeoutModal({ loyaltyEnabled, benefitLabel, benefitProductId, onConfirm, onCancel }: Props) {
   const supabase = createClient();
   const nameRef  = useRef<HTMLInputElement>(null);
 
@@ -114,7 +115,9 @@ export default function TakeoutModal({ loyaltyEnabled, benefitLabel, onConfirm, 
 
   const handleConfirm = () => {
     const finalName = name.trim() || (member?.name ?? '');
-    onConfirm(finalName, member?.id);
+    // Pasar benefitProductId solo si el socio está activo y el beneficio está disponible hoy
+    const shouldAddBenefit = member && active && benefitAvail && benefitProductId;
+    onConfirm(finalName, member?.id, shouldAddBenefit ? benefitProductId : undefined);
   };
 
   const active      = member?.isActive && !isExpired(member.membershipExpiresAt);

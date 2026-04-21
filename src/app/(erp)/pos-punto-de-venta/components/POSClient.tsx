@@ -751,7 +751,7 @@ export default function POSClient() {
   };
 
   // ── Para Llevar: create order without a physical table ────────────────────
-  const handleCreateTakeout = async (customerName: string) => {
+  const handleCreateTakeout = async (customerName: string, memberId?: string, benefitProductId?: string) => {
     const orderId = `ORD-${Date.now()}`;
     const now = new Date().toISOString();
     const waiterName = appUser?.fullName ?? 'Administrador';
@@ -788,7 +788,6 @@ export default function POSClient() {
 
     if (orderErr) {
       if (!navigator.onLine) {
-        // Queue the order creation for when connectivity returns
         await enqueue({ table: 'orders', op: 'insert', payload: {
           tenant_id: getTenantId(), id: orderId,
           mesa: displayName, mesa_num: 0, mesero: waiterName,
@@ -806,7 +805,6 @@ export default function POSClient() {
     }
 
     setSelectedTable(takeoutTable);
-    setOrderItems([]);
     setKitchenSent(false);
     setIsOnHold(false);
     setDeliveredLineIds(new Set());
@@ -815,6 +813,42 @@ export default function POSClient() {
     setView('menu');
     setShowTakeoutModal(false);
     setTakeoutNameInput('');
+
+    // ── Auto-agregar el beneficio gratis si aplica ─────────────────────────
+    if (memberId && benefitProductId) {
+      const { data: dish } = await supabase
+        .from('dishes')
+        .select('id,name,category,price,emoji,description,available')
+        .eq('id', benefitProductId)
+        .single();
+
+      if (dish) {
+        const benefitItem: OrderItem = {
+          lineId: `benefit-${Date.now()}`,
+          menuItem: {
+            id: dish.id, name: dish.name, category: dish.category ?? '',
+            price: dish.price, description: dish.description ?? '',
+            available: dish.available, emoji: dish.emoji ?? '☕',
+          },
+          quantity: 1,
+          notes: '🎁 Beneficio del día — sin costo',
+          priceDelta: -(dish.price),  // descuento total = precio completo → $0
+        };
+        setOrderItems([benefitItem]);
+
+        // Marcar el beneficio como usado en la DB
+        await supabase.rpc('loyalty_use_daily_benefit', {
+          p_customer_id:   memberId,
+          p_branch_id:     activeBranch ?? null,
+          p_registered_by: waiterName,
+          p_benefit_type:  'cafe_gratis',
+        });
+        toast.success('☕ Beneficio del día agregado a la comanda');
+      }
+    } else {
+      setOrderItems([]);
+    }
+
     toast.success(`🥡 Orden para llevar${customerName.trim() ? ` — ${customerName.trim()}` : ' creada'}`);
   };
 
@@ -1836,9 +1870,6 @@ export default function POSClient() {
                     <div className="w-2 h-2 rounded-full bg-amber-400" />
                     <span className="font-semibold text-amber-800">{mergeGroupLabel ?? selectedTable.name} — {itemCount} items</span>
                   </div>
-                  <button onClick={() => { setSelectedTable(null); setOrderItems([]); setView('tables'); }} className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1">
-                    Cambiar mesa
-                  </button>
                 </div>
               )}
 
@@ -2149,10 +2180,11 @@ export default function POSClient() {
         <TakeoutModal
           loyaltyEnabled={features.lealtad}
           benefitLabel={loyaltyConfig.membership.freeProductLabel || 'Beneficio del día'}
-          onConfirm={(name) => {
+          benefitProductId={loyaltyConfig.membership.freeProductId || ''}
+          onConfirm={(name, memberId, benefitAvailable) => {
             setShowTakeoutModal(false);
             setTakeoutNameInput('');
-            handleCreateTakeout(name);
+            handleCreateTakeout(name, memberId, benefitAvailable);
           }}
           onCancel={() => { setShowTakeoutModal(false); setTakeoutNameInput(''); }}
         />
