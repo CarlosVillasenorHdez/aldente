@@ -4,7 +4,8 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Search, Coffee, UserPlus, CheckCircle, XCircle, Clock, Phone, Calendar, AlertCircle } from 'lucide-react';
+import { Search, Coffee, UserPlus, CheckCircle, XCircle, Clock, Phone, Calendar, AlertCircle, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/hooks/useBranch';
 import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
 
@@ -65,7 +66,9 @@ function formatDateTime(iso: string | null): string {
 export default function TermoMembership() {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
-  const { config } = useLoyaltyConfig();   // leer duración y tier desde la config
+  const { config } = useLoyaltyConfig();
+  const { appUser } = useAuth();
+  const canDelete = ['admin','gerente','superadmin'].includes(appUser?.appRole ?? '');
 
   const [phoneSearch, setPhoneSearch] = useState('');
   const [searching, setSearching]     = useState(false);
@@ -75,6 +78,8 @@ export default function TermoMembership() {
   const [newForm, setNewForm]         = useState<NewMemberForm>(EMPTY_FORM);
   const [saving, setSaving]           = useState(false);
   const [usingBenefit, setUsingBenefit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting]           = useState(false);
 
   // ── Buscar por teléfono ─────────────────────────────────────────────────────
   const handleSearch = useCallback(async () => {
@@ -182,6 +187,23 @@ export default function TermoMembership() {
       dailyBenefitUsedBranchId: activeBranchId ?? null,
     } : null);
   }, [member, supabase, activeBranchId]);
+
+
+  // ── Eliminar socio (solo admin/gerente) ────────────────────────────────────
+  const handleDelete = useCallback(async () => {
+    if (!member) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from('loyalty_customers')
+      .delete()
+      .eq('id', member.id);
+    setDeleting(false);
+    if (error) { toast.error('Error al eliminar: ' + error.message); return; }
+    toast.success(`${member.name} eliminado del programa`);
+    setMember(null);
+    setConfirmDelete(false);
+    setPhoneSearch('');
+  }, [member, supabase]);
 
   // ── Renovar membresía ───────────────────────────────────────────────────────
   const handleRenew = useCallback(async (months: number) => {
@@ -455,7 +477,7 @@ export default function TermoMembership() {
 
           {/* Acciones — renovar membresía */}
           {status !== 'activo' && (
-            <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800 pt-4">
+            <div className="px-5 pb-3 border-t border-gray-100 dark:border-gray-800 pt-4">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Renovar membresía:</p>
               <div className="flex gap-2 flex-wrap">
                 {[3, 6, 12].map(m => (
@@ -468,6 +490,44 @@ export default function TermoMembership() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Eliminar socio — solo admin/gerente */}
+          {canDelete && (
+            <div className="px-5 pb-5 pt-2">
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-2 text-xs text-red-500 hover:text-red-700 transition-colors"
+                >
+                  <Trash2 size={13} /> Eliminar del programa
+                </button>
+              ) : (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
+                    ¿Eliminar a {member?.name} del programa?
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+                    Esta acción es permanente. Se eliminará su historial de beneficios.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="flex-1 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="flex-1 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors"
+                    >
+                      {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,32 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Star, Users, Gift, ChevronRight, ChevronLeft, Check, Info,
          Plus, Trash2, Edit3 } from 'lucide-react';
-import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
+import { useLoyaltyConfig, MembershipTier, MembershipTierBenefits, DEFAULT_TIER_BENEFITS } from '@/hooks/useLoyaltyConfig';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
-export interface TierBenefits {
-  freeProduct:  { enabled: boolean; productId: string; freq: 'diario'|'visita'|'semanal'; label: string };
-  discount:     { enabled: boolean; pct: number; scope: 'orden'|'platillos'; auto: boolean };
-  priceTag:     { enabled: boolean; label: string };
-  points:       { enabled: boolean; multiplier: number };
-  birthday:     { enabled: boolean; type: 'descuento'|'producto_gratis'; discountPct: number; productId: string; label: string };
-}
-
-export interface MembershipTier {
-  id:                string;
-  name:              string;
-  color:             string;
-  trigger:           'manual'|'venta_producto'|'pago_directo';
-  triggerProductId:  string;
-  price:             number;
-  durationMonths:    number;
-  benefits:          TierBenefits;
-}
+// Tipos importados desde el hook para consistencia de tipos
 
 const COLORS = [
   { id: 'amber',  hex: '#D97706', label: 'Ámbar'   },
@@ -37,18 +19,12 @@ const COLORS = [
   { id: 'green',  hex: '#059669', label: 'Verde'   },
 ];
 
-const DEFAULT_BENEFITS = (): TierBenefits => ({
-  freeProduct: { enabled: false, productId: '', freq: 'diario',   label: 'Bebida del día'      },
-  discount:    { enabled: false, pct: 0,  scope: 'orden', auto: true                           },
-  priceTag:    { enabled: false, label: 'Precio de socio'                                      },
-  points:      { enabled: false, multiplier: 2                                                 },
-  birthday:    { enabled: false, type: 'descuento', discountPct: 0, productId: '', label: '¡Feliz cumpleaños!' },
-});
+// DEFAULT_TIER_BENEFITS viene del hook como DEFAULT_TIER_BENEFITS
 
 const NEW_TIER = (): MembershipTier => ({
-  id: `tier_${Date.now()}`, name: '', color: 'amber',
+  id: `tier_${Date.now()}`, name: '', color: '#D97706', order: 1,
   trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12,
-  benefits: DEFAULT_BENEFITS(),
+  benefits: { ...DEFAULT_TIER_BENEFITS },
 });
 
 // ── Estilos base ──────────────────────────────────────────────────────────────
@@ -93,48 +69,47 @@ const ProductSelect = ({ value, onSelect, dishes }: { value: string; onSelect: (
 
 // ── Editor de beneficios ──────────────────────────────────────────────────────
 function BenefitsEditor({ benefits: b, onChange, dishes }: {
-  benefits: TierBenefits; onChange: (b: TierBenefits) => void; dishes: Dish[];
+  benefits: MembershipTierBenefits; onChange: (b: MembershipTierBenefits) => void; dishes: Dish[];
 }) {
-  const fp = b.freeProduct, di = b.discount, pt = b.priceTag, po = b.points, bd = b.birthday;
-  const upd = (patch: Partial<TierBenefits>) => onChange({ ...b, ...patch });
+  const upd = (patch: Partial<MembershipTierBenefits>) => onChange({ ...b, ...patch });
 
   return (
     <div className="space-y-3">
       {/* Producto gratis */}
-      <div className={CARD(fp.enabled, 'amber')}>
-        <Toggle on={fp.enabled} onChange={v => upd({ freeProduct: { ...fp, enabled: v } })} label="Bebida o platillo gratis" />
-        {fp.enabled && <div className="mt-3 space-y-3 pl-14">
-          <div><label className={LBL}>¿Qué producto?</label><ProductSelect value={fp.productId} onSelect={id => upd({ freeProduct: { ...fp, productId: id } })} dishes={dishes} /></div>
+      <div className={CARD(b.freeProductEnabled, 'amber')}>
+        <Toggle on={b.freeProductEnabled} onChange={v => upd({ freeProductEnabled: v })} label="Bebida o platillo gratis" />
+        {b.freeProductEnabled && <div className="mt-3 space-y-3 pl-14">
+          <div><label className={LBL}>¿Qué producto?</label><ProductSelect value={b.freeProductId} onSelect={id => upd({ freeProductId: id })} dishes={dishes} /></div>
           <div><label className={LBL}>Frecuencia</label>
-            <select className={SEL} value={fp.freq} onChange={e => upd({ freeProduct: { ...fp, freq: e.target.value as any } })}>
+            <select className={SEL} value={b.freeProductFreq} onChange={e => upd({ freeProductFreq: e.target.value as any })}>
               <option value="diario">Una vez al día</option>
               <option value="visita">Una vez por visita (ilimitado)</option>
               <option value="semanal">Una vez por semana</option>
             </select>
           </div>
           <div><label className={LBL}>Etiqueta en el POS</label>
-            <input className={INP} placeholder="Café del día" value={fp.label} onChange={e => upd({ freeProduct: { ...fp, label: e.target.value } })} />
+            <input className={INP} placeholder="Café del día" value={b.freeProductLabel} onChange={e => upd({ freeProductLabel: e.target.value })} />
           </div>
-          {fp.freq !== 'visita' && <Tip text="Cross-sucursal: el contador es compartido en todas las sucursales del restaurante." />}
+          {b.freeProductFreq !== 'visita' && <Tip text="Cross-sucursal: el contador es compartido en todas las sucursales del restaurante." />}
         </div>}
       </div>
 
       {/* Descuento */}
-      <div className={CARD(di.enabled, 'green')}>
-        <Toggle on={di.enabled} onChange={v => upd({ discount: { ...di, enabled: v } })} label="Descuento en sus compras" />
-        {di.enabled && <div className="mt-3 space-y-3 pl-14">
+      <div className={CARD(b.discountEnabled, 'green')}>
+        <Toggle on={b.discountEnabled} onChange={v => upd({ discountEnabled: v })} label="Descuento en sus compras" />
+        {b.discountEnabled && <div className="mt-3 space-y-3 pl-14">
           <div className="flex items-center gap-3">
-            <input type="number" min={1} max={80} className={INP + ' max-w-[100px]'} value={di.pct} onChange={e => upd({ discount: { ...di, pct: Number(e.target.value) } })} />
+            <input type="number" min={1} max={80} className={INP + ' max-w-[100px]'} value={b.discountPct} onChange={e => upd({ discountPct: Number(e.target.value) })} />
             <span className="text-gray-300 text-sm">% de descuento</span>
           </div>
           <div><label className={LBL}>¿Sobre qué aplica?</label>
-            <select className={SEL} value={di.scope} onChange={e => upd({ discount: { ...di, scope: e.target.value as any } })}>
+            <select className={SEL} value={b.discountScope} onChange={e => upd({ discountScope: e.target.value as any })}>
               <option value="orden">Toda la orden (platillos + bebidas + extras)</option>
               <option value="platillos">Solo platillos del menú</option>
             </select>
           </div>
           <div><label className={LBL}>¿Cómo se aplica?</label>
-            <select className={SEL} value={di.auto ? 'auto' : 'manual'} onChange={e => upd({ discount: { ...di, auto: e.target.value === 'auto' } })}>
+            <select className={SEL} value={b.discountAuto ? 'auto' : 'manual'} onChange={e => upd({ discountAuto: e.target.value === 'auto' })}>
               <option value="auto">Automático — siempre que el socio compre</option>
               <option value="manual">El cajero lo activa cuando el socio lo solicita</option>
             </select>
@@ -143,21 +118,21 @@ function BenefitsEditor({ benefits: b, onChange, dishes }: {
       </div>
 
       {/* Precio especial */}
-      <div className={CARD(pt.enabled, 'blue')}>
-        <Toggle on={pt.enabled} onChange={v => upd({ priceTag: { ...pt, enabled: v } })} label="Precio especial de socio" />
-        {pt.enabled && <div className="mt-3 space-y-2 pl-14">
+      <div className={CARD(b.priceTagEnabled, 'blue')}>
+        <Toggle on={b.priceTagEnabled} onChange={v => upd({ priceTagEnabled: v })} label="Precio especial de socio" />
+        {b.priceTagEnabled && <div className="mt-3 space-y-2 pl-14">
           <label className={LBL}>Etiqueta para el cajero</label>
-          <input className={INP} placeholder="Precio de socio" value={pt.label} onChange={e => upd({ priceTag: { ...pt, label: e.target.value } })} />
+          <input className={INP} placeholder="Precio de socio" value={b.priceTagLabel} onChange={e => upd({ birthdayLabel: e.target.value })} />
           <Tip text="El cajero ve esta etiqueta en azul y aplica el precio manualmente según tu política." />
         </div>}
       </div>
 
       {/* Puntos extra */}
-      <div className={CARD(po.enabled, 'purple')}>
-        <Toggle on={po.enabled} onChange={v => upd({ points: { ...po, enabled: v } })} label="Acumula puntos más rápido" />
-        {po.enabled && <div className="mt-3 pl-14">
+      <div className={CARD(b.pointsEnabled, 'purple')}>
+        <Toggle on={b.pointsEnabled} onChange={v => upd({ pointsEnabled: v })} label="Acumula puntos más rápido" />
+        {b.pointsEnabled && <div className="mt-3 pl-14">
           <label className={LBL}>Multiplicador</label>
-          <select className={SEL} value={po.multiplier} onChange={e => upd({ points: { ...po, multiplier: Number(e.target.value) } })}>
+          <select className={SEL} value={b.pointsMultiplier} onChange={e => upd({ pointsMultiplier: Number(e.target.value) })}>
             <option value={1.5}>1.5x — 50% más puntos</option>
             <option value={2}>2x — el doble de puntos</option>
             <option value={3}>3x — el triple de puntos</option>
@@ -166,27 +141,27 @@ function BenefitsEditor({ benefits: b, onChange, dishes }: {
       </div>
 
       {/* Cumpleaños */}
-      <div className={CARD(bd.enabled, 'pink')}>
-        <Toggle on={bd.enabled} onChange={v => upd({ birthday: { ...bd, enabled: v } })} label="Beneficio especial de cumpleaños 🎂" />
-        {bd.enabled && <div className="mt-3 space-y-3 pl-14">
+      <div className={CARD(b.birthdayEnabled, 'pink')}>
+        <Toggle on={b.birthdayEnabled} onChange={v => upd({ birthdayEnabled: v })} label="Beneficio especial de cumpleaños 🎂" />
+        {b.birthdayEnabled && <div className="mt-3 space-y-3 pl-14">
           <Tip text="El sistema avisa automáticamente al cajero cuando el socio visita en su cumpleaños." />
           <div><label className={LBL}>¿Qué recibe?</label>
-            <select className={SEL} value={bd.type} onChange={e => upd({ birthday: { ...bd, type: e.target.value as any } })}>
+            <select className={SEL} value={b.birthdayType} onChange={e => upd({ birthdayType: e.target.value as any })}>
               <option value="descuento">Descuento especial ese día</option>
               <option value="producto_gratis">Producto gratis ese día</option>
             </select>
           </div>
-          {bd.type === 'descuento' && (
+          {b.birthdayType === 'descuento' && (
             <div className="flex items-center gap-3">
-              <input type="number" min={1} max={100} className={INP + ' max-w-[100px]'} value={bd.discountPct} onChange={e => upd({ birthday: { ...bd, discountPct: Number(e.target.value) } })} />
+              <input type="number" min={1} max={100} className={INP + ' max-w-[100px]'} value={b.birthdayDiscountPct} onChange={e => upd({ birthdayDiscountPct: Number(e.target.value) })} />
               <span className="text-gray-300 text-sm">% de descuento</span>
             </div>
           )}
-          {bd.type === 'producto_gratis' && (
-            <div><label className={LBL}>¿Qué producto?</label><ProductSelect value={bd.productId} onSelect={id => upd({ birthday: { ...bd, productId: id } })} dishes={dishes} /></div>
+          {b.birthdayType === 'producto_gratis' && (
+            <div><label className={LBL}>¿Qué producto?</label><ProductSelect value={b.birthdayProductId} onSelect={id => upd({ birthdayProductId: id })} dishes={dishes} /></div>
           )}
           <div><label className={LBL}>Mensaje para el cajero</label>
-            <input className={INP} placeholder="¡Feliz cumpleaños! Aplica descuento especial" value={bd.label} onChange={e => upd({ birthday: { ...bd, label: e.target.value } })} />
+            <input className={INP} placeholder="¡Feliz cumpleaños! Aplica descuento especial" value={b.birthdayLabel} onChange={e => upd({ birthdayLabel: e.target.value })} />
           </div>
         </div>}
       </div>
@@ -197,18 +172,18 @@ function BenefitsEditor({ benefits: b, onChange, dishes }: {
 // ── Preview del cajero ────────────────────────────────────────────────────────
 function CajeroPreview({ tier }: { tier: MembershipTier }) {
   const b = tier.benefits;
-  const any = b.freeProduct.enabled || b.discount.enabled || b.priceTag.enabled || b.points.enabled || b.birthday.enabled;
+  const any = b.freeProductEnabled || b.discountEnabled || b.priceTagEnabled || b.pointsEnabled || b.birthdayEnabled;
   if (!any) return null;
   const hex = COLORS.find(c => c.id === tier.color)?.hex ?? '#D97706';
   return (
     <div className="p-4 bg-[#0d1720] border border-[#2a3f5f] rounded-xl">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Vista del cajero en el POS:</p>
       <p className="text-sm text-gray-300 mb-1.5">👤 Ana García — <span className="font-bold" style={{ color: hex }}>SOCIA {(tier.name || 'NIVEL').toUpperCase()}</span></p>
-      {b.freeProduct.enabled && <p className="text-sm text-amber-400">☕ {b.freeProduct.label || 'Bebida del día'} — DISPONIBLE HOY</p>}
-      {b.priceTag.enabled && <p className="text-sm text-blue-400">🏷️ {b.priceTag.label || 'Precio de socio'}</p>}
-      {b.discount.enabled && b.discount.pct > 0 && <p className="text-sm text-green-400">💚 {b.discount.pct}% {b.discount.auto ? '(automático)' : '(el cajero activa)'}</p>}
-      {b.points.enabled && <p className="text-sm text-purple-400">⭐ Acumula puntos {b.points.multiplier}x</p>}
-      {b.birthday.enabled && <p className="text-sm text-pink-400">🎂 HOY ES SU CUMPLEAÑOS — {b.birthday.label}</p>}
+      {b.freeProductEnabled && <p className="text-sm text-amber-400">☕ {b.freeProductLabel || 'Bebida del día'} — DISPONIBLE HOY</p>}
+      {b.priceTagEnabled && <p className="text-sm text-blue-400">🏷️ {b.priceTagLabel || 'Precio de socio'}</p>}
+      {b.discountEnabled && b.discountPct > 0 && <p className="text-sm text-green-400">💚 {b.discountPct}% {b.discountAuto ? '(automático)' : '(el cajero activa)'}</p>}
+      {b.pointsEnabled && <p className="text-sm text-purple-400">⭐ Acumula puntos {b.pointsMultiplier}x</p>}
+      {b.birthdayEnabled && <p className="text-sm text-pink-400">🎂 HOY ES SU CUMPLEAÑOS — {b.birthdayLabel}</p>}
     </div>
   );
 }
@@ -219,7 +194,8 @@ type Step = 'overview' | 'points' | 'tiers' | 'tier_edit';
 export default function LoyaltyConfig() {
   const { appUser } = useAuth();
   const { config, loading, saving, save } = useLoyaltyConfig(appUser?.tenantId);
-  const supabase = createClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), []);  // estable — no recrear en cada render
 
   const [draft, setDraft]         = useState(config);
   const [tiers, setTiers]         = useState<MembershipTier[]>([]);
@@ -258,7 +234,10 @@ export default function LoyaltyConfig() {
     setTiers(next); setSavingT(false); toast.success('Niveles guardados');
   }, [supabase, appUser?.tenantId]);
 
-  const saveConfig = async () => { await save(draft); toast.success('Configuración guardada'); };
+  const saveConfig = async () => {
+    await save({ ...draft, tiers });   // incluir tiers del estado local
+    toast.success('Configuración guardada');
+  };
 
   if (loading || !draft) return <div className="text-sm text-gray-400 py-12 text-center">Cargando configuración...</div>;
 
