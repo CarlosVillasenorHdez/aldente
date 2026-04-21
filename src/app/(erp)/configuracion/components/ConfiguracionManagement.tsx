@@ -9,7 +9,8 @@ import ConfigSistema      from './sections/ConfigSistema';
 import AuditLog           from './sections/AuditLog';
 import ConfigPlan         from './sections/ConfigPlan';
 import ConfigEstablecimiento from './sections/ConfigEstablecimiento';
-import MisDatos           from './sections/MisDatos';
+import ConfigLealtad        from './sections/ConfigLealtad';
+import MisDatos             from './sections/MisDatos';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -43,6 +44,7 @@ function resolveComponent(section: SectionId): string {
   if (section === 'restaurante' || section === 'operacion') return 'restaurante';
   if (section === 'layout') return 'layout';
   if (section === 'horarios' || section === 'impresora' || section === 'costos') return 'operaciones';
+  if (section === 'lealtad_config') return 'lealtad';
   if (section === 'auditoria') return 'auditoria';
   if (section === 'mis-datos') return 'mis-datos';
   return 'sistema';
@@ -110,6 +112,7 @@ export default function ConfiguracionManagement() {
           {activeComponent === 'layout'      && <ConfigLayout />}
           {activeComponent === 'operaciones' && <ConfigOperaciones activeSection={activeSection} />}
           {activeComponent === 'sistema'     && <ConfigSistema activeSection={activeSection} />}
+          {activeComponent === 'lealtad'     && <ConfigLealtad />}
           {activeComponent === 'auditoria'    && <AuditLog />}
           {activeComponent === 'mis-datos'    && <MisDatos activeSection={activeSection} />}
         </div>

@@ -23,6 +23,8 @@ import { useOrderFlow } from '@/hooks/useOrderFlow';
 
 import { Merge, X, QrCode, Coffee } from 'lucide-react';
 import TermoWidget from './TermoWidget';
+import MembershipPopup from './MembershipPopup';
+import { useMembershipTrigger } from '@/hooks/useMembershipTrigger';
 
 export type TableStatus = 'libre' | 'ocupada' | 'espera';
 
@@ -200,6 +202,12 @@ export default function POSClient() {
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showTermoWidget, setShowTermoWidget] = useState(false);
+
+  // Detecta cuando se vende el producto configurado como trigger de membresía
+  const membershipTrigger = useMembershipTrigger(
+    orderItems.map(i => ({ dishId: i.menuItem.id })),
+    selectedTable?.currentOrderId
+  );
   const [kitchenSent, setKitchenSent] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);  // orden guardada pero no enviada a cocina
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -2380,6 +2388,23 @@ export default function POSClient() {
         >
           <TermoWidget onClose={() => setShowTermoWidget(false)} />
         </div>
+      )}
+
+      {/* ── Popup automático de membresía al vender producto trigger ── */}
+      {membershipTrigger.shouldShowPopup && (
+        <MembershipPopup
+          benefitLabel={membershipTrigger.benefitLabel}
+          durationMonths={membershipTrigger.durationMonths}
+          existingMember={membershipTrigger.existingMember}
+          scenario={membershipTrigger.scenario}
+          searching={membershipTrigger.searching}
+          registering={membershipTrigger.registering}
+          onPhoneSearch={membershipTrigger.onPhoneSearch}
+          onRegisterNew={membershipTrigger.onRegisterNew}
+          onRenewExisting={membershipTrigger.onRenewExisting}
+          onSkip={membershipTrigger.onSkip}
+          onDismiss={membershipTrigger.onDismiss}
+        />
       )}
     </>
   );
