@@ -629,6 +629,7 @@ export default function AnalisisFinanciero() {
       { data: ingData },
       { data: abiertasData },
       { data: usersData },
+      { data: extrasData },
     ] = await Promise.all([
       supabase.from('orders').select('total,cost_actual,pay_method,discount,iva,is_cortesia')
         .eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false)
@@ -645,16 +646,24 @@ export default function AnalisisFinanciero() {
       supabase.from('ingredients').select('stock,cost').eq('tenant_id', tid),
       supabase.from('orders').select('id').eq('tenant_id', tid).in('status', ['abierta','preparacion','lista']),
       supabase.from('app_users').select('salary,salary_frequency').eq('tenant_id', tid).eq('is_active', true),
+      supabase.from('extras_sales').select('price,qty,pay_method').eq('tenant_id', tid)
+        .gte('sold_at', start).lte('sold_at', end),
     ]);
 
     // Ventas
     const rows = ordersData ?? [];
-    const totalVentas = rows.reduce((s, o) => s + Number(o.total ?? 0), 0);
+    const extrasRows = extrasData ?? [];
+    // Sumar ventas de extras_sales a los totales
+    const extrasTotal = extrasRows.reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+    const extrasEfec  = extrasRows.filter(e => e.pay_method === 'efectivo').reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+    const extrasTarj  = extrasRows.filter(e => e.pay_method === 'tarjeta').reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+
+    const totalVentas = rows.reduce((s, o) => s + Number(o.total ?? 0), 0) + extrasTotal;
     const totalCogs   = rows.reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
     const totalDesc   = rows.reduce((s, o) => s + Number(o.discount ?? 0), 0);
     const totalIva    = rows.reduce((s, o) => s + Number(o.iva ?? 0), 0);
-    const totalEfec   = rows.filter(o => (o as any).pay_method === 'efectivo' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0);
-    const totalTarj   = rows.filter(o => (o as any).pay_method === 'tarjeta' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0);
+    const totalEfec   = rows.filter(o => (o as any).pay_method === 'efectivo' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0) + extrasEfec;
+    const totalTarj   = rows.filter(o => (o as any).pay_method === 'tarjeta' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0) + extrasTarj;
     const totalCort   = rows.filter(o => o.is_cortesia).length;
     setVentas(totalVentas); setCogs(totalCogs); setDescuentos(totalDesc); setIva(totalIva);
     setVentasEfec(totalEfec); setVentasTarj(totalTarj); setCortesias(totalCort);
