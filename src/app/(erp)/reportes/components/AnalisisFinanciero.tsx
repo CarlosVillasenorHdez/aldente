@@ -569,6 +569,9 @@ export default function AnalisisFinanciero() {
 
   // Raw data
   const [ventas,       setVentas]       = useState(0);
+  const [ventasRest,   setVentasRest]   = useState(0);  // solo restaurante
+  const [ventasExtras, setVentasExtras] = useState(0);  // solo tienda de extras
+  const [cogsExtras,   setCogsExtras]   = useState(0);  // COGS de extras
   const [cogs,         setCogs]         = useState(0);
   const [merma,        setMerma]        = useState(0);
   const [descuentos,   setDescuentos]   = useState(0);
@@ -674,7 +677,9 @@ export default function AnalisisFinanciero() {
     const totalEfec   = rows.filter(o => (o as any).pay_method === 'efectivo' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0) + extrasEfec;
     const totalTarj   = rows.filter(o => (o as any).pay_method === 'tarjeta' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0) + extrasTarj;
     const totalCort   = rows.filter(o => o.is_cortesia).length;
-    setVentas(totalVentas); setCogs(totalCogs); setDescuentos(totalDesc); setIva(totalIva);
+    const ventasRestaurante = rows.reduce((s, o) => s + Number(o.total ?? 0), 0);
+    setVentas(totalVentas); setVentasRest(ventasRestaurante); setVentasExtras(extrasTotal);
+    setCogs(totalCogs); setCogsExtras(extrasCogs); setDescuentos(totalDesc); setIva(totalIva);
     setVentasEfec(totalEfec); setVentasTarj(totalTarj); setCortesias(totalCort);
 
 
@@ -1228,6 +1233,32 @@ ${horizontalHtml}
           )}
 
 
+
+              {/* Desglose de ventas */}
+              {ventasExtras > 0 && (
+                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
+                  <div style={{ padding:'10px 16px', background:'#f9fafb', borderBottom:'1px solid #e5e7eb' }}>
+                    <p style={{ fontSize:12, fontWeight:700, color:'#374151' }}>📊 Desglose de ventas</p>
+                  </div>
+                  <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <span style={{ fontSize:12, color:'#374151' }}>🍽️ Restaurante (platillos)</span>
+                      <span style={{ fontSize:13, fontWeight:700, color:'#1d4ed8', fontFamily:'monospace' }}>${fmt(ventasRest)}</span>
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, borderBottom:'1px solid #f3f4f6' }}>
+                      <div>
+                        <span style={{ fontSize:12, color:'#374151' }}>🛍️ Tienda de extras</span>
+                        {cogsExtras > 0 && <span style={{ fontSize:10, color:'#9ca3af', marginLeft:6 }}>COGS: ${fmt(cogsExtras)}</span>}
+                      </div>
+                      <span style={{ fontSize:13, fontWeight:700, color:'#7c3aed', fontFamily:'monospace' }}>${fmt(ventasExtras)}</span>
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Total</span>
+                      <span style={{ fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'monospace' }}>${fmt(ventas)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
           {/* ── Programa de Lealtad — impacto financiero ── */}
           {activeTab === 'pl' && (loyaltyIncome > 0 || loyaltyCost > 0 || loyaltyDiscount > 0 || loyaltyBenefits > 0) && (
             <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden', marginTop:0 }}>

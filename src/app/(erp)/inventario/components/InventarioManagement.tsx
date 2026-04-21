@@ -391,16 +391,39 @@ export default function InventarioManagement() {
       const smart = ingredients
         .filter(i => i.stock < i.reorderPoint || i.stock < i.minStock * 1.5)
         .map(i => {
-          // Estimate avg daily use from stock movements or use reorderPoint as proxy
           const avgDailyUse = i.reorderPoint > 0 ? i.reorderPoint / 7 : i.minStock / 14;
           const daysLeft = avgDailyUse > 0 ? Math.floor(i.stock / avgDailyUse) : 999;
           const urgency: 'critical'|'soon'|'ok' = daysLeft <= 1 ? 'critical' : daysLeft <= 3 ? 'soon' : 'ok';
           const suggestedQty = Math.max(0, i.reorderPoint * 2 - i.stock);
-          return { id: i.id, name: i.name, unit: i.unit, currentStock: i.stock, minStock: i.minStock, avgDailyUse, daysLeft, suggestedQty, urgency, supplier: i.supplier || '—' };
-        })
-        .sort((a, b) => a.daysLeft - b.daysLeft);
+          return { id: i.id, name: i.name, unit: i.unit, currentStock: i.stock, minStock: i.minStock, avgDailyUse, daysLeft, suggestedQty, urgency, supplier: i.supplier || '—', isExtra: false };
+        });
 
-      setSmartPurchase(smart);
+      // Agregar extras con inventario físico que estén por debajo del punto de reorden
+      const { data: extrasLow } = await supabase
+        .from('extras_catalog')
+        .select('id,name,unidad,stock_actual,stock_minimo,punto_reorden')
+        .eq('tenant_id', getTenantId())
+        .eq('is_active', true)
+        .eq('tracks_inventory', true)
+        .order('nombre');
+
+      const extrasItems = (extrasLow || [])
+        .filter((e: any) => Number(e.stock_actual ?? 0) <= Number(e.punto_reorden ?? 0))
+        .map((e: any) => {
+          const stock = Number(e.stock_actual ?? 0);
+          const minStock = Number(e.stock_minimo ?? 0);
+          const reorder = Number(e.punto_reorden ?? 0);
+          const urgency: 'critical'|'soon'|'ok' = stock <= 0 ? 'critical' : stock <= minStock ? 'soon' : 'ok';
+          return {
+            id: e.id, name: `📦 ${e.name}`, unit: e.unidad ?? 'pieza',
+            currentStock: stock, minStock, avgDailyUse: 0,
+            daysLeft: stock <= 0 ? 0 : 999,
+            suggestedQty: Math.max(1, reorder * 2 - stock),
+            urgency, supplier: '—', isExtra: true,
+          };
+        });
+
+      setSmartPurchase([...smart, ...extrasItems].sort((a, b) => a.daysLeft - b.daysLeft));
     } catch { /* silent */ }
     setLoadingSmartPurchase(false);
   }, [supabase, ingredients]);

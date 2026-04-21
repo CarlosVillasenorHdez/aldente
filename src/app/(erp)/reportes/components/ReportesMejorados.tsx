@@ -48,7 +48,7 @@ export default function ReportesMejorados() {
   const [topProducts, setTopProducts] = useState<ProductStats[]>([]);
   const [bottomProducts, setBottomProducts] = useState<ProductStats[]>([]);
   const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
-  const [kpis, setKpis] = useState({ totalVentas: 0, totalOrdenes: 0, ticketPromedio: 0, totalClientes: 0, utilidadBruta: 0, mermaTotal: 0, margenPct: 0 });
+  const [kpis, setKpis] = useState({ totalVentas: 0, ventasRestaurante: 0, ventasExtras: 0, totalOrdenes: 0, ticketPromedio: 0, totalClientes: 0, utilidadBruta: 0, mermaTotal: 0, margenPct: 0 });
 
   const getDateRange = useCallback((p: Period) => {
     const now = new Date();
@@ -112,7 +112,8 @@ export default function ReportesMejorados() {
         .lte('updated_at', end + 'T23:59:59');
       const mermaTotal = (mermaRows || []).reduce((s, o) => s + Number((o as any).waste_cost ?? 0), 0);
       const margenPct = totalVentas > 0 ? (utilidadBruta / totalVentas) * 100 : 0;
-      setKpis({ totalVentas, totalOrdenes, ticketPromedio, totalClientes: totalOrdenes, utilidadBruta, mermaTotal, margenPct });
+      const ventasRestaurante = orderList.reduce((s, o) => s + Number(o.total), 0);
+      setKpis({ totalVentas, ventasRestaurante, ventasExtras: extrasVentas, totalOrdenes, ticketPromedio, totalClientes: totalOrdenes, utilidadBruta, mermaTotal, margenPct });
 
       // Sales trend
       const trendMap: Record<string, { ventas: number; ordenes: number }> = {};
@@ -237,6 +238,10 @@ export default function ReportesMejorados() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Ventas Totales', value: `$${kpis.totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#10b981' },
+          ...(kpis.ventasExtras > 0 ? [
+            { label: '↳ Restaurante', value: `$${kpis.ventasRestaurante.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#6ee7b7' },
+            { label: '↳ Tienda extras', value: `$${kpis.ventasExtras.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#a78bfa' },
+          ] : []),
           { label: 'Órdenes', value: kpis.totalOrdenes, icon: ShoppingCart, color: '#1B3A6B' },
           { label: 'Ticket Promedio', value: `$${kpis.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: '#f59e0b' },
           { label: 'Utilidad Bruta', value: kpis.utilidadBruta > 0 ? `$${kpis.utilidadBruta.toFixed(2)}` : '—', icon: TrendingUp, color: '#16a34a' },

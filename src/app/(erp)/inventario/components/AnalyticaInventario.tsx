@@ -55,6 +55,7 @@ export default function AnalyticaInventario() {
   const [period, setPeriod] = useState<Period>('30d');
   const [activeView, setActiveView] = useState<'insumos' | 'platillos'>('insumos');
   const [ingData, setIngData] = useState<IngredientAnalytics[]>([]);
+  const [extrasStockData, setExtrasStockData] = useState<any[]>([]);
   const [dishData, setDishData] = useState<DishAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortIng, setSortIng] = useState<keyof IngredientAnalytics>('costImpact');
@@ -69,14 +70,16 @@ export default function AnalyticaInventario() {
     const since = new Date(Date.now() - getDaysBack(period) * 86400000).toISOString();
 
     // ── Ingredientes ──────────────────────────────────────────────────────────
-    const [{ data: ings }, { data: movements }, { data: recipes }, { data: orderItems }] = await Promise.all([
+    const [{ data: ings }, { data: movements }, { data: recipes }, { data: orderItems }, { data: extrasStock }] = await Promise.all([
       supabase.from('ingredients').select('id, name, unit, category, stock, min_stock, cost, supplier').eq('tenant_id', tid).order('name'),
       supabase.from('stock_movements').select('ingredient_id, movement_type, quantity, total_cost, unit_cost').eq('tenant_id', tid).gte('created_at', since),
       supabase.from('recipe_ingredients').select('ingredient_id, dish_id, quantity').eq('tenant_id', tid),
       supabase.from('order_items').select('dish_id, qty, price').eq('tenant_id', tid).gte('created_at', since),
+      supabase.from('extras_catalog').select('name,stock_actual,costo_unitario,tracks_inventory').eq('tenant_id', tid).eq('is_active', true).eq('tracks_inventory', true),
     ]);
 
     const ingMap = new Map<string, { consumed: number; wasted: number; costImpact: number }>();
+    setExtrasStockData(extrasStock || []);
     (movements || []).forEach((m: any) => {
       const cur = ingMap.get(m.ingredient_id) ?? { consumed: 0, wasted: 0, costImpact: 0 };
       const qty = Number(m.quantity);
@@ -166,6 +169,8 @@ export default function AnalyticaInventario() {
   // ── KPIs ──────────────────────────────────────────────────────────────────
 
   const totalStockValue = ingData.reduce((s, i) => s + i.stockValue, 0);
+  const extrasStockValue = extrasStockData.reduce((s: number, e: any) => s + Number(e.stock_actual ?? 0) * Number(e.costo_unitario ?? 0), 0);
+  const totalInventoryValue = totalStockValue + extrasStockValue;
   const totalCostImpact = ingData.reduce((s, i) => s + i.costImpact, 0);
   const avgWasteRate = ingData.length ? ingData.reduce((s, i) => s + i.wasteRate, 0) / ingData.length : 0;
   const criticalStock = ingData.filter(i => i.daysOfStock < 3 && i.avgDailyUse > 0).length;
@@ -242,7 +247,7 @@ export default function AnalyticaInventario() {
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { label: 'Valor en stock', value: `$${fmt(totalStockValue)}`, icon: <DollarSign size={16} />, color: '#10b981' },
+              { label: 'Valor en stock', value: `$${fmt(totalInventoryValue)}`, icon: <DollarSign size={16} />, color: '#10b981', sub: extrasStockValue > 0 ? `+$${fmt(extrasStockValue)} extras` : undefined },
               { label: `Costo consumido (${PERIOD_LABELS[period]})`, value: `$${fmt(totalCostImpact)}`, icon: <TrendingDown size={16} />, color: '#f59e0b' },
               { label: 'Tasa de desperdicio', value: `${avgWasteRate.toFixed(1)}%`, icon: <AlertTriangle size={16} />, color: avgWasteRate > 10 ? '#ef4444' : '#f59e0b' },
               { label: 'Stock crítico (<3 días)', value: criticalStock, icon: <Package size={16} />, color: criticalStock > 0 ? '#ef4444' : '#10b981' },
