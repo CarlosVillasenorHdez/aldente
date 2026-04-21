@@ -84,16 +84,23 @@ export default function ReportesMejorados() {
         .gte('created_at', start)
         .lte('created_at', end);
       if (activeBranchId) rpQ = rpQ.eq('branch_id', activeBranchId);
-      const { data: orders, error } = await rpQ;
+      const [{ data: orders, error }, { data: extrasRows }] = await Promise.all([
+        rpQ,
+        supabase.from('extras_sales').select('price,qty,unit_cost').eq('tenant_id', getTenantId())
+          .gte('sold_at', start).lte('sold_at', end),
+      ]);
       if (error) throw error;
 
       const orderList = orders || [];
+      const extrasList = extrasRows || [];
 
-      // KPIs
-      const totalVentas = orderList.reduce((s, o) => s + Number(o.total), 0);
+      // KPIs — incluye ventas de extras
+      const extrasVentas = extrasList.reduce((s, e) => s + Number(e.price) * Number(e.qty ?? 1), 0);
+      const extrasCogs   = extrasList.reduce((s, e) => s + Number(e.unit_cost ?? 0) * Number(e.qty ?? 1), 0);
+      const totalVentas  = orderList.reduce((s, o) => s + Number(o.total), 0) + extrasVentas;
       const totalOrdenes = orderList.length;
       const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-      const utilidadBruta = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
+      const utilidadBruta = orderList.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0) + (extrasVentas - extrasCogs);
       // Merma comes from cancelled comandas, not from closed orders
       const { data: mermaRows } = await supabase
         .from('orders')

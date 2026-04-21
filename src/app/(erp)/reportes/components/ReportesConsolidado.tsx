@@ -400,6 +400,7 @@ export default function ReportesConsolidado() {
       { data: allDeps },
       { data: allRecipes },
       { data: allItems },
+      { data: allExtras },
     ] = await Promise.all([
       supabase.from('orders').select('id, total, branch_id').eq('tenant_id', getTenantId()).eq('status', 'cerrada').gte('created_at', start).lte('created_at', end).limit(5000),
       supabase.from('employees').select('salary, salary_frequency, status, branch_id').eq('tenant_id', getTenantId()).eq('status', 'activo'),
@@ -407,10 +408,14 @@ export default function ReportesConsolidado() {
       supabase.from('depreciaciones').select('valor_original, valor_residual, vida_util_anios, activo, branch_id').eq('tenant_id', getTenantId()).eq('activo', true),
       supabase.from('dish_recipes').select('dish_id, quantity, ingredients(cost), dishes(price)').eq('tenant_id', getTenantId()),
       supabase.from('order_items').select('dish_id, qty, order_id').eq('tenant_id', getTenantId()).limit(8000),
+      supabase.from('extras_sales').select('price,qty,unit_cost,branch_id').eq('tenant_id', getTenantId()).gte('sold_at', start).lte('sold_at', end),
     ]);
 
     const orders = allOrders || [];
-    const totalVentas = orders.reduce((s, o) => s + Number(o.total), 0);
+    const extras = allExtras || [];
+    const extrasVentas = extras.reduce((s, e) => s + Number(e.price) * Number(e.qty ?? 1), 0);
+    const extrasCogs   = extras.reduce((s, e) => s + Number(e.unit_cost ?? 0) * Number(e.qty ?? 1), 0);
+    const totalVentas  = orders.reduce((s, o) => s + Number(o.total), 0) + extrasVentas;
 
     // COGS from recipes x units sold
     const orderIds = new Set(orders.map(o => o.id));
@@ -447,7 +452,7 @@ export default function ReportesConsolidado() {
       return s + (base / (Number(d.vida_util_anios) || 1) / 12);
     }, 0);
     const totalGastosOp = nominaMensual + gastosOpItems.reduce((s, g) => s + g.monto, 0);
-    const utilidadBruta = totalVentas - totalCogs;
+    const utilidadBruta = totalVentas - totalCogs - extrasCogs;
     const ebitda = utilidadBruta - totalGastosOp;
     const ebit = ebitda - depreciacion;
     const uai = ebit - gastosFinancieros;

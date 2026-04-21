@@ -652,7 +652,7 @@ export default function AnalisisFinanciero() {
       supabase.from('ingredients').select('stock,cost').eq('tenant_id', tid),
       supabase.from('orders').select('id').eq('tenant_id', tid).in('status', ['abierta','preparacion','lista']),
       supabase.from('app_users').select('salary,salary_frequency').eq('tenant_id', tid).eq('is_active', true),
-      supabase.from('extras_sales').select('price,qty,pay_method').eq('tenant_id', tid)
+      supabase.from('extras_sales').select('price,qty,pay_method,unit_cost').eq('tenant_id', tid)
         .gte('sold_at', start).lte('sold_at', end),
       supabase.from('loyalty_transactions').select('financial_impact_type,financial_amount,type').eq('tenant_id', tid)
         .gte('created_at', start).lte('created_at', end),
@@ -663,11 +663,12 @@ export default function AnalisisFinanciero() {
     const extrasRows = extrasData ?? [];
     // Sumar ventas de extras_sales a los totales
     const extrasTotal = extrasRows.reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+    const extrasCogs  = extrasRows.reduce((s, e) => s + Number((e as any).unit_cost ?? 0) * Number(e.qty ?? 1), 0);
     const extrasEfec  = extrasRows.filter(e => e.pay_method === 'efectivo').reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
     const extrasTarj  = extrasRows.filter(e => e.pay_method === 'tarjeta').reduce((s, e) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
 
     const totalVentas = rows.reduce((s, o) => s + Number(o.total ?? 0), 0) + extrasTotal;
-    const totalCogs   = rows.reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+    const totalCogs   = rows.reduce((s, o) => s + Number(o.cost_actual ?? 0), 0) + extrasCogs;
     const totalDesc   = rows.reduce((s, o) => s + Number(o.discount ?? 0), 0);
     const totalIva    = rows.reduce((s, o) => s + Number(o.iva ?? 0), 0);
     const totalEfec   = rows.filter(o => (o as any).pay_method === 'efectivo' && !o.is_cortesia).reduce((s, o) => s + Number(o.total), 0) + extrasEfec;

@@ -18,8 +18,16 @@ interface ExtraCatalogItem {
   type: ExtraType;
   price: number;
   description: string;
-  durationDays: number | null; // null = no expira
+  durationDays: number | null;
   isActive: boolean;
+  // Inventario
+  tracksInventory: boolean;
+  stockActual:     number;
+  stockMinimo:     number;
+  puntoReorden:    number;
+  costoUnitario:   number;
+  sku:             string;
+  unidad:          string;
 }
 
 interface ExtraSale {
@@ -31,6 +39,7 @@ interface ExtraSale {
   type: ExtraType;
   price: number;
   qty: number;
+  unitCost: number;
   soldAt: string;
   expiresAt: string | null;
 }
@@ -63,6 +72,8 @@ const TYPE_ICONS: Record<ExtraType, React.ReactNode> = {
 const emptyItem = (): Omit<ExtraCatalogItem, 'id'> => ({
   name: '', type: 'membership', price: 0, description: '',
   durationDays: 180, isActive: true,
+  tracksInventory: false, stockActual: 0, stockMinimo: 0,
+  puntoReorden: 0, costoUnitario: 0, sku: '', unidad: 'pieza',
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -115,12 +126,20 @@ export default function ExtrasStore() {
       id: r.id, name: r.name, type: r.type as ExtraType,
       price: Number(r.price), description: r.description ?? '',
       durationDays: r.duration_days ?? null, isActive: r.is_active,
+      tracksInventory: r.tracks_inventory ?? false,
+      stockActual:     Number(r.stock_actual   ?? 0),
+      stockMinimo:     Number(r.stock_minimo   ?? 0),
+      puntoReorden:    Number(r.punto_reorden  ?? 0),
+      costoUnitario:   Number(r.costo_unitario ?? 0),
+      sku:             r.sku   ?? '',
+      unidad:          r.unidad ?? 'pieza',
     })));
 
     setSales((salesRes.data || []).map((r: any) => ({
       id: r.id, customerId: r.customer_id, customerName: r.customer_name ?? '—',
       itemId: r.item_id, itemName: r.item_name, type: r.type as ExtraType,
       price: Number(r.price), qty: Number(r.qty ?? 1),
+      unitCost: Number(r.unit_cost ?? 0),
       soldAt: r.sold_at, expiresAt: r.expires_at ?? null,
     })));
 
@@ -148,6 +167,13 @@ export default function ExtrasStore() {
   // ── Sell ──────────────────────────────────────────────────────────────────
   async function handleSell() {
     if (!selectedItem) { toast.error('Selecciona un producto'); return; }
+
+    // Validar stock si el producto lo maneja
+    if (selectedItem.tracksInventory && selectedItem.stockActual < qty) {
+      toast.error(`Stock insuficiente — disponibles: ${selectedItem.stockActual} ${selectedItem.unidad}(s)`);
+      return;
+    }
+
     setSaving(true);
     const tid = getTenantId();
     const now = new Date().toISOString();
@@ -165,6 +191,8 @@ export default function ExtrasStore() {
       type: selectedItem.type,
       price: selectedItem.price,
       qty,
+      unit_cost:   selectedItem.costoUnitario,  // snapshot del costo al momento de venta
+      stock_delta: selectedItem.tracksInventory ? -qty : 0,
       pay_method: payMethod,
       sold_at: now,
       expires_at: expiresAt,
@@ -172,6 +200,23 @@ export default function ExtrasStore() {
     });
 
     if (error) { toast.error('Error al registrar: ' + error.message); setSaving(false); return; }
+
+    // Descontar stock si el producto lo maneja
+    if (selectedItem.tracksInventory) {
+      const newStock = selectedItem.stockActual - qty;
+      await supabase.from('extras_catalog')
+        .update({ stock_actual: newStock, updated_at: now })
+        .eq('id', selectedItem.id);
+
+      // Alerta de stock bajo
+      if (newStock <= 0) {
+        toast.error(`⚠️ ${selectedItem.name} — AGOTADO`, { duration: 6000 });
+      } else if (newStock <= selectedItem.stockMinimo) {
+        toast.warning(`⚠️ ${selectedItem.name} — Stock crítico: ${newStock} ${selectedItem.unidad}(s)`, { duration: 6000 });
+      } else if (newStock <= selectedItem.puntoReorden) {
+        toast.warning(`📦 ${selectedItem.name} — Punto de reorden: ${newStock} ${selectedItem.unidad}(s) restantes`);
+      }
+    }
 
     toast.success(`✅ ${selectedItem.name} vendido${selectedItem.type === 'membership' && expiresAt ? ` — vence ${new Date(expiresAt).toLocaleDateString('es-MX')}` : ''}`);
 
@@ -211,6 +256,14 @@ export default function ExtrasStore() {
       description: itemForm.description,
       duration_days: itemForm.type === 'membership' ? (itemForm.durationDays ?? 180) : null,
       is_active: itemForm.isActive,
+      // Inventario
+      tracks_inventory: itemForm.tracksInventory,
+      stock_actual:     itemForm.stockActual,
+      stock_minimo:     itemForm.stockMinimo,
+      punto_reorden:    itemForm.puntoReorden,
+      costo_unitario:   itemForm.costoUnitario,
+      sku:              itemForm.sku || null,
+      unidad:           itemForm.unidad || 'pieza',
     };
     if (editingItemId) {
       const { error } = await supabase.from('extras_catalog').update(payload).eq('id', editingItemId);
@@ -319,6 +372,12 @@ export default function ExtrasStore() {
                             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
                               {item.description || (item.durationDays ? `Vigencia: ${item.durationDays} días` : 'Sin vencimiento')}
                             </p>
+                            {item.tracksInventory && (
+                              <p style={{ fontSize: 11, fontWeight: 600, marginTop: 2,
+                                color: item.stockActual <= 0 ? '#ef4444' : item.stockActual <= item.stockMinimo ? '#f97316' : item.stockActual <= item.puntoReorden ? '#f59e0b' : '#4ade80' }}>
+                                {item.stockActual <= 0 ? '❌ Agotado' : `📦 ${item.stockActual} ${item.unidad}(s)`}
+                              </p>
+                            )}
                           </div>
                           <p style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>${item.price.toFixed(0)}</p>
                         </button>
@@ -523,7 +582,7 @@ export default function ExtrasStore() {
                 </div>
                 <p style={{ fontSize: 20, fontWeight: 700, color: '#f59e0b', marginRight: 8 }}>${item.price.toFixed(0)}</p>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => { setEditingItemId(item.id); setItemForm({ name: item.name, type: item.type, price: item.price, description: item.description, durationDays: item.durationDays, isActive: item.isActive }); setCatalogModalOpen(true); }}
+                  <button onClick={() => { setEditingItemId(item.id); setItemForm({ name: item.name, type: item.type, price: item.price, description: item.description, durationDays: item.durationDays, isActive: item.isActive, tracksInventory: item.tracksInventory, stockActual: item.stockActual, stockMinimo: item.stockMinimo, puntoReorden: item.puntoReorden, costoUnitario: item.costoUnitario, sku: item.sku, unidad: item.unidad }); setCatalogModalOpen(true); }}
                     style={{ padding: '6px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 12, cursor: 'pointer' }}>
                     Editar
                   </button>
@@ -602,9 +661,69 @@ export default function ExtrasStore() {
                   placeholder="Beneficios, detalles del producto..."
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              {/* ── Inventario ── */}
+              <div style={{ borderTop: '1px solid #1e2d3d', paddingTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    📦 Inventario físico
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <div onClick={() => setItemForm(f => ({ ...f, tracksInventory: !f.tracksInventory }))}
+                      style={{ width: 36, height: 20, borderRadius: 10, background: itemForm.tracksInventory ? '#f59e0b' : '#374151', position: 'relative', transition: 'background .2s', cursor: 'pointer' }}>
+                      <div style={{ position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'transform .2s',
+                        transform: itemForm.tracksInventory ? 'translateX(18px)' : 'translateX(2px)' }} />
+                    </div>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                      {itemForm.tracksInventory ? 'Descuenta stock al vender' : 'No controla inventario (ej: membresía digital)'}
+                    </span>
+                  </label>
+                </div>
+
+                {itemForm.tracksInventory && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    {[
+                      { lbl: 'Stock actual', key: 'stockActual', hint: 'Unidades disponibles hoy' },
+                      { lbl: 'Costo unitario ($)', key: 'costoUnitario', hint: 'Costo de adquisición' },
+                      { lbl: 'Stock mínimo', key: 'stockMinimo', hint: 'Alerta crítica' },
+                      { lbl: 'Punto de reorden', key: 'puntoReorden', hint: 'Alerta de compra' },
+                    ].map(({ lbl, key, hint }) => (
+                      <div key={key}>
+                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{lbl}</p>
+                        <input
+                          type="number" min={0}
+                          value={(itemForm as any)[key]}
+                          onChange={e => setItemForm(f => ({ ...f, [key]: Number(e.target.value) }))}
+                          placeholder={hint}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }}
+                        />
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{hint}</p>
+                      </div>
+                    ))}
+                    <div>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Unidad</p>
+                      <select value={itemForm.unidad} onChange={e => setItemForm(f => ({ ...f, unidad: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none' }}>
+                        {['pieza','termo','caja','paquete','kit','unidad'].map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>SKU / Código</p>
+                      <input value={itemForm.sku} onChange={e => setItemForm(f => ({ ...f, sku: e.target.value }))}
+                        placeholder="TRM-001"
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }} />
+                    </div>
+                    {itemForm.costoUnitario > 0 && itemForm.costoUnitario < itemForm.price && (
+                      <div style={{ gridColumn: '1/-1', padding: '8px 12px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8 }}>
+                        <p style={{ fontSize: 11, color: '#6ee7b7' }}>
+                          Margen bruto: ${(itemForm.price - itemForm.costoUnitario).toFixed(2)} ({((itemForm.price - itemForm.costoUnitario) / itemForm.price * 100).toFixed(0)}%) por {itemForm.unidad}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button onClick={() => setCatalogModalOpen(false)} style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'rgba(255,255,255,0.07)', border: '1px solid #2a3f5f', color: 'rgba(255,255,255,0.6)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 Cancelar
               </button>
