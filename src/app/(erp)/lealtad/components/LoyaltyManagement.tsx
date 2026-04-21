@@ -20,10 +20,8 @@ export default function LoyaltyManagement() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<LoyaltyCustomer|null>(null);
-  const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showTransaction, setShowTransaction] = useState<'acumulacion'|'canje'|null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [customerForm, setCustomerForm] = useState({name:'',phone:'',email:''});
   const [txForm, setTxForm] = useState({amount:0,notes:''});
   const [saving, setSaving] = useState(false);
 
@@ -92,15 +90,6 @@ export default function LoyaltyManagement() {
     }catch(e:any){toast.error('Error al enviar WhatsApp: '+e.message);}
   }
 
-  const handleAddCustomer=async()=>{
-    if(!customerForm.name.trim()){toast.error('El nombre es obligatorio');return;}
-    setSaving(true);
-    try{
-      const {error}=await supabase.from('loyalty_customers').insert({tenant_id:getTenantId(),name:customerForm.name.trim(),phone:customerForm.phone,email:customerForm.email});
-      if(error)throw error;
-      toast.success('Cliente registrado');setShowAddCustomer(false);setCustomerForm({name:'',phone:'',email:''});loadData();
-    }catch(err:any){toast.error('Error: '+err.message);}finally{setSaving(false);}
-  };
 
   const handleTransaction=async()=>{
     if(!selectedCustomer||!showTransaction)return;
@@ -206,24 +195,6 @@ export default function LoyaltyManagement() {
           );
         })}
       </div>
-
-      {/* Modal nuevo miembro */}
-      {showAddCustomer&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:'rgba(0,0,0,0.5)'}}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-gray-800">Nuevo Miembro</h3><button onClick={()=>setShowAddCustomer(false)}><X size={20} className="text-gray-400"/></button></div>
-            <div className="space-y-3">
-              {[{label:'Nombre *',key:'name',placeholder:'Nombre completo',type:'text'},{label:'Teléfono',key:'phone',placeholder:'55 1234 5678',type:'tel'},{label:'Email',key:'email',placeholder:'correo@email.com',type:'email'}].map(f=>(
-                <div key={f.key}><label className="block text-xs font-medium text-gray-500 mb-1">{f.label}</label><input type={f.type} placeholder={f.placeholder} value={(customerForm as any)[f.key]} onChange={e=>setCustomerForm(p=>({...p,[f.key]:e.target.value}))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/></div>
-              ))}
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={()=>setShowAddCustomer(false)} className="flex-1 py-2.5 rounded-lg text-sm font-medium text-gray-600 bg-gray-100">Cancelar</button>
-              <button onClick={handleAddCustomer} disabled={saving} className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-50" style={{backgroundColor:'#1B3A6B'}}>{saving?'Guardando...':'Registrar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal transacción */}
       {showTransaction&&selectedCustomer&&(

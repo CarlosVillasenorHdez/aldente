@@ -4,6 +4,52 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
+
+
+// ── Tipo de nivel de membresía ────────────────────────────────────────────────
+export interface MembershipTierBenefits {
+  freeProductEnabled:  boolean;
+  freeProductId:       string;
+  freeProductFreq:     'diario' | 'visita' | 'semanal';
+  freeProductLabel:    string;
+  discountEnabled:     boolean;
+  discountPct:         number;
+  discountScope:       'orden' | 'platillos';
+  discountAuto:        boolean;
+  priceTagEnabled:     boolean;
+  priceTagLabel:       string;
+  pointsEnabled:       boolean;
+  pointsMultiplier:    number;
+  birthdayEnabled:     boolean;
+  birthdayType:        'descuento' | 'producto_gratis';
+  birthdayDiscountPct: number;
+  birthdayProductId:   string;
+  birthdayLabel:       string;
+}
+
+export interface MembershipTier {
+  id:              string;   // slug único: 'plata', 'gold', 'platino'
+  name:            string;   // nombre visible: 'Plata', 'Gold', 'Platino'
+  color:           string;   // color hex para la UI
+  order:           number;   // 1=más bajo, 2=medio, 3=más alto
+  trigger:         MembershipTrigger;
+  triggerProductId: string;
+  price:           number;
+  durationMonths:  number;
+  benefits:        MembershipTierBenefits;
+}
+
+export const DEFAULT_TIER_BENEFITS: MembershipTierBenefits = {
+  freeProductEnabled: false, freeProductId: '', freeProductFreq: 'diario',
+  freeProductLabel: 'Beneficio del día',
+  discountEnabled: false, discountPct: 0, discountScope: 'orden', discountAuto: true,
+  priceTagEnabled: false, priceTagLabel: 'Precio de socio',
+  pointsEnabled: false, pointsMultiplier: 2,
+  birthdayEnabled: false, birthdayType: 'descuento', birthdayDiscountPct: 0,
+  birthdayProductId: '', birthdayLabel: '¡Feliz cumpleaños!',
+};
+
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export type MembershipTrigger =
@@ -73,6 +119,7 @@ export interface LoyaltyLevel {
 export interface FullLoyaltyConfig {
   points:     LoyaltyPointsConfig;
   membership: LoyaltyMembershipConfig;
+  tiers:      MembershipTier[];  // [] = un solo nivel sin nombre
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
@@ -82,6 +129,8 @@ const DEFAULT_POINTS: LoyaltyPointsConfig = {
   minRedeemPoints: 100, expireDays: null,
   levelsEnabled: false, levels: [],
 };
+
+const DEFAULT_TIERS: MembershipTier[] = [];
 
 const DEFAULT_MEMBERSHIP: LoyaltyMembershipConfig = {
   enabled: false, trigger: 'manual', triggerProductId: '',
@@ -105,7 +154,7 @@ const DEFAULT_MEMBERSHIP: LoyaltyMembershipConfig = {
 export function useLoyaltyConfig(tenantIdOverride?: string | null) {
   const supabase = createClient();
   const [config, setConfig] = useState<FullLoyaltyConfig>({
-    points: DEFAULT_POINTS, membership: DEFAULT_MEMBERSHIP,
+    points: DEFAULT_POINTS, membership: DEFAULT_MEMBERSHIP, tiers: DEFAULT_TIERS,
   });
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
@@ -133,6 +182,7 @@ export function useLoyaltyConfig(tenantIdOverride?: string | null) {
     try { levels = JSON.parse(m['loyalty_levels'] ?? '[]'); } catch {}
 
     setConfig({
+      tiers: (()=>{ try { return JSON.parse(m['loyalty_membership_tiers'] ?? '[]'); } catch { return []; } })(),
       points: {
         enabled:         bool('loyalty_points_enabled', true),
         pesosPerPoint:   num('loyalty_pesos_per_point', 10),
@@ -218,6 +268,15 @@ export function useLoyaltyConfig(tenantIdOverride?: string | null) {
       { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_label',          config_value: next.membership.birthdayLabel },
     ];
 
+    // Guardar tiers por separado
+    await supabase.from('system_config').upsert([
+      { tenant_id: tid!, config_key: 'loyalty_membership_tiers',
+        config_value: JSON.stringify(next.tiers) }
+    ], { onConflict: 'tenant_id,config_key' });
+
+    // Guardar tiers como JSON
+    entries.push({ tenant_id: tid!, config_key: 'loyalty_membership_tiers', config_value: JSON.stringify(next.tiers) });
+
     await supabase
       .from('system_config')
       .upsert(entries, { onConflict: 'tenant_id,config_key' });
@@ -226,7 +285,9 @@ export function useLoyaltyConfig(tenantIdOverride?: string | null) {
     setSaving(false);
   }, [supabase]);
 
-  return { config, loading, saving, save, reload: load };
+  // Asegurar que config siempre tiene tiers
+  const safeConfig = { ...config, tiers: config.tiers ?? [] };
+  return { config: safeConfig, loading, saving, save, reload: load };
 }
 
 // ── Helper: describe el trigger en español ────────────────────────────────────

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Search, Coffee, UserPlus, CheckCircle, XCircle, Clock, Phone, Calendar, AlertCircle } from 'lucide-react';
 import { useBranch } from '@/hooks/useBranch';
+import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface TermoMember {
@@ -25,11 +26,10 @@ interface NewMemberForm {
   name: string;
   phone: string;
   email: string;
-  expiresMonths: number;
-  birthday: string;  // formato YYYY-MM-DD, el año puede ser 1900 como placeholder
+  birthday: string;
 }
 
-const EMPTY_FORM: NewMemberForm = { name: '', phone: '', email: '', expiresMonths: 12, birthday: '' };
+const EMPTY_FORM: NewMemberForm = { name: '', phone: '', email: '', birthday: '' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isBenefitAvailableToday(usedAt: string | null): boolean {
@@ -65,6 +65,7 @@ function formatDateTime(iso: string | null): string {
 export default function TermoMembership() {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  const { config } = useLoyaltyConfig();   // leer duración y tier desde la config
 
   const [phoneSearch, setPhoneSearch] = useState('');
   const [searching, setSearching]     = useState(false);
@@ -121,9 +122,10 @@ export default function TermoMembership() {
 
     setSaving(true);
 
-    // Calcular fecha de vencimiento
+    // Calcular fecha de vencimiento desde la configuración
+    const months = config.membership.durationMonths || 12;
     const expires = new Date();
-    expires.setMonth(expires.getMonth() + newForm.expiresMonths);
+    if (months > 0) expires.setMonth(expires.getMonth() + months);
 
     const { error } = await supabase.from('loyalty_customers').insert({
       tenant_id:             getTenantId(),
@@ -132,7 +134,7 @@ export default function TermoMembership() {
       email:                 newForm.email.trim(),
       membership_type:       'membresia',
       is_active:             true,
-      membership_expires_at: expires.toISOString(),
+      membership_expires_at: months > 0 ? expires.toISOString() : null,
       birthday:              newForm.birthday || null,
       points:                0,
       total_spent:           0,
