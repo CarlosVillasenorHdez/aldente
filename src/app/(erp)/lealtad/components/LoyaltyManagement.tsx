@@ -159,9 +159,6 @@ export default function LoyaltyManagement() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente..." className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
         </div>
-        <button onClick={()=>setShowAddCustomer(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{backgroundColor:'#1B3A6B'}}>
-          <Plus size={16}/> Nuevo Miembro
-        </button>
       </div>
 
       {/* Lista de miembros */}

@@ -232,57 +232,44 @@ export default function TermoMembership() {
       {/* Formulario de nuevo socio */}
       {showNewForm && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5">
-          <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-4">Registrar nuevo socio Termo</h3>
+          <h3 className="font-semibold text-amber-800 font-bold mb-4">Registrar nuevo socio Termo</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Nombre completo *</label>
+              <label className="text-xs text-gray-800 dark:text-gray-200 font-semibold block mb-1">Nombre completo *</label>
               <input
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="Ana García López"
                 value={newForm.name}
                 onChange={e => setNewForm(f => ({ ...f, name: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Teléfono (10 dígitos) *</label>
+              <label className="text-xs text-gray-800 dark:text-gray-200 font-semibold block mb-1">Teléfono (10 dígitos) *</label>
               <input
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="5512345678"
                 value={newForm.phone}
                 onChange={e => setNewForm(f => ({ ...f, phone: e.target.value.replace(/\D/g,'').slice(0,10) }))}
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Email (opcional)</label>
+              <label className="text-xs text-gray-800 dark:text-gray-200 font-semibold block mb-1">Email (opcional)</label>
               <input
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="ana@correo.com"
                 value={newForm.email}
                 onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Fecha de nacimiento (opcional)</label>
+              <label className="text-xs text-gray-800 dark:text-gray-200 font-semibold block mb-1">Fecha de nacimiento (opcional)</label>
               <input
                 type="date"
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 value={newForm.birthday}
                 onChange={e => setNewForm(f => ({ ...f, birthday: e.target.value }))}
               />
               <p className="text-xs text-gray-500 mt-1">Para el beneficio de cumpleaños — el sistema avisa al cajero ese día</p>
-            </div>
-            <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Vigencia</label>
-              <select
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
-                value={newForm.expiresMonths}
-                onChange={e => setNewForm(f => ({ ...f, expiresMonths: Number(e.target.value) }))}
-              >
-                <option value={3}>3 meses</option>
-                <option value={6}>6 meses</option>
-                <option value={12}>12 meses (recomendado)</option>
-                <option value={24}>24 meses</option>
-              </select>
             </div>
           </div>
           <div className="flex gap-3 mt-4">
