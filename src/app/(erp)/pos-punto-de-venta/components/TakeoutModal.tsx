@@ -216,7 +216,14 @@ export default function TakeoutModal({ loyaltyEnabled, benefitLabel, benefitProd
                         <p style={{ color:'#f1f5f9', fontSize:'14px', fontWeight:600, margin:0 }}>{member.name}</p>
                         <p style={{ color: active ? '#86EFAC' : '#FCA5A5', fontSize:'11px', margin:0 }}>
                           {active ? 'Membresía activa' : isExpired(member.membershipExpiresAt) ? 'Membresía vencida' : 'Inactivo'}
-                          {member.membershipExpiresAt && ` · vence ${new Date(member.membershipExpiresAt).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}`}
+                          {member.membershipExpiresAt && (() => {
+                            const exp = new Date(member.membershipExpiresAt);
+                            const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
+                            const dateStr = exp.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+                            if (days <= 0) return ` · Vencida`;
+                            if (days <= 30) return ` · ⚠️ Vence en ${days} días (${dateStr})`;
+                            return ` · vence ${dateStr}`;
+                          })()}
                         </p>
                       </div>
                       {active && <CheckCircle size={16} color="#4ADE80" />}

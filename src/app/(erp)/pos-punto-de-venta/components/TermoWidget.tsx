@@ -45,13 +45,12 @@ function isExpired(expiresAt: string | null): boolean {
 
 interface Props {
   onClose?: () => void;
-  /** Llamado cuando se marca el beneficio — el POS puede auto-agregar el producto */
   onBenefitUsed?: (memberId: string, benefitProductId: string) => void;
-  /** UUID del producto configurado como beneficio — viene de useLoyaltyConfig */
   benefitProductId?: string;
+  benefitLabel?: string;  // etiqueta configurable — default: 'Membresía'
 }
 
-export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId }: Props) {
+export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, benefitLabel = 'Membresía' }: Props) {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -129,7 +128,7 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId }
       <div className="flex items-center justify-between px-5 py-4 bg-amber-600">
         <div className="flex items-center gap-2">
           <Coffee size={18} className="text-white" />
-          <span className="font-semibold text-white text-sm">Verificar socio Termo</span>
+          <span className="font-semibold text-white text-sm">Verificar socio — {benefitLabel}</span>
         </div>
         {onClose && (
           <button onClick={onClose} className="text-amber-200 hover:text-white transition-colors">
@@ -183,7 +182,7 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId }
         {notFound && (
           <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl">
             <XCircle size={18} className="text-red-500 flex-shrink-0" />
-            <p className="text-sm text-red-700 dark:text-red-300">Número no registrado como socio Termo</p>
+            <p className="text-sm text-red-700 dark:text-red-300">Número no registrado como socio</p>
           </div>
         )}
 

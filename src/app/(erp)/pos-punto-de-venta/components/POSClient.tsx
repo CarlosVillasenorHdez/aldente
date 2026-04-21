@@ -1771,56 +1771,32 @@ export default function POSClient() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab bar — clip-path tabs (Emil Kowalski technique) */}
             <div className="flex items-center gap-1 px-4 pt-3 pb-0 bg-white border-b flex-shrink-0" style={{ borderColor: '#e5e7eb' }}>
-              {/* Clip-path tab container */}
-              <div className="relative flex items-center" style={{ position: 'relative' }}>
-                {/* Base tabs (inactive style) */}
-                <div className="flex" style={{ position: 'relative' }}>
-                  <button
-                    onClick={() => setView('tables')}
-                    className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150"
-                    style={{ color: '#6b7280' }}
-                  >
-                    Mapa de Mesas
-                  </button>
-                  <button
-                    onClick={() => setView('menu')}
-                    className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150"
-                    style={{ color: '#6b7280' }}
-                  >
-                    Menú
-                    {selectedTable && (
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
-                      </span>
-                    )}
-                  </button>
-                </div>
-
-                {/* Active overlay — clip-path reveals only the active tab in amber */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 flex pointer-events-none"
-                  style={{
-                    clipPath: view === 'tables'
-                      ? 'inset(0 50% 0 0)'
-                      : 'inset(0 0 0 50%)',
-                    transition: 'clip-path 220ms cubic-bezier(0.77,0,0.175,1)',
-                    borderBottom: '2px solid #f59e0b',
-                  }}
-                >
-                  <span className="px-4 py-2.5 text-sm font-semibold" style={{ color: '#d97706', whiteSpace: 'nowrap' }}>
-                    Mapa de Mesas
+              {/* Tabs simples con border-bottom activo */}
+              <button
+                onClick={() => setView('tables')}
+                className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 -mb-px"
+                style={{
+                  color: view === 'tables' ? '#d97706' : '#6b7280',
+                  borderColor: view === 'tables' ? '#f59e0b' : 'transparent',
+                }}
+              >
+                Mapa de Mesas
+              </button>
+              <button
+                onClick={() => setView('menu')}
+                className="px-4 py-2.5 text-sm font-semibold transition-colors duration-150 border-b-2 -mb-px flex items-center gap-1"
+                style={{
+                  color: view === 'menu' ? '#d97706' : '#6b7280',
+                  borderColor: view === 'menu' ? '#f59e0b' : 'transparent',
+                }}
+              >
+                Menú
+                {selectedTable && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                    {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
                   </span>
-                  <span className="px-4 py-2.5 text-sm font-semibold" style={{ color: '#d97706', whiteSpace: 'nowrap' }}>
-                    Menú
-                    {selectedTable && (
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
+                )}
+              </button>
 
               {/* Para Llevar — fuera del clip-path group */}
               {establishmentType === 'cafeteria' ? (

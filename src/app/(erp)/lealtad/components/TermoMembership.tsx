@@ -380,9 +380,16 @@ export default function TermoMembership() {
             <div>
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Vence el</p>
               <p className={`text-sm font-medium mt-0.5 ${
-                status === 'vencido' ? 'text-red-600' : 'text-gray-900 dark:text-white'
+                status === 'vencido' ? 'text-red-600' :
+                (member.membershipExpiresAt && Math.ceil((new Date(member.membershipExpiresAt).getTime() - Date.now()) / 86400000) <= 30)
+                  ? 'text-amber-600' : 'text-gray-900 dark:text-white'
               }`}>
                 {formatDate(member.membershipExpiresAt)}
+                {member.membershipExpiresAt && (() => {
+                  const days = Math.ceil((new Date(member.membershipExpiresAt).getTime() - Date.now()) / 86400000);
+                  if (days > 0 && days <= 30) return ` ⚠️ (${days} días)`;
+                  return null;
+                })()}
               </p>
             </div>
             <div>
