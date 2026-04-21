@@ -36,7 +36,7 @@ const Field = ({ label, hint, children }: { label: string; hint?: string; childr
   <div>
     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1.5">{label}</label>
     {children}
-    {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+    {hint && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{hint}</p>}
   </div>
 );
 
@@ -63,7 +63,7 @@ export default function LoyaltyConfig() {
   }, [supabase]);
 
   if (loading || !draft) return (
-    <div className="text-center py-12 text-sm text-gray-400">Cargando configuración...</div>
+    <div className="text-center py-12 text-sm text-gray-600">Cargando configuración...</div>
   );
 
   const setPoints = (p: Partial<typeof draft.points>) =>
@@ -84,7 +84,7 @@ export default function LoyaltyConfig() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Configuración de lealtad</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           Activa y ajusta los programas de lealtad de tu restaurante. Cada uno es independiente.
         </p>
       </div>
@@ -101,7 +101,7 @@ export default function LoyaltyConfig() {
             </div>
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">Programa de puntos</p>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                 {draft.points.enabled
                   ? `${draft.points.pesosPerPoint} pesos = 1 punto · Mínimo canje: ${draft.points.minRedeemPoints} pts`
                   : 'Acumula puntos por visita y canjéalos por descuentos'}
@@ -129,7 +129,7 @@ export default function LoyaltyConfig() {
             </div>
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">Membresía</p>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                 {draft.membership.enabled
                   ? `${describeTrigger(draft.membership.trigger)} · ${draft.membership.durationMonths} meses`
                   : 'Clientes VIP con beneficio exclusivo'}
@@ -297,7 +297,7 @@ export default function LoyaltyConfig() {
             <ChevronRight size={14} />
           </button>
           {draft.membership.benefitEnabled && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Beneficio activo: <strong>{draft.membership.benefitLabel}</strong> ({describeBenefit(draft.membership.benefitType)})
               {draft.membership.benefitDaily ? ' · Diario' : ' · Permanente'}
               {draft.membership.benefitCrossBranch ? ' · Todas las sucursales' : ' · Solo esta sucursal'}

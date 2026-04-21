@@ -214,7 +214,7 @@ export default function TermoMembership() {
             <Coffee size={22} className="text-amber-600" />
             Membresía Termo
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
             Precio preferencial + un café gratis por día en cualquier sucursal
           </p>
         </div>
@@ -353,7 +353,7 @@ export default function TermoMembership() {
               </div>
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white">{member.name}</p>
-                <p className="text-xs text-gray-500">{member.phone}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{member.phone}</p>
               </div>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${
@@ -371,13 +371,13 @@ export default function TermoMembership() {
           {/* Info del socio */}
           <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-b border-gray-100 dark:border-gray-800">
             <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Miembro desde</p>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Miembro desde</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
                 {formatDate(member.createdAt)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Vence el</p>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Vence el</p>
               <p className={`text-sm font-medium mt-0.5 ${
                 status === 'vencido' ? 'text-red-600' : 'text-gray-900 dark:text-white'
               }`}>
@@ -385,7 +385,7 @@ export default function TermoMembership() {
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Email</p>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Email</p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
                 {member.email || '—'}
               </p>
@@ -394,16 +394,16 @@ export default function TermoMembership() {
 
           {/* BENEFICIO DEL DÍA — el más importante */}
           <div className="px-5 py-5">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">
               Café gratis del día
             </h4>
 
             {status !== 'activo' ? (
               <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                <XCircle size={24} className="text-gray-400" />
+                <XCircle size={24} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No disponible</p>
-                  <p className="text-xs text-gray-400 mt-0.5">La membresía no está activa.</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">La membresía no está activa.</p>
                 </div>
               </div>
             ) : benefitAvailable ? (
@@ -430,11 +430,11 @@ export default function TermoMembership() {
             ) : (
               <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Clock size={24} className="text-gray-400" />
+                  <Clock size={24} className="text-gray-500" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700 dark:text-gray-300">Ya utilizado hoy</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                     Usado a las {member.dailyBenefitUsedAt
                       ? new Date(member.dailyBenefitUsedAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
                       : '—'}
@@ -448,7 +448,7 @@ export default function TermoMembership() {
           {/* Acciones — renovar membresía */}
           {status !== 'activo' && (
             <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800 pt-4">
-              <p className="text-xs text-gray-500 mb-3">Renovar membresía:</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Renovar membresía:</p>
               <div className="flex gap-2 flex-wrap">
                 {[3, 6, 12].map(m => (
                   <button

@@ -153,12 +153,12 @@ export default function TermoWidget({ onClose }: Props) {
               <Search size={16} />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-1">Se busca automáticamente al ingresar 10 dígitos</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Se busca automáticamente al ingresar 10 dígitos</p>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-4 text-sm text-gray-400">Buscando...</div>
+          <div className="text-center py-4 text-sm text-gray-600">Buscando...</div>
         )}
 
         {/* No encontrado */}
@@ -181,7 +181,7 @@ export default function TermoWidget({ onClose }: Props) {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-gray-900 dark:text-white">{member.name}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {member.membershipExpiresAt
                       ? `Vence ${new Date(member.membershipExpiresAt).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}`
                       : 'Sin fecha de vencimiento'}
