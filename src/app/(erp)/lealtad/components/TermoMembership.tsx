@@ -26,9 +26,10 @@ interface NewMemberForm {
   phone: string;
   email: string;
   expiresMonths: number;
+  birthday: string;  // formato YYYY-MM-DD, el año puede ser 1900 como placeholder
 }
 
-const EMPTY_FORM: NewMemberForm = { name: '', phone: '', email: '', expiresMonths: 12 };
+const EMPTY_FORM: NewMemberForm = { name: '', phone: '', email: '', expiresMonths: 12, birthday: '' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isBenefitAvailableToday(usedAt: string | null): boolean {
@@ -129,9 +130,10 @@ export default function TermoMembership() {
       name:                  newForm.name.trim(),
       phone:                 newForm.phone.replace(/\D/g,''),
       email:                 newForm.email.trim(),
-      membership_type:       'membresia',   // tipo genérico — no 'termo' hardcodeado
+      membership_type:       'membresia',
       is_active:             true,
       membership_expires_at: expires.toISOString(),
+      birthday:              newForm.birthday || null,
       points:                0,
       total_spent:           0,
       total_visits:          0,
@@ -258,6 +260,16 @@ export default function TermoMembership() {
                 value={newForm.email}
                 onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))}
               />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Fecha de nacimiento (opcional)</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800"
+                value={newForm.birthday}
+                onChange={e => setNewForm(f => ({ ...f, birthday: e.target.value }))}
+              />
+              <p className="text-xs text-gray-500 mt-1">Para el beneficio de cumpleaños — el sistema avisa al cajero ese día</p>
             </div>
             <div>
               <label className="text-xs text-gray-600 dark:text-gray-400 font-medium block mb-1">Vigencia</label>

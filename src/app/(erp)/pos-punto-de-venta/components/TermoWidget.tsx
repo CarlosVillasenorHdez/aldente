@@ -20,6 +20,14 @@ interface TermoMember {
   isActive: boolean;
   membershipExpiresAt: string | null;
   dailyBenefitUsedAt: string | null;
+  birthday: string | null;
+}
+
+function isBirthdayToday(birthday: string | null): boolean {
+  if (!birthday) return false;
+  const today = new Date();
+  const bday = new Date(birthday);
+  return bday.getMonth() === today.getMonth() && bday.getDate() === today.getDate();
 }
 
 function isBenefitAvailableToday(usedAt: string | null): boolean {
@@ -61,7 +69,7 @@ export default function TermoWidget({ onClose }: Props) {
 
     const { data } = await supabase
       .from('loyalty_customers')
-      .select('id,name,is_active,membership_expires_at,daily_benefit_used_at')
+      .select('id,name,is_active,membership_expires_at,daily_benefit_used_at,birthday')
       .eq('tenant_id', getTenantId())
       .in('membership_type', ['termo', 'membresia'])
       .ilike('phone', `%${q}%`)
@@ -75,6 +83,7 @@ export default function TermoWidget({ onClose }: Props) {
       id: data.id, name: data.name, isActive: data.is_active,
       membershipExpiresAt: data.membership_expires_at ?? null,
       dailyBenefitUsedAt: data.daily_benefit_used_at ?? null,
+      birthday: (data as any).birthday ?? null,
     });
   }, [phone, supabase]);
 

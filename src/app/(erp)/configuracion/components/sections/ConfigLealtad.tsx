@@ -43,8 +43,8 @@ const Field = ({ label, hint, children }: { label: string; hint?: string; childr
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function LoyaltyConfig() {
-  const { config, loading, saving, save } = useLoyaltyConfig();
   const { appUser } = useAuth();
+  const { config, loading, saving, save } = useLoyaltyConfig(appUser?.tenantId);
   const [draft, setDraft] = useState<FullLoyaltyConfig | null>(null);
   const [dishes, setDishes] = useState<Array<{ id: string; name: string; price: number; group: string }>>([]);
   const [step, setStep] = useState<'overview' | 'points' | 'membership' | 'benefit'>('overview');
@@ -315,7 +315,7 @@ export default function LoyaltyConfig() {
             Configurar beneficios de la membresía
             <ChevronRight size={14} />
           </button>
-          {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled) && (
+          {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled || draft.membership.birthdayEnabled) && (
             <div className="mt-2 space-y-0.5">
               {draft.membership.freeProductEnabled && <p className="text-xs text-amber-400">☕ {draft.membership.freeProductLabel}{draft.membership.freeProductDaily ? ' (diario)' : ''}</p>}
               {draft.membership.discountEnabled && <p className="text-xs text-green-400">💚 {draft.membership.discountPct}% descuento</p>}
@@ -351,12 +351,12 @@ export default function LoyaltyConfig() {
 
       <p className="text-sm text-gray-400">Activa uno o más beneficios. Se pueden combinar.</p>
 
-      {/* Bebida o platillo gratis */}
+      {/* BENEFICIO 1 — Producto gratis */}
       <div className={`border rounded-xl p-4 transition-all ${draft.membership.freeProductEnabled ? 'border-amber-500/50 bg-amber-900/10' : 'border-[#2a3f5f]'}`}>
-        <Toggle on={draft.membership.freeProductEnabled} onChange={v => setMem({ freeProductEnabled: v })} label="Bebida o platillo gratis por visita" />
+        <Toggle on={draft.membership.freeProductEnabled} onChange={v => setMem({ freeProductEnabled: v })} label="Bebida o platillo gratis" />
         {draft.membership.freeProductEnabled && (
           <div className="mt-4 space-y-3 pl-14">
-            <Field label="¿Qué producto se regala?" hint="El costo WACC se registra como gasto del programa en el P&L">
+            <Field label="¿Qué producto se regala?" hint="El costo WACC se registra en el P&L como gasto del programa">
               <select className={selectCls} value={draft.membership.freeProductId} onChange={e => setMem({ freeProductId: e.target.value })}>
                 <option value="">Selecciona un producto...</option>
                 {['Platillos del menú','Tienda de extras'].map(group => {
@@ -370,39 +370,42 @@ export default function LoyaltyConfig() {
                 })}
               </select>
             </Field>
+            <Field label="¿Con qué frecuencia puede usarlo?">
+              <select className={selectCls} value={draft.membership.freeProductFreq} onChange={e => setMem({ freeProductFreq: e.target.value as any })}>
+                <option value="diario">Una vez al día — se resetea a medianoche</option>
+                <option value="visita">Una vez por visita — ilimitado</option>
+                <option value="semanal">Una vez por semana</option>
+              </select>
+            </Field>
+            {draft.membership.freeProductFreq !== 'visita' && <Tip text="Cross-sucursal activo: el contador es compartido en todas las sucursales del restaurante." />}
             <Field label="¿Cómo lo ve el cajero en el POS?">
               <input className={inputCls} placeholder="Ej: Café del día, Postre de bienvenida" value={draft.membership.freeProductLabel} onChange={e => setMem({ freeProductLabel: e.target.value })} />
             </Field>
-            <Toggle on={draft.membership.freeProductDaily} onChange={v => setMem({ freeProductDaily: v })} label="Una vez por día (se resetea a medianoche en todas las sucursales)" />
-            {draft.membership.freeProductDaily && <Tip text="Cross-sucursal: si el socio usa su bebida en sucursal A, ese día ya no aplica en sucursal B." />}
           </div>
         )}
       </div>
 
-      {/* Descuento */}
+      {/* BENEFICIO 2 — Descuento */}
       <div className={`border rounded-xl p-4 transition-all ${draft.membership.discountEnabled ? 'border-green-500/50 bg-green-900/10' : 'border-[#2a3f5f]'}`}>
-        <Toggle on={draft.membership.discountEnabled} onChange={v => setMem({ discountEnabled: v })} label="Descuento en cada visita" />
+        <Toggle on={draft.membership.discountEnabled} onChange={v => setMem({ discountEnabled: v })} label="Descuento en sus compras" />
         {draft.membership.discountEnabled && (
-          <div className="mt-4 pl-14">
-            <Field label="¿Cuánto descuento?" hint="Se aplica sobre el total de la orden">
-              <div className="flex items-center gap-3">
-                <input type="number" min={1} max={50} className={inputCls + ' max-w-[100px]'} value={draft.membership.discountPct} onChange={e => setMem({ discountPct: Number(e.target.value) })} />
-                <span className="text-gray-300 text-sm">% de descuento</span>
-              </div>
-            </Field>
-          </div>
-        )}
-      </div>
-
-      {/* Precio especial */}
-      <div className={`border rounded-xl p-4 transition-all ${draft.membership.priceTagEnabled ? 'border-blue-500/50 bg-blue-900/10' : 'border-[#2a3f5f]'}`}>
-        <Toggle on={draft.membership.priceTagEnabled} onChange={v => setMem({ priceTagEnabled: v })} label="Precio especial de socio" />
-        {draft.membership.priceTagEnabled && (
           <div className="mt-4 pl-14 space-y-3">
-            <Field label="Etiqueta para el cajero" hint="El cajero ve esta etiqueta y aplica el precio según tu política">
-              <input className={inputCls} placeholder="Ej: Precio de socio, Tarifa preferencial" value={draft.membership.priceTagLabel} onChange={e => setMem({ priceTagLabel: e.target.value })} />
+            <div className="flex items-center gap-3">
+              <input type="number" min={1} max={50} className={inputCls + ' max-w-[100px]'} value={draft.membership.discountPct} onChange={e => setMem({ discountPct: Number(e.target.value) })} />
+              <span className="text-gray-300 text-sm font-medium">% de descuento</span>
+            </div>
+            <Field label="¿Sobre qué aplica el descuento?">
+              <select className={selectCls} value={draft.membership.discountScope} onChange={e => setMem({ discountScope: e.target.value as any })}>
+                <option value="orden">Toda la orden (platillos + bebidas + extras)</option>
+                <option value="platillos">Solo platillos del menú (no sobre extras)</option>
+              </select>
             </Field>
-            <Tip text="El cajero verá esta etiqueta en azul junto al nombre del socio al verificarlo en el POS." />
+            <Field label="¿Cómo se aplica?">
+              <select className={selectCls} value={draft.membership.discountAuto ? 'auto' : 'manual'} onChange={e => setMem({ discountAuto: e.target.value === 'auto' })}>
+                <option value="auto">Automático en cada visita — siempre aplica</option>
+                <option value="manual">El cajero lo activa — el socio decide cuándo usarlo</option>
+              </select>
+            </Field>
           </div>
         )}
       </div>
@@ -423,8 +426,49 @@ export default function LoyaltyConfig() {
         )}
       </div>
 
+      {/* BENEFICIO 5 — Cumpleaños */}
+      <div className={`border rounded-xl p-4 transition-all ${draft.membership.birthdayEnabled ? 'border-pink-500/50 bg-pink-900/10' : 'border-[#2a3f5f]'}`}>
+        <Toggle on={draft.membership.birthdayEnabled} onChange={v => setMem({ birthdayEnabled: v })} label="Beneficio especial de cumpleaños 🎂" />
+        {draft.membership.birthdayEnabled && (
+          <div className="mt-4 space-y-3 pl-14">
+            <Tip text="El sistema avisa automáticamente cuando un socio visita en su cumpleaños. No necesitas hacer nada — el cajero lo ve en el POS." />
+            <Field label="¿Qué recibe el socio en su cumpleaños?">
+              <select className={selectCls} value={draft.membership.birthdayType} onChange={e => setMem({ birthdayType: e.target.value as any })}>
+                <option value="descuento">Descuento especial ese día</option>
+                <option value="producto_gratis">Producto gratis ese día</option>
+              </select>
+            </Field>
+            {draft.membership.birthdayType === 'descuento' && (
+              <div className="flex items-center gap-3">
+                <input type="number" min={1} max={100} className={inputCls + ' max-w-[100px]'} value={draft.membership.birthdayDiscountPct} onChange={e => setMem({ birthdayDiscountPct: Number(e.target.value) })} />
+                <span className="text-gray-300 text-sm">% de descuento en su cumpleaños</span>
+              </div>
+            )}
+            {draft.membership.birthdayType === 'producto_gratis' && (
+              <Field label="¿Qué producto se regala?">
+                <select className={selectCls} value={draft.membership.birthdayProductId} onChange={e => setMem({ birthdayProductId: e.target.value })}>
+                  <option value="">Selecciona un producto...</option>
+                  {['Platillos del menú','Tienda de extras'].map(group => {
+                    const items = dishes.filter(d => d.group === group);
+                    if (!items.length) return null;
+                    return (
+                      <optgroup key={group} label={group}>
+                        {items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              </Field>
+            )}
+            <Field label="Mensaje que ve el cajero">
+              <input className={inputCls} placeholder="Ej: ¡Feliz cumpleaños! Aplica descuento especial" value={draft.membership.birthdayLabel} onChange={e => setMem({ birthdayLabel: e.target.value })} />
+            </Field>
+          </div>
+        )}
+      </div>
+
       {/* Preview de lo que verá el cajero */}
-      {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled) && (
+      {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled || draft.membership.birthdayEnabled) && (
         <div className="p-4 bg-[#0d1720] border border-[#2a3f5f] rounded-xl">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Así verá el cajero al verificar un socio:</p>
           <div className="space-y-1.5">
@@ -433,6 +477,7 @@ export default function LoyaltyConfig() {
             {draft.membership.priceTagEnabled && <p className="text-sm text-blue-400">🏷️ {draft.membership.priceTagLabel || 'Precio de socio'}</p>}
             {draft.membership.discountEnabled && draft.membership.discountPct > 0 && <p className="text-sm text-green-400">💚 {draft.membership.discountPct}% descuento en esta visita</p>}
             {draft.membership.pointsEnabled && <p className="text-sm text-purple-400">⭐ Acumula puntos {draft.membership.pointsMultiplier}x</p>}
+            {draft.membership.birthdayEnabled && <p className="text-sm text-pink-400">🎂 HOY ES SU CUMPLEAÑOS — {draft.membership.birthdayLabel || 'Aplica beneficio especial'}</p>}
           </div>
         </div>
       )}

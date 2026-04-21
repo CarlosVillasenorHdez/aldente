@@ -43,9 +43,20 @@ export interface LoyaltyMembershipConfig {
   discountPct:            number;   // porcentaje de descuento
   priceTagEnabled:        boolean;  // ¿aviso de precio especial al cajero?
   priceTagLabel:          string;   // ej: "Precio de socio"
-  pointsEnabled:          boolean;  // ¿multiplica puntos?
-  pointsMultiplier:       number;   // 2 = doble de puntos
-  // Compat legacy — mantener para no romper useMembershipTrigger
+  pointsEnabled:          boolean;
+  pointsMultiplier:       number;
+  // Descuento extendido
+  discountScope:          'orden' | 'platillos'; // ¿sobre qué aplica?
+  discountAuto:           boolean;               // true=automático, false=cajero activa
+  // Frecuencia producto gratis
+  freeProductFreq:        'diario' | 'visita' | 'semanal';
+  // Cumpleaños
+  birthdayEnabled:        boolean;
+  birthdayType:           'descuento' | 'producto_gratis';
+  birthdayDiscountPct:    number;
+  birthdayProductId:      string;
+  birthdayLabel:          string;
+  // Compat legacy
   benefitLabel:           string;
   benefitCrossBranch:     boolean;
   durationMonths_alias:   number;
@@ -80,6 +91,10 @@ const DEFAULT_MEMBERSHIP: LoyaltyMembershipConfig = {
   discountEnabled: false, discountPct: 0,
   priceTagEnabled: false, priceTagLabel: 'Precio de socio',
   pointsEnabled: false, pointsMultiplier: 2,
+  discountScope: 'orden', discountAuto: true,
+  freeProductFreq: 'diario',
+  birthdayEnabled: false, birthdayType: 'descuento',
+  birthdayDiscountPct: 0, birthdayProductId: '', birthdayLabel: 'Feliz cumpleaños',
   // compat
   benefitLabel: 'Beneficio del día', benefitCrossBranch: true,
   durationMonths_alias: 12,
@@ -87,7 +102,7 @@ const DEFAULT_MEMBERSHIP: LoyaltyMembershipConfig = {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useLoyaltyConfig() {
+export function useLoyaltyConfig(tenantIdOverride?: string | null) {
   const supabase = createClient();
   const [config, setConfig] = useState<FullLoyaltyConfig>({
     points: DEFAULT_POINTS, membership: DEFAULT_MEMBERSHIP,
@@ -96,11 +111,13 @@ export function useLoyaltyConfig() {
   const [saving,  setSaving]  = useState(false);
 
   const load = useCallback(async () => {
+    const tid = tenantIdOverride ?? getTenantId();
+    if (!tid) { setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
       .from('system_config')
       .select('config_key,config_value')
-      .eq('tenant_id', getTenantId())
+      .eq('tenant_id', tid)
       .like('config_key', 'loyalty_%');
 
     if (!data) { setLoading(false); return; }
@@ -142,6 +159,14 @@ export function useLoyaltyConfig() {
         priceTagLabel:      str('loyalty_benefit_price_tag_label', 'Precio de socio'),
         pointsEnabled:      bool('loyalty_benefit_points_enabled', false),
         pointsMultiplier:   num('loyalty_benefit_points_multiplier', 2),
+        discountScope:      str('loyalty_benefit_discount_scope', 'orden') as 'orden' | 'platillos',
+        discountAuto:       bool('loyalty_benefit_discount_auto', true),
+        freeProductFreq:    str('loyalty_benefit_free_product_freq', 'diario') as 'diario' | 'visita' | 'semanal',
+        birthdayEnabled:    bool('loyalty_benefit_birthday_enabled', false),
+        birthdayType:       str('loyalty_benefit_birthday_type', 'descuento') as 'descuento' | 'producto_gratis',
+        birthdayDiscountPct: num('loyalty_benefit_birthday_discount_pct', 0),
+        birthdayProductId:  str('loyalty_benefit_birthday_product_id'),
+        birthdayLabel:      str('loyalty_benefit_birthday_label', 'Feliz cumpleaños'),
         // compat legacy
         benefitLabel:       str('loyalty_benefit_free_product_label', 'Bebida del día'),
         benefitCrossBranch: true,
@@ -149,13 +174,13 @@ export function useLoyaltyConfig() {
       },
     });
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, tenantIdOverride]);
 
   useEffect(() => { load(); }, [load]);
 
   const save = useCallback(async (next: FullLoyaltyConfig) => {
     setSaving(true);
-    const tid = getTenantId();
+    const tid = tenantIdOverride ?? getTenantId();
 
     const entries: Array<{ tenant_id: string; config_key: string; config_value: string }> = [
       // Puntos
@@ -183,6 +208,14 @@ export function useLoyaltyConfig() {
       { tenant_id: tid!, config_key: 'loyalty_benefit_price_tag_label',       config_value: next.membership.priceTagLabel },
       { tenant_id: tid!, config_key: 'loyalty_benefit_points_enabled',        config_value: String(next.membership.pointsEnabled) },
       { tenant_id: tid!, config_key: 'loyalty_benefit_points_multiplier',     config_value: String(next.membership.pointsMultiplier) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_discount_scope',          config_value: next.membership.discountScope },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_discount_auto',           config_value: String(next.membership.discountAuto) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_free_product_freq',       config_value: next.membership.freeProductFreq },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_enabled',        config_value: String(next.membership.birthdayEnabled) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_type',           config_value: next.membership.birthdayType },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_discount_pct',   config_value: String(next.membership.birthdayDiscountPct) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_product_id',     config_value: next.membership.birthdayProductId },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_birthday_label',          config_value: next.membership.birthdayLabel },
     ];
 
     await supabase
