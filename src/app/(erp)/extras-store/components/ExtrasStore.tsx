@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
+import MembershipRegistrationPopup from './MembershipRegistrationPopup';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -617,49 +618,24 @@ export default function ExtrasStore() {
 
       {/* ── Popup de membresía — aparece al vender el produto_trigger ── */}
       {showMembershipPopup && (
-        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-          <div style={{ background:'#0f1923', border:'1px solid rgba(245,158,11,0.3)', borderRadius:20, padding:28, maxWidth:420, width:'100%' }}>
-            <div style={{ textAlign:'center', marginBottom:20 }}>
-              <div style={{ fontSize:36, marginBottom:8 }}>⭐</div>
-              <h3 style={{ color:'#f1f5f9', fontSize:17, fontWeight:700, marginBottom:6 }}>
-                {loyaltyConfig.membership.triggerProductId ? '¡Este producto incluye membresía!' : 'Activar membresía'}
-              </h3>
-              <p style={{ color:'rgba(255,255,255,0.5)', fontSize:13 }}>
-                Beneficio: {loyaltyConfig.membership.freeProductLabel || 'Beneficio del día'} · {loyaltyConfig.membership.durationMonths} meses
-              </p>
-            </div>
-
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              <button
-                onClick={async () => {
-                  // Registrar membresía manual — el cajero capturará los datos
-                  // en el módulo de Lealtad. Aquí solo cerramos el popup.
-                  setShowMembershipPopup(false);
-                  setPendingSaleId(null);
-                  setSelectedItem(null); setSelectedCustomer(null);
-                  setCustomerSearch(''); setWalkInName(''); setQty(1);
-                  await fetchData();
-                  toast.success('Ve a Lealtad → Membresía para registrar al cliente', { duration: 5000 });
-                }}
-                style={{ padding:'11px', borderRadius:10, background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.3)', color:'#f59e0b', fontSize:14, fontWeight:700, cursor:'pointer' }}
-              >
-                ⭐ Ir a registrar membresía
-              </button>
-              <button
-                onClick={async () => {
-                  setShowMembershipPopup(false);
-                  setPendingSaleId(null);
-                  setSelectedItem(null); setSelectedCustomer(null);
-                  setCustomerSearch(''); setWalkInName(''); setQty(1);
-                  await fetchData();
-                }}
-                style={{ padding:'11px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', fontSize:13, fontWeight:600, cursor:'pointer' }}
-              >
-                El cliente no quiere membresía — continuar
-              </button>
-            </div>
-          </div>
-        </div>
+        <MembershipRegistrationPopup
+          loyaltyConfig={loyaltyConfig}
+          supabase={supabase}
+          onDone={async () => {
+            setShowMembershipPopup(false);
+            setPendingSaleId(null);
+            setSelectedItem(null); setSelectedCustomer(null);
+            setCustomerSearch(''); setWalkInName(''); setQty(1);
+            await fetchData();
+          }}
+          onSkip={async () => {
+            setShowMembershipPopup(false);
+            setPendingSaleId(null);
+            setSelectedItem(null); setSelectedCustomer(null);
+            setCustomerSearch(''); setWalkInName(''); setQty(1);
+            await fetchData();
+          }}
+        />
       )}
     </div>
   );

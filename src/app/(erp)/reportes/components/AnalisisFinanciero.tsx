@@ -582,6 +582,11 @@ export default function AnalisisFinanciero() {
   const [actFijos,     setActFijos]     = useState<{nombre:string;valor_original:number;valor_residual:number;vida_util_anios:number;fecha_adquisicion:string}[]>([]);
   const [inventario,   setInventario]   = useState(0);
   const [ordAbiertas,  setOrdAbiertas]  = useState(0);
+  // Lealtad
+  const [loyaltyIncome,     setLoyaltyIncome]     = useState(0);
+  const [loyaltyCost,       setLoyaltyCost]       = useState(0);
+  const [loyaltyDiscount,   setLoyaltyDiscount]   = useState(0);
+  const [loyaltyBenefits,   setLoyaltyBenefits]   = useState(0); // cantidad de beneficios usados
 
   // Period helpers
   const dateRange = useMemo(() => {
@@ -630,6 +635,7 @@ export default function AnalisisFinanciero() {
       { data: abiertasData },
       { data: usersData },
       { data: extrasData },
+      { data: loyaltyTxData },
     ] = await Promise.all([
       supabase.from('orders').select('total,cost_actual,pay_method,discount,iva,is_cortesia')
         .eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false)
@@ -648,6 +654,8 @@ export default function AnalisisFinanciero() {
       supabase.from('app_users').select('salary,salary_frequency').eq('tenant_id', tid).eq('is_active', true),
       supabase.from('extras_sales').select('price,qty,pay_method').eq('tenant_id', tid)
         .gte('sold_at', start).lte('sold_at', end),
+      supabase.from('loyalty_transactions').select('financial_impact_type,financial_amount,type').eq('tenant_id', tid)
+        .gte('created_at', start).lte('created_at', end),
     ]);
 
     // Ventas
@@ -668,6 +676,17 @@ export default function AnalisisFinanciero() {
     setVentas(totalVentas); setCogs(totalCogs); setDescuentos(totalDesc); setIva(totalIva);
     setVentasEfec(totalEfec); setVentasTarj(totalTarj); setCortesias(totalCort);
 
+
+    // Lealtad — impacto financiero
+    const ltx = loyaltyTxData ?? [];
+    const loyaltyIncomeCalc   = ltx.filter(t => t.financial_impact_type === 'ingreso_membresia').reduce((s, t) => s + Number(t.financial_amount ?? 0), 0);
+    const loyaltyCostCalc     = ltx.filter(t => t.financial_impact_type === 'costo_beneficio').reduce((s, t) => s + Number(t.financial_amount ?? 0), 0);
+    const loyaltyDiscountCalc = ltx.filter(t => t.financial_impact_type === 'descuento_lealtad').reduce((s, t) => s + Number(t.financial_amount ?? 0), 0);
+    const loyaltyBenefitsCalc = ltx.filter(t => t.type === 'beneficio_usado').length;
+    setLoyaltyIncome(loyaltyIncomeCalc);
+    setLoyaltyCost(loyaltyCostCalc);
+    setLoyaltyDiscount(loyaltyDiscountCalc);
+    setLoyaltyBenefits(loyaltyBenefitsCalc);
     // Merma
     const totalMerma = (mermaData ?? []).reduce((s, o) => s + Number(o.waste_cost ?? 0), 0);
     setMerma(totalMerma);
@@ -1202,6 +1221,61 @@ ${horizontalHtml}
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </div>
+          )}
+
+
+          {/* ── Programa de Lealtad — impacto financiero ── */}
+          {activeTab === 'pl' && (loyaltyIncome > 0 || loyaltyCost > 0 || loyaltyDiscount > 0 || loyaltyBenefits > 0) && (
+            <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden', marginTop:0 }}>
+              <div style={{ padding:'12px 16px', background:'linear-gradient(135deg,#1B3A6B,#0F766E)', display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:16 }}>⭐</span>
+                <span style={{ color:'white', fontWeight:700, fontSize:13 }}>Programa de Lealtad</span>
+              </div>
+              <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 }}>
+                {loyaltyIncome > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
+                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ width:8, height:8, borderRadius:'50%', background:'#16a34a', display:'inline-block' }}/>
+                      Ingresos por membresías
+                    </span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#16a34a', fontFamily:'monospace' }}>+${fmt(loyaltyIncome)}</span>
+                  </div>
+                )}
+                {loyaltyCost > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
+                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ width:8, height:8, borderRadius:'50%', background:'#dc2626', display:'inline-block' }}/>
+                      Costo de beneficios otorgados (WACC)
+                      {loyaltyBenefits > 0 && <span style={{ fontSize:10, color:'#9ca3af' }}>{loyaltyBenefits} cafés</span>}
+                    </span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#dc2626', fontFamily:'monospace' }}>-${fmt(loyaltyCost)}</span>
+                  </div>
+                )}
+                {loyaltyDiscount > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
+                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ width:8, height:8, borderRadius:'50%', background:'#d97706', display:'inline-block' }}/>
+                      Descuentos aplicados por lealtad
+                    </span>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#d97706', fontFamily:'monospace' }}>-${fmt(loyaltyDiscount)}</span>
+                  </div>
+                )}
+                {/* Costo neto */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', marginTop:2 }}>
+                  <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Costo neto del programa</span>
+                  <span style={{ fontSize:13, fontWeight:700, fontFamily:'monospace',
+                    color: (loyaltyIncome - loyaltyCost - loyaltyDiscount) >= 0 ? '#16a34a' : '#dc2626' }}>
+                    ${fmt(Math.abs(loyaltyIncome - loyaltyCost - loyaltyDiscount))}
+                    {(loyaltyIncome - loyaltyCost - loyaltyDiscount) >= 0 ? ' neto positivo' : ' costo neto'}
+                  </span>
+                </div>
+                {loyaltyBenefits > 0 && (
+                  <p style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>
+                    El costo de cada beneficio refleja el WACC real del platillo regalado (ingredientes + labor).
+                  </p>
                 )}
               </div>
             </div>
