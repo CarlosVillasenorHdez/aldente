@@ -23,8 +23,11 @@ import { useOrderFlow } from '@/hooks/useOrderFlow';
 
 import { Merge, X, QrCode, Coffee } from 'lucide-react';
 import TermoWidget from './TermoWidget';
+import TakeoutModal from './TakeoutModal';
 import MembershipPopup from './MembershipPopup';
 import { useMembershipTrigger } from '@/hooks/useMembershipTrigger';
+import { useFeatures } from '@/hooks/useFeatures';
+import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
 
 export type TableStatus = 'libre' | 'ocupada' | 'espera';
 
@@ -202,6 +205,10 @@ export default function POSClient() {
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showTermoWidget, setShowTermoWidget] = useState(false);
+
+  // Lealtad
+  const { features } = useFeatures();
+  const { config: loyaltyConfig } = useLoyaltyConfig();
 
   // Detecta cuando se vende el producto configurado como trigger de membresía
   const membershipTrigger = useMembershipTrigger(
@@ -1695,22 +1702,6 @@ export default function POSClient() {
       </div>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar title="Punto de Venta" subtitle="Gestión de mesas y órdenes">
-          {/* Botón Membresía Termo */}
-          <button
-            onClick={() => setShowTermoWidget(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 12px', borderRadius: 8,
-              background: 'rgba(180,83,9,0.08)',
-              border: '1px solid rgba(180,83,9,0.2)',
-              color: '#92400e', fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-            title="Verificar membresía Termo"
-          >
-            <Coffee size={14} />
-            Termo
-          </button>
           {tenantSlug && (
             <a
               href={`/carta/${tenantSlug}`}
@@ -2155,36 +2146,16 @@ export default function POSClient() {
 
       {/* ── Para Llevar Modal ── */}
       {showTakeoutModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
-          <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'420px', width:'100%' }}>
-            <div style={{ textAlign:'center', marginBottom:'20px' }}>
-              <div style={{ fontSize:'40px', marginBottom:'10px' }}>🥡</div>
-              <h3 style={{ color:'#f1f5f9', fontSize:'19px', fontWeight:700, marginBottom:'6px' }}>Nueva orden para llevar</h3>
-              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'13px', margin:0 }}>Ingresa el nombre del cliente (opcional)</p>
-            </div>
-            <input
-              autoFocus
-              type="text"
-              value={takeoutNameInput}
-              onChange={e => setTakeoutNameInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateTakeout(takeoutNameInput); if (e.key === 'Escape') setShowTakeoutModal(false); }}
-              placeholder="Nombre del cliente..."
-              style={{ width:'100%', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:'10px', padding:'12px 16px', color:'#f1f5f9', fontSize:'15px', outline:'none', marginBottom:'16px', boxSizing:'border-box' }}
-            />
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button
-                onClick={() => { setShowTakeoutModal(false); setTakeoutNameInput(''); }}
-                style={{ flex:1, padding:'11px', borderRadius:'10px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleCreateTakeout(takeoutNameInput)}
-                style={{ flex:2, padding:'11px', borderRadius:'10px', background:'#1e3a5f', border:'1px solid rgba(96,165,250,0.4)', color:'#60a5fa', fontSize:'14px', fontWeight:700, cursor:'pointer' }}>
-                🥡 Crear orden para llevar
-              </button>
-            </div>
-          </div>
-        </div>
+        <TakeoutModal
+          loyaltyEnabled={features.lealtad}
+          benefitLabel={loyaltyConfig.membership.freeProductLabel || 'Beneficio del día'}
+          onConfirm={(name) => {
+            setShowTakeoutModal(false);
+            setTakeoutNameInput('');
+            handleCreateTakeout(name);
+          }}
+          onCancel={() => { setShowTakeoutModal(false); setTakeoutNameInput(''); }}
+        />
       )}
 
       {/* Cancel item confirmation */}
