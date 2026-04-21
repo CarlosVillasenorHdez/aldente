@@ -5,11 +5,11 @@ import { toast } from 'sonner';
 import { Star, Users, Gift, ChevronRight, ChevronLeft, Check, Info } from 'lucide-react';
 import {
   useLoyaltyConfig, FullLoyaltyConfig,
-  MembershipTrigger, BenefitType,
-  describeTrigger, describeBenefit,
+  MembershipTrigger,
+  describeTrigger,
 } from '@/hooks/useLoyaltyConfig';
 import { createClient } from '@/lib/supabase/client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ── Componentes auxiliares ────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ const Field = ({ label, hint, children }: { label: string; hint?: string; childr
 
 export default function LoyaltyConfig() {
   const { config, loading, saving, save } = useLoyaltyConfig();
+  const { appUser } = useAuth();
   const [draft, setDraft] = useState<FullLoyaltyConfig | null>(null);
   const [dishes, setDishes] = useState<Array<{ id: string; name: string; price: number; group: string }>>([]);
   const [step, setStep] = useState<'overview' | 'points' | 'membership' | 'benefit'>('overview');
@@ -54,9 +55,10 @@ export default function LoyaltyConfig() {
     if (!loading && !draft) setDraft(config);
   }, [loading, config, draft]);
 
-  // Cargar platillos Y extras (combos, productos extra, membresías) para los selectores
+  // Cargar platillos Y extras usando el tenantId del usuario autenticado
   useEffect(() => {
-    const tid = getTenantId();
+    const tid = appUser?.tenantId;
+    if (!tid) return;
     Promise.all([
       supabase.from('dishes').select('id,name,price')
         .eq('tenant_id', tid).eq('is_active', true).order('name'),
@@ -69,7 +71,7 @@ export default function LoyaltyConfig() {
       ];
       setDishes(all);
     });
-  }, [supabase]);
+  }, [supabase, appUser?.tenantId]);
 
   if (loading || !draft) return (
     <div className="text-center py-12 text-sm text-gray-400">Cargando configuración...</div>
