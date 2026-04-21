@@ -209,6 +209,8 @@ export default function POSClient() {
   // Lealtad
   const { features } = useFeatures();
   const { config: loyaltyConfig } = useLoyaltyConfig();
+  // Beneficio pendiente — se marca como usado al enviar a cocina (no al crear la orden)
+  const [pendingBenefit, setPendingBenefit] = useState<{ memberId: string; waiterName: string } | null>(null);
 
   // Detecta cuando se vende el producto configurado como trigger de membresía
   const membershipTrigger = useMembershipTrigger(
@@ -837,14 +839,10 @@ export default function POSClient() {
         };
         setOrderItems([benefitItem]);
 
-        // Marcar el beneficio como usado en la DB
-        await supabase.rpc('loyalty_use_daily_benefit', {
-          p_customer_id:   memberId,
-          p_branch_id:     activeBranch ?? null,
-          p_registered_by: waiterName,
-          p_benefit_type:  'cafe_gratis',
-        });
-        toast.success('☕ Beneficio del día agregado a la comanda');
+        // NO marcar aquí — el beneficio se marca cuando se envíe a cocina
+        // Si el cajero descarta la orden, el beneficio no queda marcado
+        setPendingBenefit({ memberId, waiterName });
+        toast.success('☕ Beneficio del día agregado — se confirmará al enviar a cocina');
       }
     } else {
       setOrderItems([]);
@@ -1132,7 +1130,18 @@ export default function POSClient() {
       }
 
       setIsOnHold(false);  // clear hold after sending
-      if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? selectedTable.name}`);
+      if (!kitchenSent) toast.success(`Orden enviada a cocina — ${mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}`);
+
+      // Marcar el beneficio de lealtad como usado ahora que la orden es real
+      if (pendingBenefit && !kitchenSent) {
+        await supabase.rpc('loyalty_use_daily_benefit', {
+          p_customer_id:   pendingBenefit.memberId,
+          p_branch_id:     activeBranch ?? null,
+          p_registered_by: pendingBenefit.waiterName,
+          p_benefit_type:  'cafe_gratis',
+        });
+        setPendingBenefit(null);
+      }
     }
     setSendingToKitchen(false);
   };
@@ -1394,6 +1403,7 @@ export default function POSClient() {
     setOrderItems([]);
     setView('tables');
     setKitchenSent(false);
+    setPendingBenefit(null);   // el beneficio NO se usó — la orden fue descartada
     toast('Orden descartada');
   };
 
@@ -1471,6 +1481,7 @@ export default function POSClient() {
     await fetchTables();
     setSelectedTable(null); setOrderItems([]); setView('tables');
     setKitchenSent(false);
+    setPendingBenefit(null);   // beneficio no confirmado — mesa cancelada
     toast.success(`${selectedTable.name} liberada`);
   };
 
@@ -1779,7 +1790,7 @@ export default function POSClient() {
                     Menú
                     {selectedTable && (
                       <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        {mergeGroupLabel ?? selectedTable.name}
+                        {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
                       </span>
                     )}
                   </button>
@@ -1804,7 +1815,7 @@ export default function POSClient() {
                     Menú
                     {selectedTable && (
                       <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        {mergeGroupLabel ?? selectedTable.name}
+                        {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
                       </span>
                     )}
                   </span>
@@ -1869,7 +1880,7 @@ export default function POSClient() {
                   </button>
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
                     <div className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="font-semibold text-amber-800">{mergeGroupLabel ?? selectedTable.name} — {itemCount} items</span>
+                    <span className="font-semibold text-amber-800">{mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)} — {itemCount} items</span>
                   </div>
                 </div>
               )}
