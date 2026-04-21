@@ -45,9 +45,13 @@ function isExpired(expiresAt: string | null): boolean {
 
 interface Props {
   onClose?: () => void;
+  /** Llamado cuando se marca el beneficio — el POS puede auto-agregar el producto */
+  onBenefitUsed?: (memberId: string, benefitProductId: string) => void;
+  /** UUID del producto configurado como beneficio — viene de useLoyaltyConfig */
+  benefitProductId?: string;
 }
 
-export default function TermoWidget({ onClose }: Props) {
+export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId }: Props) {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +112,12 @@ export default function TermoWidget({ onClose }: Props) {
     setDone(true);
     setMember(prev => prev ? { ...prev, dailyBenefitUsedAt: new Date().toISOString() } : null);
     toast.success('☕ Café gratis registrado');
-  }, [member, supabase, activeBranchId]);
+
+    // Notificar al POS para que auto-agregue el producto a la comanda
+    if (onBenefitUsed && benefitProductId && member) {
+      onBenefitUsed(member.id, benefitProductId);
+    }
+  }, [member, supabase, activeBranchId, onBenefitUsed, benefitProductId]);
 
   const active  = member?.isActive && !isExpired(member.membershipExpiresAt);
   const avail   = member ? isBenefitAvailableToday(member.dailyBenefitUsedAt) : false;

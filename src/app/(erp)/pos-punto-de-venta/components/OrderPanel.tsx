@@ -31,6 +31,9 @@ interface OrderPanelProps {
   /** Si true y es para llevar: cobrar antes de enviar a cocina */
   takeoutPayBeforeKitchen?: boolean;
   orderType?: 'mesa' | 'para_llevar';
+  /** Lealtad — para verificar socios desde la mesa */
+  loyaltyEnabled?: boolean;
+  onVerifyMember?: () => void;
 }
 
 export default function OrderPanel({
@@ -59,6 +62,8 @@ export default function OrderPanel({
   onSendKitchenNote,
   takeoutPayBeforeKitchen = false,
   orderType,
+  loyaltyEnabled = false,
+  onVerifyMember,
 }: OrderPanelProps) {
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
@@ -109,6 +114,15 @@ export default function OrderPanel({
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.2)', color: '#4ade80' }}>
                 En cocina
               </span>
+            )}
+            {loyaltyEnabled && onVerifyMember && (
+              <button
+                onClick={onVerifyMember}
+                title="Verificar membresía del cliente"
+                style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '3px 8px', color: '#FCD34D', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                ⭐
+              </button>
             )}
           </div>
         )}

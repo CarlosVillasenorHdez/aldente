@@ -266,7 +266,8 @@ export default function POSClient() {
   const { ivaPercent, ivaIncludedInPrice, takeoutPayBeforeKitchen } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
 
-  const subtotal = orderItems.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0);
+  const subtotal = orderItems.reduce((sum, item) =>
+    sum + (item.menuItem.price + (item.priceDelta ?? 0)) * item.quantity, 0);
   const discountAmount = discount.type === 'pct' ? subtotal * (discount.value / 100) : discount.value;
   const taxableAmount = subtotal - discountAmount;
   // México: precios incluyen IVA por ley (Art. 18 LIVA)
@@ -1162,10 +1163,10 @@ export default function POSClient() {
         modifier: `🎁 ${combo.name}`,
       }));
 
-    const newItems = [...orderItems, ...simpleLines];
+    const newItems: OrderItem[] = [...orderItems, ...simpleLines as OrderItem[]];
     setOrderItems(newItems);
     const orderId = await ensureOpenOrder(selectedTable);
-    const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100) : Math.min(discount.value, newSubtotal);
     const taxable = newSubtotal - discAmt;
@@ -1221,7 +1222,7 @@ export default function POSClient() {
     setOrderItems(newItems);
 
     const orderId = await ensureOpenOrder(selectedTable);
-    const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100)
       : Math.min(discount.value, newSubtotal);
@@ -1246,7 +1247,7 @@ export default function POSClient() {
     setOrderItems(newItems);
 
     if (selectedTable.currentOrderId) {
-      const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+      const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
@@ -1281,7 +1282,7 @@ export default function POSClient() {
     setOrderItems(newItems);
 
     if (selectedTable.currentOrderId) {
-      const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+      const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
@@ -1301,7 +1302,7 @@ export default function POSClient() {
     // Remove from local state and billing
     const newItems = orderItems.filter((o) => o.lineId !== lineId);
     setOrderItems(newItems);
-    const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
     const discAmt = discount.type === 'pct'
       ? newSubtotal * (discount.value / 100) : Math.min(discount.value, newSubtotal);
     const newTotal = ivaIncludedInPrice ? (newSubtotal - discAmt) : (newSubtotal - discAmt) * (1 + IVA_RATE);
@@ -1329,7 +1330,7 @@ export default function POSClient() {
     );
     setOrderItems(newItems);
     if (selectedTable.currentOrderId) {
-      const newSubtotal = newItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+      const newSubtotal = newItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
       const discAmt = discount.type === 'pct'
         ? newSubtotal * (discount.value / 100)
         : Math.min(discount.value, newSubtotal);
@@ -1480,7 +1481,7 @@ export default function POSClient() {
     const selectedItems = orderItems.filter(i => lineIds.includes(i.lineId));
     if (!selectedItems.length) return;
 
-    const partialSubtotal = selectedItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const partialSubtotal = selectedItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
     const ivaRate = 0.16;
     const partialIva = partialSubtotal * ivaRate;
     const partialTotal = partialSubtotal + partialIva;
@@ -1529,7 +1530,7 @@ export default function POSClient() {
     setOrderItems(remainingItems);
 
     // Update remaining total on the original order AND table item_count
-    const newSubtotal = remainingItems.reduce((s, i) => s + i.menuItem.price * i.quantity, 0);
+    const newSubtotal = remainingItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
     const newCount = remainingItems.reduce((s, i) => s + i.quantity, 0);
     await Promise.all([
       supabase.from('orders').update({
@@ -2109,6 +2110,8 @@ export default function POSClient() {
             onSendKitchenNote={handleSendKitchenNote}
             takeoutPayBeforeKitchen={takeoutPayBeforeKitchen}
             orderType={selectedTable?.number === 0 ? 'para_llevar' : 'mesa'}
+            loyaltyEnabled={features.lealtad}
+            onVerifyMember={() => setShowTermoWidget(true)}
           />
           </div>
         </div>
@@ -2382,14 +2385,40 @@ export default function POSClient() {
         </div>
       )}
 
-      {/* ── Modal Membresía Termo ── */}
+      {/* ── Modal Membresía — verificar socio en mesa ── */}
       {showTermoWidget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowTermoWidget(false); }}
         >
-          <TermoWidget onClose={() => setShowTermoWidget(false)} />
+          <TermoWidget
+            onClose={() => setShowTermoWidget(false)}
+            benefitProductId={loyaltyConfig.membership.freeProductId || ''}
+            onBenefitUsed={async (memberId, productId) => {
+              // Auto-agregar el producto gratis a la comanda activa
+              if (!productId) return;
+              const { data: dish } = await supabase
+                .from('dishes')
+                .select('id,name,category,price,emoji,description,available')
+                .eq('id', productId)
+                .single();
+              if (!dish) return;
+              const benefitItem: OrderItem = {
+                lineId: `benefit-${Date.now()}`,
+                menuItem: {
+                  id: dish.id, name: dish.name, category: dish.category ?? '',
+                  price: dish.price, description: dish.description ?? '',
+                  available: dish.available, emoji: dish.emoji ?? '☕',
+                },
+                quantity: 1,
+                notes: '🎁 Beneficio del día — sin costo',
+                priceDelta: -(dish.price),
+              };
+              setOrderItems(prev => [...prev, benefitItem]);
+              setShowTermoWidget(false);
+            }}
+          />
         </div>
       )}
 
