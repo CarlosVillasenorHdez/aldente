@@ -21,22 +21,22 @@ const Toggle = ({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
     >
       <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
     </div>
-    <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+    <span className="text-sm text-gray-300">{label}</span>
   </label>
 );
 
 const Tip = ({ text }: { text: string }) => (
-  <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg mt-3">
+  <div className="flex gap-2 p-3 bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg mt-3">
     <Info size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
-    <p className="text-xs text-blue-700 dark:text-blue-300">{text}</p>
+    <p className="text-xs text-blue-300">{text}</p>
   </div>
 );
 
 const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1.5">{label}</label>
+    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">{label}</label>
     {children}
-    {hint && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
   </div>
 );
 
@@ -45,7 +45,7 @@ const Field = ({ label, hint, children }: { label: string; hint?: string; childr
 export default function LoyaltyConfig() {
   const { config, loading, saving, save } = useLoyaltyConfig();
   const [draft, setDraft] = useState<FullLoyaltyConfig | null>(null);
-  const [dishes, setDishes] = useState<Array<{ id: string; name: string; price: number }>>([]);
+  const [dishes, setDishes] = useState<Array<{ id: string; name: string; price: number; group: string }>>([]);
   const [step, setStep] = useState<'overview' | 'points' | 'membership' | 'benefit'>('overview');
 
   const supabase = createClient();
@@ -54,16 +54,25 @@ export default function LoyaltyConfig() {
     if (!loading && !draft) setDraft(config);
   }, [loading, config, draft]);
 
-  // Cargar platillos para el selector de producto que activa/regala la membresía
+  // Cargar platillos Y extras (combos, productos extra, membresías) para los selectores
   useEffect(() => {
-    supabase.from('dishes').select('id,name,price')
-      .eq('tenant_id', getTenantId()).eq('is_active', true)
-      .order('name')
-      .then(({ data }) => setDishes(data ?? []));
+    const tid = getTenantId();
+    Promise.all([
+      supabase.from('dishes').select('id,name,price')
+        .eq('tenant_id', tid).eq('is_active', true).order('name'),
+      supabase.from('extras_catalog').select('id,name,price')
+        .eq('tenant_id', tid).eq('is_active', true).order('name'),
+    ]).then(([dishRes, extraRes]) => {
+      const all = [
+        ...(dishRes.data ?? []).map(d => ({ id: d.id, name: d.name, price: Number(d.price), group: 'Platillos del menú' })),
+        ...(extraRes.data ?? []).map(e => ({ id: e.id, name: e.name, price: Number(e.price), group: 'Tienda de extras' })),
+      ];
+      setDishes(all);
+    });
   }, [supabase]);
 
   if (loading || !draft) return (
-    <div className="text-center py-12 text-sm text-gray-600">Cargando configuración...</div>
+    <div className="text-center py-12 text-sm text-gray-400">Cargando configuración...</div>
   );
 
   const setPoints = (p: Partial<typeof draft.points>) =>
@@ -76,32 +85,32 @@ export default function LoyaltyConfig() {
     toast.success('Configuración guardada');
   };
 
-  const inputCls = "w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400";
+  const inputCls = "w-full border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm bg-[#0f1923] text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400";
   const selectCls = inputCls;
 
   // ── Vista general ───────────────────────────────────────────────────────────
   if (step === 'overview') return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Configuración de lealtad</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <h2 className="text-xl font-semibold text-gray-100">Configuración de lealtad</h2>
+        <p className="text-sm text-gray-400 mt-1">
           Activa y ajusta los programas de lealtad de tu restaurante. Cada uno es independiente.
         </p>
       </div>
 
       {/* Tarjeta: Programa de puntos */}
       <div
-        className={`border rounded-xl p-5 cursor-pointer transition-all hover:shadow-md ${draft.points.enabled ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'}`}
+        className={`border rounded-xl p-5 cursor-pointer transition-all hover:shadow-md ${draft.points.enabled ? 'border-amber-300 dark:border-amber-700 bg-amber-900/20' : 'border-[#2a3f5f] bg-[#1a2535]'}`}
         onClick={() => setStep('points')}
       >
         <div className="flex items-start justify-between">
           <div className="flex gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${draft.points.enabled ? 'bg-amber-600' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${draft.points.enabled ? 'bg-amber-600' : 'bg-[#0d1720]'}`}>
               <Star size={20} className={draft.points.enabled ? 'text-white' : 'text-gray-400'} />
             </div>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">Programa de puntos</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+              <p className="font-semibold text-gray-100">Programa de puntos</p>
+              <p className="text-sm text-gray-400 mt-0.5">
                 {draft.points.enabled
                   ? `${draft.points.pesosPerPoint} pesos = 1 punto · Mínimo canje: ${draft.points.minRedeemPoints} pts`
                   : 'Acumula puntos por visita y canjéalos por descuentos'}
@@ -119,17 +128,17 @@ export default function LoyaltyConfig() {
 
       {/* Tarjeta: Membresía */}
       <div
-        className={`border rounded-xl p-5 cursor-pointer transition-all hover:shadow-md ${draft.membership.enabled ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'}`}
+        className={`border rounded-xl p-5 cursor-pointer transition-all hover:shadow-md ${draft.membership.enabled ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/10' : 'border-[#2a3f5f] bg-[#1a2535]'}`}
         onClick={() => setStep('membership')}
       >
         <div className="flex items-start justify-between">
           <div className="flex gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${draft.membership.enabled ? 'bg-purple-600' : 'bg-gray-100 dark:bg-gray-800'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${draft.membership.enabled ? 'bg-purple-600' : 'bg-[#0d1720]'}`}>
               <Users size={20} className={draft.membership.enabled ? 'text-white' : 'text-gray-400'} />
             </div>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">Membresía</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+              <p className="font-semibold text-gray-100">Membresía</p>
+              <p className="text-sm text-gray-400 mt-0.5">
                 {draft.membership.enabled
                   ? `${describeTrigger(draft.membership.trigger)} · ${draft.membership.durationMonths} meses`
                   : 'Clientes VIP con beneficio exclusivo'}
@@ -147,9 +156,9 @@ export default function LoyaltyConfig() {
 
       {/* Nota sobre P&L */}
       {(draft.points.enabled || draft.membership.enabled) && (
-        <div className="flex gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg">
+        <div className="flex gap-2 p-3 bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg">
           <Check size={15} className="text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-green-700 dark:text-green-300">
+          <p className="text-xs text-green-300">
             Las transacciones de lealtad aparecen automáticamente en los reportes P&L:
             ingresos por membresías, costo de beneficios otorgados y descuentos aplicados.
           </p>
@@ -174,7 +183,7 @@ export default function LoyaltyConfig() {
           <ChevronLeft size={20} />
         </button>
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
             <Star size={18} className="text-amber-600" /> Programa de puntos
           </h2>
         </div>
@@ -213,7 +222,7 @@ export default function LoyaltyConfig() {
       </>)}
 
       <div className="flex gap-3">
-        <button onClick={() => setStep('overview')} className="border border-gray-200 dark:border-gray-700 px-5 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        <button onClick={() => setStep('overview')} className="border border-[#2a3f5f] px-5 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-[#243f72]/20 transition-colors">
           Atrás
         </button>
         <button onClick={handleSave} disabled={saving} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
@@ -230,7 +239,7 @@ export default function LoyaltyConfig() {
         <button onClick={() => setStep('overview')} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           <ChevronLeft size={20} />
         </button>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
           <Users size={18} className="text-purple-600" /> Membresía
         </h2>
       </div>
@@ -242,11 +251,11 @@ export default function LoyaltyConfig() {
         <Field label="¿Cómo se activa la membresía?">
           <div className="space-y-2 mt-1">
             {(['manual', 'venta_producto', 'pago_directo'] as MembershipTrigger[]).map(t => (
-              <label key={t} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${draft.membership.trigger === t ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}>
+              <label key={t} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${draft.membership.trigger === t ? 'border-purple-400 bg-purple-900/20' : 'border-[#2a3f5f] hover:border-gray-200'}`}>
                 <input type="radio" className="mt-0.5" checked={draft.membership.trigger === t}
                   onChange={() => setMem({ trigger: t })} />
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{describeTrigger(t)}</p>
+                  <p className="text-sm font-medium text-gray-100">{describeTrigger(t)}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {t === 'manual'         && 'El cajero registra al cliente cuando corresponda. Útil cuando el trigger es físico (un objeto, un evento).'}
                     {t === 'venta_producto' && 'Se activa automáticamente al vender un producto específico. Ej: vender un termo activa la membresía.'}
@@ -259,11 +268,19 @@ export default function LoyaltyConfig() {
         </Field>
 
         {draft.membership.trigger === 'venta_producto' && (
-          <Field label="¿Qué producto activa la membresía?" hint="Al vender este producto, se registra automáticamente una membresía nueva">
+          <Field label="¿Qué producto activa la membresía?" hint="Puede ser un platillo, un combo o un producto de la tienda de extras">
             <select className={selectCls} value={draft.membership.triggerProductId}
               onChange={e => setMem({ triggerProductId: e.target.value })}>
               <option value="">Selecciona un producto...</option>
-              {dishes.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+              {['Platillos del menú','Tienda de extras'].map(group => {
+                const items = dishes.filter(d => d.group === group);
+                if (!items.length) return null;
+                return (
+                  <optgroup key={group} label={group}>
+                    {items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+                  </optgroup>
+                );
+              })}
             </select>
           </Field>
         )}
@@ -287,17 +304,17 @@ export default function LoyaltyConfig() {
           </select>
         </Field>
 
-        <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
+        <div className="border-t border-[#2a3f5f] pt-5">
           <button
             onClick={() => setStep('benefit')}
-            className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400 hover:underline"
+            className="flex items-center gap-2 text-sm font-medium text-purple-400 hover:underline"
           >
             <Gift size={16} />
             Configurar beneficio de la membresía
             <ChevronRight size={14} />
           </button>
           {draft.membership.benefitEnabled && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Beneficio activo: <strong>{draft.membership.benefitLabel}</strong> ({describeBenefit(draft.membership.benefitType)})
               {draft.membership.benefitDaily ? ' · Diario' : ' · Permanente'}
               {draft.membership.benefitCrossBranch ? ' · Todas las sucursales' : ' · Solo esta sucursal'}
@@ -307,7 +324,7 @@ export default function LoyaltyConfig() {
       </>)}
 
       <div className="flex gap-3">
-        <button onClick={() => setStep('overview')} className="border border-gray-200 dark:border-gray-700 px-5 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-colors">
+        <button onClick={() => setStep('overview')} className="border border-[#2a3f5f] px-5 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-gray-50 transition-colors">
           Atrás
         </button>
         <button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
@@ -324,7 +341,7 @@ export default function LoyaltyConfig() {
         <button onClick={() => setStep('membership')} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           <ChevronLeft size={20} />
         </button>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
           <Gift size={18} className="text-purple-600" /> Beneficio de la membresía
         </h2>
       </div>
@@ -336,11 +353,11 @@ export default function LoyaltyConfig() {
         <Field label="¿Qué tipo de beneficio recibe el socio?">
           <div className="space-y-2 mt-1">
             {(['producto_gratis','descuento_pct','precio_especial','puntos_extra','personalizado'] as BenefitType[]).map(t => (
-              <label key={t} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${draft.membership.benefitType === t ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}>
+              <label key={t} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${draft.membership.benefitType === t ? 'border-purple-400 bg-purple-900/20' : 'border-[#2a3f5f] hover:border-gray-200'}`}>
                 <input type="radio" className="mt-0.5" checked={draft.membership.benefitType === t}
                   onChange={() => setMem({ benefitType: t })} />
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{describeBenefit(t)}</p>
+                  <p className="text-sm font-medium text-gray-100">{describeBenefit(t)}</p>
                 </div>
               </label>
             ))}
@@ -352,7 +369,15 @@ export default function LoyaltyConfig() {
             <select className={selectCls} value={draft.membership.benefitProductId}
               onChange={e => setMem({ benefitProductId: e.target.value })}>
               <option value="">Selecciona un producto...</option>
-              {dishes.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+              {['Platillos del menú','Tienda de extras'].map(group => {
+                const items = dishes.filter(d => d.group === group);
+                if (!items.length) return null;
+                return (
+                  <optgroup key={group} label={group}>
+                    {items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+                  </optgroup>
+                );
+              })}
             </select>
           </Field>
         )}
@@ -395,7 +420,7 @@ export default function LoyaltyConfig() {
       </>)}
 
       <div className="flex gap-3">
-        <button onClick={() => setStep('membership')} className="border border-gray-200 dark:border-gray-700 px-5 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-colors">
+        <button onClick={() => setStep('membership')} className="border border-[#2a3f5f] px-5 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-gray-50 transition-colors">
           Atrás
         </button>
         <button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
