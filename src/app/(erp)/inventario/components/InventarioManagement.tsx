@@ -4,11 +4,12 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download, Upload } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download, Upload, ShoppingCart } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
+import ExtrasInventario from '@/app/(erp)/inventario/components/ExtrasInventario';
 import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart';
 import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInventario';
 
@@ -18,7 +19,7 @@ import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInve
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste' | 'merma';
-type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica';
+type ActiveTab = 'inventario' | 'extras' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica';
 
 type IngredientSupplier = {
   id: string;
@@ -952,7 +953,8 @@ export default function InventarioManagement() {
       {/* Tabs */}
       <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
         {([
-          { key: 'inventario', label: 'Inventario', icon: <Package size={14} /> },
+          { key: 'inventario', label: 'Ingredientes', icon: <Package size={14} /> },
+          { key: 'extras', label: 'Tienda de extras', icon: <ShoppingCart size={14} /> },
           { key: 'movimientos', label: 'Historial de Movimientos', icon: <History size={14} /> },
           { key: 'alertas', label: `Alertas (${lowStockItems.length + reorderItems.length})`, icon: <Bell size={14} /> },
           { key: 'analitica', label: 'Analítica', icon: <BarChart2 size={14} /> },
@@ -1344,6 +1346,7 @@ export default function InventarioManagement() {
       )}
       {/* ── TAB: ANÁLISIS DE DESPERDICIO ── */}
       {activeTab === 'analitica' && <AnalyticaInventario />}
+      {activeTab === 'extras' && <ExtrasInventario />}
       {activeTab === 'analisis' && <AnalisisDesperdicioTab />}
       {/* ── TAB: PRONÓSTICO ── */}
       {activeTab === 'pronostico' && <ForecastingChart />}

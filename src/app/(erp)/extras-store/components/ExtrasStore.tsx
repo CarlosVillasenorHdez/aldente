@@ -662,66 +662,10 @@ export default function ExtrasStore() {
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
-              {/* ── Inventario ── */}
-              <div style={{ borderTop: '1px solid #1e2d3d', paddingTop: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    📦 Inventario físico
-                  </p>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <div onClick={() => setItemForm(f => ({ ...f, tracksInventory: !f.tracksInventory }))}
-                      style={{ width: 36, height: 20, borderRadius: 10, background: itemForm.tracksInventory ? '#f59e0b' : '#374151', position: 'relative', transition: 'background .2s', cursor: 'pointer' }}>
-                      <div style={{ position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'transform .2s',
-                        transform: itemForm.tracksInventory ? 'translateX(18px)' : 'translateX(2px)' }} />
-                    </div>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-                      {itemForm.tracksInventory ? 'Descuenta stock al vender' : 'No controla inventario (ej: membresía digital)'}
-                    </span>
-                  </label>
-                </div>
-
-                {itemForm.tracksInventory && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {[
-                      { lbl: 'Stock actual', key: 'stockActual', hint: 'Unidades disponibles hoy' },
-                      { lbl: 'Costo unitario ($)', key: 'costoUnitario', hint: 'Costo de adquisición' },
-                      { lbl: 'Stock mínimo', key: 'stockMinimo', hint: 'Alerta crítica' },
-                      { lbl: 'Punto de reorden', key: 'puntoReorden', hint: 'Alerta de compra' },
-                    ].map(({ lbl, key, hint }) => (
-                      <div key={key}>
-                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{lbl}</p>
-                        <input
-                          type="number" min={0}
-                          value={(itemForm as any)[key]}
-                          onChange={e => setItemForm(f => ({ ...f, [key]: Number(e.target.value) }))}
-                          placeholder={hint}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }}
-                        />
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{hint}</p>
-                      </div>
-                    ))}
-                    <div>
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Unidad</p>
-                      <select value={itemForm.unidad} onChange={e => setItemForm(f => ({ ...f, unidad: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none' }}>
-                        {['pieza','termo','caja','paquete','kit','unidad'].map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>SKU / Código</p>
-                      <input value={itemForm.sku} onChange={e => setItemForm(f => ({ ...f, sku: e.target.value }))}
-                        placeholder="TRM-001"
-                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, background: '#0f1923', border: '1px solid #2a3f5f', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' as const }} />
-                    </div>
-                    {itemForm.costoUnitario > 0 && itemForm.costoUnitario < itemForm.price && (
-                      <div style={{ gridColumn: '1/-1', padding: '8px 12px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8 }}>
-                        <p style={{ fontSize: 11, color: '#6ee7b7' }}>
-                          Margen bruto: ${(itemForm.price - itemForm.costoUnitario).toFixed(2)} ({((itemForm.price - itemForm.costoUnitario) / itemForm.price * 100).toFixed(0)}%) por {itemForm.unidad}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div style={{ padding: '10px 12px', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8 }}>
+                <p style={{ fontSize: 11, color: 'rgba(96,165,250,0.8)' }}>
+                  📦 El control de inventario (stock, costo, punto de reorden) se gestiona desde el módulo de <strong>Inventario → Tienda de extras</strong>.
+                </p>
               </div>
             </div>            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button onClick={() => setCatalogModalOpen(false)} style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'rgba(255,255,255,0.07)', border: '1px solid #2a3f5f', color: 'rgba(255,255,255,0.6)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
