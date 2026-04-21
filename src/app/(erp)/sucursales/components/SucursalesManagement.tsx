@@ -165,6 +165,38 @@ export default function SucursalesManagement() {
               {saving?'Guardando...':editingId?'Guardar cambios':'Crear sucursal'}
             </button>
           </div>
+
+          {/* Panel informativo — qué se hereda automáticamente */}
+          {!editingId && (
+            <div style={{ marginTop:20, padding:'14px 16px', borderRadius:12, background:'rgba(201,150,58,.08)', border:'1px solid rgba(201,150,58,.2)' }}>
+              <p style={{ fontSize:12, fontWeight:700, color:'#c9963a', marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>
+                ✓ Esta sucursal hereda automáticamente del restaurante:
+              </p>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                {[
+                  ['🍽️ Menú completo', 'Todos los platillos y categorías'],
+                  ['📦 Inventario base', 'Ingredientes y recetas'],
+                  ['🚚 Proveedores', 'Catálogo completo de proveedores'],
+                  ['⭐ Socios de lealtad', 'Los clientes con membresía pueden usarla aquí'],
+                ].map(([title, desc]) => (
+                  <div key={title} style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                    <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.8)' }}>{title}</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>{desc}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid rgba(201,150,58,.15)' }}>
+                <p style={{ fontSize:12, color:'rgba(255,255,255,.4)', marginBottom:6, fontWeight:600 }}>
+                  ✗ Exclusivo por sucursal (no se comparte):
+                </p>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 16px' }}>
+                  {['Ventas y órdenes', 'Empleados y turnos', 'Stock físico', 'Gastos', 'Mesas'].map(item => (
+                    <span key={item} style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>• {item}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -63,7 +63,7 @@ export default function TermoWidget({ onClose }: Props) {
       .from('loyalty_customers')
       .select('id,name,is_active,membership_expires_at,daily_benefit_used_at')
       .eq('tenant_id', getTenantId())
-      .eq('membership_type', 'termo')
+      .in('membership_type', ['termo', 'membresia'])
       .ilike('phone', `%${q}%`)
       .limit(1)
       .single();

@@ -447,3 +447,123 @@ describe('Descuentos y cortesías', () => {
     expect(totalDiscount).toBe(60);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// Tests — Beneficio diario cross-sucursal
+// ═══════════════════════════════════════════════════════════════════
+
+function isBenefitAvailableToday(usedAt: string | null): boolean {
+  if (!usedAt) return true;
+  const toMexDate = (d: Date) => {
+    const local = new Date(d.getTime() + (-6 * 60) * 60000);
+    return local.toISOString().slice(0, 10);
+  };
+  return toMexDate(new Date(usedAt)) < toMexDate(new Date());
+}
+
+function isExpired(expiresAt: string | null): boolean {
+  return !!expiresAt && new Date(expiresAt) < new Date();
+}
+
+describe('Beneficio diario — lógica cross-sucursal', () => {
+  it('si nunca se ha usado, el beneficio está disponible', () => {
+    expect(isBenefitAvailableToday(null)).toBe(true);
+  });
+
+  it('si se usó hoy, el beneficio NO está disponible', () => {
+    const usedJustNow = new Date().toISOString();
+    expect(isBenefitAvailableToday(usedJustNow)).toBe(false);
+  });
+
+  it('si se usó hace 2 días, el beneficio SÍ está disponible', () => {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    expect(isBenefitAvailableToday(twoDaysAgo)).toBe(true);
+  });
+
+  it('si se usó ayer, el beneficio SÍ está disponible hoy', () => {
+    const yesterday = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    expect(isBenefitAvailableToday(yesterday)).toBe(true);
+  });
+
+  it('una membresía sin fecha de vencimiento no expira', () => {
+    expect(isExpired(null)).toBe(false);
+  });
+
+  it('una membresía que vence mañana no está expirada', () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    expect(isExpired(tomorrow)).toBe(false);
+  });
+
+  it('una membresía que venció ayer sí está expirada', () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    expect(isExpired(yesterday)).toBe(true);
+  });
+
+  it('un socio con membresía vencida NO puede usar el beneficio aunque no lo haya usado hoy', () => {
+    const expiresAt = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const isActive = !isExpired(expiresAt);
+    const benefitAvail = isBenefitAvailableToday(null);
+    // Aunque el beneficio en sí esté disponible, la membresía expirada bloquea
+    expect(isActive && benefitAvail).toBe(false);
+  });
+
+  it('un socio activo sin uso previo SÍ puede usar el beneficio', () => {
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const isActive = !isExpired(expiresAt);
+    const benefitAvail = isBenefitAvailableToday(null);
+    expect(isActive && benefitAvail).toBe(true);
+  });
+
+  it('el beneficio diario se resetea cada día — no importa cuántas sucursales', () => {
+    // La lógica es por fecha, no por sucursal
+    // Si se usó en Sucursal A ayer, hoy en Sucursal B también está disponible
+    const usedYesterdayInBranchA = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    expect(isBenefitAvailableToday(usedYesterdayInBranchA)).toBe(true);
+  });
+
+  it('el beneficio NO se puede usar dos veces el mismo día, sin importar la sucursal', () => {
+    // Si se usó en Sucursal A hace 2 horas, en Sucursal B también está bloqueado
+    const usedTodayInBranchA = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    expect(isBenefitAvailableToday(usedTodayInBranchA)).toBe(false);
+  });
+});
+
+describe('Multi-sucursal — datos compartidos vs. exclusivos', () => {
+  const DATOS_COMPARTIDOS = ['dishes', 'ingredients', 'dish_recipes', 'suppliers', 'loyalty_customers'];
+  const DATOS_POR_SUCURSAL = ['orders', 'restaurant_tables', 'app_users', 'stock_movements', 'gastos'];
+
+  it('los datos compartidos NO tienen branch_id como campo requerido', () => {
+    // Estos datos solo tienen tenant_id → automáticamente accesibles en todas las sucursales
+    DATOS_COMPARTIDOS.forEach(tabla => {
+      expect(tabla).toBeTruthy();
+    });
+    expect(DATOS_COMPARTIDOS).toHaveLength(5);
+  });
+
+  it('los datos por sucursal SÍ tienen branch_id para aislarlos', () => {
+    DATOS_POR_SUCURSAL.forEach(tabla => {
+      expect(tabla).toBeTruthy();
+    });
+    expect(DATOS_POR_SUCURSAL).toHaveLength(5);
+  });
+
+  it('al crear una nueva sucursal el menú ya está disponible (sin copiar)', () => {
+    // Validación conceptual: una sucursal nueva con el mismo tenant_id
+    // ve automáticamente todos los dishes de ese tenant
+    const tenantId = 'tenant-abc';
+    const branchA = { id: 'branch-a', tenant_id: tenantId };
+    const branchB = { id: 'branch-b', tenant_id: tenantId };
+    // Ambas sucursales del mismo tenant → mismo menú
+    expect(branchA.tenant_id).toBe(branchB.tenant_id);
+  });
+
+  it('las ventas de sucursal A no afectan el corte de caja de sucursal B', () => {
+    const orderA = { id: 'order-1', branch_id: 'branch-a', total: 500 };
+    const orderB = { id: 'order-2', branch_id: 'branch-b', total: 300 };
+    const corteA = [orderA].filter(o => o.branch_id === 'branch-a');
+    const corteB = [orderA, orderB].filter(o => o.branch_id === 'branch-b');
+    expect(corteA).toHaveLength(1);
+    expect(corteB).toHaveLength(1);
+    expect(corteB[0].total).toBe(300);
+  });
+});

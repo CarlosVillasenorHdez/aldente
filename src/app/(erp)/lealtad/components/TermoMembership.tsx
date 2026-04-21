@@ -87,7 +87,7 @@ export default function TermoMembership() {
       .from('loyalty_customers')
       .select('*')
       .eq('tenant_id', getTenantId())
-      .eq('membership_type', 'termo')
+      .in('membership_type', ['termo', 'membresia'])   // cualquier tipo de membresía
       .ilike('phone', `%${phone}%`)
       .limit(1)
       .single();
@@ -129,7 +129,7 @@ export default function TermoMembership() {
       name:                  newForm.name.trim(),
       phone:                 newForm.phone.replace(/\D/g,''),
       email:                 newForm.email.trim(),
-      membership_type:       'termo',
+      membership_type:       'membresia',   // tipo genérico — no 'termo' hardcodeado
       is_active:             true,
       membership_expires_at: expires.toISOString(),
       points:                0,
