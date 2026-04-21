@@ -61,7 +61,7 @@ export default function LoyaltyConfig() {
     if (!tid) return;
     Promise.all([
       supabase.from('dishes').select('id,name,price')
-        .eq('tenant_id', tid).eq('is_active', true).order('name'),
+        .eq('tenant_id', tid).eq('available', true).order('name'),
       supabase.from('extras_catalog').select('id,name,price')
         .eq('tenant_id', tid).eq('is_active', true).order('name'),
     ]).then(([dishRes, extraRes]) => {
