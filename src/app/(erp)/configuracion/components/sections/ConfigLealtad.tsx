@@ -310,15 +310,16 @@ export default function LoyaltyConfig() {
             className="flex items-center gap-2 text-sm font-medium text-purple-400 hover:underline"
           >
             <Gift size={16} />
-            Configurar beneficio de la membresía
+            Configurar beneficios de la membresía
             <ChevronRight size={14} />
           </button>
-          {draft.membership.benefitEnabled && (
-            <p className="text-xs text-gray-400 mt-1">
-              Beneficio activo: <strong>{draft.membership.benefitLabel}</strong> ({describeBenefit(draft.membership.benefitType)})
-              {draft.membership.benefitDaily ? ' · Diario' : ' · Permanente'}
-              {draft.membership.benefitCrossBranch ? ' · Todas las sucursales' : ' · Solo esta sucursal'}
-            </p>
+          {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled) && (
+            <div className="mt-2 space-y-0.5">
+              {draft.membership.freeProductEnabled && <p className="text-xs text-amber-400">☕ {draft.membership.freeProductLabel}{draft.membership.freeProductDaily ? ' (diario)' : ''}</p>}
+              {draft.membership.discountEnabled && <p className="text-xs text-green-400">💚 {draft.membership.discountPct}% descuento</p>}
+              {draft.membership.priceTagEnabled && <p className="text-xs text-blue-400">🏷️ {draft.membership.priceTagLabel}</p>}
+              {draft.membership.pointsEnabled && <p className="text-xs text-purple-400">⭐ Puntos {draft.membership.pointsMultiplier}x</p>}
+            </div>
           )}
         </div>
       </>)}
@@ -336,95 +337,108 @@ export default function LoyaltyConfig() {
 
   // ── Configuración del beneficio ─────────────────────────────────────────────
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 max-w-2xl">
       <div className="flex items-center gap-3">
-        <button onClick={() => setStep('membership')} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+        <button onClick={() => setStep('membership')} className="text-gray-400 hover:text-gray-300">
           <ChevronLeft size={20} />
         </button>
         <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
-          <Gift size={18} className="text-purple-600" /> Beneficio de la membresía
+          <Gift size={18} className="text-purple-400" /> ¿Qué recibe el socio?
         </h2>
       </div>
 
-      <Toggle on={draft.membership.benefitEnabled} onChange={v => setMem({ benefitEnabled: v })} label="Activar beneficio para los socios" />
+      <p className="text-sm text-gray-400">Activa uno o más beneficios. Se pueden combinar.</p>
 
-      {draft.membership.benefitEnabled && (<>
-
-        <Field label="¿Qué tipo de beneficio recibe el socio?">
-          <div className="space-y-2 mt-1">
-            {(['producto_gratis','descuento_pct','precio_especial','puntos_extra','personalizado'] as BenefitType[]).map(t => (
-              <label key={t} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${draft.membership.benefitType === t ? 'border-purple-400 bg-purple-900/20' : 'border-[#2a3f5f] hover:border-gray-200'}`}>
-                <input type="radio" className="mt-0.5" checked={draft.membership.benefitType === t}
-                  onChange={() => setMem({ benefitType: t })} />
-                <div>
-                  <p className="text-sm font-medium text-gray-100">{describeBenefit(t)}</p>
-                </div>
-              </label>
-            ))}
+      {/* Bebida o platillo gratis */}
+      <div className={`border rounded-xl p-4 transition-all ${draft.membership.freeProductEnabled ? 'border-amber-500/50 bg-amber-900/10' : 'border-[#2a3f5f]'}`}>
+        <Toggle on={draft.membership.freeProductEnabled} onChange={v => setMem({ freeProductEnabled: v })} label="Bebida o platillo gratis por visita" />
+        {draft.membership.freeProductEnabled && (
+          <div className="mt-4 space-y-3 pl-14">
+            <Field label="¿Qué producto se regala?" hint="El costo WACC se registra como gasto del programa en el P&L">
+              <select className={selectCls} value={draft.membership.freeProductId} onChange={e => setMem({ freeProductId: e.target.value })}>
+                <option value="">Selecciona un producto...</option>
+                {['Platillos del menú','Tienda de extras'].map(group => {
+                  const items = dishes.filter(d => d.group === group);
+                  if (!items.length) return null;
+                  return (
+                    <optgroup key={group} label={group}>
+                      {items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </Field>
+            <Field label="¿Cómo lo ve el cajero en el POS?">
+              <input className={inputCls} placeholder="Ej: Café del día, Postre de bienvenida" value={draft.membership.freeProductLabel} onChange={e => setMem({ freeProductLabel: e.target.value })} />
+            </Field>
+            <Toggle on={draft.membership.freeProductDaily} onChange={v => setMem({ freeProductDaily: v })} label="Una vez por día (se resetea a medianoche en todas las sucursales)" />
+            {draft.membership.freeProductDaily && <Tip text="Cross-sucursal: si el socio usa su bebida en sucursal A, ese día ya no aplica en sucursal B." />}
           </div>
-        </Field>
-
-        {draft.membership.benefitType === 'producto_gratis' && (
-          <Field label="¿Qué producto se regala?" hint="El costo WACC de este producto se registrará como gasto de lealtad en el P&L">
-            <select className={selectCls} value={draft.membership.benefitProductId}
-              onChange={e => setMem({ benefitProductId: e.target.value })}>
-              <option value="">Selecciona un producto...</option>
-              {['Platillos del menú','Tienda de extras'].map(group => {
-                const items = dishes.filter(d => d.group === group);
-                if (!items.length) return null;
-                return (
-                  <optgroup key={group} label={group}>
-                    {items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}
-                  </optgroup>
-                );
-              })}
-            </select>
-          </Field>
         )}
+      </div>
 
-        {draft.membership.benefitType === 'descuento_pct' && (
-          <Field label="Porcentaje de descuento (%)" hint="Se registrará como descuento de lealtad en el P&L">
-            <input type="number" min={1} max={100} className={inputCls} value={draft.membership.benefitDiscount}
-              onChange={e => setMem({ benefitDiscount: Number(e.target.value) })} />
-          </Field>
+      {/* Descuento */}
+      <div className={`border rounded-xl p-4 transition-all ${draft.membership.discountEnabled ? 'border-green-500/50 bg-green-900/10' : 'border-[#2a3f5f]'}`}>
+        <Toggle on={draft.membership.discountEnabled} onChange={v => setMem({ discountEnabled: v })} label="Descuento en cada visita" />
+        {draft.membership.discountEnabled && (
+          <div className="mt-4 pl-14">
+            <Field label="¿Cuánto descuento?" hint="Se aplica sobre el total de la orden">
+              <div className="flex items-center gap-3">
+                <input type="number" min={1} max={50} className={inputCls + ' max-w-[100px]'} value={draft.membership.discountPct} onChange={e => setMem({ discountPct: Number(e.target.value) })} />
+                <span className="text-gray-300 text-sm">% de descuento</span>
+              </div>
+            </Field>
+          </div>
         )}
+      </div>
 
-        {draft.membership.benefitType === 'puntos_extra' && (
-          <Field label="Multiplicador de puntos" hint="Ej: 2 = los socios acumulan el doble de puntos">
-            <select className={selectCls} value={draft.membership.benefitMultiplier}
-              onChange={e => setMem({ benefitMultiplier: Number(e.target.value) })}>
-              <option value={1.5}>1.5x (50% más puntos)</option>
-              <option value={2}>2x (doble de puntos)</option>
-              <option value={3}>3x (triple de puntos)</option>
-            </select>
-          </Field>
+      {/* Precio especial */}
+      <div className={`border rounded-xl p-4 transition-all ${draft.membership.priceTagEnabled ? 'border-blue-500/50 bg-blue-900/10' : 'border-[#2a3f5f]'}`}>
+        <Toggle on={draft.membership.priceTagEnabled} onChange={v => setMem({ priceTagEnabled: v })} label="Precio especial de socio" />
+        {draft.membership.priceTagEnabled && (
+          <div className="mt-4 pl-14 space-y-3">
+            <Field label="Etiqueta para el cajero" hint="El cajero ve esta etiqueta y aplica el precio según tu política">
+              <input className={inputCls} placeholder="Ej: Precio de socio, Tarifa preferencial" value={draft.membership.priceTagLabel} onChange={e => setMem({ priceTagLabel: e.target.value })} />
+            </Field>
+            <Tip text="El cajero verá esta etiqueta en azul junto al nombre del socio al verificarlo en el POS." />
+          </div>
         )}
+      </div>
 
-        <Field label="Etiqueta del beneficio en el POS" hint="Texto que ve el cajero cuando verifica al socio">
-          <input className={inputCls} placeholder="Ej: Café del día, Postre gratis, 15% descuento"
-            value={draft.membership.benefitLabel}
-            onChange={e => setMem({ benefitLabel: e.target.value })} />
-        </Field>
+      {/* Puntos extra */}
+      <div className={`border rounded-xl p-4 transition-all ${draft.membership.pointsEnabled ? 'border-purple-500/50 bg-purple-900/10' : 'border-[#2a3f5f]'}`}>
+        <Toggle on={draft.membership.pointsEnabled} onChange={v => setMem({ pointsEnabled: v })} label="Acumula puntos más rápido" />
+        {draft.membership.pointsEnabled && (
+          <div className="mt-4 pl-14">
+            <Field label="Multiplicador">
+              <select className={selectCls} value={draft.membership.pointsMultiplier} onChange={e => setMem({ pointsMultiplier: Number(e.target.value) })}>
+                <option value={1.5}>1.5x — 50% más puntos</option>
+                <option value={2}>2x — el doble de puntos</option>
+                <option value={3}>3x — el triple de puntos</option>
+              </select>
+            </Field>
+          </div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Toggle on={draft.membership.benefitDaily} onChange={v => setMem({ benefitDaily: v })}
-            label="Beneficio diario (se resetea cada día)" />
-          <Toggle on={draft.membership.benefitCrossBranch} onChange={v => setMem({ benefitCrossBranch: v })}
-            label="Aplica en todas las sucursales" />
+      {/* Preview de lo que verá el cajero */}
+      {(draft.membership.freeProductEnabled || draft.membership.discountEnabled || draft.membership.priceTagEnabled || draft.membership.pointsEnabled) && (
+        <div className="p-4 bg-[#0d1720] border border-[#2a3f5f] rounded-xl">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Así verá el cajero al verificar un socio:</p>
+          <div className="space-y-1.5">
+            <p className="text-sm text-gray-300">👤 Ana García — <span className="text-green-400 font-semibold">SOCIA ACTIVA</span></p>
+            {draft.membership.freeProductEnabled && <p className="text-sm text-amber-400">☕ {draft.membership.freeProductLabel || 'Bebida del día'} — DISPONIBLE HOY</p>}
+            {draft.membership.priceTagEnabled && <p className="text-sm text-blue-400">🏷️ {draft.membership.priceTagLabel || 'Precio de socio'}</p>}
+            {draft.membership.discountEnabled && draft.membership.discountPct > 0 && <p className="text-sm text-green-400">💚 {draft.membership.discountPct}% descuento en esta visita</p>}
+            {draft.membership.pointsEnabled && <p className="text-sm text-purple-400">⭐ Acumula puntos {draft.membership.pointsMultiplier}x</p>}
+          </div>
         </div>
+      )}
 
-        {draft.membership.benefitType === 'producto_gratis' && draft.membership.benefitCrossBranch && draft.membership.benefitDaily && (
-          <Tip text="Configuración cross-sucursal activa: si el socio usa su beneficio en la sucursal A, no podrá usarlo ese mismo día en la sucursal B. Se verifica automáticamente." />
-        )}
-
-      </>)}
-
-      <div className="flex gap-3">
-        <button onClick={() => setStep('membership')} className="border border-[#2a3f5f] px-5 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-gray-50 transition-colors">
-          Atrás
-        </button>
+      <div className="flex gap-3 pt-2">
+        <button onClick={() => setStep('membership')} className="border border-[#2a3f5f] px-5 py-2.5 rounded-xl text-sm text-gray-400 hover:bg-[#0d1720] transition-colors">Atrás</button>
         <button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-          {saving ? 'Guardando...' : 'Guardar beneficio'}
+          {saving ? 'Guardando...' : 'Guardar beneficios'}
         </button>
       </div>
     </div>

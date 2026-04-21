@@ -31,18 +31,24 @@ export interface LoyaltyPointsConfig {
 export interface LoyaltyMembershipConfig {
   enabled:                boolean;
   trigger:                MembershipTrigger;
-  triggerProductId:       string;   // UUID del producto que activa (si trigger=venta_producto)
-  price:                  number;   // 0 = gratis
-  durationMonths:         number;   // 0 = sin vencimiento
-  // Beneficio
-  benefitEnabled:         boolean;
-  benefitDaily:           boolean;  // ¿el beneficio se resetea cada día?
-  benefitCrossBranch:     boolean;  // ¿aplica en todas las sucursales?
-  benefitType:            BenefitType;
-  benefitProductId:       string;   // UUID del producto regalado
-  benefitDiscount:        number;   // % si tipo=descuento_pct
-  benefitMultiplier:      number;   // si tipo=puntos_extra
-  benefitLabel:           string;   // texto libre para el cajero en el POS
+  triggerProductId:       string;
+  price:                  number;
+  durationMonths:         number;
+  // Beneficios múltiples — se pueden combinar
+  freeProductEnabled:     boolean;  // ¿incluye producto gratis?
+  freeProductId:          string;   // UUID del producto que se regala
+  freeProductDaily:       boolean;  // ¿una vez al día?
+  freeProductLabel:       string;   // ej: "Café del día"
+  discountEnabled:        boolean;  // ¿descuento en cada visita?
+  discountPct:            number;   // porcentaje de descuento
+  priceTagEnabled:        boolean;  // ¿aviso de precio especial al cajero?
+  priceTagLabel:          string;   // ej: "Precio de socio"
+  pointsEnabled:          boolean;  // ¿multiplica puntos?
+  pointsMultiplier:       number;   // 2 = doble de puntos
+  // Compat legacy — mantener para no romper useMembershipTrigger
+  benefitLabel:           string;
+  benefitCrossBranch:     boolean;
+  durationMonths_alias:   number;
 }
 
 export interface LoyaltyLevel {
@@ -69,9 +75,14 @@ const DEFAULT_POINTS: LoyaltyPointsConfig = {
 const DEFAULT_MEMBERSHIP: LoyaltyMembershipConfig = {
   enabled: false, trigger: 'manual', triggerProductId: '',
   price: 0, durationMonths: 12,
-  benefitEnabled: false, benefitDaily: true, benefitCrossBranch: true,
-  benefitType: 'producto_gratis', benefitProductId: '', benefitDiscount: 0,
-  benefitMultiplier: 1, benefitLabel: 'Beneficio del día',
+  freeProductEnabled: false, freeProductId: '', freeProductDaily: true,
+  freeProductLabel: 'Bebida del día',
+  discountEnabled: false, discountPct: 0,
+  priceTagEnabled: false, priceTagLabel: 'Precio de socio',
+  pointsEnabled: false, pointsMultiplier: 2,
+  // compat
+  benefitLabel: 'Beneficio del día', benefitCrossBranch: true,
+  durationMonths_alias: 12,
 };
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -120,14 +131,21 @@ export function useLoyaltyConfig() {
         triggerProductId:   str('loyalty_membership_trigger_product_id'),
         price:              num('loyalty_membership_price', 0),
         durationMonths:     num('loyalty_membership_duration_months', 12),
-        benefitEnabled:     bool('loyalty_membership_benefit_enabled', false),
-        benefitDaily:       bool('loyalty_membership_benefit_daily', true),
-        benefitCrossBranch: bool('loyalty_membership_benefit_cross_branch', true),
-        benefitType:        str('loyalty_membership_benefit_type', 'producto_gratis') as BenefitType,
-        benefitProductId:   str('loyalty_membership_benefit_product_id'),
-        benefitDiscount:    num('loyalty_membership_benefit_discount', 0),
-        benefitMultiplier:  num('loyalty_membership_benefit_multiplier', 1),
-        benefitLabel:       str('loyalty_membership_benefit_label', 'Beneficio del día'),
+        // Beneficios múltiples
+        freeProductEnabled: bool('loyalty_benefit_free_product_enabled', false),
+        freeProductId:      str('loyalty_benefit_free_product_id'),
+        freeProductDaily:   bool('loyalty_benefit_free_product_daily', true),
+        freeProductLabel:   str('loyalty_benefit_free_product_label', 'Bebida del día'),
+        discountEnabled:    bool('loyalty_benefit_discount_enabled', false),
+        discountPct:        num('loyalty_benefit_discount_pct', 0),
+        priceTagEnabled:    bool('loyalty_benefit_price_tag_enabled', false),
+        priceTagLabel:      str('loyalty_benefit_price_tag_label', 'Precio de socio'),
+        pointsEnabled:      bool('loyalty_benefit_points_enabled', false),
+        pointsMultiplier:   num('loyalty_benefit_points_multiplier', 2),
+        // compat legacy
+        benefitLabel:       str('loyalty_benefit_free_product_label', 'Bebida del día'),
+        benefitCrossBranch: true,
+        durationMonths_alias: num('loyalty_membership_duration_months', 12),
       },
     });
     setLoading(false);
@@ -154,14 +172,17 @@ export function useLoyaltyConfig() {
       { tenant_id: tid!, config_key: 'loyalty_membership_trigger_product_id',       config_value: next.membership.triggerProductId },
       { tenant_id: tid!, config_key: 'loyalty_membership_price',                    config_value: String(next.membership.price) },
       { tenant_id: tid!, config_key: 'loyalty_membership_duration_months',          config_value: String(next.membership.durationMonths) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_enabled',          config_value: String(next.membership.benefitEnabled) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_daily',            config_value: String(next.membership.benefitDaily) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_cross_branch',     config_value: String(next.membership.benefitCrossBranch) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_type',             config_value: next.membership.benefitType },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_product_id',       config_value: next.membership.benefitProductId },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_discount',         config_value: String(next.membership.benefitDiscount) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_multiplier',       config_value: String(next.membership.benefitMultiplier) },
-      { tenant_id: tid!, config_key: 'loyalty_membership_benefit_label',            config_value: next.membership.benefitLabel },
+      // Beneficios múltiples
+      { tenant_id: tid!, config_key: 'loyalty_benefit_free_product_enabled',  config_value: String(next.membership.freeProductEnabled) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_free_product_id',       config_value: next.membership.freeProductId },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_free_product_daily',    config_value: String(next.membership.freeProductDaily) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_free_product_label',    config_value: next.membership.freeProductLabel },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_discount_enabled',      config_value: String(next.membership.discountEnabled) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_discount_pct',          config_value: String(next.membership.discountPct) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_price_tag_enabled',     config_value: String(next.membership.priceTagEnabled) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_price_tag_label',       config_value: next.membership.priceTagLabel },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_points_enabled',        config_value: String(next.membership.pointsEnabled) },
+      { tenant_id: tid!, config_key: 'loyalty_benefit_points_multiplier',     config_value: String(next.membership.pointsMultiplier) },
     ];
 
     await supabase
