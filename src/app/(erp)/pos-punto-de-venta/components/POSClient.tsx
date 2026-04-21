@@ -21,7 +21,8 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useOrderFlow } from '@/hooks/useOrderFlow';
 
-import { Merge, X, QrCode } from 'lucide-react';
+import { Merge, X, QrCode, Coffee } from 'lucide-react';
+import TermoWidget from './TermoWidget';
 
 export type TableStatus = 'libre' | 'ocupada' | 'espera';
 
@@ -198,6 +199,7 @@ export default function POSClient() {
   const [takeoutOrders, setTakeoutOrders] = useState<TakeoutOrder[]>([]);
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showTermoWidget, setShowTermoWidget] = useState(false);
   const [kitchenSent, setKitchenSent] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);  // orden guardada pero no enviada a cocina
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -1685,6 +1687,22 @@ export default function POSClient() {
       </div>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar title="Punto de Venta" subtitle="Gestión de mesas y órdenes">
+          {/* Botón Membresía Termo */}
+          <button
+            onClick={() => setShowTermoWidget(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 8,
+              background: 'rgba(180,83,9,0.08)',
+              border: '1px solid rgba(180,83,9,0.2)',
+              color: '#92400e', fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+            title="Verificar membresía Termo"
+          >
+            <Coffee size={14} />
+            Termo
+          </button>
           {tenantSlug && (
             <a
               href={`/carta/${tenantSlug}`}
@@ -2350,6 +2368,17 @@ export default function POSClient() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Modal Membresía Termo ── */}
+      {showTermoWidget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowTermoWidget(false); }}
+        >
+          <TermoWidget onClose={() => setShowTermoWidget(false)} />
         </div>
       )}
     </>
