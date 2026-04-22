@@ -102,35 +102,41 @@ export default function LoyaltyHub() {
     setNotFound(false);
     setShowNewForm(false);
 
-    const { data } = await supabase
-      .from('loyalty_customers')
-      .select('id,name,phone,email,membership_type,is_active,points,total_visits,total_spent,membership_expires_at,daily_benefit_used_at,birthday,tier_id')
-      .eq('tenant_id', getTenantId())
-      .ilike('phone', `%${q}%`)
-      .limit(1)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('loyalty_customers')
+        .select('id,name,phone,email,membership_type,is_active,points,total_visits,total_spent,membership_expires_at,daily_benefit_used_at,birthday,tier_id')
+        .eq('tenant_id', getTenantId())
+        .ilike('phone', `%${q}%`)
+        .limit(1)
+        .single();
 
-    setSearching(false);
+      setSearching(false);
 
-    if (!data) {
+      if (error || !data) {
+        setNotFound(true);
+        setShowNewForm(true);
+        setNewName(''); setNewEmail(''); setNewBirthday('');
+        return;
+      }
+
+      setCustomer({
+        id: data.id, name: data.name, phone: data.phone ?? '',
+        email: data.email ?? '', membershipType: data.membership_type,
+        isActive: data.is_active,
+        points: Number(data.points ?? 0),
+        totalVisits: Number(data.total_visits ?? 0),
+        totalSpent: Number(data.total_spent ?? 0),
+        membershipExpiresAt: data.membership_expires_at ?? null,
+        dailyBenefitUsedAt: data.daily_benefit_used_at ?? null,
+        birthday: (data as any).birthday ?? null,
+        tierId: (data as any).tier_id ?? null,
+      });
+    } catch (err) {
+      setSearching(false);
       setNotFound(true);
       setShowNewForm(true);
-      setNewName(''); setNewEmail(''); setNewBirthday('');
-      return;
     }
-
-    setCustomer({
-      id: data.id, name: data.name, phone: data.phone ?? '',
-      email: data.email ?? '', membershipType: data.membership_type,
-      isActive: data.is_active,
-      points: Number(data.points ?? 0),
-      totalVisits: Number(data.total_visits ?? 0),
-      totalSpent: Number(data.total_spent ?? 0),
-      membershipExpiresAt: data.membership_expires_at ?? null,
-      dailyBenefitUsedAt: data.daily_benefit_used_at ?? null,
-      birthday: (data as any).birthday ?? null,
-      tierId: (data as any).tier_id ?? null,
-    });
   }, [supabase]);
 
   const handlePhoneChange = (v: string) => {
@@ -358,7 +364,7 @@ export default function LoyaltyHub() {
           <div className="px-5 py-4 space-y-3">
 
             {/* MODO PUNTOS */}
-            {(mode === 'puntos' || config.points.enabled) && (
+            {(mode === 'puntos' || config.points?.enabled) && (
               <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
                 <Star size={16} className="text-amber-500 flex-shrink-0" />
                 <div className="flex-1">
@@ -366,7 +372,7 @@ export default function LoyaltyHub() {
                     {customer.points.toLocaleString()} puntos
                   </p>
                   <p className="text-xs text-gray-500">
-                    Vale ${(customer.points * config.points.pointValue).toFixed(2)} · {customer.totalVisits} visitas
+                    Vale ${(customer.points * (config.points?.pointValue ?? 0.5)).toFixed(2)} · {customer.totalVisits} visitas
                   </p>
                 </div>
               </div>
