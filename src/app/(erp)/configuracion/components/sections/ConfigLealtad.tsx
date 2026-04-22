@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp, Info, Plus, Trash2, Edit3, X } from 'lucide-react';
-import { useLoyaltyConfig, MembershipTier, MembershipTierBenefits, DEFAULT_TIER_BENEFITS } from '@/hooks/useLoyaltyConfig';
+import { useLoyaltyConfig, MembershipTier, MembershipTierBenefits, DEFAULT_TIER_BENEFITS, TierUpgradeRule } from '@/hooks/useLoyaltyConfig';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -160,7 +160,19 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
   tier: MembershipTier; dishes: Dish[]; saving: boolean;
   onSave: (t: MembershipTier) => void; onClose: () => void;
 }) {
-  const [form, setForm] = useState<MembershipTier>({ ...tier, benefits: { ...DEFAULT_TIER_BENEFITS, ...tier.benefits } });
+  const [form, setForm] = useState<MembershipTier>({
+    ...tier, benefits: { ...DEFAULT_TIER_BENEFITS, ...tier.benefits },
+    upgradeRule: tier.upgradeRule ?? 'visitas',
+    upgradeThreshold: tier.upgradeThreshold ?? 0,
+  });
+
+  const upgradeLabels: Record<string, string> = {
+    visitas: 'visitas acumuladas',
+    gasto: 'pesos gastados en total',
+    producto: '',
+    manual: '',
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/70 backdrop-blur-sm overflow-auto">
       <div className="bg-[#0f1923] border border-[#2a3f5f] rounded-2xl p-6 w-full max-w-md space-y-4 my-8">
@@ -169,12 +181,14 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
           <button onClick={onClose} className="text-gray-500 hover:text-gray-300"><X size={18} /></button>
         </div>
 
+        {/* Nombre */}
         <div>
           <label className={lbl}>Nombre del nivel</label>
           <input className={inp} placeholder="Ej: Bronce, Plata, Oro" value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
         </div>
 
+        {/* Color */}
         <div>
           <label className={lbl}>Color del badge en el POS</label>
           <div className="flex gap-2 flex-wrap mt-1">
@@ -186,22 +200,37 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
           </div>
         </div>
 
-        <div>
-          <label className={lbl}>¿Cómo se activa este nivel?</label>
-          <div className="space-y-2 mt-1">
-            {([
-              { val: 'manual', label: 'Manual (el cajero lo asigna)' },
-              { val: 'venta_producto', label: 'Al comprar un producto específico' },
-              { val: 'pago_directo', label: 'Pago directo de la membresía' },
-            ] as const).map(opt => (
-              <label key={opt.val} className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer ${form.trigger === opt.val ? 'border-amber-500/50 bg-amber-900/10' : 'border-[#2a3f5f]'}`}>
-                <input type="radio" checked={form.trigger === opt.val} onChange={() => setForm(f => ({ ...f, trigger: opt.val }))} />
-                <span className="text-sm text-gray-300">{opt.label}</span>
-              </label>
-            ))}
+        {/* Umbral de ascenso */}
+        {form.upgradeRule && form.upgradeRule !== 'manual' && (
+          <div className="p-3 bg-amber-900/10 border border-amber-500/20 rounded-xl">
+            <label className={lbl}>
+              {form.order === 1 || (form.upgradeThreshold ?? 0) === 0
+                ? '📍 Nivel de entrada (umbral = 0)'
+                : `Condición para llegar a ${form.name || 'este nivel'}`}
+            </label>
+            {form.upgradeRule === 'producto' ? (
+              <select className={inp} value={form.upgradeProductId ?? ''}
+                onChange={e => setForm(f => ({ ...f, upgradeProductId: e.target.value }))}>
+                <option value="">Selecciona el producto que activa este nivel...</option>
+                {['Platillos del menú','Tienda de extras'].map(group => {
+                  const items = dishes.filter(d => d.group === group);
+                  if (!items.length) return null;
+                  return <optgroup key={group} label={group}>{items.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>;
+                })}
+              </select>
+            ) : (
+              <div className="flex items-center gap-3">
+                <input type="number" min={0} className={inp + ' max-w-[100px]'}
+                  value={form.upgradeThreshold ?? 0}
+                  onChange={e => setForm(f => ({ ...f, upgradeThreshold: Number(e.target.value) }))} />
+                <span className="text-xs text-gray-400">{upgradeLabels[form.upgradeRule]} para llegar aquí</span>
+              </div>
+            )}
+            <p className="text-xs text-gray-600 mt-1.5">0 = nivel de entrada — todos los nuevos socios comienzan aquí</p>
           </div>
-        </div>
+        )}
 
+        {/* Beneficios */}
         <div>
           <label className={lbl}>Beneficios de este nivel</label>
           <div className="mt-1">
@@ -236,7 +265,9 @@ export default function LoyaltyConfig() {
   useEffect(() => {
     if (!loading) {
       setDraft(config);
-      setTiers(config.tiers ?? []);
+      const t = config.tiers ?? [];
+      setTiers(t);
+      if (t.length > 0 && t[0].upgradeRule) setUpgradeRule(t[0].upgradeRule);
     }
   }, [loading, config]);
 
@@ -292,6 +323,7 @@ export default function LoyaltyConfig() {
 
   const mem = draft.membership;
   const useMultiLevel = tiers.length > 0;
+  const [upgradeRule, setUpgradeRule] = useState<TierUpgradeRule>('visitas');
   const hasReward = mem.freeProductEnabled || mem.discountEnabled || mem.priceTagEnabled || mem.birthdayEnabled;
 
   return (
@@ -371,7 +403,7 @@ export default function LoyaltyConfig() {
                       setTiers([]);
                     }
                   } else {
-                    setEditingTier({ id: '', name: '', color: '#F59E0B', order: 1, trigger: mem.trigger, triggerProductId: mem.triggerProductId, price: mem.price, durationMonths: mem.durationMonths, benefits: { ...DEFAULT_TIER_BENEFITS } });
+                    setEditingTier({ id: '', name: '', color: '#F59E0B', order: 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule, upgradeThreshold: 0 });
                   }
                 }}
                 className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ${useMultiLevel ? 'text-red-400 border-red-800 hover:bg-red-900/20' : 'text-amber-400 border-amber-700 hover:bg-amber-900/20'}`}
@@ -381,24 +413,61 @@ export default function LoyaltyConfig() {
             </div>
 
             {useMultiLevel ? (
-              <div className="space-y-2">
-                {tiers.map(tier => (
+              <div className="space-y-3">
+                {/* Regla global de ascenso */}
+                <div className="p-3 bg-[#0d1720] border border-amber-500/20 rounded-xl">
+                  <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-2">
+                    ¿Cómo sube un cliente de nivel?
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { val: 'visitas', label: '🎯 Por visitas', sub: 'Ej: a las 20 visitas sube a Plata' },
+                      { val: 'gasto',   label: '💰 Por gasto total', sub: 'Ej: al gastar $2,000 sube a Plata' },
+                      { val: 'producto',label: '🛍️ Por producto comprado', sub: 'Cada nivel se activa con un producto' },
+                      { val: 'manual',  label: '👤 Manual', sub: 'El cajero asigna el nivel' },
+                    ] as const).map(opt => (
+                      <label key={opt.val} className={`flex items-start gap-2 p-2.5 border rounded-xl cursor-pointer transition-all ${upgradeRule === opt.val ? 'border-amber-500/50 bg-amber-900/10' : 'border-[#2a3f5f] hover:border-gray-600'}`}>
+                        <input type="radio" className="mt-0.5 flex-shrink-0" checked={upgradeRule === opt.val}
+                          onChange={() => {
+                            setUpgradeRule(opt.val);
+                            // Propagar a todos los tiers
+                            const updated = tiers.map(t => ({ ...t, upgradeRule: opt.val }));
+                            setTiers(updated);
+                          }} />
+                        <div>
+                          <p className="text-xs font-semibold text-gray-200">{opt.label}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{opt.sub}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lista de niveles */}
+                {tiers.map((tier, idx) => (
                   <div key={tier.id} className="flex items-center gap-3 p-3 bg-[#0d1720] border border-[#2a3f5f] rounded-xl">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: tier.color }} />
-                    <span className="text-sm font-medium text-gray-100 flex-1">{tier.name || 'Sin nombre'}</span>
-                    <span className="text-xs text-gray-500">
-                      {[
-                        tier.benefits.freeProductEnabled && '☕',
-                        tier.benefits.discountEnabled && `${tier.benefits.discountPct}%`,
-                        tier.benefits.birthdayEnabled && '🎂',
-                      ].filter(Boolean).join(' ') || 'Sin beneficios'}
-                    </span>
-                    <button onClick={() => setEditingTier(tier)} className="text-blue-400 hover:text-blue-300 p-1"><Edit3 size={13} /></button>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-100">{tier.name || 'Sin nombre'}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {idx === 0 ? 'Nivel de entrada' :
+                          upgradeRule === 'visitas' ? `A partir de ${tier.upgradeThreshold ?? 0} visitas` :
+                          upgradeRule === 'gasto'   ? `A partir de $${tier.upgradeThreshold ?? 0} acumulados` :
+                          upgradeRule === 'producto' ? 'Por compra de producto' : 'Asignación manual'}
+                        {' · '}
+                        {[
+                          tier.benefits.freeProductEnabled && '☕',
+                          tier.benefits.discountEnabled && `${tier.benefits.discountPct}%`,
+                          tier.benefits.birthdayEnabled && '🎂',
+                        ].filter(Boolean).join(' ') || 'Sin beneficios'}
+                      </p>
+                    </div>
+                    <button onClick={() => setEditingTier({ ...tier, upgradeRule })} className="text-blue-400 hover:text-blue-300 p-1"><Edit3 size={13} /></button>
                     <button onClick={() => removeTier(tier.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={13} /></button>
                   </div>
                 ))}
                 <button
-                  onClick={() => setEditingTier({ id: '', name: '', color: '#6B7280', order: tiers.length + 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS } })}
+                  onClick={() => setEditingTier({ id: '', name: '', color: '#6B7280', order: tiers.length + 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule, upgradeThreshold: tiers.length === 0 ? 0 : 0 })}
                   className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-[#2a3f5f] rounded-xl text-sm text-gray-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors"
                 >
                   <Plus size={14} /> Agregar nivel

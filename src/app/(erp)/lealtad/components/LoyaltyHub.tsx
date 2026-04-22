@@ -178,13 +178,41 @@ export default function LoyaltyHub() {
   const handleVisit = async () => {
     if (!customer) return;
     setSaving(true);
+    const newVisits = customer.totalVisits + 1;
+
+    // Evaluar si el cliente sube de nivel (solo si hay niveles configurados)
+    const tiers = config.tiers ?? [];
+    let newTierId = customer.tierId ?? null;
+    let tierUpgradeMsg = '';
+
+    if (tiers.length > 0) {
+      const rule = tiers[0]?.upgradeRule ?? 'manual';
+      if (rule === 'visitas') {
+        // Encontrar el tier más alto que cumpla el umbral de visitas
+        const eligible = tiers
+          .filter(t => (t.upgradeThreshold ?? 0) <= newVisits)
+          .sort((a, b) => (b.upgradeThreshold ?? 0) - (a.upgradeThreshold ?? 0));
+        const bestTier = eligible[0];
+        if (bestTier && bestTier.id !== customer.tierId) {
+          newTierId = bestTier.id;
+          tierUpgradeMsg = `⬆️ ¡${customer.name} subió al nivel ${bestTier.name}!`;
+        }
+      }
+      // Para gasto: se evalúa al cobrar (en el POS), no aquí
+    }
+
     await supabase.from('loyalty_customers').update({
-      total_visits: customer.totalVisits + 1,
+      total_visits: newVisits,
+      ...(newTierId !== customer.tierId ? { tier_id: newTierId } : {}),
       updated_at: new Date().toISOString(),
     }).eq('id', customer.id);
+
     setSaving(false);
-    toast.success(`Visita registrada — ${customer.totalVisits + 1} en total`);
-    setCustomer(c => c ? { ...c, totalVisits: c.totalVisits + 1 } : null);
+    if (tierUpgradeMsg) {
+      toast.success(tierUpgradeMsg, { duration: 5000 });
+    }
+    toast.success(`Visita registrada — ${newVisits} en total`);
+    setCustomer(c => c ? { ...c, totalVisits: newVisits, tierId: newTierId } : null);
   };
 
   // ── Marcar beneficio diario ─────────────────────────────────────────────────

@@ -27,16 +27,22 @@ export interface MembershipTierBenefits {
   birthdayLabel:       string;
 }
 
+export type TierUpgradeRule = 'visitas' | 'gasto' | 'producto' | 'manual';
+
 export interface MembershipTier {
-  id:              string;   // slug único: 'plata', 'gold', 'platino'
-  name:            string;   // nombre visible: 'Plata', 'Gold', 'Platino'
-  color:           string;   // color hex para la UI
-  order:           number;   // 1=más bajo, 2=medio, 3=más alto
+  id:              string;
+  name:            string;
+  color:           string;
+  order:           number;
   trigger:         MembershipTrigger;
   triggerProductId: string;
   price:           number;
   durationMonths:  number;
   benefits:        MembershipTierBenefits;
+  // Regla de ascenso — cuándo el cliente sube a ESTE nivel
+  upgradeRule:     TierUpgradeRule;  // cómo se evalúa
+  upgradeThreshold: number;          // umbral (visitas, pesos, meses) — 0 = nivel de entrada
+  upgradeProductId?: string;         // si upgradeRule = 'producto'
 }
 
 export const DEFAULT_TIER_BENEFITS: MembershipTierBenefits = {
