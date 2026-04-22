@@ -299,9 +299,7 @@ export default function LoyaltyConfig() {
   useEffect(() => {
     if (!loading) {
       setDraft(config);
-      const t = config.tiers ?? [];
-      setTiers(t);
-      if (t.length > 0 && t[0].upgradeRule) setUpgradeRule(t[0].upgradeRule);
+      setTiers(config.tiers ?? []);
     }
   }, [loading, config]);
 
@@ -357,7 +355,6 @@ export default function LoyaltyConfig() {
 
   const mem = draft.membership;
   const useMultiLevel = tiers.length > 0;
-  const [upgradeRule, setUpgradeRule] = useState<TierUpgradeRule>('visitas');
   const hasReward = mem.freeProductEnabled || mem.discountEnabled || mem.priceTagEnabled || mem.birthdayEnabled;
 
   return (
@@ -437,7 +434,7 @@ export default function LoyaltyConfig() {
                       setTiers([]);
                     }
                   } else {
-                    setEditingTier({ id: '', name: '', color: '#F59E0B', order: 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule, upgradeThreshold: 0 });
+                    setEditingTier({ id: '', name: '', color: '#F59E0B', order: 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule: 'visitas', upgradeThreshold: 0 });
                   }
                 }}
                 className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ${useMultiLevel ? 'text-red-400 border-red-800 hover:bg-red-900/20' : 'text-amber-400 border-amber-700 hover:bg-amber-900/20'}`}
@@ -448,34 +445,7 @@ export default function LoyaltyConfig() {
 
             {useMultiLevel ? (
               <div className="space-y-3">
-                {/* Regla global de ascenso */}
-                <div className="p-3 bg-[#0d1720] border border-amber-500/20 rounded-xl">
-                  <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-2">
-                    ¿Cómo sube un cliente de nivel?
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {([
-                      { val: 'visitas', label: '🎯 Por visitas', sub: 'Ej: a las 20 visitas sube a Plata' },
-                      { val: 'gasto',   label: '💰 Por gasto total', sub: 'Ej: al gastar $2,000 sube a Plata' },
-                      { val: 'producto',label: '🛍️ Por producto comprado', sub: 'Cada nivel se activa con un producto' },
-                      { val: 'manual',  label: '👤 Manual', sub: 'El cajero asigna el nivel' },
-                    ] as const).map(opt => (
-                      <label key={opt.val} className={`flex items-start gap-2 p-2.5 border rounded-xl cursor-pointer transition-all ${upgradeRule === opt.val ? 'border-amber-500/50 bg-amber-900/10' : 'border-[#2a3f5f] hover:border-gray-600'}`}>
-                        <input type="radio" className="mt-0.5 flex-shrink-0" checked={upgradeRule === opt.val}
-                          onChange={() => {
-                            setUpgradeRule(opt.val);
-                            // Propagar a todos los tiers
-                            const updated = tiers.map(t => ({ ...t, upgradeRule: opt.val }));
-                            setTiers(updated);
-                          }} />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-200">{opt.label}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{opt.sub}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <p className="text-xs text-gray-500">Cada nivel tiene su propia regla de ascenso — configúrala al editar el nivel.</p>
 
                 {/* Lista de niveles */}
                 {tiers.map((tier, idx) => (
@@ -484,10 +454,10 @@ export default function LoyaltyConfig() {
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-100">{tier.name || 'Sin nombre'}</span>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {idx === 0 ? 'Nivel de entrada' :
-                          upgradeRule === 'visitas' ? `A partir de ${tier.upgradeThreshold ?? 0} visitas` :
-                          upgradeRule === 'gasto'   ? `A partir de $${tier.upgradeThreshold ?? 0} acumulados` :
-                          upgradeRule === 'producto' ? 'Por compra de producto' : 'Asignación manual'}
+                        {idx === 0 || (tier.upgradeThreshold ?? 0) === 0 ? 'Nivel de entrada' :
+                          tier.upgradeRule === 'visitas' ? `A partir de ${tier.upgradeThreshold ?? 0} visitas` :
+                          tier.upgradeRule === 'gasto'   ? `A partir de $${tier.upgradeThreshold ?? 0} acumulados` :
+                          tier.upgradeRule === 'producto' ? 'Por compra de producto' : 'Asignación manual'}
                         {' · '}
                         {[
                           tier.benefits.freeProductEnabled && '☕',
@@ -496,12 +466,12 @@ export default function LoyaltyConfig() {
                         ].filter(Boolean).join(' ') || 'Sin beneficios'}
                       </p>
                     </div>
-                    <button onClick={() => setEditingTier({ ...tier, upgradeRule })} className="text-blue-400 hover:text-blue-300 p-1"><Edit3 size={13} /></button>
+                    <button onClick={() => setEditingTier({ ...tier })} className="text-blue-400 hover:text-blue-300 p-1"><Edit3 size={13} /></button>
                     <button onClick={() => removeTier(tier.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={13} /></button>
                   </div>
                 ))}
                 <button
-                  onClick={() => setEditingTier({ id: '', name: '', color: '#6B7280', order: tiers.length + 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule, upgradeThreshold: tiers.length === 0 ? 0 : 0 })}
+                  onClick={() => setEditingTier({ id: '', name: '', color: '#6B7280', order: tiers.length + 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule: 'visitas', upgradeThreshold: 0 })}
                   className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-[#2a3f5f] rounded-xl text-sm text-gray-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors"
                 >
                   <Plus size={14} /> Agregar nivel
