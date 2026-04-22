@@ -200,35 +200,69 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
           </div>
         </div>
 
-        {/* Umbral de ascenso */}
-        {form.upgradeRule && form.upgradeRule !== 'manual' && (
-          <div className="p-3 bg-amber-900/10 border border-amber-500/20 rounded-xl">
-            <label className={lbl}>
-              {form.order === 1 || (form.upgradeThreshold ?? 0) === 0
-                ? '📍 Nivel de entrada (umbral = 0)'
-                : `Condición para llegar a ${form.name || 'este nivel'}`}
-            </label>
-            {form.upgradeRule === 'producto' ? (
+        {/* Regla de ascenso */}
+        <div className="p-4 bg-[#0a1628] border border-[#2a3f5f] rounded-xl space-y-3">
+          <label className={lbl}>¿Cómo sube el cliente a este nivel?</label>
+
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { val: 'manual',   icon: '✋', label: 'Manual', sub: 'El dueño lo asigna' },
+              { val: 'visitas',  icon: '🎫', label: 'Por visitas', sub: `Ej: 20 visitas` },
+              { val: 'gasto',    icon: '💰', label: 'Por gasto', sub: `Ej: $5,000 acumulados` },
+              { val: 'producto', icon: '📦', label: 'Por compra', sub: 'Compra un producto específico' },
+            ] as const).map(opt => (
+              <button key={opt.val}
+                onClick={() => setForm(f => ({ ...f, upgradeRule: opt.val, upgradeThreshold: 0, upgradeProductId: '' }))}
+                className={`flex items-start gap-2 p-3 border rounded-xl text-left transition-all ${form.upgradeRule === opt.val ? 'border-amber-500/50 bg-amber-900/15' : 'border-[#2a3f5f] hover:border-gray-600'}`}>
+                <span className="text-base leading-none mt-0.5">{opt.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-200">{opt.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{opt.sub}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Umbral según el tipo */}
+          {form.upgradeRule === 'manual' && (
+            <p className="text-xs text-gray-500 italic">El administrador o gerente asignará este nivel manualmente desde el módulo de Lealtad.</p>
+          )}
+
+          {(form.upgradeRule === 'visitas' || form.upgradeRule === 'gasto') && (
+            <div>
+              <label className={lbl}>
+                {form.upgradeRule === 'visitas' ? 'Número de visitas necesarias' : 'Gasto acumulado necesario ($)'}
+              </label>
+              <div className="flex items-center gap-3">
+                <input type="number" min={0} className={`${inp} max-w-[130px]`}
+                  placeholder={form.upgradeRule === 'visitas' ? '20' : '5000'}
+                  value={form.upgradeThreshold ?? 0}
+                  onChange={e => setForm(f => ({ ...f, upgradeThreshold: Number(e.target.value) }))} />
+                <span className="text-xs text-gray-400">
+                  {form.upgradeRule === 'visitas' ? 'visitas' : 'pesos gastados'}
+                </span>
+              </div>
+              {(form.upgradeThreshold ?? 0) === 0 && (
+                <p className="text-xs text-amber-400 mt-1.5">⚡ Umbral = 0 → nivel de entrada (todos los nuevos socios empiezan aquí)</p>
+              )}
+            </div>
+          )}
+
+          {form.upgradeRule === 'producto' && (
+            <div>
+              <label className={lbl}>¿Qué producto activa este nivel?</label>
               <select className={inp} value={form.upgradeProductId ?? ''}
                 onChange={e => setForm(f => ({ ...f, upgradeProductId: e.target.value }))}>
-                <option value="">Selecciona el producto que activa este nivel...</option>
+                <option value="">Selecciona el producto...</option>
                 {['Platillos del menú','Tienda de extras'].map(group => {
                   const items = dishes.filter(d => d.group === group);
                   if (!items.length) return null;
-                  return <optgroup key={group} label={group}>{items.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</optgroup>;
+                  return <optgroup key={group} label={group}>{items.map(d => <option key={d.id} value={d.id}>{d.name} — ${d.price}</option>)}</optgroup>;
                 })}
               </select>
-            ) : (
-              <div className="flex items-center gap-3">
-                <input type="number" min={0} className={inp + ' max-w-[100px]'}
-                  value={form.upgradeThreshold ?? 0}
-                  onChange={e => setForm(f => ({ ...f, upgradeThreshold: Number(e.target.value) }))} />
-                <span className="text-xs text-gray-400">{upgradeLabels[form.upgradeRule]} para llegar aquí</span>
-              </div>
-            )}
-            <p className="text-xs text-gray-600 mt-1.5">0 = nivel de entrada — todos los nuevos socios comienzan aquí</p>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Beneficios */}
         <div>

@@ -1674,6 +1674,29 @@ export default function POSClient() {
     setOrderItems([]); setSelectedTable(null); setView('tables');
     setKitchenSent(false);
     setSentItemsSnapshot([]);
+
+    // ── Verificar upgrade de nivel por gasto acumulado ─────────────────────
+    if (loyaltyCustomerId && loyaltyConfig.tiers.length > 0) {
+      const gasto_tiers = loyaltyConfig.tiers.filter(t => t.upgradeRule === 'gasto');
+      if (gasto_tiers.length > 0) {
+        const { data: cust } = await supabase
+          .from('loyalty_customers')
+          .select('id,tier_id,total_spent,total_visits,points')
+          .eq('id', loyaltyCustomerId).single();
+        if (cust) {
+          const newSpent = Number(cust.total_spent ?? 0) + total;
+          const eligible = gasto_tiers
+            .filter(t => (t.upgradeThreshold ?? 0) <= newSpent)
+            .sort((a, b) => (b.upgradeThreshold ?? 0) - (a.upgradeThreshold ?? 0));
+          const bestTier = eligible[0];
+          if (bestTier && bestTier.id !== cust.tier_id) {
+            await supabase.from('loyalty_customers').update({ tier_id: bestTier.id, updated_at: new Date().toISOString() }).eq('id', loyaltyCustomerId);
+            toast.success(`⬆️ ${bestTier.name} — nuevo nivel alcanzado`, { duration: 4000 });
+          }
+        }
+      }
+    }
+
     toast.success(`Pago de $${total.toFixed(2)} procesado con ${method === 'efectivo' ? 'Efectivo' : 'Tarjeta'}. ¡Orden cerrada!`);
   };
 
