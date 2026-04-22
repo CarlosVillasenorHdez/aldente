@@ -1,23 +1,21 @@
 'use client';
 import { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
-import LoyaltyManagement from './components/LoyaltyManagement';
-import TermoMembership from './components/TermoMembership';
+import LoyaltyHub from './components/LoyaltyHub';
 import LoyaltyCRM from './components/LoyaltyCRM';
-import { Star, Users, BarChart2 } from 'lucide-react';
+import { Users, BarChart2 } from 'lucide-react';
 
 const TABS = [
-  { id: 'puntos',    label: 'Programa de puntos', icon: Star      },
-  { id: 'membresia', label: 'Membresía',           icon: Users     },
-  { id: 'crm',       label: 'Análisis',            icon: BarChart2 },
+  { id: 'clientes',  label: 'Clientes',  icon: Users     },
+  { id: 'analisis',  label: 'Análisis',  icon: BarChart2 },
 ] as const;
 
 type Tab = typeof TABS[number]['id'];
 
 export default function LoyaltyPage() {
-  const [tab, setTab] = useState<Tab>('puntos');
+  const [tab, setTab] = useState<Tab>('clientes');
   return (
-    <AppLayout title="Lealtad" subtitle="Puntos, membresías y análisis de clientes">
+    <AppLayout title="Lealtad" subtitle="Programa de clientes frecuentes">
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6 w-fit">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
@@ -31,9 +29,8 @@ export default function LoyaltyPage() {
           </button>
         ))}
       </div>
-      {tab === 'puntos'    && <LoyaltyManagement />}
-      {tab === 'membresia' && <TermoMembership />}
-      {tab === 'crm'       && <LoyaltyCRM />}
+      {tab === 'clientes' && <LoyaltyHub />}
+      {tab === 'analisis' && <LoyaltyCRM />}
     </AppLayout>
   );
 }
