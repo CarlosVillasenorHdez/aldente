@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Eye, Clock, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OrderRow {
   id: string;
@@ -44,18 +45,26 @@ export default function RecentOrders() {
   const [filter, setFilter] = useState<'todas' | 'abierta' | 'cerrada'>('todas');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { tenantId } = useAuth();
   const supabase = createClient();
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select('id, mesa, mesero, status, total, opened_at, closed_at, duration_min, pay_method, order_items(qty)')
       .eq('tenant_id', getTenantId())
       .eq('is_comanda', false)
       .order('created_at', { ascending: false })
       .limit(10);
+
+    const effectiveTenantId = tenantId || getTenantId();
+    if (effectiveTenantId) {
+      query = query.eq('tenant_id', effectiveTenantId);
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setOrders(

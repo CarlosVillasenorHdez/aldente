@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -67,6 +68,7 @@ export default function SalesChart() {
   const [loading, setLoading] = useState(true);
   const [peakHour, setPeakHour] = useState<{ hora: string; ventas: number } | null>(null);
   const [totalAccum, setTotalAccum] = useState(0);
+  const { tenantId } = useAuth();
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
@@ -134,13 +136,19 @@ export default function SalesChart() {
       weekStart.setDate(weekStart.getDate() - 6);
       weekStart.setHours(0, 0, 0, 0);
 
-      const { data: weekOrders, error: weekError } = await supabase
+      let weekQuery = supabase
         .from('orders')
         .select('total, created_at')
         .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
         .gte('created_at', weekStart.toISOString());
+
+      if (tenantId) {
+        weekQuery = weekQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: weekOrders, error: weekError } = await weekQuery;
 
       if (weekError) throw weekError;
 
@@ -168,7 +176,7 @@ export default function SalesChart() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     fetchData();

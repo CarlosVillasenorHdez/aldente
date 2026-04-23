@@ -275,7 +275,7 @@ export default function InventarioManagement() {
         supplierUrl: i.supplier_url ?? '',
         supplierPhone: i.supplier_phone ?? '',
         purchaseUnit: i.purchase_unit ?? null,
-        purchaseQty: Number(i.purchase_qty_per_unit ?? 1),
+        purchaseQtyPerUnit: Number(i.purchase_qty_per_unit ?? 1),
         purchasePrice: i.purchase_price ? Number(i.purchase_price) : null,
         notes: i.notes ?? '',
         brand: i.brand ?? '',
@@ -583,7 +583,7 @@ export default function InventarioManagement() {
           presentation: form.presentation || null,
           lead_time_days: form.leadTimeDays ?? 1,
           ...(form.purchaseUnit ? { purchase_unit: form.purchaseUnit } : {}),
-          ...(form.purchaseQty && form.purchaseQty !== 1 ? { purchase_qty_per_unit: form.purchaseQty } : {}),
+          ...(form.purchaseQtyPerUnit && form.purchaseQtyPerUnit !== 1 ? { purchase_qty_per_unit: form.purchaseQtyPerUnit } : {}),
           ...(form.purchasePrice ? { purchase_price: form.purchasePrice } : {}),
           updated_at: new Date().toISOString(),
         }).eq('id', editingId);
@@ -614,7 +614,7 @@ export default function InventarioManagement() {
         };
         // Purchase fields — only add if migration has been applied
         if (form.purchaseUnit) basePayload.purchase_unit = form.purchaseUnit;
-        if (form.purchaseQty && form.purchaseQty !== 1) basePayload.purchase_qty_per_unit = form.purchaseQty;
+        if (form.purchaseQtyPerUnit && form.purchaseQtyPerUnit !== 1) basePayload.purchase_qty_per_unit = form.purchaseQtyPerUnit;
         if (form.purchasePrice) basePayload.purchase_price = form.purchasePrice;
 
         let res = await supabase.from('ingredients').insert(basePayload).select().single();
@@ -663,7 +663,7 @@ export default function InventarioManagement() {
     let stockQty = movementForm.quantity;
     let reasonSuffix = '';
     if (movInputMode === 'purchase' && movementForm.movementType === 'entrada') {
-      const convFactor = ing.purchaseQty ?? 1;
+      const convFactor = ing.purchaseQtyPerUnit ?? 1;
       stockQty = movPurchaseQty * convFactor;
       reasonSuffix = ` (${movPurchaseQty} ${ing.purchaseUnit ?? 'presentaciones'} × ${convFactor} ${ing.unit}/pres. = ${stockQty} ${ing.unit})`;
     }
@@ -1209,7 +1209,7 @@ export default function InventarioManagement() {
                 ✅ Ningún ingrediente en stock crítico
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-6">
                 {lowStockItems.map((ing) => (
                   <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                     <div className="flex items-center gap-3">
@@ -1226,9 +1226,11 @@ export default function InventarioManagement() {
                           <Phone size={10} />{ing.supplierPhone}
                         </span>
                       )}
-                      <button onClick={() => openEdit(ing)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
-                        Actualizar
-                      </button>
+                      {ing.supplierUrl && (
+                        <a href={ing.supplierUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(245,158,11,0.2)', color: '#fbbf24' }}>
+                          <ExternalLink size={11} />Ordenar
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1247,7 +1249,7 @@ export default function InventarioManagement() {
                 ✅ Ningún ingrediente requiere reorden
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-6">
                 {reorderItems.map((ing) => (
                   <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                     <div className="flex items-center gap-3">
@@ -1472,8 +1474,8 @@ export default function InventarioManagement() {
         const handlePDF = () => {
           const rows = allItems.map(ing => {
             const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-            const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
-              ? Math.ceil(suggest / ing.purchaseQty) : null;
+            const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+              ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
             return `<tr style="border-bottom:1px solid #f3f4f6;${checkedItems.has(ing.id) ? 'opacity:0.45;text-decoration:line-through' : ''}">
               <td style="padding:8px 12px;font-size:13px">${checkedItems.has(ing.id) ? '✓' : '○'}</td>
               <td style="padding:8px 12px;font-weight:600;font-size:13px">${ing.name}</td>
@@ -1488,7 +1490,7 @@ export default function InventarioManagement() {
           <style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}h1{font-size:20px;color:#1B3A6B;border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:20px}table{width:100%;border-collapse:collapse}th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.04em}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
           </head><body>
           <h1>📋 Lista de Compras — ${new Date().toLocaleDateString('es-MX', {weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h1>
-          <p style="color:#6b7280;font-size:13px;margin-bottom:16px">${allItems.length} ingrediente(s) por comprar · ${checkedItems.size} ya adquirido(s)</p>
+          <p style="color:#6b7280;font-size:13px;margin-bottom:16px">${allItems.length} ingrediente(s) por comprar · ${checkedItems.size} adquirido(s)</p>
           <table><thead><tr><th>✓</th><th>Ingrediente</th><th>Categoría</th><th>Stock actual</th><th>Cantidad a pedir</th><th>Proveedor</th><th>Teléfono</th></tr></thead><tbody>${rows}</tbody></table>
           <div style="margin-top:24px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:12px">Generado por Aldente ERP · ${new Date().toLocaleString('es-MX')}</div>
           </body></html>`;
@@ -1527,8 +1529,8 @@ export default function InventarioManagement() {
                   const checked = checkedItems.has(ing.id);
                   const isLow = ing.stock < ing.minStock;
                   const suggest = Math.max(0, ing.reorderPoint * 2 - ing.stock);
-                  const suggestPres = ing.purchaseUnit && ing.purchaseQty && ing.purchaseQty > 1
-                    ? Math.ceil(suggest / ing.purchaseQty) : null;
+                  const suggestPres = ing.purchaseUnit && ing.purchaseQtyPerUnit && ing.purchaseQtyPerUnit > 1
+                    ? Math.ceil(suggest / ing.purchaseQtyPerUnit) : null;
                   return (
                     <div key={ing.id} onClick={() => toggleCheck(ing.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer', transition: 'all 0.15s', background: checked ? 'rgba(74,222,128,0.05)' : isLow ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? 'rgba(74,222,128,0.2)' : isLow ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`, opacity: checked ? 0.6 : 1 }}>
@@ -1804,9 +1806,9 @@ export default function InventarioManagement() {
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Historial de movimientos</p>
                 {detailLoading ? (
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Cargando...</p>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', padding: '12px', fontSize: '12px', textAlign: 'center' }}>Cargando...</p>
                 ) : detailMovements.length === 0 ? (
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>Sin movimientos registrados</p>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', padding: '12px', fontSize: '12px', textAlign: 'center' }}>Sin movimientos registrados</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     {detailMovements.map(m => (
@@ -1927,7 +1929,7 @@ export default function InventarioManagement() {
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría *</label>
                 <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.category} onChange={e => updateForm('category', e.target.value as any)}>
+                  value={form.category} onChange={e => updateForm('category', e.target.value)}>
                   {CATEGORIES.filter(c => c !== 'Todas').map(c => <option key={c} value={c} style={{ backgroundColor: '#162d55' }}>{c}</option>)}
                 </select>
               </div>
@@ -1938,14 +1940,15 @@ export default function InventarioManagement() {
                 </label>
                 <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
                   style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.unit} onChange={e => updateForm('unit', e.target.value as any)}>
-                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  value={form.unit} onChange={e => updateForm('unit', e.target.value as UnitType)}>
+                  <option value="" style={{ backgroundColor: '#162d55' }}>Seleccionar unidad</option>
+                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
-                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
-                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
+                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
                     {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </optgroup>
                 </select>
@@ -2024,7 +2027,7 @@ export default function InventarioManagement() {
                     <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       Si compras por bolsas, cajas u otra presentación, configúralo aquí. El sistema calculará el costo unitario
                       y sabrá cuántas presentaciones quedan en stock.
-                      <strong style={{ color: 'rgba(255,255,255,0.6)' }}> La unidad de stock siempre es la mínima ({form.unit ? UNIT_LABELS[form.unit] || form.unit : '?'}).</strong>
+                      <strong style={{ color: 'rgba(255,255,255,0.6)' }}> La unidad de stock siempre es la mínima ({form.unit ? UNIT_LABELS[form.unit as UnitType] || form.unit : '?'}).</strong>
                     </p>
                   </div>
                 </div>
@@ -2055,11 +2058,11 @@ export default function InventarioManagement() {
                     <input type="number" min={1} step="1" placeholder="Ej: 8"
                       className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
                       style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                      value={form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : ''}
+                      value={form.purchaseQtyPerUnit && form.purchaseQtyPerUnit > 1 ? form.purchaseQtyPerUnit : ''}
                       onChange={e => {
                         const pq = Number(e.target.value) || 1;
                         const pp = form.purchasePrice || 0;
-                        updateForm('purchaseQty', pq);
+                        updateForm('purchaseQtyPerUnit', pq);
                         if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
                       }} />
                     <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>¿Cuántas {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidades'} trae?</p>
@@ -2072,7 +2075,7 @@ export default function InventarioManagement() {
                       value={form.purchasePrice || ''}
                       onChange={e => {
                         const pp = Number(e.target.value);
-                        const pq = form.purchaseQty || 1;
+                        const pq = form.purchaseQtyPerUnit || 1;
                         updateForm('purchasePrice', pp);
                         if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
                       }} />
@@ -2083,11 +2086,11 @@ export default function InventarioManagement() {
                 <div style={{ display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap', background:'rgba(0,0,0,0.25)', borderRadius:'8px', padding:'10px 14px' }}>
                   <span style={{ fontSize:'18px' }}>📦</span>
                   <span style={{ color:'white', fontWeight:600, fontSize:'13px' }}>
-                    1 {form.purchaseUnit ? (UNIT_LABELS[form.purchaseUnit as UnitType] || form.purchaseUnit) : (form.unit ? UNIT_LABELS[form.unit as UnitType] : '—')}
+                    1 {form.purchaseUnit ? (UNIT_LABELS[form.purchaseUnit as UnitType] || form.purchaseUnit) : (form.unit ? UNIT_LABELS[form.unit as UnitType] : '?')}
                   </span>
                   <span style={{ color:'rgba(255,255,255,0.4)' }}>→</span>
                   <span style={{ color:'#f59e0b', fontWeight:700, fontSize:'13px' }}>
-                    {form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : 1} {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : '?'}
+                    {form.purchaseQtyPerUnit && form.purchaseQtyPerUnit > 1 ? form.purchaseQtyPerUnit : 1} {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : '?'}
                   </span>
                   {(form.purchasePrice || 0) > 0 && (
                     <>
@@ -2095,16 +2098,16 @@ export default function InventarioManagement() {
                       <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)' }}>
                         Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'u'}:{' '}
                         <strong style={{ color:'#4ade80' }}>
-                          ${((form.purchasePrice || 0) / Math.max(1, form.purchaseQty || 1)).toFixed(2)}
+                          ${((form.purchasePrice || 0) / Math.max(1, form.purchaseQtyPerUnit || 1)).toFixed(2)}
                         </strong>
                       </span>
                     </>
                   )}
-                  {form.stock > 0 && (form.purchaseQty || 1) > 1 && (
+                  {form.stock > 0 && (form.purchaseQtyPerUnit || 1) > 1 && (
                     <>
                       <span style={{ color:'rgba(255,255,255,0.3)' }}>·</span>
                       <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.45)' }}>
-                        Stock actual ({form.stock} {form.unit ? UNIT_LABELS[form.unit as UnitType] : ''}) ≈ {Math.floor(form.stock / (form.purchaseQty || 1))} {form.purchaseUnit || 'presentaciones'}
+                        Stock actual ({form.stock} {form.unit ? UNIT_LABELS[form.unit as UnitType] : ''}) ≈ {Math.floor(form.stock / (form.purchaseQtyPerUnit || 1))} {form.purchaseUnit || 'presentaciones'}
                       </span>
                     </>
                   )}
@@ -2295,7 +2298,7 @@ export default function InventarioManagement() {
                               <span style={{ fontWeight: 500 }}>{i.name}</span>
                               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
                                 {i.stock} {i.unit} · {i.category}
-                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQty ?? 1))} ${i.purchaseUnit}` : ''}
+                                {i.purchaseUnit ? ` · ~${Math.floor(i.stock / (i.purchaseQtyPerUnit ?? 1))} ${i.purchaseUnit}` : ''}
                               </span>
                             </button>
                           ))}
@@ -2311,7 +2314,7 @@ export default function InventarioManagement() {
               <div>
                 {(() => {
                   const selIng = ingredients.find(i => i.id === movementForm.ingredientId);
-                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQty ?? 1) > 1;
+                  const hasPU = selIng?.purchaseUnit && (selIng?.purchaseQtyPerUnit ?? 1) > 1;
                   return (
                     <>
                       {hasPU && movementForm.movementType === 'entrada' && (
@@ -2330,7 +2333,7 @@ export default function InventarioManagement() {
                       )}
                       <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                         {movInputMode === 'purchase' && hasPU
-                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQty ?? 1)} ${selIng!.unit}`
+                          ? `Cantidad en ${selIng!.purchaseUnit}s → ${movPurchaseQty * (selIng!.purchaseQtyPerUnit ?? 1)} ${selIng!.unit}`
                           : `Cantidad * ${selIng ? `(${selIng.unit})` : ''}`}
                       </label>
                       {movInputMode === 'purchase' && hasPU ? (

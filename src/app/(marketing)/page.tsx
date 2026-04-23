@@ -651,7 +651,7 @@ export default function MarketingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="sec" style={{background:'#0d0f17'}}>
+      <section className="sec" style={{background:'#07090f'}}>
         <div className="wrap">
           <ClipReveal><div style={{textAlign:'center',marginBottom:52}}>
             <div className="eyebrow" style={{justifyContent:'center',marginBottom:20}}>Qué tan rápido empiezas</div>

@@ -8,7 +8,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useReportData, DateRange, DishSales, StaffPerformance, PeakPrediction } from '@/hooks/useReportData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Legend } from 'recharts';
-import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight, Tag, Receipt } from 'lucide-react';
+import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, Clock, ShoppingCart, Award, ChefHat, AlertTriangle, ArrowUpRight, ArrowDownRight, Tag, Receipt } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import WasteAnalysisSummary from './WasteAnalysisSummary';
 
@@ -69,7 +69,7 @@ const kpiData: Record<string, { ventas: number; ordenes: number; ticket: number;
   personalizado: { ventas: 0, ordenes: 0, ticket: 0, clientes: 0 },
 };
 
-// ─── Tooltip Components ───────────────────────────────────────────────────────
+// ─── Tooltip Components ─────────────────────────────────────────────────
 
 const BarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {

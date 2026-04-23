@@ -118,7 +118,7 @@ export default function CorteCaja() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [movimientos, setMovimientos] = useState<{tipo:'ingreso'|'egreso'; monto:number; concepto:string; at:string}[]>([]);
   const [showMovModal, setShowMovModal] = useState(false);
-  const [movForm, setMovForm] = useState({ tipo:'ingreso' as 'ingreso'|'egreso', monto:'', concepto:'' });
+  const [movForm, setMovForm] = useState({ tipo:'ingreso\' as \'ingreso\'|\'egreso', monto:'', concepto:'' });
   const [showDenominaciones, setShowDenominaciones] = useState(true);
 
   // ── Load corte activo ───────────────────────────────────────────────────────
@@ -287,7 +287,7 @@ export default function CorteCaja() {
     const monto = parseFloat(movForm.monto);
     if (!monto || monto <= 0) { toast.error('Ingresa un monto válido'); return; }
     if (!movForm.concepto.trim()) { toast.error('Ingresa un concepto'); return; }
-    const newMov = { tipo: movForm.tipo, monto, concepto: movForm.concepto.trim(), at: new Date().toISOString() };
+    const newMov = { tipo: movForm.tipo as 'ingreso' | 'egreso', monto, concepto: movForm.concepto.trim(), at: new Date().toISOString() };
     setMovimientos(prev => [newMov, ...prev]);
     setMovForm({ tipo: 'ingreso', monto: '', concepto: '' });
     setShowMovModal(false);

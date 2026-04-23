@@ -22,6 +22,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_tables_number_tenant_nobranch
   ON public.restaurant_tables (number, tenant_id)
   WHERE branch_id IS NULL;
 
+-- ─── 1b. Fix system_config config_key UNIQUE constraint ─────────────────────
+-- Remove global UNIQUE on config_key, replace with (tenant_id, config_key)
+-- This allows each tenant to have their own restaurant_name, currency, etc.
+
+ALTER TABLE public.system_config
+  DROP CONSTRAINT IF EXISTS system_config_config_key_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_system_config_tenant_config_key
+  ON public.system_config (tenant_id, config_key);
+
+-- ─── 1c. Fix app_users username UNIQUE constraint ────────────────────────────
+-- Remove global UNIQUE on username, replace with (tenant_id, username)
+-- This allows each tenant to have their own 'admin', 'mesero', etc. usernames
+
+ALTER TABLE public.app_users
+  DROP CONSTRAINT IF EXISTS app_users_username_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_tenant_username
+  ON public.app_users (tenant_id, username);
+
 -- ─── 2. Fix RLS policies — real tenant isolation ─────────────────────────────
 -- The auth_tenant_id() function already exists and returns the tenant for the
 -- current user. We just need to activate it in every USING clause.
@@ -108,6 +128,7 @@ CREATE POLICY "tenant_isolation_dish_recipes" ON public.dish_recipes
 
 -- unit_equivalences
 DROP POLICY IF EXISTS "open_access_unit_equivalences" ON public.unit_equivalences;
+DROP POLICY IF EXISTS "tenant_isolation_unit_equivalences" ON public.unit_equivalences;
 CREATE POLICY "tenant_isolation_unit_equivalences" ON public.unit_equivalences
   FOR ALL TO authenticated
   USING (
@@ -173,6 +194,7 @@ CREATE POLICY "tenant_isolation_delivery_orders" ON public.delivery_orders
 
 -- rh tables
 DROP POLICY IF EXISTS "rh_vacaciones_all" ON public.rh_vacaciones;
+DROP POLICY IF EXISTS "tenant_isolation_rh_vacaciones" ON public.rh_vacaciones;
 CREATE POLICY "tenant_isolation_rh_vacaciones" ON public.rh_vacaciones
   FOR ALL TO authenticated
   USING (
@@ -182,6 +204,7 @@ CREATE POLICY "tenant_isolation_rh_vacaciones" ON public.rh_vacaciones
   );
 
 DROP POLICY IF EXISTS "rh_permisos_all" ON public.rh_permisos;
+DROP POLICY IF EXISTS "tenant_isolation_rh_permisos" ON public.rh_permisos;
 CREATE POLICY "tenant_isolation_rh_permisos" ON public.rh_permisos
   FOR ALL TO authenticated
   USING (
@@ -191,6 +214,7 @@ CREATE POLICY "tenant_isolation_rh_permisos" ON public.rh_permisos
   );
 
 DROP POLICY IF EXISTS "rh_tiempos_extras_all" ON public.rh_tiempos_extras;
+DROP POLICY IF EXISTS "tenant_isolation_rh_tiempos_extras" ON public.rh_tiempos_extras;
 CREATE POLICY "tenant_isolation_rh_tiempos_extras" ON public.rh_tiempos_extras
   FOR ALL TO authenticated
   USING (

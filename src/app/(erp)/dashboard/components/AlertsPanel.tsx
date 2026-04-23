@@ -7,6 +7,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Package, Clock, ChevronRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AlertItem {
   id: string;
@@ -34,11 +35,15 @@ function timeAgo(isoString: string): string {
 export default function AlertsPanel() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { tenantId } = useAuth();
   const supabase = createClient();
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     const newAlerts: AlertItem[] = [];
+
+    // Helper: apply tenant filter (defense-in-depth alongside RLS)
+    const withTenant = (q: any) => tenantId ? q.eq('tenant_id', tenantId) : q;
 
     // 1. Inventory alerts: stock < min_stock
     const { data: ingredients } = await supabase
@@ -123,7 +128,7 @@ export default function AlertsPanel() {
 
     setAlerts(newAlerts);
     setLoading(false);
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     fetchAlerts();

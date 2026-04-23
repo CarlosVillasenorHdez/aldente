@@ -109,6 +109,7 @@ const EMPTY_DEP: Omit<Depreciacion, 'id'> = {
   nombre: '', descripcion: '', tipo: 'depreciacion', valor_original: 0, valor_residual: 0,
   vida_util_anios: 5, fecha_adquisicion: new Date().toISOString().split('T')[0],
   metodo: 'linea_recta', activo: true, notas: '',
+  proveedor: '', metodo_pago: 'efectivo', dias_credito: 0,
 };
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

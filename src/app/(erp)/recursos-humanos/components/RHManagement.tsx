@@ -505,7 +505,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(vacaciones).length === 0 ? (
                       <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(vacaciones).map((v: any) => (
+                    ) : filterList(vacaciones).map((v) => (
                       <tr key={v.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{v.employees?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-300">{formatDate(v.fecha_inicio)}</td>
@@ -547,7 +547,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(permisos).length === 0 ? (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(permisos).map((p: any) => (
+                    ) : filterList(permisos).map((p) => (
                       <tr key={p.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{p.employees?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-300">{PERM_TIPO_LABELS[p.tipo as PermTipo]}</td>
@@ -594,7 +594,7 @@ export default function RHManagement() {
                   <tbody>
                     {filterList(tiemposExtras).length === 0 ? (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
-                    ) : filterList(tiemposExtras).map((t: any) => {
+                    ) : filterList(tiemposExtras).map((t) => {
                       const hr = t.employees ? hourlyRate(t.employees.salary, t.employees.salary_frequency) : 0;
                       const costoExtra = Number(t.horas) * hr * Number(t.factor_pago);
                       return (

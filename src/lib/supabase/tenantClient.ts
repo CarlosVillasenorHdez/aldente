@@ -4,7 +4,7 @@
  * on tenant-isolated tables.
  *
  * This is the PRIMARY isolation mechanism (RLS is secondary).
- * Usage: import { useTenantClient } from '@/lib/supabase/tenantClient'
+ * Usage: import { useTenantClient } from '@/lib/supabase/tenantClient';
  */
 
 import { createClient } from './client';

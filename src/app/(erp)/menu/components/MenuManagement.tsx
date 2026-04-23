@@ -913,7 +913,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
             {finalPrice > 0 && totalIngCost > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                 <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Margen bruto real</span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: marginColor }}>{actualMargin.toFixed(1)}%</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: marginColor }}>{actualMargin.toFixed(1)}% margen</span>
               </div>
             )}
           </div>

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
-import { Plus, Edit2, Trash2, X, Check, Users, MapPin, Phone, Mail, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, MapPin, Phone, Building2, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Branch {
   id: string; name: string; address: string; phone: string;
@@ -222,24 +222,6 @@ export default function SucursalesManagement() {
       </div>
 
       {/* SUCURSAL MADRE — el restaurante original */}
-      <div style={{ borderRadius:16, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.04)', marginBottom:8, padding:'16px 20px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(201,150,58,.2)', border:'1px solid rgba(201,150,58,.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏠</div>
-          <div style={{ flex:1 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-              <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{tenantInfo?.name || 'Restaurante Principal'}</h3>
-              <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal madre</span>
-            </div>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-              {tenantInfo?.address && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{tenantInfo.address}</span>}
-              {tenantInfo?.phone && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{tenantInfo.phone}</span>}
-            </div>
-          </div>
-          <a href="/configuracion" style={{ padding:'6px 14px', borderRadius:8, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.08)', color:'#c9963a', fontSize:12, fontWeight:600, textDecoration:'none' }}>
-            Editar →
-          </a>
-        </div>
-      </div>
       {branches.length === 0 ? (
         <div style={{ textAlign:'center', padding:'60px 0', color:'rgba(255,255,255,.3)' }}>
           <Building2 size={48} style={{ marginBottom:16, opacity:.3 }} />

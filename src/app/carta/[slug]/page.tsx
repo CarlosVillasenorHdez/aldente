@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Search, X, ChevronLeft, Phone, MapPin, Star } from 'lucide-react';
+import { Search, X, Phone, MapPin, Star } from 'lucide-react';
 
 interface Dish {
   id: string; name: string; description: string;

@@ -9,7 +9,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-import { TrendingUp, TrendingDown, Building2, DollarSign, ShoppingBag, Users } from 'lucide-react';
+import { TrendingUp, Building2, DollarSign, ShoppingBag, Users } from 'lucide-react';
+import Icon from '@/components/ui/AppIcon';
+
 
 interface Branch { id: string; name: string; address: string; }
 interface BranchMetrics {

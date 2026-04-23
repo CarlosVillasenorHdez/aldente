@@ -710,8 +710,6 @@ export default function POSClient() {
     }, 400);
   }, [supabase]);
 
-  // ─── Table select ─────────────────────────────────────────────────────────
-
   // ── Traslado de orden a otra mesa ──────────────────────────────────────────
   const handleTransferTable = async (targetTable: Table) => {
     if (!selectedTable?.currentOrderId || !targetTable.id) return;
@@ -1710,7 +1708,7 @@ export default function POSClient() {
   };
 
   const mergeGroupLabel = selectedTable?.mergeGroupId
-    ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.name).join(' + ')
+    ? tables.filter((t) => t.mergeGroupId === selectedTable.mergeGroupId).map((t) => t.name).join(', ')
     : null;
 
   // ─── Move / Delete table in layout ───────────────────────────────────────
@@ -2163,9 +2161,7 @@ export default function POSClient() {
           <div style={{ background:'#0f1923', border:'1px solid rgba(96,165,250,0.25)', borderRadius:'20px', padding:'28px', maxWidth:'480px', width:'100%' }}>
             <div style={{ marginBottom:'20px' }}>
               <h3 style={{ color:'#f1f5f9', fontSize:'18px', fontWeight:700, marginBottom:'6px' }}>↔ Cambiar mesa</h3>
-              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px' }}>
-                Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre
-              </p>
+              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'13px', margin:0 }}>Mover orden de <strong style={{ color:'#60a5fa' }}>{selectedTable.name}</strong> a otra mesa libre</p>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(80px, 1fr))', gap:8, maxHeight:'300px', overflowY:'auto', marginBottom:'16px' }}>
               {tables.filter(t => t.status === 'libre' && t.id !== selectedTable.id && t.number > 0).map(t => (
