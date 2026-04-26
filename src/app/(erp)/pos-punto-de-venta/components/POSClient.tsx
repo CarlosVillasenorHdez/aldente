@@ -291,19 +291,16 @@ export default function POSClient() {
   const [reservedTables, setReservedTables] = useState<string[]>([]);
 
   const fetchReservations = useCallback(async () => {
-    const now = new Date();
-    const in2h = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const today = now.toISOString().split('T')[0];
-    const timeNow = now.toTimeString().slice(0, 5);
-    const time2h  = in2h.toTimeString().slice(0, 5);
+    const now   = new Date();
+    const start = now.toISOString();
+    const in2h  = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('reservations')
       .select('table_id')
-        .eq('tenant_id', getTenantId())
-      .eq('reservation_date', today)
-      .eq('status', 'confirmada')
-      .gte('reservation_time', timeNow)
-      .lte('reservation_time', time2h);
+      .eq('tenant_id', getTenantId())
+      .in('status', ['confirmada', 'pendiente'])
+      .gte('reserved_for', start)
+      .lte('reserved_for', in2h);
     setReservedTables((data || []).map((r: any) => r.table_id).filter(Boolean));
   }, [supabase]);
 
