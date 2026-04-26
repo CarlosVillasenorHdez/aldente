@@ -28,6 +28,7 @@ import MembershipPopup from './MembershipPopup';
 import { useMembershipTrigger } from '@/hooks/useMembershipTrigger';
 import { useFeatures } from '@/hooks/useFeatures';
 import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
+import { usePOSConfig } from '@/hooks/usePOSConfig';
 
 export type TableStatus = 'libre' | 'ocupada' | 'espera';
 
@@ -189,8 +190,14 @@ export default function POSClient() {
   const [deliveredLineIds, setDeliveredLineIds] = useState<Set<string>>(new Set());
 
   const { branch: activeBranch } = useBranch();
-  const [establishmentType, setEstablishmentType] = useState<'restaurante'|'cafeteria'|'bar'|'mixto'>('restaurante');
-  const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
+  // ── Configuración del restaurante (extraída a usePOSConfig) ─────────────────
+  const {
+    establishmentType, blockSaleNoStock, businessHours, outsideHours,
+    branchName, setBranchName, restaurantName, tenantSlug,
+    printerConfig: printerConfigData,
+  } = usePOSConfig();
+
+  const [layoutId, setLayoutId] = useState<string | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
@@ -233,12 +240,10 @@ export default function POSClient() {
 
   // Layout state
   const [layoutTables, setLayoutTables] = useState<LayoutTablePosition[]>([]);
-  const [layoutId, setLayoutId] = useState<string | null>(null);
 
   // Merge mode state
   const [mergeMode, setMergeMode] = useState(false);
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
-  const [branchName, setBranchName] = useState('Sucursal Principal');
 
   const supabase = createClient();
 
@@ -465,90 +470,9 @@ export default function POSClient() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchTakeoutOrders, supabase]);
 
-  const [restaurantName, setRestaurantName] = useState('');
-  const [tenantSlug, setTenantSlug] = useState<string | null>(null);
-  const [printerConfigData, setPrinterConfigData] = useState<any>(null);
-  const [businessHours, setBusinessHours] = useState<{day:string;open:boolean;from:string;to:string}[]>([]);
-  const [outsideHours, setOutsideHours] = useState(false);
 
-  useEffect(() => {
-    // Cargar horarios de apertura desde system_config
-    supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).in('config_key', ['establishment_type','block_sale_no_stock']).then(({ data }) => {
-      (data || []).forEach((r: any) => {
-        if (r.config_key === 'establishment_type') setEstablishmentType(r.config_value as any);
-        if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
-      });
-    }),
-    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
-      .then(({ data }) => {
-        if (data?.config_value) {
-          try {
-            const hrs = JSON.parse(data.config_value);
-            setBusinessHours(hrs);
-            const now = new Date();
-            const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-            const dayKey = days[now.getDay()];
-            const todayHours = hrs.find((h: any) => h.day === dayKey);
-            if (todayHours && todayHours.open) {
-              const timeStr = now.toTimeString().slice(0, 5);
-              if (timeStr < todayHours.from || timeStr > todayHours.to) setOutsideHours(true);
-            } else if (todayHours && !todayHours.open) {
-              setOutsideHours(true);
-            }
-          } catch {}
-        }
-      });
 
-    // Cargar nombre de sucursal desde system_config
-    supabase.from('system_config')
-      .select('config_key, config_value')
-      .eq('tenant_id', getTenantId())
-      .in('config_key', ['branch_name', 'restaurant_name'])
-      .then(({ data }) => {
-        data?.forEach((r: any) => {
-          if (r.config_key === 'branch_name')    setBranchName(r.config_value);
-          if (r.config_key === 'restaurant_name') setRestaurantName(r.config_value);
-        });
-      });
-
-    // Cargar slug del tenant para la carta QR pública
-    supabase.from('tenants').select('slug').eq('id', getTenantId()).single()
-      .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
-
-    // Cargar config de impresora
-    supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single()
-      .then(({ data }) => {
-        if (data) setPrinterConfigData({
-          headerLine1:     data.header_line1,
-          headerLine2:     data.header_line2,
-          footerText:      data.footer_text,
-          separatorChar:   data.separator_char,
-          paperWidth:      data.paper_width as 58 | 80,
-          autoCut:         data.auto_cut,
-          showOrderNumber: data.show_order_number,
-          showDate:        data.show_date,
-          showMesa:        data.show_mesa,
-          showMesero:      data.show_mesero,
-          showSubtotal:    data.show_subtotal,
-          showIva:         data.show_iva,
-          showDiscount:    data.show_discount,
-          showUnitPrice:   data.show_unit_price,
-        });
-      })
-
-    // Cargar sucursal activa del selector
-    try {
-      const stored = localStorage.getItem('sr_active_branch');
-      if (stored) { const b = JSON.parse(stored); if (b?.name) setBranchName(b.name); }
-    } catch {}
-
-    const branchHandler = (e: Event) => {
-      const d = (e as CustomEvent).detail;
-      if (d?.name) setBranchName(d.name);
-    };
-    window.addEventListener('branch-changed', branchHandler);
-    return () => window.removeEventListener('branch-changed', branchHandler);
-  }, []);
+  // Configuración cargada por usePOSConfig
 
   // ─── Realtime: auto-refresh tables when any table/order changes ───────────
   // This keeps the POS in sync with Mesero Móvil and other POS terminals.
@@ -2323,7 +2247,7 @@ export default function POSClient() {
           customerName={selectedTable?.number === 0 ? selectedTable?.name : undefined}
           restaurantName={restaurantName || branchName}
           branchName={branchName}
-          printerConfig={printerConfigData}
+          printerConfig={printerConfigData ?? undefined}
           onClose={() => setShowPaymentModal(false)}
           onComplete={handlePaymentComplete}
         />
