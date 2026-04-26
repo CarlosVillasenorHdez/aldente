@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Pencil, Shield, Eye, EyeOff, UserCheck, RefreshCw, AlertCircle, Lock, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react';
 import { useAuth, AppRole, BUILTIN_ROLES } from '@/contexts/AuthContext';
+import { useBranch } from '@/contexts/BranchContext';
 import { invalidatePermissionsCache } from '@/hooks/useRolePermissions';
 import { createClient } from '@/lib/supabase/client';
 
@@ -87,12 +88,13 @@ interface UserForm {
   password: string;
   appRole: AppRole;
   employeeId: string;
+  branchId: string;  // sucursal asignada al crear
 }
 
 type RolePermissions = Record<string, boolean>;
 type AllRolePermissions = Record<string, RolePermissions>;
 
-const emptyForm = (): UserForm => ({ username: '', fullName: '', password: '12345', appRole: 'mesero', employeeId: '' });
+const emptyForm = (): UserForm => ({ username: '', fullName: '', password: '12345', appRole: 'mesero', employeeId: '', branchId: '' });
 
 export default function UsuariosManagement() {
   const { createUser, listUsers, toggleUserActive, updateUserRole, appUser } = useAuth();
@@ -116,6 +118,11 @@ export default function UsuariosManagement() {
   // Employees from Personal
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [empLoading, setEmpLoading] = useState(false);
+
+  // Branches para asignar al crear usuario
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+
+  const { activeBranchId } = useBranch();
 
   // Permissions state
   const [permissions, setPermissions] = useState<AllRolePermissions>({});
@@ -152,8 +159,12 @@ export default function UsuariosManagement() {
   const fetchEmployees = useCallback(async () => {
     setEmpLoading(true);
     try {
-      const { data } = await supabase.from('employees').select('id, name, role').eq('tenant_id', getTenantId()).order('name');
-      if (data) setEmployees(data as Employee[]);
+      const [empRes, branchRes] = await Promise.all([
+        supabase.from('employees').select('id, name, role').eq('tenant_id', getTenantId()).order('name'),
+        supabase.from('branches').select('id, name').eq('tenant_id', getTenantId()).eq('is_active', true).order('created_at', { ascending: true }),
+      ]);
+      if (empRes.data) setEmployees(empRes.data as Employee[]);
+      if (branchRes.data) setBranches(branchRes.data as { id: string; name: string }[]);
     } catch {
       // ignore
     } finally {
@@ -246,7 +257,7 @@ export default function UsuariosManagement() {
 
     setSaving(true);
     try {
-      await createUser(form.username, form.password, form.fullName, form.appRole);
+      await createUser(form.username, form.password, form.fullName, form.appRole, form.employeeId || undefined, form.branchId || null);
       setModalOpen(false);
       setForm(emptyForm());
       setSuccessMsg('Usuario creado exitosamente');
@@ -756,6 +767,35 @@ export default function UsuariosManagement() {
               {formError && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#f87171' }}>
                   <AlertCircle size={13} /> {formError}
+                </div>
+              )}
+
+              {/* Sucursal — solo si hay más de 1 y el rol no es admin/gerente */}
+              {branches.length > 1 && !['admin','gerente'].includes(form.appRole) && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    Sucursal asignada *
+                  </label>
+                  <select
+                    value={form.branchId}
+                    onChange={e => setForm(p => ({ ...p, branchId: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-lg text-sm outline-none"
+                    style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: form.branchId ? '#f1f5f9' : 'rgba(255,255,255,0.4)' }}
+                  >
+                    <option value="">Selecciona una sucursal...</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    El empleado solo verá datos de esta sucursal al iniciar sesión.
+                  </p>
+                </div>
+              )}
+
+              {branches.length === 1 && !['admin','gerente'].includes(form.appRole) && (
+                <div className="px-3 py-2 rounded-lg text-xs" style={{ backgroundColor: 'rgba(96,165,250,0.08)', color: 'rgba(96,165,250,0.7)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                  ℹ️ Se asignará automáticamente a <strong>{branches[0]?.name}</strong> (única sucursal)
                 </div>
               )}
             </div>

@@ -42,7 +42,8 @@ interface AuthContextValue {
     password: string,
     fullName: string,
     role: AppRole,
-    employeeId?: string
+    employeeId?: string,
+    branchId?: string | null,
   ) => Promise<void>;
   updateUserPassword: (authUserId: string, newPassword: string) => Promise<void>;
   listUsers: () => Promise<AppUser[]>;
@@ -286,7 +287,8 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       password: string,
       fullName: string,
       role: AppRole,
-      employeeId?: string
+      employeeId?: string,
+      branchId?: string | null,
     ) => {
       const { data, error } = await supabase.functions.invoke('create-app-user', {
         body: {
@@ -296,12 +298,13 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
           role,
           employeeId: employeeId || null,
           tenantId: appUser?.tenantId,
+          branchId: branchId || null,
         },
       });
       if (error) throw new Error(error.message || 'Error al crear usuario');
       if (data?.error) throw new Error(data.error);
     },
-    [supabase]
+    [supabase, appUser?.tenantId]
   );
 
   const updateUserPassword = useCallback(
@@ -332,7 +335,7 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       employeeId: u.employee_id as string | null,
       isActive: u.is_active as boolean,
       tenantId: u.tenant_id as string | null,
-      branchId: null,
+      branchId: u.branch_id as string | null,
       branchName: null,
     }));
   }, [supabase]);

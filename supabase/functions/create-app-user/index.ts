@@ -51,13 +51,44 @@ serve(async (req) => {
       });
     }
 
-    const { username, password, fullName, role, employeeId } = await req.json();
+    const { username, password, fullName, role, employeeId, tenantId, branchId } = await req.json();
 
     if (!username || !password || !fullName || !role) {
       return new Response(JSON.stringify({ error: 'Faltan campos requeridos' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Obtener el tenantId del caller si no viene en el body
+    const { data: callerFull } = await supabaseAdmin
+      .from('app_users')
+      .select('tenant_id')
+      .eq('auth_user_id', callerUser.id)
+      .single();
+
+    const resolvedTenantId = tenantId || callerFull?.tenant_id;
+
+    if (!resolvedTenantId) {
+      return new Response(JSON.stringify({ error: 'No se pudo determinar el tenant' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Si no viene branchId y hay una sola branch, asignarla automáticamente
+    let resolvedBranchId = branchId || null;
+    if (!resolvedBranchId && !['admin', 'gerente', 'superadmin'].includes(role)) {
+      const { data: branches } = await supabaseAdmin
+        .from('branches')
+        .select('id')
+        .eq('tenant_id', resolvedTenantId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(2);
+      if (branches && branches.length === 1) {
+        resolvedBranchId = branches[0].id;
+      }
     }
 
     const email = `${username.trim().toLowerCase()}@sistemarest.local`;
@@ -91,6 +122,8 @@ serve(async (req) => {
       full_name: fullName,
       app_role: role,
       employee_id: employeeId || null,
+      tenant_id: resolvedTenantId,
+      branch_id: resolvedBranchId,
     });
 
     if (insertError) {
