@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useStockAlerts } from '@/hooks/useStockAlerts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ const FILTER_TABS: { key: AlertCategory | 'todas'; label: string }[] = [
 
 export default function AlarmasManagement() {
   const { activeBranchId } = useBranch();
+  const { alerts: stockAlerts, criticalCount, reload: reloadStock } = useStockAlerts();
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<AlertCategory | 'todas'>('todas');

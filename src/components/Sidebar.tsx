@@ -10,7 +10,7 @@ import { useBranch } from '@/contexts/BranchContext';
 import { createClient } from '@/lib/supabase/client';
 import { useFeatures, type Features } from '@/hooks/useFeatures';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
-import Icon from '@/components/ui/AppIcon';
+import { useStockAlerts } from '@/hooks/useStockAlerts';
 
 
 
@@ -104,7 +104,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { activeBranchName, activeBranchId, branches, canSwitch, setActiveBranch } = useBranch();
   const [showBranchSelector, setShowBranchSelector] = useState(false);
   const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
-  const [lowStockCount, setLowStockCount] = useState<number>(0);
+  const { count: lowStockCount, criticalCount: lowStockCritical } = useStockAlerts();
 
   // Dynamic sidebar colors from brandConfig
   const sidebarBg = brandConfig.theme === 'light' ? '#f8fafc' : (brandConfig.primaryColor || '#1B3A6B');
@@ -126,22 +126,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     return () => clearInterval(interval);
   }, [supabase]);
 
-  // Load low-stock ingredient count and refresh every 5 minutes
-  useEffect(() => {
-    const fetchLowStock = async () => {
-      const { data } = await supabase
-        .from('ingredients')
-        .select('stock, min_stock')
-        .filter('min_stock', 'gt', 0);
-      const count = (data || []).filter(
-        (i: any) => Number(i.stock) <= Number(i.min_stock)
-      ).length;
-      setLowStockCount(count);
-    };
-    fetchLowStock();
-    const interval = setInterval(fetchLowStock, 300000);
-    return () => clearInterval(interval);
-  }, [supabase]);
+  // Low-stock alerts now handled by useStockAlerts hook (Realtime)
 
   return (
     <aside
@@ -225,6 +210,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 : item.pageKey === 'inventario'
                 ? (lowStockCount > 0 ? lowStockCount : undefined)
                 : item.badge;
+              const badgeColor = item.pageKey === 'inventario' && lowStockCritical > 0
+                ? '#ef4444'  // rojo — hay críticos (stock = 0)
+                : item.pageKey === 'inventario' && lowStockCount > 0
+                ? '#f59e0b'  // ámbar — stock bajo pero no cero
+                : undefined;
               return (
                 <Link key={item.href} href={item.href}>
                   <div
@@ -236,7 +226,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       <>
                         <span className="flex-1 truncate">{item.label}</span>
                         {badge !== undefined && (
-                          <span className="text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '10px' }}>
+                          <span className="text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
+                            style={{
+                              backgroundColor: badgeColor ?? '#f59e0b',
+                              color: '#fff',
+                              fontWeight: 700, fontSize: '10px',
+                            }}>
                             {badge}
                           </span>
                         )}
