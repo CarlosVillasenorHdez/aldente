@@ -103,17 +103,17 @@ export default function SucursalesManagement() {
     setEditingId(b.id); setShowForm(true);
   }
 
-  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #2a3f5f', background:'#0f1923', color:'#f1f5f9', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
+  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #e5e7eb', background:'#f9fafb', color:'#1f2937', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
 
-  if (loading) return <div style={{ textAlign:'center', padding:48, color:'rgba(255,255,255,.4)' }}>Cargando sucursales...</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:48, color:'#6b7280' }}>Cargando sucursales...</div>;
 
   return (
-    <div style={{ maxWidth:900, margin:'0 auto', padding:'0 0 48px' }}>
+    <div style={{ maxWidth:900, margin:'0 auto', padding:'0 0 48px', background:'transparent' }}>
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:28 }}>
         <div>
-          <h2 style={{ fontSize:22, fontWeight:700, color:'#f1f5f9', margin:'0 0 4px' }}>Sucursales</h2>
-          <p style={{ fontSize:13, color:'rgba(255,255,255,.4)', margin:0 }}>{branches.length} sucursal{branches.length!==1?'es':''} · {users.length} usuario{users.length!==1?'s':''}</p>
+          <h2 style={{ fontSize:22, fontWeight:700, margin:'0 0 4px' }}>Sucursales</h2>
+          <p style={{ fontSize:13, color:'#6b7280', margin:0 }}>{branches.length} sucursal{branches.length!==1?'es':''} · {users.length} usuario{users.length!==1?'s':''}</p>
         </div>
         <button onClick={()=>{ setShowForm(true); setEditingId(null); setForm(empty); }}
           style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:12, border:'none', background:'#c9963a', color:'#07090f', fontSize:14, fontWeight:700, cursor:'pointer' }}>
@@ -123,41 +123,41 @@ export default function SucursalesManagement() {
 
       {/* Form */}
       {showForm && (
-        <div style={{ padding:24, borderRadius:16, background:'#1a2535', border:'1px solid #243f72', marginBottom:20 }}>
+        <div style={{ padding:24, borderRadius:16, background:'#f9fafb', border:'1px solid #e5e7eb', marginBottom:20 }}>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
-            <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
-            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'rgba(255,255,255,.4)', cursor:'pointer' }}><X size={16}/></button>
+            <h3 style={{ fontSize:16, fontWeight:700, color:'#1f2937', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
+            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'#6b7280', cursor:'pointer' }}><X size={16}/></button>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
             <div>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Nombre *</label>
+              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Nombre *</label>
               <input style={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Ej: Sucursal Centro"
                 onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
             <div>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Gerente / Responsable</label>
+              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Gerente / Responsable</label>
               <input style={inp} value={form.managerName} onChange={e=>setForm(p=>({...p,managerName:e.target.value}))} placeholder="Nombre del encargado"
                 onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
             <div style={{ gridColumn:'span 2' }}>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Dirección</label>
+              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Dirección</label>
               <input style={inp} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Calle, número, colonia"
                 onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
             <div>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Teléfono</label>
+              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Teléfono</label>
               <input style={inp} value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="55 1234 5678"
                 onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
             <div>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Correo</label>
+              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Correo</label>
               <input style={inp} value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="sucursal@restaurante.mx"
                 onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
             </div>
           </div>
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
             <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }}
-              style={{ padding:'9px 20px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'transparent', color:'rgba(255,255,255,.6)', fontSize:13, cursor:'pointer' }}>
+              style={{ padding:'9px 20px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'transparent', color:'#4b5563', fontSize:13, cursor:'pointer' }}>
               Cancelar
             </button>
             <button onClick={handleSave} disabled={saving||!form.name.trim()}
@@ -181,12 +181,12 @@ export default function SucursalesManagement() {
                 ].map(([title, desc]) => (
                   <div key={title} style={{ display:'flex', flexDirection:'column', gap:2 }}>
                     <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.8)' }}>{title}</span>
-                    <span style={{ fontSize:11, color:'rgba(255,255,255,.4)' }}>{desc}</span>
+                    <span style={{ fontSize:11, color:'#6b7280' }}>{desc}</span>
                   </div>
                 ))}
               </div>
               <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid rgba(201,150,58,.15)' }}>
-                <p style={{ fontSize:12, color:'rgba(255,255,255,.4)', marginBottom:6, fontWeight:600 }}>
+                <p style={{ fontSize:12, color:'#6b7280', marginBottom:6, fontWeight:600 }}>
                   ✗ Exclusivo por sucursal (no se comparte):
                 </p>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 16px' }}>
@@ -202,7 +202,7 @@ export default function SucursalesManagement() {
 
       {/* Branches list */}
       {branches.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'60px 20px', color:'rgba(255,255,255,.5)' }}>
+        <div style={{ textAlign:'center', padding:'60px 20px', color:'#6b7280' }}>
           <Building2 size={48} style={{ marginBottom:16, opacity:.3 }} />
           <p style={{ fontSize:16, marginBottom:8, color:'rgba(255,255,255,.7)' }}>Sin sucursales configuradas</p>
           <p style={{ fontSize:13, marginBottom:24, maxWidth:400, margin:'0 auto 24px' }}>
@@ -245,7 +245,7 @@ export default function SucursalesManagement() {
                   <div style={{ width:44, height:44, borderRadius:12, background: activeBranchId===b.id?'rgba(201,150,58,.25)':'rgba(201,150,58,.12)', border:`1px solid ${activeBranchId===b.id?'rgba(201,150,58,.6)':'rgba(201,150,58,.25)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{isMain ? '🏠' : '🏢'}</div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-                      <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{b.name}</h3>
+                      <h3 style={{ fontSize:16, fontWeight:700, color:'#1f2937', margin:0 }}>{b.name}</h3>
                       {isMain && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal principal</span>}
                       {activeBranchId===b.id && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Activa</span>}
                       <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: b.isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)', color: b.isActive?'#34d399':'#f87171', border: `1px solid ${b.isActive?'rgba(52,211,153,.2)':'rgba(248,113,113,.2)'}` }}>
@@ -253,15 +253,15 @@ export default function SucursalesManagement() {
                       </span>
                     </div>
                     <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-                      {b.address && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{b.address}</span>}
-                      {b.phone && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{b.phone}</span>}
-                      {b.managerName && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Users size={11}/>{b.managerName}</span>}
+                      {b.address && <span style={{ fontSize:12, color:'#6b7280', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{b.address}</span>}
+                      {b.phone && <span style={{ fontSize:12, color:'#6b7280', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{b.phone}</span>}
+                      {b.managerName && <span style={{ fontSize:12, color:'#6b7280', display:'flex', alignItems:'center', gap:4 }}><Users size={11}/>{b.managerName}</span>}
                     </div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', marginRight:4 }}>{branchUsers.length} usuario{branchUsers.length!==1?'s':''}</span>
+                    <span style={{ fontSize:12, color:'#6b7280', marginRight:4 }}>{branchUsers.length} usuario{branchUsers.length!==1?'s':''}</span>
                     <button onClick={()=>startEdit(b)} title="Editar"
-                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(255,255,255,.1)', background:'rgba(255,255,255,.04)', color:'rgba(255,255,255,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      style={{ width:34, height:34, borderRadius:8, border:'1px solid #e5e7eb', background:'#f9fafb', color:'#6b7280', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       <Edit2 size={13}/>
                     </button>
                     <button onClick={()=>handleToggleActive(b)} title={b.isActive?'Desactivar':'Activar'}
@@ -279,7 +279,7 @@ export default function SucursalesManagement() {
                       <Trash2 size={13}/>
                     </button>
                     <button onClick={()=>setExpandedBranch(isExpanded?null:b.id)}
-                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(255,255,255,.08)', background:'rgba(255,255,255,.03)', color:'rgba(255,255,255,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(255,255,255,.08)', background:'rgba(255,255,255,.03)', color:'#6b7280', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       {isExpanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}
                     </button>
                   </div>
@@ -288,11 +288,11 @@ export default function SucursalesManagement() {
                 {/* Expanded: users panel */}
                 {isExpanded && (
                   <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', padding:'16px 20px' }}>
-                    <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.4)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>
                       Usuarios en esta sucursal ({branchUsers.length})
                     </p>
                     {branchUsers.length === 0 && (
-                      <p style={{ fontSize:13, color:'rgba(255,255,255,.3)', fontStyle:'italic', marginBottom:12 }}>Sin usuarios asignados aún.</p>
+                      <p style={{ fontSize:13, color:'#9ca3af', fontStyle:'italic', marginBottom:12 }}>Sin usuarios asignados aún.</p>
                     )}
                     <div style={{ display:'flex', flexDirection:'column', gap:4, marginBottom:16 }}>
                       {branchUsers.map(u=>(
@@ -301,7 +301,7 @@ export default function SucursalesManagement() {
                             {u.appRole==='admin'?'👑':u.appRole==='mesero'?'🍽️':u.appRole==='cocinero'?'👨‍🍳':'👤'}
                           </div>
                           <div style={{ flex:1 }}>
-                            <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{u.fullName}</span>
+                            <span style={{ fontSize:13, fontWeight:600, color:'#1f2937' }}>{u.fullName}</span>
                             <span style={{ fontSize:11, color:ROLE_COLORS[u.appRole]||'rgba(255,255,255,.4)', marginLeft:8 }}>{ROLE_LABELS[u.appRole]||u.appRole}</span>
                           </div>
                           <button onClick={()=>assignUserToBranch(u.id, null)} disabled={assigningUser===u.id}
@@ -315,7 +315,7 @@ export default function SucursalesManagement() {
                     {/* Unassigned users to add */}
                     {unassigned.length > 0 && (
                       <>
-                        <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>
+                        <p style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>
                           Agregar usuario a esta sucursal
                         </p>
                         <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
@@ -342,7 +342,7 @@ export default function SucursalesManagement() {
           <p style={{ fontSize:13, fontWeight:600, color:'#f87171', margin:'0 0 8px', display:'flex', alignItems:'center', gap:8 }}>
             <Users size={14}/> {users.filter(u=>!u.branchId).length} usuario{users.filter(u=>!u.branchId).length!==1?'s':''} sin sucursal asignada
           </p>
-          <p style={{ fontSize:12, color:'rgba(255,255,255,.4)', margin:0 }}>
+          <p style={{ fontSize:12, color:'#6b7280', margin:0 }}>
             Los usuarios sin sucursal aparecerán en el login de todos los accesos. Asígnalos expandiendo una sucursal arriba.
           </p>
         </div>
