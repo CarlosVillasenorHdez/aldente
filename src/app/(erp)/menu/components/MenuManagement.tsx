@@ -953,8 +953,8 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
   // Load establishment type for prep area visibility
   useEffect(() => {
-    const supaClient = createClient();
-    supaClient.from('system_config').select('config_value')
+    const supabase = createClient();
+    supabase.from('system_config').select('config_value')
       .eq('tenant_id', getTenantId()).eq('config_key', 'establishment_type').single()
       .then(({ data }: any) => { if (data?.config_value) setEstablishmentType(data.config_value); });
   }, []);

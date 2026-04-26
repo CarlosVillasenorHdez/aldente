@@ -485,8 +485,8 @@ export default function MeseroMobileView() {
         loyaltyCustomerId: loyaltyCustomerId ?? null,
       });
       if (!ok) return;
-      const supabaseClient = createClient();
-      await supabaseClient.from('orders').update({ is_cortesia: true }).eq('id', currentOrderId);
+      const supabase = createClient();
+      await supabase.from('orders').update({ is_cortesia: true }).eq('id', currentOrderId);
       setShowPayment(false); setShowCart(false);
       setOrderItems([]); setCurrentOrderId(null); setView('tables');
       toast.success('🎁 Cortesía registrada — sin cobro al cliente');
@@ -511,8 +511,8 @@ export default function MeseroMobileView() {
 
     // Guardar propina si la hay
     if (tip && tip > 0) {
-      const supabaseClient = createClient();
-      await supabaseClient.from('orders').update({ tip_amount: tip }).eq('id', currentOrderId);
+      const supabase = createClient();
+      await supabase.from('orders').update({ tip_amount: tip }).eq('id', currentOrderId);
     }
     setShowPayment(false);
     setShowCart(false);
