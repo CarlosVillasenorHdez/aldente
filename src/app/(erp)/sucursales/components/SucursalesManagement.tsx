@@ -241,10 +241,34 @@ export default function SucursalesManagement() {
         </div>
       </div>
       {branches.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'60px 0', color:'rgba(255,255,255,.3)' }}>
+        <div style={{ textAlign:'center', padding:'60px 20px', color:'rgba(255,255,255,.5)' }}>
           <Building2 size={48} style={{ marginBottom:16, opacity:.3 }} />
-          <p style={{ fontSize:16, marginBottom:8 }}>Sin sucursales registradas</p>
-          <p style={{ fontSize:13 }}>Crea tu primera sucursal para comenzar a gestionar múltiples ubicaciones.</p>
+          <p style={{ fontSize:16, marginBottom:8, color:'rgba(255,255,255,.7)' }}>Sin sucursales configuradas</p>
+          <p style={{ fontSize:13, marginBottom:24, maxWidth:400, margin:'0 auto 24px' }}>
+            Este restaurante aún no tiene sucursales registradas en el sistema.
+            Crea la sucursal principal (este mismo restaurante) para activar
+            el aislamiento por sucursal y poder agregar más ubicaciones.
+          </p>
+          <button
+            onClick={async () => {
+              const name = tenantInfo?.name || 'Sucursal Principal';
+              const { error } = await supabase.from('branches').insert({
+                tenant_id: getTenantId(),
+                name,
+                address: '',
+                phone: '',
+                email: '',
+                manager_name: '',
+                is_active: true,
+              });
+              if (error) { toast.error('Error: ' + error.message); return; }
+              toast.success(`✅ "${name}" creada como sucursal principal`);
+              load();
+            }}
+            style={{ padding:'12px 24px', borderRadius:12, background:'#c9963a', border:'none', color:'#1B3A6B', fontWeight:700, fontSize:14, cursor:'pointer' }}
+          >
+            🏢 Crear sucursal principal
+          </button>
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

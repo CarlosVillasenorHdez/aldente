@@ -85,6 +85,9 @@ export function BranchProvider({ children }: { children?: React.ReactNode }) {
       if (userBranchId) {
         const found = list.find(b => b.id === userBranchId);
         setActiveBranchState(found ?? list[0] ?? null);
+      } else if (list.length === 1) {
+        // Solo hay 1 sucursal — asignarla aunque no tenga branch_id
+        setActiveBranchState(list[0]);
       } else {
         // No branch assigned — no filter
         setActiveBranchState(null);
@@ -110,7 +113,7 @@ export function BranchProvider({ children }: { children?: React.ReactNode }) {
   return (
     <BranchContext.Provider value={{
       activeBranchId: activeBranch?.id ?? null,
-      activeBranchName: activeBranch?.name ?? (branches.length === 0 ? '' : 'Todas las sucursales'),
+      activeBranchName: activeBranch?.name ?? (branches.length > 1 ? 'Todas las sucursales' : ''),
       branches,
       canSwitch,
       setActiveBranch,
