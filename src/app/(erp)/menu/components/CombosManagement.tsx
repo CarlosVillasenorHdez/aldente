@@ -118,8 +118,8 @@ function BasketSuggestions({ suggestions, dishes, onCreateCombo }: {
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
         <Lightbulb size={14} style={{ color:'#c9963a' }} />
         <div>
-          <span style={{ fontSize:14, fontWeight:700, color:'#f1f5f9' }}>Sugerencias de tu análisis de ventas</span>
-          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2, margin:0 }}>Platillos que tus clientes piden juntos con más frecuencia — ideales para combo.</p>
+          <span style={{ fontSize:14, fontWeight:700 }}>Sugerencias de tu análisis de ventas</span>
+          <p style={{ fontSize:11, color:'#6b7280', marginTop:2, margin:0 }}>Platillos que tus clientes piden juntos con más frecuencia — ideales para combo.</p>
         </div>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
@@ -127,14 +127,14 @@ function BasketSuggestions({ suggestions, dishes, onCreateCombo }: {
           const dA = dishes.find(d => d.name===s.producto_a);
           const dB = dishes.find(d => d.name===s.producto_b);
           return (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderRadius:12, background:'rgba(201,150,58,0.06)', border:'1px solid rgba(201,150,58,0.18)' }}>
+            <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderRadius:12, background:'rgba(201,150,58,0.08)', border:'1px solid rgba(201,150,58,0.25)' }}>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#f1f5f9', marginBottom:2 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'#92400e', marginBottom:2 }}>
                   {dA?.emoji||'🍽️'} {s.producto_a} + {dB?.emoji||'🍽️'} {s.producto_b}
                 </div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)' }}>
+                <div style={{ fontSize:11, color:'#78716c' }}>
                   Pedidos juntos {s.frecuencia} veces · lift {s.lift.toFixed(1)}×
-                  {dA&&dB&&<span style={{ color:'rgba(255,255,255,0.3)', marginLeft:6 }}>· Precio normal: ${(dA.price+dB.price).toFixed(0)}</span>}
+                  {dA&&dB&&<span style={{ color:'#a8a29e', marginLeft:6 }}>· Precio normal: ${(dA.price+dB.price).toFixed(0)}</span>}
                 </div>
               </div>
               {dA&&dB&&(

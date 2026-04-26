@@ -47,7 +47,7 @@ export default function SucursalesManagement() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: b }, { data: u }, { data: sysConf }] = await Promise.all([
-      supabase.from('branches').select('*').eq('tenant_id', getTenantId()).order('name'),
+      supabase.from('branches').select('*').eq('tenant_id', getTenantId()).order('created_at', { ascending: true }),
       supabase.from('app_users').select('id,full_name,app_role,branch_id,username').eq('tenant_id', appUser?.tenantId).neq('app_role','superadmin').order('full_name'),
       supabase.from('system_config').select('config_key,config_value').eq('tenant_id', appUser?.tenantId).in('config_key',['restaurant_name','restaurant_address','restaurant_phone']),
     ]);
@@ -201,45 +201,6 @@ export default function SucursalesManagement() {
       )}
 
       {/* Branches list */}
-      {/* SUCURSAL MADRE — el restaurante original */}
-      <div style={{ borderRadius:16, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.04)', marginBottom:8, padding:'16px 20px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(201,150,58,.2)', border:'1px solid rgba(201,150,58,.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏠</div>
-          <div style={{ flex:1 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-              <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{tenantInfo?.name || 'Restaurante Principal'}</h3>
-              <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal madre</span>
-            </div>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-              {tenantInfo?.address && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{tenantInfo.address}</span>}
-              {tenantInfo?.phone && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{tenantInfo.phone}</span>}
-            </div>
-          </div>
-          <a href="/configuracion" style={{ padding:'6px 14px', borderRadius:8, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.08)', color:'#c9963a', fontSize:12, fontWeight:600, textDecoration:'none' }}>
-            Editar →
-          </a>
-        </div>
-      </div>
-
-      {/* SUCURSAL MADRE — el restaurante original */}
-      <div style={{ borderRadius:16, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.04)', marginBottom:8, padding:'16px 20px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(201,150,58,.2)', border:'1px solid rgba(201,150,58,.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏠</div>
-          <div style={{ flex:1 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-              <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{tenantInfo?.name || 'Restaurante Principal'}</h3>
-              <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal madre</span>
-            </div>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-              {tenantInfo?.address && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><MapPin size={11}/>{tenantInfo.address}</span>}
-              {tenantInfo?.phone && <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', display:'flex', alignItems:'center', gap:4 }}><Phone size={11}/>{tenantInfo.phone}</span>}
-            </div>
-          </div>
-          <a href="/configuracion" style={{ padding:'6px 14px', borderRadius:8, border:'1px solid rgba(201,150,58,.3)', background:'rgba(201,150,58,.08)', color:'#c9963a', fontSize:12, fontWeight:600, textDecoration:'none' }}>
-            Editar →
-          </a>
-        </div>
-      </div>
       {branches.length === 0 ? (
         <div style={{ textAlign:'center', padding:'60px 20px', color:'rgba(255,255,255,.5)' }}>
           <Building2 size={48} style={{ marginBottom:16, opacity:.3 }} />
@@ -272,18 +233,20 @@ export default function SucursalesManagement() {
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {branches.map(b => {
+          {branches.map((b, idx) => {
+            const isMain = idx === 0;  // la primera (más antigua) es la principal
             const branchUsers = users.filter(u => u.branchId === b.id);
             const unassigned = users.filter(u => !u.branchId);
             const isExpanded = expandedBranch === b.id;
             return (
-              <div key={b.id} style={{ borderRadius:16, border:`1px solid ${isExpanded?'rgba(201,150,58,.3)':'rgba(255,255,255,.07)'}`, background: isExpanded?'rgba(201,150,58,.04)':'rgba(255,255,255,.02)', overflow:'hidden', transition:'all .2s' }}>
+              <div key={b.id} style={{ borderRadius:16, border:`1px solid ${isMain?'rgba(201,150,58,.35)':isExpanded?'rgba(201,150,58,.3)':'rgba(255,255,255,.07)'}`, background: isMain?'rgba(201,150,58,.06)':isExpanded?'rgba(201,150,58,.04)':'rgba(255,255,255,.02)', overflow:'hidden', transition:'all .2s' }}>
                 {/* Branch header */}
                 <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px 20px' }}>
-                  <div style={{ width:44, height:44, borderRadius:12, background: activeBranchId===b.id?'rgba(201,150,58,.25)':'rgba(201,150,58,.12)', border:`1px solid ${activeBranchId===b.id?'rgba(201,150,58,.6)':'rgba(201,150,58,.25)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>🏢</div>
+                  <div style={{ width:44, height:44, borderRadius:12, background: activeBranchId===b.id?'rgba(201,150,58,.25)':'rgba(201,150,58,.12)', border:`1px solid ${activeBranchId===b.id?'rgba(201,150,58,.6)':'rgba(201,150,58,.25)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{isMain ? '🏠' : '🏢'}</div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
                       <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{b.name}</h3>
+                      {isMain && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal principal</span>}
                       {activeBranchId===b.id && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Activa</span>}
                       <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: b.isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)', color: b.isActive?'#34d399':'#f87171', border: `1px solid ${b.isActive?'rgba(52,211,153,.2)':'rgba(248,113,113,.2)'}` }}>
                         {b.isActive?'Activa':'Inactiva'}
