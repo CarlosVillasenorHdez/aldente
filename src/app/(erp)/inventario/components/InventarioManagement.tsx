@@ -9,6 +9,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
+import MovimientosTab from '@/app/(erp)/inventario/components/MovimientosTab';
+import AlertasTab from '@/app/(erp)/inventario/components/AlertasTab';
+import EquivalenciasTab from '@/app/(erp)/inventario/components/EquivalenciasTab';
 import ExtrasInventario from '@/app/(erp)/inventario/components/ExtrasInventario';
 import ForecastingChart from '@/app/(erp)/inventario/components/ForecastingChart';
 import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInventario';
@@ -1111,261 +1114,31 @@ export default function InventarioManagement() {
       )}
       {/* ── TAB: MOVIMIENTOS ── */}
       {activeTab === 'movimientos' && (
-        <div className="flex-1 overflow-auto">
-          {/* Filter bar */}
-          <div className="flex items-center gap-3 px-6 py-3 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
-            {historyIngredient && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm" style={{ backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <span style={{ color: '#f59e0b' }}>Filtrando: {historyIngredient.name}</span>
-                <button onClick={() => setHistoryIngredientId(null)} className="ml-1 hover:opacity-70">
-                  <X size={12} style={{ color: '#f59e0b' }} />
-                </button>
-              </div>
-            )}
-            <div className="relative flex-1 max-w-xs">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.35)' }} />
-              <select
-                value={historyIngredientId ?? ''}
-                onChange={(e) => setHistoryIngredientId(e.target.value || null)}
-                className="w-full pl-9 pr-3 py-2 rounded-lg text-sm outline-none appearance-none"
-                style={{ backgroundColor: '#1a2f52', border: '1px solid #243f72', color: 'rgba(255,255,255,0.85)' }}
-              >
-                <option value="" style={{ backgroundColor: '#162d55' }}>Todos los ingredientes</option>
-                {ingredients.map((i) => (
-                  <option key={i.id} value={i.id} style={{ backgroundColor: '#162d55' }}>{i.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <table className="w-full">
-            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
-              <tr className="border-b" style={{ borderColor: '#243f72' }}>
-                {['Fecha', 'Ingrediente', 'Tipo', 'Cantidad', 'Stock Anterior', 'Stock Nuevo', 'Motivo', 'Registrado por'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loadingMovements ? (
-                Array.from({ length: 6 }).map((_, i) => <tr key={i}><RowSkeleton cols={8} /></tr>)
-              ) : movements.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <History size={32} style={{ color: 'rgba(255,255,255,0.15)' }} />
-                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No hay movimientos registrados</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                movements.map((mv) => {
-                  const mc = MOVEMENT_COLORS[mv.movementType];
-                  return (
-                    <tr key={mv.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
-                      <td className="px-4 py-3.5 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{formatDate(mv.createdAt)}</td>
-                      <td className="px-4 py-3.5 text-sm font-semibold text-white">{mv.ingredientName}</td>
-                      <td className="px-4 py-3.5">
-                        <span className={`flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-semibold w-fit ${mc.bg}`}>
-                          {mc.icon}{mc.text}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-sm font-mono font-semibold ${mv.movementType === 'salida' ? 'text-red-400' : mv.movementType === 'entrada' ? 'text-green-400' : 'text-blue-400'}`}>
-                          {mv.movementType === 'salida' ? '-' : '+'}{mv.quantity} {mv.unit}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-sm font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{mv.previousStock} {mv.unit}</td>
-                      <td className="px-4 py-3.5 text-sm font-mono text-white">{mv.newStock} {mv.unit}</td>
-                      <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{mv.reason || '—'}</td>
-                      <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{mv.createdBy}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <MovimientosTab
+          movements={movements}
+          ingredients={ingredients}
+          loadingMovements={loadingMovements}
+          historyIngredientId={historyIngredientId}
+          setHistoryIngredientId={setHistoryIngredientId}
+        />
       )}
       {/* ── TAB: ALERTAS ── */}
       {activeTab === 'alertas' && (
-        <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
-          {/* Critical stock */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={16} className="text-red-400" />
-              <h2 className="text-sm font-bold text-white">Stock Crítico</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#f87171' }}>{lowStockItems.length}</span>
-            </div>
-            <div className="flex justify-end mb-2">
-              <button onClick={() => setShowShoppingList(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
-                <Download size={13} />
-                📋 Lista de compras
-              </button>
-            </div>
-            {lowStockItems.length === 0 ? (
-              <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
-                ✅ Ningún ingrediente en stock crítico
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {lowStockItems.map((ing) => (
-                  <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle size={15} className="text-red-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">{ing.name}</p>
-                        <p className="text-xs text-red-400">Stock: {ing.stock} {ing.unit} — Mínimo: {ing.minStock} {ing.unit}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {ing.supplier && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{ing.supplier}</span>}
-                      {ing.supplierPhone && (
-                        <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                          <Phone size={10} />{ing.supplierPhone}
-                        </span>
-                      )}
-                      <button onClick={() => openEdit(ing)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
-                        Actualizar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Reorder point */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingDown size={16} className="text-amber-400" />
-              <h2 className="text-sm font-bold text-white">Por Reordenar</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>{reorderItems.length}</span>
-            </div>
-            {reorderItems.length === 0 ? (
-              <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
-                ✅ Ningún ingrediente requiere reorden
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {reorderItems.map((ing) => (
-                  <div key={ing.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <div className="flex items-center gap-3">
-                      <TrendingDown size={15} className="text-amber-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">{ing.name}</p>
-                        <p className="text-xs text-amber-400">Stock: {ing.stock} {ing.unit} — Punto de reorden: {ing.reorderPoint} {ing.unit}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {ing.supplier && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{ing.supplier}</span>}
-                      {ing.supplierPhone && (
-                        <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                          <Phone size={10} />{ing.supplierPhone}
-                        </span>
-                      )}
-                      {ing.supplierUrl && (
-                        <a href={ing.supplierUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: 'rgba(245,158,11,0.2)', color: '#fbbf24' }}>
-                          <ExternalLink size={11} />Ordenar
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* All good */}
-          {lowStockItems.length === 0 && reorderItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>
-                <TrendingUp size={28} className="text-green-400" />
-              </div>
-              <div className="text-center">
-                <p className="text-base font-semibold text-white mb-1">¡Inventario en buen estado!</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Todos los ingredientes tienen stock suficiente.</p>
-              </div>
-            </div>
-          )}
-        </div>
+        <AlertasTab
+          ingredients={ingredients}
+          onOpenEdit={openEdit}
+          onShowShoppingList={() => setShowShoppingList(true)}
+        />
       )}
       {/* ── TAB: EQUIVALENCIAS ── */}
       {activeTab === 'equivalencias' && (
-        <div className="flex-1 overflow-auto">
-          <div className="flex items-center justify-between px-6 py-3 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
-            <div>
-              <p className="text-sm text-white font-semibold">Tabla de Equivalencias de Unidades</p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Define cómo se convierten las unidades de compra a unidades de uso. Ej: 1 bolsa de pan = 8 pares de pan.
-              </p>
-            </div>
-            <button onClick={openAddEquiv} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-              <Plus size={15} />Nueva Equivalencia
-            </button>
-          </div>
-          {loadingEquiv ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />)}
-            </div>
-          ) : equivalences.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(245,158,11,0.12)' }}>
-                <Scale size={28} style={{ color: '#f59e0b' }} />
-              </div>
-              <div className="text-center">
-                <p className="text-base font-semibold text-white mb-1">Sin equivalencias configuradas</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Agrega equivalencias para que el sistema convierta automáticamente las unidades de compra.
-                </p>
-              </div>
-              <button onClick={openAddEquiv} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-                <Plus size={16} />Agregar primera equivalencia
-              </button>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
-                <tr className="border-b" style={{ borderColor: '#243f72' }}>
-                  {['Ingrediente', 'Unidad de Compra', 'Descripción', 'Unidad de Uso', 'Descripción', 'Factor', 'Notas', 'Acciones'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {equivalences.map((eq) => (
-                  <tr key={eq.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
-                    <td className="px-4 py-3.5">
-                      <p className="text-sm font-semibold text-white">{eq.ingredientName}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Unidad base: {eq.ingredientUnit}</p>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-sm font-mono font-semibold" style={{ color: '#f59e0b' }}>1 {eq.bulkUnit}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{eq.bulkDescription || '—'}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-sm font-mono font-semibold text-green-400">{eq.conversionFactor} {eq.subUnit}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{eq.subUnitDescription || '—'}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg w-fit" style={{ backgroundColor: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.25)' }}>
-                        <span className="text-xs font-mono font-semibold" style={{ color: '#818cf8' }}>
-                          1 {eq.bulkUnit} = {eq.conversionFactor} {eq.subUnit}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{eq.notes || '—'}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openEditEquiv(eq)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar"><Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
-                        <button onClick={() => setDeleteEquivId(eq.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar"><Trash2 size={13} className="text-red-400" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <EquivalenciasTab
+          equivalences={equivalences}
+          loadingEquiv={loadingEquiv}
+          onAdd={openAddEquiv}
+          onEdit={openEditEquiv}
+          onDelete={setDeleteEquivId}
+        />
       )}
       {/* ── TAB: ANÁLISIS DE DESPERDICIO ── */}
       {activeTab === 'analitica' && <AnalyticaInventario />}
