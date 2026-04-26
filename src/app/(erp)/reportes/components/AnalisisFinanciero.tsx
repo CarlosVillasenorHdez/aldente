@@ -2,6 +2,7 @@
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { calcResumenNomina, type ResumenNomina } from '@/lib/laboralMX';
 import { useAuth } from '@/contexts/AuthContext';
 import { Download, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info, BarChart2 } from 'lucide-react';
 
@@ -580,6 +581,7 @@ export default function AnalisisFinanciero() {
   const [ventasTarj,   setVentasTarj]   = useState(0);
   const [cortesias,    setCortesias]    = useState(0);
   const [nomina,       setNomina]       = useState(0);
+  const [nominaDetalle, setNominaDetalle] = useState<ResumenNomina | null>(null);
   const [gastosOp,     setGastosOp]     = useState<{nombre:string;monto:number;cat:string;metodo:string;proveedor:string;dias_credito:number}[]>([]);
   const [depTotal,     setDepTotal]     = useState(0);
   const [actFijos,     setActFijos]     = useState<{nombre:string;valor_original:number;valor_residual:number;vida_util_anios:number;fecha_adquisicion:string}[]>([]);
@@ -697,13 +699,15 @@ export default function AnalisisFinanciero() {
     const totalMerma = (mermaData ?? []).reduce((s, o) => s + Number(o.waste_cost ?? 0), 0);
     setMerma(totalMerma);
 
-    // Nómina mensual → scaled
-    const nominaMensual = (usersData ?? []).reduce((s, u) => {
-      const sal = Number(u.salary ?? 0);
-      const freq = (u as any).salary_frequency ?? 'mensual';
-      return s + (freq === 'quincenal' ? sal * 2 : freq === 'semanal' ? sal * 4.33 : sal);
-    }, 0);
-    setNomina(nominaMensual * periodFactor);
+    // Nómina mensual con carga patronal real (IMSS + INFONAVIT + prestaciones)
+    const empleadosActivos = (usersData ?? []).map((u: any) => ({
+      salary: Number(u.salary ?? 0),
+      salary_frequency: u.salary_frequency ?? 'mensual',
+    }));
+    const resumenNom = calcResumenNomina(empleadosActivos);
+    // El total incluye salarios + IMSS patronal + INFONAVIT + prestaciones prorrateadas
+    setNomina(resumenNom.totalNomina * periodFactor);
+    setNominaDetalle(resumenNom);
 
     // Gastos operativos
     const FREQ_FACTOR: Record<string, number> = {
@@ -775,7 +779,11 @@ export default function AnalisisFinanciero() {
     ] : []),
     { concepto: '',                                         monto: 0,            tipo: 'divider' },
     { concepto: 'GASTOS OPERATIVOS',                        monto: 0,            tipo: 'header' },
-    { concepto: 'Nómina y prestaciones',                    monto: nomina,        tipo: 'item',     indent:1 },
+    { concepto: 'Sueldos y salarios',                          monto: (nominaDetalle?.salariosBrutos ?? nomina * 0.70) * periodFactor, tipo: 'item', indent:1 },
+    { concepto: 'Cuotas IMSS patronal',                         monto: (nominaDetalle?.cuotasIMSS ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'EM + IV + Guarderías + RT' },
+    { concepto: 'INFONAVIT (5% SBC)',                           monto: (nominaDetalle?.cuotasINFONAVIT ?? 0) * periodFactor, tipo: 'item', indent:1 },
+    { concepto: 'Prestaciones prorrateadas',                    monto: (nominaDetalle?.prestacionesMensuales ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'Aguinaldo + prima vac. + vacaciones' },
+    { concepto: 'Costo total de nómina',                        monto: nomina,        tipo: 'subtotal', indent:0 },
     ...gastosOp.filter(g => g.cat !== 'financiero').map(g => ({ concepto: g.nombre, monto: g.monto, tipo: 'item' as const, indent:1 })),
     { concepto: 'TOTAL GASTOS OPERATIVOS',                  monto: totalGastosOp, tipo: 'subtotal' },
     { concepto: '',                                         monto: 0,            tipo: 'divider' },

@@ -1,4 +1,6 @@
 'use client';
+import { calcCostoEmpleado, calcResumenNomina, diasVacacionesPorAntiguedad } from '@/lib/laboralMX';
+import NominaTab from './NominaTab';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
@@ -145,7 +147,7 @@ export default function PersonalManagement() {
   const [form, setForm] = useState<Omit<Employee, 'id'>>(emptyForm());
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof Omit<Employee, 'id'>, string>>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'empleados' | 'turnos' | 'asistencia'>('empleados');
+  const [activeTab, setActiveTab] = useState<'empleados' | 'turnos' | 'asistencia' | 'nomina'>('empleados');
   const [shifts, setShifts] = useState<EmployeeShift[]>([]);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
@@ -677,6 +679,9 @@ export default function PersonalManagement() {
       )}
 
       {/* ─── Asistencia Tab ─── */}
+      {activeTab === 'nomina' && (
+        <NominaTab employees={employees} />
+      )}
       {activeTab === 'asistencia' && (
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header con selector de fecha */}
