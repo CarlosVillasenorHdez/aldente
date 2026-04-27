@@ -58,6 +58,12 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   const [hours, setHours] = useState<BusinessHours[]>(initialHours);
   const [hoursSaved, setHoursSaved] = useState(false);
   const [kitchenRate, setKitchenRate] = useState<string>('');
+
+  // Configuración de carga patronal
+  const [patronalIMSS,         setPatronalIMSS]         = useState(true);
+  const [patronalINFONAVIT,    setPatronalINFONAVIT]    = useState(true);
+  const [patronalPrestaciones, setPatronalPrestaciones] = useState(true);
+  const [modeloNomina, setModeloNomina] = useState<'formal'|'outsourcing'|'mixto'|'minimo'>('formal');
   const [overheadPct, setOverheadPct] = useState<string>('35');
   const [laborSaved, setLaborSaved] = useState(false);
   const [barRate, setBarRate] = useState<string>('');
@@ -148,6 +154,12 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
       rows.push({ config_key: 'bar_hourly_rate', config_value: barR.toString(),
         tenant_id: getTenantId(), description: 'Costo por hora de mano de obra en barra' });
     }
+    rows.push(
+      { config_key: 'nomina_modelo',              config_value: modeloNomina,                       tenant_id: getTenantId() },
+      { config_key: 'nomina_incluye_imss',         config_value: String(patronalIMSS),              tenant_id: getTenantId() },
+      { config_key: 'nomina_incluye_infonavit',    config_value: String(patronalINFONAVIT),          tenant_id: getTenantId() },
+      { config_key: 'nomina_incluye_prestaciones', config_value: String(patronalPrestaciones),       tenant_id: getTenantId() },
+    );
     await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
     setLaborSaved(true);
     setTimeout(() => setLaborSaved(false), 2000);
@@ -518,6 +530,146 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
           <div style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.35)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:12, color:'#60a5fa', lineHeight:1.6 }}>
             <strong>Cómo se usa:</strong> en Menú → cada platillo muestra su prime cost real = food cost + (tiempo de prep ÷ 60 × costo/hora). El Análisis Financiero también lo usa para el cálculo de prime cost global.
           </div>
+
+          {/* Modelo de nómina */}
+          <div style={{ background:'#162032', border:'1px solid #1e2d3d', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+            <p style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:4 }}>
+              Modelo de nómina de tu negocio
+            </p>
+            <p style={{ fontSize:12, color:'#94a3b8', marginBottom:14, lineHeight:1.5 }}>
+              Esto afecta cómo se calcula el costo real de tu nómina en el P&L y en el módulo de Personal.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {([
+                { val:'formal',      label:'Nómina formal completa',      desc:'IMSS, INFONAVIT, prestaciones de ley. Recomendado para cumplimiento fiscal.' },
+                { val:'minimo',      label:'Mínimos de ley',              desc:'Solo aguinaldo y vacaciones. Sin IMSS ni INFONAVIT registrados.' },
+                { val:'outsourcing', label:'Outsourcing / Honorarios',    desc:'Personal vía tercero o freelance. Sin obligaciones patronales directas.' },
+                { val:'mixto',       label:'Mixto',                       desc:'Algunos empleados en nómina formal y otros en outsourcing o por honorarios.' },
+              ] as const).map(opt => (
+                <label key={opt.val} style={{
+                  display:'flex', alignItems:'flex-start', gap:12, padding:'10px 14px',
+                  border:`1px solid ${modeloNomina === opt.val ? '#f59e0b' : '#2a3f5f'}`,
+                  borderRadius:10, cursor:'pointer',
+                  background: modeloNomina === opt.val ? 'rgba(245,158,11,0.06)' : 'transparent',
+                }}>
+                  <input type="radio" style={{ marginTop:2 }}
+                    checked={modeloNomina === opt.val}
+                    onChange={() => setModeloNomina(opt.val)} />
+                  <div>
+                    <p style={{ fontSize:13, fontWeight:600, color:'#f1f5f9', margin:0 }}>{opt.label}</p>
+                    <p style={{ fontSize:11, color:'#94a3b8', margin:'2px 0 0' }}>{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Qué incluir en el cálculo */}
+          {modeloNomina !== 'outsourcing' && (
+            <div style={{ background:'#162032', border:'1px solid #1e2d3d', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+              <p style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:4 }}>
+                ¿Qué incluir en el cálculo del costo de nómina?
+              </p>
+              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:14, lineHeight:1.5 }}>
+                Activa solo lo que realmente pagas. El P&L y el módulo de Personal usarán estos valores.
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {[
+                  {
+                    key: 'imss' as const,
+                    state: patronalIMSS,
+                    set: setPatronalIMSS,
+                    label: 'Cuotas patronales IMSS',
+                    desc: '~25-30% del SBC. Incluye: EM, IV, Guarderías, Riesgos de Trabajo, Retiro y Cesantía.',
+                    monto: '~25-30% del SBC',
+                  },
+                  {
+                    key: 'infonavit' as const,
+                    state: patronalINFONAVIT,
+                    set: setPatronalINFONAVIT,
+                    label: 'INFONAVIT',
+                    desc: '5% del Salario Base de Cotización. Obligatorio en nómina formal.',
+                    monto: '5% del SBC',
+                  },
+                  {
+                    key: 'prestaciones' as const,
+                    state: patronalPrestaciones,
+                    set: setPatronalPrestaciones,
+                    label: 'Prestaciones LFT (aguinaldo, vacaciones, prima vacacional)',
+                    desc: 'Provisionadas mensualmente. Mínimo: 15 días aguinaldo + prima vacacional 25%.',
+                    monto: '~4-5% del salario',
+                  },
+                ].map(item => (
+                  <div key={item.key} style={{
+                    display:'flex', alignItems:'flex-start', gap:12, padding:'12px 14px',
+                    border:`1px solid ${item.state ? 'rgba(245,158,11,0.35)' : '#2a3f5f'}`,
+                    borderRadius:10,
+                    background: item.state ? 'rgba(245,158,11,0.04)' : 'transparent',
+                  }}>
+                    <div
+                      onClick={() => item.set(!item.state)}
+                      style={{
+                        width:40, height:22, borderRadius:11, flexShrink:0, marginTop:2,
+                        background: item.state ? '#f59e0b' : '#374151',
+                        position:'relative', cursor:'pointer', transition:'background .2s'
+                      }}>
+                      <div style={{
+                        position:'absolute', top:2, width:18, height:18, borderRadius:'50%',
+                        background:'white', boxShadow:'0 1px 3px rgba(0,0,0,.3)',
+                        transition:'transform .2s',
+                        transform: item.state ? 'translateX(20px)' : 'translateX(2px)'
+                      }} />
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                        <p style={{ fontSize:13, fontWeight:600, color: item.state ? '#f1f5f9' : '#94a3b8', margin:0 }}>
+                          {item.label}
+                        </p>
+                        <span style={{ fontSize:11, color: item.state ? '#f59e0b' : '#4b5563', fontWeight:600, flexShrink:0, marginLeft:8 }}>
+                          {item.monto}
+                        </span>
+                      </div>
+                      <p style={{ fontSize:11, color:'#64748b', margin:'3px 0 0', lineHeight:1.5 }}>{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview del impacto */}
+              {(() => {
+                const baseEjemplo = 10000;
+                const imssEj = patronalIMSS ? 2800 : 0;
+                const infonavitEj = patronalINFONAVIT ? 500 : 0;
+                const prestEj = patronalPrestaciones ? 452 : 0;
+                const totalEj = baseEjemplo + imssEj + infonavitEj + prestEj;
+                return (
+                  <div style={{ marginTop:16, padding:'12px 16px', background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:10 }}>
+                    <p style={{ fontSize:11, color:'#60a5fa', fontWeight:600, marginBottom:6 }}>
+                      💡 Ejemplo: empleado con salario de $10,000/mes
+                    </p>
+                    <div style={{ display:'flex', gap:12, flexWrap:'wrap', fontSize:11, color:'#94a3b8' }}>
+                      <span>Salario: <strong style={{ color:'#f1f5f9' }}>$10,000</strong></span>
+                      {patronalIMSS && <span>+ IMSS: <strong style={{ color:'#f87171' }}>$2,800</strong></span>}
+                      {patronalINFONAVIT && <span>+ INFONAVIT: <strong style={{ color:'#fbbf24' }}>$500</strong></span>}
+                      {patronalPrestaciones && <span>+ Prestaciones: <strong style={{ color:'#fbbf24' }}>$452</strong></span>}
+                      <span style={{ marginLeft:'auto', fontWeight:700, color: totalEj > 12000 ? '#f87171' : '#4ade80', fontSize:12 }}>
+                        Costo real: ${totalEj.toLocaleString('es-MX')}/mes
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {modeloNomina === 'outsourcing' && (
+            <div style={{ padding:'14px 18px', background:'rgba(96,165,250,0.08)', border:'1px solid rgba(96,165,250,0.2)', borderRadius:10, marginBottom:16 }}>
+              <p style={{ fontSize:12, color:'#60a5fa', margin:0, lineHeight:1.6 }}>
+                En modelo de outsourcing, el costo de nómina del P&L reflejará solo el monto de la factura al proveedor.
+                Captura los pagos de outsourcing como <strong>Gastos Operativos → categoría: nómina</strong>.
+              </p>
+            </div>
+          )}
 
           <button
             onClick={handleSaveLaborConfig}

@@ -14,7 +14,8 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react';
-import { calcCostoEmpleado, calcResumenNomina } from '@/lib/laboralMX';
+import { calcCostoEmpleadoConConfig, calcResumenNominaConConfig, NOMINA_COMPLETA } from '@/lib/laboralMX';
+import { useNominaConfig } from '@/hooks/useNominaConfig';
 
 interface Employee {
   id: string;
@@ -52,14 +53,14 @@ function Row({ label, value, sub, highlight, indent = false }: {
   );
 }
 
-function EmployeeCard({ emp }: { emp: Employee }) {
+function EmployeeCard({ emp, flags }: { emp: Employee; flags: typeof NOMINA_COMPLETA }) {
   const [open, setOpen] = useState(false);
 
   const salMes = emp.salaryFrequency === 'quincenal' ? emp.salary * 2
     : emp.salaryFrequency === 'semanal' ? emp.salary * 4.33
     : emp.salary;
 
-  const costo = calcCostoEmpleado(salMes);
+  const costo = calcCostoEmpleadoConConfig(salMes, 1, flags);
 
   const roleLabel = (r: string) => r === 'admin' ? 'Admin' : r === 'cajero' ? 'Cajero' : r === 'mesero' ? 'Mesero'
     : r === 'cocinero' ? 'Cocinero' : r === 'gerente' ? 'Gerente' : r;
@@ -138,6 +139,12 @@ function EmployeeCard({ emp }: { emp: Employee }) {
 }
 
 export default function NominaTab({ employees }: Props) {
+  const nominaConfig = useNominaConfig();
+  const flags = {
+    incluyeIMSS: nominaConfig.incluyeIMSS,
+    incluyeINFONAVIT: nominaConfig.incluyeINFONAVIT,
+    incluyePrestaciones: nominaConfig.incluyePrestaciones,
+  };
   const activos = employees.filter(e => e.salary > 0);
 
   const empleadosParaCalculo = activos.map(e => ({
@@ -147,11 +154,27 @@ export default function NominaTab({ employees }: Props) {
     salary_frequency: 'mensual',
   }));
 
-  const resumen = calcResumenNomina(empleadosParaCalculo);
+  const resumen = calcResumenNominaConConfig(empleadosParaCalculo, flags);
 
   return (
     <div className="space-y-6 max-w-3xl">
 
+      {/* Modelo activo */}
+      {nominaConfig.loaded && nominaConfig.modelo !== 'formal' && (
+        <div className="flex gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <span className="text-blue-600 flex-shrink-0 text-lg">ℹ️</span>
+          <div>
+            <p className="text-sm font-semibold text-blue-800">
+              Modelo de nómina: {nominaConfig.modelo === 'outsourcing' ? 'Outsourcing / Honorarios' : nominaConfig.modelo === 'minimo' ? 'Mínimos de ley' : 'Mixto'}
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Conceptos activos: {[nominaConfig.incluyeIMSS && 'IMSS', nominaConfig.incluyeINFONAVIT && 'INFONAVIT', nominaConfig.incluyePrestaciones && 'Prestaciones LFT'].filter(Boolean).join(' · ') || 'Solo salarios base'}
+              {' · '}
+              <a href="/configuracion" className="underline">Cambiar en Configuración → Costos MO</a>
+            </p>
+          </div>
+        </div>
+      )}
       {/* Aviso */}
       <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
         <Info size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
@@ -236,7 +259,7 @@ export default function NominaTab({ employees }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {activos.map(emp => <EmployeeCard key={emp.id} emp={emp} />)}
+            {activos.map(emp => <EmployeeCard key={emp.id} emp={emp} flags={flags} />)}
           </div>
         )}
       </div>

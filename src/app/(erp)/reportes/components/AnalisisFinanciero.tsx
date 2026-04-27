@@ -2,7 +2,8 @@
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { calcResumenNomina, type ResumenNomina } from '@/lib/laboralMX';
+import { calcResumenNominaConConfig, type ResumenNomina } from '@/lib/laboralMX';
+import { useNominaConfig } from '@/hooks/useNominaConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { Download, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info, BarChart2 } from 'lucide-react';
 
@@ -582,6 +583,7 @@ export default function AnalisisFinanciero() {
   const [cortesias,    setCortesias]    = useState(0);
   const [nomina,       setNomina]       = useState(0);
   const [nominaDetalle, setNominaDetalle] = useState<ResumenNomina | null>(null);
+  const nominaConfig = useNominaConfig();
   const [gastosOp,     setGastosOp]     = useState<{nombre:string;monto:number;cat:string;metodo:string;proveedor:string;dias_credito:number}[]>([]);
   const [depTotal,     setDepTotal]     = useState(0);
   const [actFijos,     setActFijos]     = useState<{nombre:string;valor_original:number;valor_residual:number;vida_util_anios:number;fecha_adquisicion:string}[]>([]);
@@ -704,7 +706,8 @@ export default function AnalisisFinanciero() {
       salary: Number(u.salary ?? 0),
       salary_frequency: u.salary_frequency ?? 'mensual',
     }));
-    const resumenNom = calcResumenNomina(empleadosActivos);
+    const flags = { incluyeIMSS: nominaConfig.incluyeIMSS, incluyeINFONAVIT: nominaConfig.incluyeINFONAVIT, incluyePrestaciones: nominaConfig.incluyePrestaciones };
+    const resumenNom = calcResumenNominaConConfig(empleadosActivos, flags);
     // El total incluye salarios + IMSS patronal + INFONAVIT + prestaciones prorrateadas
     setNomina(resumenNom.totalNomina * periodFactor);
     setNominaDetalle(resumenNom);

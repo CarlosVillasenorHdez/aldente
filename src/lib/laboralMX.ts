@@ -170,7 +170,73 @@ export function calcCostoEmpleado(
   };
 }
 
-// ── Resumen de nómina para el P&L ────────────────────────────────────────────
+// ── Versión configurable (respeta los toggles del dueño) ─────────────────────
+
+export interface NominaConfigFlags {
+  incluyeIMSS:         boolean;
+  incluyeINFONAVIT:    boolean;
+  incluyePrestaciones: boolean;
+}
+
+export const NOMINA_COMPLETA: NominaConfigFlags = {
+  incluyeIMSS: true, incluyeINFONAVIT: true, incluyePrestaciones: true,
+};
+
+export function calcCostoEmpleadoConConfig(
+  salarioMensual: number,
+  aniosAntiguedad = 1,
+  flags: NominaConfigFlags = NOMINA_COMPLETA,
+): CostoEmpleado {
+  const sdi    = salarioDiarioIntegrado(salarioMensual, aniosAntiguedad);
+  const sbcMes = sdi * 30.4;
+  const imss   = flags.incluyeIMSS    ? calcCuotasIMSS(sbcMes)         : { enfermedadMaternidad:0, invalidezVida:0, guarderiasPrestacionesSociales:0, riesgosTrabajoAprox:0, retiro:0, cesantia:0, total:0 };
+  const infon  = flags.incluyeINFONAVIT ? calcINFONAVIT(sbcMes)        : 0;
+  const prest  = flags.incluyePrestaciones ? calcPrestaciones(salarioMensual, aniosAntiguedad) : { aguinaldo:0, primaVacacional:0, vacaciones:0, totalAnual:0, totalMensualProrrateado:0 };
+
+  const totalMensual = salarioMensual + imss.total + infon + prest.totalMensualProrrateado;
+
+  return {
+    salarioNeto:             salarioMensual,
+    sbcMensual:              Math.round(sbcMes),
+    imss, infonavit: infon, prestaciones: prest,
+    totalMensual:            Math.round(totalMensual),
+    totalAnual:              Math.round(totalMensual * 12),
+    factorCarga:             Math.round((totalMensual / salarioMensual) * 100) / 100,
+    porcentajeSobreSalario:  Math.round(((totalMensual - salarioMensual) / salarioMensual) * 100),
+  };
+}
+
+export function calcResumenNominaConConfig(
+  empleados: { salary: number; salary_frequency?: string }[],
+  flags: NominaConfigFlags = NOMINA_COMPLETA,
+): ResumenNomina {
+  let salarios = 0, imss = 0, infonavit = 0, prestaciones = 0;
+
+  empleados.forEach(e => {
+    const sal = Number(e.salary ?? 0);
+    const freq = e.salary_frequency ?? 'mensual';
+    const salMes = freq === 'quincenal' ? sal * 2 : freq === 'semanal' ? sal * 4.33 : sal;
+    const costo = calcCostoEmpleadoConConfig(salMes, 1, flags);
+    salarios    += costo.salarioNeto;
+    imss        += costo.imss.total;
+    infonavit   += costo.infonavit;
+    prestaciones += costo.prestaciones.totalMensualProrrateado;
+  });
+
+  const total = salarios + imss + infonavit + prestaciones;
+
+  return {
+    empleados:             empleados.length,
+    salariosBrutos:        Math.round(salarios),
+    cuotasIMSS:            Math.round(imss),
+    cuotasINFONAVIT:       Math.round(infonavit),
+    prestacionesMensuales: Math.round(prestaciones),
+    totalCargaPatronal:    Math.round(imss + infonavit + prestaciones),
+    totalNomina:           Math.round(total),
+    factorPromedioEquipo:  salarios > 0 ? Math.round((total / salarios) * 100) / 100 : 1,
+  };
+}
+
 
 export interface ResumenNomina {
   empleados: number;
