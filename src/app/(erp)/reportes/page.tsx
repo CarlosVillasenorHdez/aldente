@@ -5,11 +5,12 @@ import ReportesManagement from './components/ReportesManagement';
 import ReportesMejorados from './components/ReportesMejorados';
 import ReportesConsolidado from './components/ReportesConsolidado';
 import AnalisisFinanciero from './components/AnalisisFinanciero';
+import PresupuestoVsReal from './components/PresupuestoVsReal';
 import UpgradeGate from '@/components/UpgradeGate';
 import { useState, useEffect } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
 
-type View = 'ventas' | 'avanzado' | 'financiero' | 'consolidado';
+type View = 'ventas' | 'avanzado' | 'financiero' | 'consolidado' | 'presupuesto';
 
 export default function ReportesPage() {
   const { features } = useFeatures();
@@ -23,6 +24,7 @@ export default function ReportesPage() {
     { id: 'ventas' as View,       label: '📊 Ventas',                    show: true },
     { id: 'avanzado' as View,     label: '📈 COGS · Análisis',           show: true },
     { id: 'financiero' as View,   label: '📋 Análisis Financiero',         show: true },
+    { id: 'presupuesto' as View,  label: '🎯 Presupuesto vs Real',        show: true },
     { id: 'consolidado' as View,  label: '🏢 Multi-Sucursal',            show: features.multiSucursal },
   ].filter(t => t.show);
 
@@ -49,6 +51,9 @@ export default function ReportesPage() {
 
         {/* Ventas básicas — always visible */}
         {activeView === 'ventas' && <ReportesMejorados />}
+
+        {/* Presupuesto vs Real */}
+        {activeView === 'presupuesto' && <PresupuestoVsReal />}
 
         {/* P&L, COGS, Market Basket — Estándar+ */}
         {activeView === 'avanzado' && (

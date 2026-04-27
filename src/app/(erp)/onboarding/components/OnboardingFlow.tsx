@@ -1,27 +1,46 @@
 'use client';
+/**
+ * OnboardingFlow — Wizard de 6 pasos para configurar el restaurante
+ *
+ * Pasos:
+ * 1. Nombre y tipo del restaurante
+ * 2. Mesas y layout
+ * 3. Primer platillo del menú
+ * 4. Primer empleado
+ * 5. Modelo de nómina
+ * 6. Plan y lanzamiento
+ *
+ * Cada paso guarda algo real en la DB.
+ * Al terminar: redirige al POS listo para operar.
+ */
+
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Check, ChevronRight, ChevronLeft, Rocket, Store, Grid3X3, UtensilsCrossed, Users, DollarSign } from 'lucide-react';
 
-// ─── Filosofía ────────────────────────────────────────────────────────────────
-// Cada pregunta cambia algo en el sistema.
-// Si no haríamos nada con la respuesta, no la preguntamos.
-// Paso 1: mesas   → crea restaurant_layout y restaurant_tables
-// Paso 2: equipo  → saber cuántos usuarios hay para mostrarlo
-// Paso 3: plan    → elegir suscripción o continuar trial
+const C = {
+  gold: '#f59e0b', blue: '#1B3A6B',
+  bg: '#ffffff', bg2: '#f8fafc', border: '#e5e7eb',
+  text: '#111827', muted: '#6b7280',
+};
 
-const C = { gold: '#d4922a', goldHover: '#e8ac4a', blue: '#1B3A6B', bg: '#0f1923', bg2: '#1a2535', border: 'rgba(255,255,255,0.08)', text: '#f1f5f9', muted: 'rgba(241,245,249,0.45)' };
+const TOTAL_STEPS = 6;
 
-const PLANS = [
-  { key: 'medida',    name: 'A tu medida', price: 399,  color: '#60a5fa', desc: 'Solo lo que necesitas — elige módulos desde $100/mes', tag: 'Nuevo' },
-  { key: 'operacion', name: 'Operación',   price: 699,  color: '#4a9eff', desc: 'POS · KDS · Mesero Móvil — todo incluido', tag: '' },
-  { key: 'negocio',   name: 'Negocio',     price: 1299, color: '#d4922a', desc: 'Todo + P&L · Inventario · Reportes · Lealtad', tag: 'Más popular' },
-  { key: 'empresa',   name: 'Empresa',     price: 2199, color: '#a78bfa', desc: 'Todo + Multi-sucursal · RRHH · Delivery', tag: '' },
+const STEP_INFO = [
+  { icon: Store,           label: 'Tu restaurante' },
+  { icon: Grid3X3,         label: 'Mesas' },
+  { icon: UtensilsCrossed, label: 'Menú' },
+  { icon: Users,           label: 'Equipo' },
+  { icon: DollarSign,      label: 'Nómina' },
+  { icon: Rocket,          label: 'Lanzar' },
 ];
+
+const inp = "w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 bg-white";
+const sel = "w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 bg-white";
 
 export default function OnboardingFlow() {
   const { appUser } = useAuth();
@@ -31,251 +50,450 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
-  // Step 1 — Mesas
+  // Paso 1 — Restaurante
+  const [restaurantName, setRestaurantName] = useState('');
+  const [tipoRestaurante, setTipoRestaurante] = useState('casual');
+  const [ciudad, setCiudad] = useState('');
+
+  // Paso 2 — Mesas
   const [tableCount, setTableCount] = useState(8);
+  const [capacidadPorMesa, setCapacidadPorMesa] = useState(4);
+  const [tieneParaLlevar, setTieneParaLlevar] = useState(true);
 
-  // Step 2 — Equipo
-  const [teamSize, setTeamSize] = useState<string>('1-5');
+  // Paso 3 — Menú (platillo inicial)
+  const [dishName, setDishName] = useState('');
+  const [dishPrice, setDishPrice] = useState('');
+  const [dishCategory, setDishCategory] = useState('Platos fuertes');
+  const [dishEmoji, setDishEmoji] = useState('🍽️');
 
-  // Step 3 — Plan
-  const [chosenPlan, setChosenPlan] = useState<string | null>(null);
+  // Paso 4 — Equipo
+  const [numEmpleados, setNumEmpleados] = useState(3);
+  const [tieneChef, setTieneChef] = useState(true);
+  const [tieneMeseros, setTieneMeseros] = useState(true);
 
-  const TEAM_OPTIONS = ['Solo yo', '1-5', '6-15', '16-30', 'Más de 30'];
+  // Paso 5 — Nómina
+  const [modeloNomina, setModeloNomina] = useState<'formal' | 'minimo' | 'outsourcing' | 'mixto'>('formal');
+  const [salarioPromedio, setSalarioPromedio] = useState('');
 
-  async function finish(skipPlan = false) {
+  // ── Guardados ─────────────────────────────────────────────────────────────
+
+  async function saveStep1() {
+    const tid = getTenantId();
+    await supabase.from('system_config').upsert([
+      { tenant_id: tid, config_key: 'restaurant_name', config_value: restaurantName },
+      { tenant_id: tid, config_key: 'restaurant_type', config_value: tipoRestaurante },
+      { tenant_id: tid, config_key: 'city',            config_value: ciudad },
+    ], { onConflict: 'tenant_id,config_key' });
+  }
+
+  async function saveStep2() {
+    const tid = getTenantId();
+    // Crear mesas
+    const tables = Array.from({ length: tableCount }, (_, i) => ({
+      tenant_id: tid, number: i + 1,
+      name: `Mesa ${i + 1}`,
+      capacity: capacidadPorMesa,
+      status: 'libre',
+    }));
+    if (tables.length > 0) {
+      await supabase.from('restaurant_tables').upsert(tables, { onConflict: 'tenant_id,number' });
+    }
+    if (tieneParaLlevar) {
+      // Mesa 0 = para llevar
+      await supabase.from('restaurant_tables').upsert({
+        tenant_id: tid, number: 0,
+        name: 'Para llevar', capacity: 0, status: 'libre',
+      }, { onConflict: 'tenant_id,number' });
+    }
+    await supabase.from('system_config').upsert(
+      [{ tenant_id: tid, config_key: 'table_count', config_value: String(tableCount) }],
+      { onConflict: 'tenant_id,config_key' }
+    );
+  }
+
+  async function saveStep3() {
+    if (!dishName.trim() || !dishPrice) return;
+    const tid = getTenantId();
+    // Crear categoría si no existe
+    const { data: cats } = await supabase.from('dish_categories')
+      .select('id').eq('tenant_id', tid).eq('name', dishCategory).limit(1);
+    let catId = cats?.[0]?.id;
+    if (!catId) {
+      const { data: newCat } = await supabase.from('dish_categories')
+        .insert({ tenant_id: tid, name: dishCategory, emoji: '🍽️', order_index: 1 })
+        .select('id').single();
+      catId = newCat?.id;
+    }
+    await supabase.from('dishes').insert({
+      tenant_id: tid, name: dishName.trim(),
+      price: Number(dishPrice), category: dishCategory,
+      emoji: dishEmoji, available: true,
+    });
+  }
+
+  async function saveStep5() {
+    const tid = getTenantId();
+    await supabase.from('system_config').upsert([
+      { tenant_id: tid, config_key: 'nomina_modelo',              config_value: modeloNomina },
+      { tenant_id: tid, config_key: 'nomina_incluye_imss',         config_value: modeloNomina === 'formal' ? 'true' : 'false' },
+      { tenant_id: tid, config_key: 'nomina_incluye_infonavit',    config_value: modeloNomina === 'formal' ? 'true' : 'false' },
+      { tenant_id: tid, config_key: 'nomina_incluye_prestaciones', config_value: modeloNomina !== 'outsourcing' ? 'true' : 'false' },
+    ], { onConflict: 'tenant_id,config_key' });
+  }
+
+  async function saveStep6() {
+    const tid = getTenantId();
+    await supabase.from('system_config').upsert(
+      [{ tenant_id: tid, config_key: 'onboarding_completed', config_value: 'true' }],
+      { onConflict: 'tenant_id,config_key' }
+    );
+  }
+
+  // ── Navegación ────────────────────────────────────────────────────────────
+
+  async function handleNext() {
     setSaving(true);
     try {
-      const tid = appUser?.tenantId ?? getTenantId();
-
-      // ── Mesas ────────────────────────────────────────────────────────────
-      await supabase.from('restaurant_tables').delete().eq('tenant_id', tid);
-      if (tableCount > 0) {
-        await supabase.from('restaurant_tables').insert(
-          Array.from({ length: tableCount }, (_, i) => ({
-            number: i + 1, name: `Mesa ${i + 1}`,
-            capacity: 4, status: 'libre', tenant_id: tid,
-          }))
-        );
+      if (step === 1) await saveStep1();
+      if (step === 2) await saveStep2();
+      if (step === 3) await saveStep3();
+      if (step === 5) await saveStep5();
+      if (step === 6) {
+        await saveStep6();
+        toast.success('🎉 ¡Tu restaurante está listo!');
+        router.push('/pos-punto-de-venta');
+        return;
       }
-
-      // Update layout grid
-      const cols = Math.min(4, Math.ceil(Math.sqrt(tableCount)));
-      const tablesLayout = Array.from({ length: tableCount }, (_, i) => ({
-        id: `mesa-${i + 1}`, number: i + 1, name: `Mesa ${i + 1}`,
-        x: (i % cols) * 3, y: Math.floor(i / cols) * 3,
-        w: 2, h: 2, capacity: 4, elementType: 'mesa',
-      }));
-      const { data: existingLayout } = await supabase.from('restaurant_layout')
-        .select('id').eq('tenant_id', tid).single();
-      if (existingLayout?.id) {
-        await supabase.from('restaurant_layout').update({ tables_layout: tablesLayout }).eq('id', existingLayout.id);
-      } else {
-        await supabase.from('restaurant_layout').insert({
-          name: 'Planta Principal', width: 12, height: 8,
-          tables_layout: tablesLayout, tenant_id: tid, is_active: true,
-        });
-      }
-
-      // ── Team size config ─────────────────────────────────────────────────
-      await supabase.from('system_config').upsert([
-        { config_key: 'team_size', config_value: teamSize, tenant_id: tid },
-        { config_key: 'initialized', config_value: 'true', tenant_id: tid },
-      ], { onConflict: 'tenant_id,config_key' });
-
-      // ── Plan (si eligió uno) ─────────────────────────────────────────────
-      if (chosenPlan && !skipPlan) {
-        await supabase.from('tenants').update({ plan: chosenPlan }).eq('id', tid);
-        toast.success('Plan activado');
-      }
-
-      await new Promise(r => setTimeout(r, 400));
-      router.push('/dashboard');
-    } catch (err: any) {
-      toast.error('Error al guardar: ' + err.message);
+      setStep(s => s + 1);
+    } catch (e) {
+      toast.error('Error al guardar, intenta de nuevo');
+    } finally {
       setSaving(false);
     }
   }
 
-  // ─── Progress bar ─────────────────────────────────────────────────────────
-  function ProgressBar() {
-    return (
-      <div style={{ display: 'flex', gap: 6, marginBottom: 36 }}>
-        {[1, 2, 3].map(n => (
-          <div key={n} style={{ flex: 1, height: 3, borderRadius: 2,
-            background: n <= step ? C.gold : C.border,
-            transition: 'background .3s' }} />
-        ))}
+  // ── UI helpers ────────────────────────────────────────────────────────────
+
+  const btn = (label: string, disabled = false) => (
+    <button onClick={handleNext} disabled={disabled || saving}
+      style={{ background: disabled ? '#e5e7eb' : C.blue, color: disabled ? '#9ca3af' : '#f59e0b', border: 'none', borderRadius: 12, padding: '14px 28px', fontSize: 15, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+      {saving ? 'Guardando...' : label}
+      {!saving && <ChevronRight size={18} />}
+    </button>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
+
+      {/* Progress */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 40 }}>
+        {STEP_INFO.map((s, i) => {
+          const n = i + 1;
+          const done = n < step;
+          const active = n === step;
+          const Icon = s.icon;
+          return (
+            <React.Fragment key={n}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: done ? '#22c55e' : active ? C.blue : '#f3f4f6',
+                  border: `2px solid ${done ? '#22c55e' : active ? C.blue : '#e5e7eb'}`,
+                  transition: 'all .3s',
+                }}>
+                  {done ? <Check size={16} color="white" /> : <Icon size={15} color={active ? C.gold : '#9ca3af'} />}
+                </div>
+                <span style={{ fontSize: 10, color: active ? C.blue : '#9ca3af', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
+                  {s.label}
+                </span>
+              </div>
+              {i < STEP_INFO.length - 1 && (
+                <div style={{ flex: 1, height: 2, background: i < step - 1 ? '#22c55e' : '#e5e7eb', margin: '0 4px', marginBottom: 20, transition: 'background .3s' }} />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
-    );
-  }
 
-  const containerStyle: React.CSSProperties = {
-    maxWidth: 520, margin: '0 auto', padding: '0 16px 48px',
-  };
+      {/* ── PASO 1: Restaurante ── */}
+      {step === 1 && (
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>Cuéntanos sobre tu restaurante</h2>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>Esta información aparece en tus reportes y recibos.</p>
 
-  // ─── STEP 1: Mesas ────────────────────────────────────────────────────────
-  if (step === 1) return (
-    <div style={containerStyle}>
-      <ProgressBar />
-      <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: C.gold, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Paso 1 de 3
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: C.text, margin: '0 0 10px', lineHeight: 1.2 }}>
-          ¿Cuántas mesas tienes?
-        </h1>
-        <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>
-          Creamos tu mapa de mesas automáticamente. Puedes reorganizarlo después en Configuración.
-        </p>
-      </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Nombre del restaurante *</label>
+              <input className={inp} placeholder="Barista Coffee Club" value={restaurantName}
+                onChange={e => setRestaurantName(e.target.value)} autoFocus />
+            </div>
 
-      {/* Counter */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, marginBottom: 28 }}>
-        <button onClick={() => setTableCount(c => Math.max(0, c - 1))}
-          disabled={tableCount === 0}
-          style={{ width: 52, height: 52, borderRadius: '50%', border: `1.5px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.text, fontSize: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: tableCount === 0 ? 0.3 : 1 }}>
-          −
-        </button>
-        <div style={{ textAlign: 'center', minWidth: 80 }}>
-          <div style={{ fontSize: 72, fontWeight: 900, color: C.gold, lineHeight: 1 }}>{tableCount}</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
-            {tableCount === 0 ? 'Solo para llevar' : tableCount === 1 ? 'mesa' : 'mesas'}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Tipo de negocio</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[
+                  ['casual', '🍽️', 'Restaurante casual'],
+                  ['rapida', '⚡', 'Comida rápida'],
+                  ['cafe', '☕', 'Café / Cafetería'],
+                  ['bar', '🍺', 'Bar / Cantina'],
+                  ['fine', '🥂', 'Alta cocina'],
+                  ['otro', '🏪', 'Otro'],
+                ].map(([val, emoji, label]) => (
+                  <label key={val} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                    border: `2px solid ${tipoRestaurante === val ? C.blue : '#e5e7eb'}`,
+                    background: tipoRestaurante === val ? '#eff6ff' : 'white',
+                  }}>
+                    <input type="radio" value={val} checked={tipoRestaurante === val}
+                      onChange={() => setTipoRestaurante(val)} style={{ display: 'none' }} />
+                    <span style={{ fontSize: 20 }}>{emoji}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: tipoRestaurante === val ? C.blue : C.text }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Ciudad</label>
+              <input className={inp} placeholder="Ciudad de México" value={ciudad}
+                onChange={e => setCiudad(e.target.value)} />
+            </div>
           </div>
-        </div>
-        <button onClick={() => setTableCount(c => Math.min(60, c + 1))}
-          style={{ width: 52, height: 52, borderRadius: '50%', border: 'none', background: C.gold, color: '#080b10', fontSize: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-          +
-        </button>
-      </div>
 
-      {/* Presets */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
-        {[0, 4, 6, 8, 10, 12, 16, 20, 24].map(n => (
-          <button key={n} onClick={() => setTableCount(n)}
-            style={{ padding: '6px 16px', borderRadius: 20, fontSize: 13, cursor: 'pointer', border: `1px solid ${tableCount === n ? C.gold : C.border}`, background: tableCount === n ? `${C.gold}18` : 'transparent', color: tableCount === n ? C.gold : C.muted, fontWeight: tableCount === n ? 700 : 400 }}>
-            {n === 0 ? 'Solo llevar' : n}
-          </button>
-        ))}
-      </div>
-
-      {tableCount === 0 && (
-        <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 13, color: '#fcd34d', marginBottom: 24, textAlign: 'center' }}>
-          Perfecto — el POS tiene un flujo especial para órdenes para llevar.
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'flex-end' }}>
+            {btn('Siguiente', !restaurantName.trim())}
+          </div>
         </div>
       )}
 
-      <button onClick={() => setStep(2)}
-        style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: C.gold, color: '#080b10', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        Siguiente <ChevronRight size={17} />
-      </button>
-    </div>
-  );
+      {/* ── PASO 2: Mesas ── */}
+      {step === 2 && (
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>¿Cómo está tu local?</h2>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>Creamos tu mapa de mesas automáticamente. Lo puedes editar después.</p>
 
-  // ─── STEP 2: Equipo ───────────────────────────────────────────────────────
-  if (step === 2) return (
-    <div style={containerStyle}>
-      <ProgressBar />
-      <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: C.gold, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Paso 2 de 3
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: C.text, margin: '0 0 10px', lineHeight: 1.2 }}>
-          ¿Cuántas personas trabajan contigo?
-        </h1>
-        <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>
-          Esto nos ayuda a configurar los accesos correctamente. Puedes agregar a cada uno desde Personal.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
-        {TEAM_OPTIONS.map(opt => {
-          const active = teamSize === opt;
-          return (
-            <button key={opt} onClick={() => setTeamSize(opt)}
-              style={{ padding: '14px 20px', borderRadius: 12, border: `1.5px solid ${active ? C.gold : C.border}`, background: active ? `${C.gold}12` : 'rgba(255,255,255,0.02)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'all .15s' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${active ? C.gold : C.border}`, background: active ? C.gold : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
-                {active && <Check size={12} color="#080b10" strokeWidth={3} />}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 12 }}>
+                ¿Cuántas mesas tienes? <span style={{ color: C.gold, fontSize: 22, fontWeight: 800 }}>{tableCount === 0 ? 'Ninguna' : tableCount}</span>
+              </label>
+              <input type="range" min={0} max={40} value={tableCount} onChange={e => setTableCount(Number(e.target.value))}
+                style={{ width: '100%', accentColor: C.blue }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginTop: 4 }}>
+                <span>Solo para llevar</span><span>40 mesas</span>
               </div>
-              <span style={{ fontSize: 15, fontWeight: active ? 600 : 400, color: active ? C.gold : C.text }}>
-                {opt === 'Solo yo' ? 'Solo yo — soy el dueño y operador' : `${opt} personas`}
-              </span>
+            </div>
+
+            {tableCount > 0 && (
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 12 }}>
+                  Capacidad promedio por mesa: <span style={{ color: C.gold, fontSize: 22, fontWeight: 800 }}>{capacidadPorMesa} personas</span>
+                </label>
+                <input type="range" min={2} max={12} value={capacidadPorMesa} onChange={e => setCapacidadPorMesa(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: C.blue }} />
+              </div>
+            )}
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', border: `2px solid ${tieneParaLlevar ? '#22c55e' : '#e5e7eb'}`, background: tieneParaLlevar ? '#f0fdf4' : 'white' }}>
+              <input type="checkbox" checked={tieneParaLlevar} onChange={e => setTieneParaLlevar(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: '#22c55e' }} />
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>Tengo órdenes para llevar</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Se crea un flujo especial para pedidos sin mesa</p>
+              </div>
+            </label>
+
+            {tableCount > 0 && (
+              <div style={{ background: '#eff6ff', borderRadius: 12, padding: '14px 16px', border: '1px solid #bfdbfe' }}>
+                <p style={{ fontSize: 13, color: '#1d4ed8', fontWeight: 600, margin: '0 0 4px' }}>Tu local</p>
+                <p style={{ fontSize: 12, color: '#3b82f6', margin: 0 }}>
+                  {tableCount} mesas × {capacidadPorMesa} personas = capacidad de <strong>{tableCount * capacidadPorMesa} comensales</strong>
+                  {tieneParaLlevar && ' + órdenes para llevar'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+              <ChevronLeft size={16} /> Atrás
             </button>
-          );
-        })}
-      </div>
+            {btn('Siguiente')}
+          </div>
+        </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={() => setStep(1)}
-          style={{ padding: '13px 20px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ChevronLeft size={15} /> Atrás
-        </button>
-        <button onClick={() => setStep(3)}
-          style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: C.gold, color: '#080b10', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          Siguiente <ChevronRight size={17} />
-        </button>
-      </div>
-    </div>
-  );
+      {/* ── PASO 3: Menú ── */}
+      {step === 3 && (
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>Agrega tu primer platillo</h2>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>Solo uno para arrancar. Puedes agregar el menú completo después desde Menú → Platillos.</p>
 
-  // ─── STEP 3: Plan ─────────────────────────────────────────────────────────
-  return (
-    <div style={containerStyle}>
-      <ProgressBar />
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: C.gold, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Paso 3 de 3
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: C.text, margin: '0 0 10px', lineHeight: 1.2 }}>
-          ¿Qué plan te conviene?
-        </h1>
-        <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>
-          Los 14 días de prueba incluyen todo. Elige tu plan para cuando termine el trial, o décidelo después.
-        </p>
-      </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Nombre del platillo</label>
+              <input className={inp} placeholder="Ej: Americano, Hamburguesa clásica, Tacos al pastor" value={dishName}
+                onChange={e => setDishName(e.target.value)} autoFocus />
+            </div>
 
-      {/* Plan cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-        {PLANS.map(p => {
-          const active = chosenPlan === p.key;
-          return (
-            <button key={p.key} onClick={() => setChosenPlan(active ? null : p.key)}
-              style={{ padding: '16px 20px', borderRadius: 14, border: `1.5px solid ${active ? p.color : C.border}`, background: active ? `${p.color}10` : 'rgba(255,255,255,0.02)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, transition: 'all .15s', position: 'relative' }}>
-              {p.tag && (
-                <span style={{ position: 'absolute', top: -10, right: 16, fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 10, background: p.color, color: '#080b10', letterSpacing: '.04em' }}>
-                  {p.tag}
-                </span>
-              )}
-              <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${active ? p.color : C.border}`, background: active ? p.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
-                {active && <Check size={12} color="#080b10" strokeWidth={3} />}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Precio (MXN)</label>
+                <input type="number" className={inp} placeholder="150" value={dishPrice}
+                  onChange={e => setDishPrice(e.target.value)} />
               </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: active ? p.color : C.text }}>{p.name}</span>
-                  <span style={{ fontSize: 13, color: C.muted }}>${p.price.toLocaleString('es-MX')}/mes</span>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Emoji</label>
+                <input className={inp} placeholder="🍽️" value={dishEmoji} maxLength={2}
+                  onChange={e => setDishEmoji(e.target.value)} style={{ fontSize: 22, textAlign: 'center' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Categoría</label>
+              <select className={sel} value={dishCategory} onChange={e => setDishCategory(e.target.value)}>
+                {['Entradas', 'Platos fuertes', 'Postres', 'Bebidas calientes', 'Bebidas frías', 'Antojitos', 'Desayunos', 'Especialidades'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+              <ChevronLeft size={16} /> Atrás
+            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setStep(s => s + 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', color: C.muted }}>
+                Omitir
+              </button>
+              {btn('Siguiente', !dishName.trim() || !dishPrice)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PASO 4: Equipo ── */}
+      {step === 4 && (
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>¿Cómo es tu equipo?</h2>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>Nos ayuda a pre-configurar los roles. Agregas a cada persona con su PIN desde Personal.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 12 }}>
+                ¿Cuántas personas trabajan en tu restaurante? <span style={{ color: C.gold, fontSize: 22, fontWeight: 800 }}>{numEmpleados}</span>
+              </label>
+              <input type="range" min={1} max={50} value={numEmpleados} onChange={e => setNumEmpleados(Number(e.target.value))}
+                style={{ width: '100%', accentColor: C.blue }} />
+            </div>
+
+            {[
+              [tieneChef, setTieneChef, '👨‍🍳', 'Tengo cocinero / chef', 'Se activará la pantalla de Cocina (KDS)'],
+              [tieneMeseros, setTieneMeseros, '🛎️', 'Tengo meseros', 'Se activará la vista móvil para meseros'],
+            ].map(([val, setter, emoji, label, desc]) => (
+              <label key={label as string} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', border: `2px solid ${val ? C.blue : '#e5e7eb'}`, background: val ? '#eff6ff' : 'white' }}>
+                <input type="checkbox" checked={val as boolean} onChange={e => (setter as Function)(e.target.checked)}
+                  style={{ width: 18, height: 18, accentColor: C.blue }} />
+                <span style={{ fontSize: 20 }}>{emoji as string}</span>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{label as string}</p>
+                  <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>{desc as string}</p>
                 </div>
-                <span style={{ fontSize: 12, color: C.muted }}>{p.desc}</span>
-              </div>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+              <ChevronLeft size={16} /> Atrás
             </button>
-          );
-        })}
-      </div>
+            {btn('Siguiente')}
+          </div>
+        </div>
+      )}
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-        <button onClick={() => setStep(2)}
-          style={{ padding: '13px 20px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ChevronLeft size={15} /> Atrás
-        </button>
-        <button onClick={() => finish(false)} disabled={saving}
-          style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: saving ? 'rgba(212,146,42,0.35)' : C.gold, color: '#080b10', fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {saving ? 'Configurando…' : chosenPlan ? `Elegir plan ${PLANS.find(p => p.key === chosenPlan)?.name} →` : 'Entrar al sistema →'}
-        </button>
-      </div>
+      {/* ── PASO 5: Nómina ── */}
+      {step === 5 && (
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>¿Cómo pagas a tu equipo?</h2>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>Esto afecta cómo calculamos el costo real de tu nómina en los reportes. Lo puedes cambiar después.</p>
 
-      {!chosenPlan && (
-        <p style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: 'rgba(241,245,249,0.25)' }}>
-          Puedes elegir tu plan en cualquier momento desde Configuración.
-        </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+            {([
+              ['formal', '📋', 'Nómina formal con IMSS', 'Pagas IMSS, INFONAVIT y todas las prestaciones de ley'],
+              ['minimo', '📄', 'Solo mínimos de ley', 'Pagas aguinaldo y vacaciones, pero sin IMSS'],
+              ['outsourcing', '🏢', 'Outsourcing / Honorarios', 'Personal externo. La factura va a gastos operativos'],
+              ['mixto', '⚖️', 'Mixto', 'Algunos en nómina formal, otros en outsourcing'],
+            ] as const).map(([val, emoji, label, desc]) => (
+              <label key={val} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', border: `2px solid ${modeloNomina === val ? C.blue : '#e5e7eb'}`, background: modeloNomina === val ? '#eff6ff' : 'white' }}>
+                <input type="radio" value={val} checked={modeloNomina === val}
+                  onChange={() => setModeloNomina(val)} style={{ marginTop: 3, width: 16, height: 16, accentColor: C.blue }} />
+                <span style={{ fontSize: 20, marginTop: 1 }}>{emoji}</span>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{label}</p>
+                  <p style={{ fontSize: 12, color: C.muted, margin: '3px 0 0' }}>{desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>
+              Salario promedio mensual (opcional)
+            </label>
+            <input type="number" className={inp} placeholder="Ej: 8000" value={salarioPromedio}
+              onChange={e => setSalarioPromedio(e.target.value)} />
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Para calcular el punto de equilibrio en el Dashboard. Lo puedes configurar por empleado en Personal.</p>
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+              <ChevronLeft size={16} /> Atrás
+            </button>
+            {btn('Siguiente')}
+          </div>
+        </div>
+      )}
+
+      {/* ── PASO 6: Lanzar ── */}
+      {step === 6 && (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🚀</div>
+          <h2 style={{ fontSize: 28, fontWeight: 800, color: C.text, marginBottom: 8 }}>
+            ¡{restaurantName || 'Tu restaurante'} está listo!
+          </h2>
+          <p style={{ fontSize: 15, color: C.muted, marginBottom: 32, lineHeight: 1.6 }}>
+            Configuramos tus {tableCount} mesas, el primer platillo del menú y el modelo de nómina.
+            Ahora abre el POS y haz tu primera venta.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 32 }}>
+            {[
+              ['🍽️', `${tableCount} mesas`, 'Listas en el POS'],
+              [dishEmoji || '🍽️', dishName || 'Menú', 'Primer platillo'],
+              ['📊', 'Dashboard', 'Listo para monitorear'],
+            ].map(([emoji, label, sub]) => (
+              <div key={label} style={{ background: '#f8fafc', borderRadius: 12, padding: '14px 10px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 24, marginBottom: 6 }}>{emoji}</div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0 }}>{label}</p>
+                <p style={{ fontSize: 11, color: C.muted, margin: '2px 0 0' }}>{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={handleNext} disabled={saving}
+            style={{ background: C.blue, color: C.gold, border: 'none', borderRadius: 14, padding: '16px 40px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, width: '100%', justifyContent: 'center' }}>
+            {saving ? 'Iniciando...' : '🚀 Abrir el punto de venta'}
+          </button>
+
+          <button onClick={() => setStep(s => s - 1)}
+            style={{ background: 'none', border: 'none', color: C.muted, fontSize: 13, cursor: 'pointer', marginTop: 16, display: 'flex', alignItems: 'center', gap: 4, margin: '16px auto 0' }}>
+            <ChevronLeft size={14} /> Regresar
+          </button>
+        </div>
       )}
     </div>
   );
