@@ -68,6 +68,9 @@ export default function OrderPanel({
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
   const [partialSelected, setPartialSelected] = useState<Set<string>>(new Set());
+  const [partialMode, setPartialMode] = useState<'platillos' | 'personas'>('platillos');
+  const [splitCount, setSplitCount] = useState(2);   // número de personas
+  const [splitPaid, setSplitPaid]   = useState(0);   // cuántas ya pagaron
   const [discountInput, setDiscountInput] = useState('');
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [showKitchenNote, setShowKitchenNote] = useState(false);
@@ -481,56 +484,164 @@ export default function OrderPanel({
             </div>
             )}
 
-            {/* Cierre parcial modal */}
+            {/* Cierre parcial modal — dos modos: por platillo o por personas */}
             {showPartial && (
               <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-                <div style={{ background:'#fff', borderRadius:20, padding:24, maxWidth:400, width:'100%', maxHeight:'80vh', overflowY:'auto' }}>
-                  <h3 style={{ fontSize:17, fontWeight:700, color:'#111', marginBottom:4 }}>Cobro parcial</h3>
-                  <p style={{ fontSize:13, color:'#6b7280', marginBottom:16 }}>Selecciona los platillos a cobrar ahora. El resto queda en la mesa.</p>
-                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
-                    {orderItems.map(item => {
-                      const sel = partialSelected.has(item.lineId);
-                      const price = item.menuItem.price * item.quantity;
-                      return (
-                        <button key={item.lineId} onClick={() => setPartialSelected(prev => {
-                          const next = new Set(prev);
-                          sel ? next.delete(item.lineId) : next.add(item.lineId);
-                          return next;
-                        })} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, cursor:'pointer', background:sel?'#eff6ff':'#f9fafb', border:`2px solid ${sel?'#3b82f6':'#e5e7eb'}` }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, textAlign:'left' }}>
-                            <span style={{ fontSize:18 }}>{item.menuItem.emoji}</span>
-                            <div>
-                              <div style={{ fontSize:13, fontWeight:600, color:'#111' }}>{item.quantity > 1 ? `${item.quantity}× ` : ''}{item.menuItem.name}</div>
-                              {item.modifier && <div style={{ fontSize:11, color:'#6b7280' }}>{item.modifier}</div>}
-                            </div>
-                          </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                            <span style={{ fontFamily:'monospace', fontWeight:700, color:'#111' }}>${price.toFixed(2)}</span>
-                            <div style={{ width:20, height:20, borderRadius:'50%', background:sel?'#3b82f6':'transparent', border:'2px solid '+( sel?'#3b82f6':'#d1d5db'), display:'flex', alignItems:'center', justifyContent:'center' }}>
-                              {sel && <span style={{ color:'#fff', fontSize:12, fontWeight:700 }}>✓</span>}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                <div style={{ background:'#fff', borderRadius:20, padding:24, maxWidth:420, width:'100%', maxHeight:'85vh', overflowY:'auto' }}>
+                  
+                  {/* Tabs del modal */}
+                  <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+                    {[
+                      { key:'platillos', label:'Por platillos' },
+                      { key:'personas',  label:'Dividir entre personas' },
+                    ].map(t => (
+                      <button key={t.key}
+                        onClick={() => setPartialMode(t.key as any)}
+                        style={{ flex:1, padding:'8px 12px', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer', border:'none',
+                          background: partialMode === t.key ? '#1d4ed8' : '#f3f4f6',
+                          color:      partialMode === t.key ? '#fff' : '#6b7280' }}>
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
-                  {partialSelected.size > 0 && (
-                    <div style={{ background:'#eff6ff', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', justifyContent:'space-between' }}>
-                      <span style={{ fontSize:13, color:'#1d4ed8', fontWeight:600 }}>A cobrar ahora</span>
-                      <span style={{ fontFamily:'monospace', fontWeight:700, color:'#1d4ed8' }}>
-                        ${orderItems.filter(i => partialSelected.has(i.lineId)).reduce((s,i) => s + i.menuItem.price * i.quantity, 0).toFixed(2)}
-                      </span>
+
+                  {/* ── MODO: por platillos ── */}
+                  {partialMode === 'platillos' && (<>
+                    <h3 style={{ fontSize:17, fontWeight:700, color:'#111', marginBottom:4 }}>Cobro parcial</h3>
+                    <p style={{ fontSize:13, color:'#6b7280', marginBottom:16 }}>Selecciona los platillos a cobrar ahora. El resto queda en la mesa.</p>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
+                      {orderItems.map(item => {
+                        const sel = partialSelected.has(item.lineId);
+                        const price = item.menuItem.price * item.quantity;
+                        return (
+                          <button key={item.lineId} onClick={() => setPartialSelected(prev => {
+                            const next = new Set(prev);
+                            sel ? next.delete(item.lineId) : next.add(item.lineId);
+                            return next;
+                          })} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:12, cursor:'pointer', background:sel?'#eff6ff':'#f9fafb', border:`2px solid ${sel?'#3b82f6':'#e5e7eb'}` }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, textAlign:'left' }}>
+                              <span style={{ fontSize:18 }}>{item.menuItem.emoji}</span>
+                              <div>
+                                <div style={{ fontSize:13, fontWeight:600, color:'#111' }}>{item.quantity > 1 ? `${item.quantity}× ` : ''}{item.menuItem.name}</div>
+                                {item.modifier && <div style={{ fontSize:11, color:'#6b7280' }}>{item.modifier}</div>}
+                              </div>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                              <span style={{ fontFamily:'monospace', fontWeight:700, color:'#111' }}>${price.toFixed(2)}</span>
+                              <div style={{ width:20, height:20, borderRadius:'50%', background:sel?'#3b82f6':'transparent', border:'2px solid '+( sel?'#3b82f6':'#d1d5db'), display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                {sel && <span style={{ color:'#fff', fontSize:12, fontWeight:700 }}>✓</span>}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
-                  <div style={{ display:'flex', gap:8 }}>
-                    <button onClick={() => setShowPartial(false)} style={{ flex:1, padding:'10px', borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>Cancelar</button>
-                    <button
-                      disabled={partialSelected.size === 0}
-                      onClick={() => { onPartialCheckout!([...partialSelected]); setShowPartial(false); }}
-                      style={{ flex:2, padding:'10px', borderRadius:10, background:partialSelected.size>0?'#1d4ed8':'#e5e7eb', border:'none', fontSize:14, fontWeight:700, color:partialSelected.size>0?'#fff':'#9ca3af', cursor:partialSelected.size>0?'pointer':'default' }}>
-                      Cobrar seleccionados
-                    </button>
-                  </div>
+                    {partialSelected.size > 0 && (
+                      <div style={{ background:'#eff6ff', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', justifyContent:'space-between' }}>
+                        <span style={{ fontSize:13, color:'#1d4ed8', fontWeight:600 }}>A cobrar ahora</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:700, color:'#1d4ed8' }}>
+                          ${orderItems.filter(i => partialSelected.has(i.lineId)).reduce((s,i) => s + i.menuItem.price * i.quantity, 0).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => setShowPartial(false)} style={{ flex:1, padding:'10px', borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>Cancelar</button>
+                      <button
+                        disabled={partialSelected.size === 0}
+                        onClick={() => { onPartialCheckout!([...partialSelected]); setShowPartial(false); }}
+                        style={{ flex:2, padding:'10px', borderRadius:10, background:partialSelected.size>0?'#1d4ed8':'#e5e7eb', border:'none', fontSize:14, fontWeight:700, color:partialSelected.size>0?'#fff':'#9ca3af', cursor:partialSelected.size>0?'pointer':'default' }}>
+                        Cobrar seleccionados
+                      </button>
+                    </div>
+                  </>)}
+
+                  {/* ── MODO: por personas ── */}
+                  {partialMode === 'personas' && (<>
+                    <h3 style={{ fontSize:17, fontWeight:700, color:'#111', marginBottom:4 }}>Dividir entre personas</h3>
+                    <p style={{ fontSize:13, color:'#6b7280', marginBottom:20 }}>El total se divide en partes iguales. Cobra persona por persona.</p>
+
+                    {/* Selector de número de personas */}
+                    <div style={{ marginBottom:20 }}>
+                      <p style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>¿Cuántas personas?</p>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        <button onClick={() => setSplitCount(c => Math.max(2, c - 1))}
+                          style={{ width:40, height:40, borderRadius:10, border:'1px solid #e5e7eb', background:'#f9fafb', fontSize:20, cursor:'pointer', fontWeight:700, color:'#374151' }}>−</button>
+                        <span style={{ fontSize:28, fontWeight:800, color:'#111', minWidth:40, textAlign:'center' }}>{splitCount}</span>
+                        <button onClick={() => setSplitCount(c => Math.min(20, c + 1))}
+                          style={{ width:40, height:40, borderRadius:10, border:'1px solid #e5e7eb', background:'#f9fafb', fontSize:20, cursor:'pointer', fontWeight:700, color:'#374151' }}>+</button>
+                        <div style={{ flex:1, marginLeft:12, background:'#f0fdf4', borderRadius:10, padding:'8px 14px', border:'1px solid #bbf7d0' }}>
+                          <p style={{ fontSize:11, color:'#15803d', margin:0 }}>Por persona</p>
+                          <p style={{ fontSize:22, fontWeight:800, color:'#15803d', margin:0, fontFamily:'monospace' }}>
+                            ${(total / splitCount).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progreso de cobros */}
+                    <div style={{ marginBottom:20 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                        <p style={{ fontSize:12, fontWeight:600, color:'#374151', textTransform:'uppercase', letterSpacing:'0.05em' }}>Progreso</p>
+                        <span style={{ fontSize:12, color:'#6b7280' }}>{splitPaid} de {splitCount} cobrados</span>
+                      </div>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {Array.from({ length: splitCount }).map((_, i) => (
+                          <div key={i} style={{
+                            width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                            fontSize:14, fontWeight:700,
+                            background: i < splitPaid ? '#22c55e' : '#f3f4f6',
+                            color: i < splitPaid ? '#fff' : '#9ca3af',
+                            border: `2px solid ${i < splitPaid ? '#22c55e' : '#e5e7eb'}`,
+                          }}>
+                            {i < splitPaid ? '✓' : i + 1}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Total y cobrado */}
+                    <div style={{ background:'#f9fafb', borderRadius:12, padding:'12px 16px', marginBottom:20 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                        <span style={{ fontSize:13, color:'#6b7280' }}>Total de la mesa</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:700, color:'#111' }}>${total.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                        <span style={{ fontSize:13, color:'#6b7280' }}>Cobrado ({splitPaid} personas)</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:700, color:'#22c55e' }}>${((total / splitCount) * splitPaid).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'space-between', borderTop:'1px solid #e5e7eb', paddingTop:6 }}>
+                        <span style={{ fontSize:13, fontWeight:600, color:'#111' }}>Pendiente</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:800, color: splitPaid === splitCount ? '#22c55e' : '#ef4444' }}>
+                          ${Math.max(0, total - (total / splitCount) * splitPaid).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => { setShowPartial(false); setSplitPaid(0); setSplitCount(2); }}
+                        style={{ flex:1, padding:'10px', borderRadius:10, background:'#f3f4f6', border:'none', fontSize:14, fontWeight:600, color:'#6b7280', cursor:'pointer' }}>
+                        Cancelar
+                      </button>
+                      {splitPaid < splitCount - 1 ? (
+                        <button
+                          onClick={() => setSplitPaid(p => p + 1)}
+                          style={{ flex:2, padding:'10px', borderRadius:10, background:'#1d4ed8', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+                          Cobrar persona {splitPaid + 1} — ${(total / splitCount).toFixed(2)}
+                        </button>
+                      ) : splitPaid === splitCount - 1 ? (
+                        <button
+                          onClick={() => { onCheckout(); setShowPartial(false); setSplitPaid(0); setSplitCount(2); }}
+                          style={{ flex:2, padding:'10px', borderRadius:10, background:'#22c55e', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+                          Última persona — Cerrar mesa ✓
+                        </button>
+                      ) : (
+                        <button disabled
+                          style={{ flex:2, padding:'10px', borderRadius:10, background:'#e5e7eb', border:'none', fontSize:14, fontWeight:700, color:'#9ca3af' }}>
+                          Todos cobrados
+                        </button>
+                      )}
+                    </div>
+                  </>)}
                 </div>
               </div>
             )}
