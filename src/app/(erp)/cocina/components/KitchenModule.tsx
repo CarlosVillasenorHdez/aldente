@@ -22,6 +22,7 @@ interface KitchenOrderItem {
   emoji: string;
   notes?: string;
   category?: string;
+  preparationArea?: 'cocina' | 'barra'; // área de preparación del platillo
   course?: number;    // 1=first, 2=second, 3=last — items with course>1 shown with badge
   modifier?: string;  // per-item modifier e.g. "Sin cebolla"
   modifierOptions?: { name: string; price_delta: number }[];  // chosen modifier group options
@@ -336,6 +337,7 @@ export default function KitchenModule() {
   const device = useDevice();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [areaFilter, setAreaFilter] = useState<'todas' | 'cocina' | 'barra'>('todas');
   const [readyItems, setReadyItems] = useState<Set<string>>(new Set());
   const toggleReadyItem = (key: string): void => setReadyItems(prev => {
     const next = new Set(prev);
@@ -423,7 +425,7 @@ export default function KitchenModule() {
   const fetchOrders = useCallback(async () => {
     let ordersQuery = supabase
       .from('orders')
-      .select('*, kitchen_sent_at, order_items(*, dishes(category), order_item_modifiers(name, price_delta))')
+      .select('*, kitchen_sent_at, order_items(*, dishes(category, preparation_area), order_item_modifiers(name, price_delta))')
       .eq('tenant_id', getTenantId())
       .in('status', ['abierta', 'preparacion', 'lista'])
       .eq('is_comanda', true);         // only show comanda cards — original order is billing only
@@ -448,6 +450,7 @@ export default function KitchenModule() {
           preparationTimeMin: item.dishes?.preparation_time_min ?? 15,
           notes: item.notes,
           category: item.dishes?.category ?? null,
+          preparationArea: (item.dishes?.preparation_area ?? 'cocina') as 'cocina' | 'barra',
           course: item.course ?? 1,
           modifier: item.modifier ?? null,
           modifierOptions: (item.order_item_modifiers ?? []).length > 0
@@ -736,11 +739,27 @@ export default function KitchenModule() {
   }, [orders]);
 
   const filteredOrders = React.useMemo(() => {
-    if (stationFilter === 'Todas') return orders;
-    return orders
-      .map(o => ({ ...o, items: o.items.filter(i => i.category === stationFilter || !i.category) }))
-      .filter(o => o.items.length > 0);
-  }, [orders, stationFilter]);
+    let result = orders;
+
+    // Filtro por área (cocina / barra) — filtra los ITEMS, no la orden completa
+    if (areaFilter !== 'todas') {
+      result = result
+        .map(o => ({
+          ...o,
+          items: o.items.filter(i => (i.preparationArea ?? 'cocina') === areaFilter),
+        }))
+        .filter(o => o.items.length > 0);
+    }
+
+    // Filtro por categoría/estación (ya existía)
+    if (stationFilter !== 'Todas') {
+      result = result
+        .map(o => ({ ...o, items: o.items.filter(i => i.category === stationFilter || !i.category) }))
+        .filter(o => o.items.length > 0);
+    }
+
+    return result;
+  }, [orders, stationFilter, areaFilter]);
 
   const columnOrders = (col: KitchenStatus) => filteredOrders.filter((o) => o.kitchenStatus === col);
   const totalPending = filteredOrders.filter((o) => o.kitchenStatus === 'pendiente').length;
@@ -795,6 +814,40 @@ export default function KitchenModule() {
             </button>
           </div>
         </div>
+
+        {/* Área filter bar — Cocina vs Barra */}
+        {orders.some(o => o.items.some(i => i.preparationArea === 'barra')) && (
+          <div className="flex-shrink-0 px-6 py-2 flex items-center gap-2"
+            style={{ backgroundColor: '#0a1218', borderBottom: '1px solid #1e2d3d' }}>
+            <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Área:
+            </span>
+            {([
+              { key: 'todas',  label: '🍽️ Todas' },
+              { key: 'cocina', label: '👨‍🍳 Cocina' },
+              { key: 'barra',  label: '🍸 Barra' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setAreaFilter(key)}
+                className="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all"
+                style={{
+                  backgroundColor: areaFilter === key ? '#f59e0b' : 'rgba(255,255,255,0.07)',
+                  color: areaFilter === key ? '#1B3A6B' : 'rgba(255,255,255,0.5)',
+                  border: areaFilter === key ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            {areaFilter !== 'todas' && (
+              <span className="text-xs ml-2 px-2 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                {filteredOrders.length} orden{filteredOrders.length !== 1 ? 'es' : ''} en vista
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Station filter bar */}
         {allCategories.length > 2 && (
