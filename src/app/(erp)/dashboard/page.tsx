@@ -16,44 +16,48 @@ export default function DashboardPage() {
       title="Dashboard"
       subtitle="Resumen operativo del día"
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
 
+        {/* 1. Primeros pasos — solo visible si faltan cosas */}
         <FirstStepsChecklist />
 
-        {/* Quick actions — always visible */}
+        {/* 2. Acciones rápidas */}
         <DashboardQuickActions />
 
-        {/* Live operations — always visible (POS is in all plans) */}
-        <LiveOperations />
-
-        {/* KPI Bento Grid — always visible, but inventory KPI is gated inside */}
+        {/* 3. KPIs — ventas, equilibrio, margen */}
         <DashboardKPIs />
 
-        {/* Charts + Alerts row */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* 4. Operaciones en vivo + alertas */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <div className="xl:col-span-2">
-            {/* Sales chart — always visible */}
-            <SalesChart />
+            <LiveOperations />
           </div>
-          <div className="xl:col-span-1 flex flex-col gap-6">
-            {/* Alerts panel — gated: stock alerts need inventario */}
+          <div className="xl:col-span-1">
             <UpgradeGate
               feature="alarmas"
               requiredPlan="negocio"
               title="Alertas inteligentes"
-              description="Stock bajo, órdenes demoradas, mesas sin atender. Recibe avisos en tiempo real antes de que afecten tu servicio."
+              description="Stock bajo, órdenes demoradas, mesas sin atender."
               blurAmount={5}
             >
               <AlertsPanel />
             </UpgradeGate>
+          </div>
+        </div>
 
-            {/* Recent activity — always visible */}
+        {/* 5. Gráfica de ventas + actividad reciente */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2">
+            <SalesChart />
+          </div>
+          <div className="xl:col-span-1">
             <RecentActivity />
           </div>
         </div>
 
-        {/* Recent orders — always visible */}
+        {/* 6. Órdenes del día */}
         <RecentOrders />
+
       </div>
     </AppLayout>
   );

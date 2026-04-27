@@ -20,6 +20,12 @@ interface LiveOrder {
 function calcElapsed(createdAt: string) {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
 }
+function calcMMSS(createdAt: string) {
+  const diff = Math.max(0, Date.now() - new Date(createdAt).getTime());
+  const mm = Math.floor(diff / 60000);
+  const ss = Math.floor((diff % 60000) / 1000);
+  return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
 
 export default function LiveOperations() {
   const supabase = createClient();
@@ -50,9 +56,9 @@ export default function LiveOperations() {
 
   useEffect(() => { fetchLive(); }, [fetchLive]);
 
-  // Update elapsed every 30s
+  // Tick cada segundo para el cronómetro
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30000);
+    const id = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -155,9 +161,9 @@ export default function LiveOperations() {
                 {cfg.label}
               </span>
               <span className="flex items-center gap-1 text-xs font-mono font-semibold"
-                style={{ color: isUrgent ? '#dc2626' : '#6b7280', minWidth: '40px', justifyContent: 'flex-end' }}>
+                style={{ color: isUrgent ? '#dc2626' : '#6b7280', minWidth: '48px', justifyContent: 'flex-end' }}>
                 {isUrgent && <AlertTriangle size={10} />}
-                {elapsed}m
+                {calcMMSS(order.createdAt)}
               </span>
             </div>
           );
