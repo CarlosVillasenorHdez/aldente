@@ -8,6 +8,7 @@ import DashboardQuickActions from './components/DashboardQuickActions';
 import AlertsPanel from './components/AlertsPanel';
 import LiveOperations from './components/LiveOperations';
 import RecentActivity from './components/RecentActivity';
+import AttendanceWidget from './components/AttendanceWidget';
 import UpgradeGate from '@/components/UpgradeGate';
 
 export default function DashboardPage() {
@@ -45,8 +46,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 5. Gráfica de ventas + actividad reciente */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* 5. Asistencia + Gráfica de ventas + actividad reciente */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
+          <div className="xl:col-span-1">
+            <AttendanceWidget />
+          </div>
           <div className="xl:col-span-2">
             <SalesChart />
           </div>
