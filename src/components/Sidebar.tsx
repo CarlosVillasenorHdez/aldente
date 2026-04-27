@@ -4,13 +4,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ShoppingCart, UtensilsCrossed, ClipboardList, Package, Users, BarChart3, Settings, ChevronLeft, ChevronRight, Bell, GitBranch, Receipt, ChefHat, Calendar, Truck, Star, Building2, Smartphone, UserCog, BellRing, Scissors, LogOut, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, UtensilsCrossed, ClipboardList, Package, Users, BarChart3, Settings, ChevronLeft, ChevronRight, Bell, GitBranch, Receipt, ChefHat, Calendar, Truck, Star, Building2, Smartphone, UserCog, BellRing, Scissors, LogOut, ShoppingBag, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { createClient } from '@/lib/supabase/client';
 import { useFeatures, type Features } from '@/hooks/useFeatures';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
+import { checkOut, getTodayStatus } from '@/lib/attendanceEngine';
 
 
 
@@ -105,6 +106,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [showBranchSelector, setShowBranchSelector] = useState(false);
   const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
   const { count: lowStockCount, criticalCount: lowStockCritical } = useStockAlerts();
+  const [hasCheckin, setHasCheckin]   = React.useState(false);
+  const [hasCheckout, setHasCheckout] = React.useState(false);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+
+  // Verificar estado de asistencia del día al montar
+  React.useEffect(() => {
+    if (!appUser?.employeeId || !appUser?.tenantId) return;
+    getTodayStatus(appUser.employeeId, appUser.tenantId).then(s => {
+      setHasCheckin(s.hasCheckin);
+      setHasCheckout(s.hasCheckout);
+    });
+  }, [appUser?.employeeId, appUser?.tenantId]);
 
   // Dynamic sidebar colors from brandConfig
   const sidebarBg = brandConfig.theme === 'light' ? '#f8fafc' : (brandConfig.primaryColor || '#1B3A6B');
@@ -264,6 +277,29 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </div>
               </div>
             )}
+            {/* Botón de salida — solo visible si el empleado tiene entrada pero no salida */}
+            {appUser?.employeeId && hasCheckin && !hasCheckout && (
+              <button
+                onClick={async () => {
+                  if (checkoutLoading) return;
+                  setCheckoutLoading(true);
+                  const result = await checkOut(appUser.employeeId ?? '', appUser.tenantId ?? '');
+                  if (result === 'ok') {
+                    setHasCheckout(true);
+                    const { toast } = await import('sonner');
+                    toast.success('✅ Salida registrada');
+                  }
+                  setCheckoutLoading(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-amber-500/10"
+                style={{ color: 'rgba(245,158,11,0.9)', justifyContent: collapsed ? 'center' : 'flex-start' }}
+                title="Registrar mi salida"
+              >
+                <Clock size={14} />
+                {!collapsed && <span>{checkoutLoading ? 'Registrando...' : 'Registrar mi salida'}</span>}
+              </button>
+            )}
+
             <button
               onClick={async () => { await signOut(); router.replace('/login'); }}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-red-500/10"

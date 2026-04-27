@@ -264,6 +264,15 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       saveSession(user);
       setCurrentTenantId(user.tenantId);
       setAppUser(user);
+
+      // Auto check-in: si el empleado tiene employee_id y es su primer acceso del día
+      if (user.employeeId && user.tenantId) {
+        // Fire-and-forget — no bloquea el login
+        import('@/lib/attendanceEngine').then(({ autoCheckIn }) => {
+          autoCheckIn(user.employeeId ?? '', user.tenantId ?? '', user.branchId ?? null).catch(() => {});
+        });
+      }
+
       return { user };
     },
     [supabase]

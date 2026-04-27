@@ -1,5 +1,6 @@
 'use client';
 import PagoNominaTab from './PagoNominaTab';
+import AsistenciaTab from './AsistenciaTab';
 import { calcLiquidacion, calcSaldoVacaciones, type MotivoBaja } from '@/lib/laboralMX';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
@@ -33,7 +34,7 @@ interface Incapacidad {
   notas: string | null;
   created_at: string;
 }
-type ActiveTab = 'vacaciones' | 'permisos' | 'tiempos_extras' | 'incapacidades' | 'resumen' | 'liquidacion' | 'pago_nomina';
+type ActiveTab = 'vacaciones' | 'permisos' | 'tiempos_extras' | 'incapacidades' | 'resumen' | 'liquidacion' | 'pago_nomina' | 'asistencia';
 
 interface Employee {
   id: string;
@@ -501,6 +502,7 @@ export default function RHManagement() {
     { key: 'resumen', label: 'Período actual', icon: TrendingUp },
     { key: 'liquidacion', label: '⚖️ Liquidación', icon: TrendingUp },
     { key: 'pago_nomina', label: '💸 Pago de Nómina', icon: TrendingUp },
+    { key: 'asistencia', label: '📋 Asistencia', icon: Clock },
   ];
 
   async function saveIncapacidad() {
@@ -924,6 +926,12 @@ export default function RHManagement() {
             {/* ── TAB: PAGO DE NÓMINA ── */}
             {activeTab === 'pago_nomina' && (
               <PagoNominaTab />
+            )}
+
+            {activeTab === 'asistencia' && (
+              <div className="p-6">
+                <AsistenciaTab />
+              </div>
             )}
           </>
         )}
