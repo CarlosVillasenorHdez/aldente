@@ -23,6 +23,7 @@ interface Employee {
   role: string;
   salary: number;
   salaryFrequency: string;
+  hireDate?: string;
 }
 
 interface Props {
@@ -60,7 +61,10 @@ function EmployeeCard({ emp, flags }: { emp: Employee; flags: typeof NOMINA_COMP
     : emp.salaryFrequency === 'semanal' ? emp.salary * 4.33
     : emp.salary;
 
-  const costo = calcCostoEmpleadoConConfig(salMes, 1, flags);
+  const anios = emp.hireDate
+    ? Math.max(1, Math.floor((Date.now() - new Date(emp.hireDate).getTime()) / (365.25*24*3600*1000)))
+    : 1;
+  const costo = calcCostoEmpleadoConConfig(salMes, anios, flags);
 
   const roleLabel = (r: string) => r === 'admin' ? 'Admin' : r === 'cajero' ? 'Cajero' : r === 'mesero' ? 'Mesero'
     : r === 'cocinero' ? 'Cocinero' : r === 'gerente' ? 'Gerente' : r;
@@ -158,6 +162,20 @@ export default function NominaTab({ employees }: Props) {
 
   return (
     <div className="space-y-6 max-w-3xl">
+
+      {/* Aviso si no se ha configurado el modelo */}
+      {nominaConfig.loaded && !nominaConfig.incluyeIMSS && !nominaConfig.incluyeINFONAVIT && !nominaConfig.incluyePrestaciones && (
+        <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <span className="text-red-500 flex-shrink-0 text-lg">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-red-800">El modelo de nómina no incluye obligaciones patronales</p>
+            <p className="text-xs text-red-700 mt-0.5">
+              Los cálculos solo muestran los salarios base. Para ver el costo real (IMSS, INFONAVIT, prestaciones),
+              ve a <a href="/configuracion" className="underline font-semibold">Configuración → Costos MO</a> y selecciona tu modelo de nómina.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Modelo activo */}
       {nominaConfig.loaded && nominaConfig.modelo !== 'formal' && (

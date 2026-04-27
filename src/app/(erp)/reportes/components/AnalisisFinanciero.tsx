@@ -658,7 +658,7 @@ export default function AnalisisFinanciero() {
         .eq('tenant_id', tid).eq('activo', true),
       supabase.from('ingredients').select('stock,cost').eq('tenant_id', tid),
       supabase.from('orders').select('id').eq('tenant_id', tid).in('status', ['abierta','preparacion','lista']),
-      supabase.from('app_users').select('salary,salary_frequency').eq('tenant_id', tid).eq('is_active', true),
+      supabase.from('employees').select('salary,salary_frequency').eq('tenant_id', tid).eq('status', 'activo'),
       supabase.from('extras_sales').select('price,qty,pay_method,unit_cost').eq('tenant_id', tid)
         .gte('sold_at', start).lte('sold_at', end),
       supabase.from('loyalty_transactions').select('financial_impact_type,financial_amount,type').eq('tenant_id', tid)
@@ -744,7 +744,7 @@ export default function AnalisisFinanciero() {
 
     setOrdAbiertas((abiertasData ?? []).length);
     setLoading(false);
-  }, [supabase, dateRange, periodFactor]);
+  }, [supabase, dateRange, periodFactor, nominaConfig]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -782,7 +782,7 @@ export default function AnalisisFinanciero() {
     ] : []),
     { concepto: '',                                         monto: 0,            tipo: 'divider' },
     { concepto: 'GASTOS OPERATIVOS',                        monto: 0,            tipo: 'header' },
-    { concepto: 'Sueldos y salarios',                          monto: (nominaDetalle?.salariosBrutos ?? nomina * 0.70) * periodFactor, tipo: 'item', indent:1 },
+    { concepto: 'Sueldos y salarios',                          monto: (nominaDetalle?.salariosBrutos ?? nomina * 0.70) * periodFactor, tipo: 'item', indent:1, note: `${nominaDetalle?.empleados ?? 0} empleados · Configurable en Personal` },
     { concepto: 'Cuotas IMSS patronal',                         monto: (nominaDetalle?.cuotasIMSS ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'EM + IV + Guarderías + RT' },
     { concepto: 'INFONAVIT (5% SBC)',                           monto: (nominaDetalle?.cuotasINFONAVIT ?? 0) * periodFactor, tipo: 'item', indent:1 },
     { concepto: 'Prestaciones prorrateadas',                    monto: (nominaDetalle?.prestacionesMensuales ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'Aguinaldo + prima vac. + vacaciones' },

@@ -40,6 +40,10 @@ interface Employee {
   role: string;
   salary: number;
   salary_frequency: string;
+  hire_date?: string;
+  tipo_contrato?: string;
+  rfc?: string;
+  nss?: string;
 }
 
 interface Vacacion {
@@ -177,11 +181,11 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
   const [diasTomados, setDiasTomados] = useState(0);
 
   const emp = employees.find(e => e.id === empId);
-  const salMes = emp ? (emp.salaryFrequency === 'quincenal' ? emp.salary * 2 : emp.salaryFrequency === 'semanal' ? emp.salary * 4.33 : emp.salary) : 0;
+  const salMes = emp ? ((emp as any).salary_frequency === 'quincenal' ? emp.salary * 2 : (emp as any).salary_frequency === 'semanal' ? emp.salary * 4.33 : emp.salary) : 0;
 
-  const resultado = emp && emp.hireDate && fechaBaja ? calcLiquidacion(
+  const resultado = emp && (emp as any).hire_date && fechaBaja ? calcLiquidacion(
     salMes,
-    new Date(emp.hireDate),
+    new Date((emp as any).hire_date),
     new Date(fechaBaja),
     motivo,
     diasTomados,
@@ -211,7 +215,7 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
           <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Empleado</label>
           <select className={inp} style={s} value={empId} onChange={e => setEmpId(e.target.value)}>
             <option value="">Seleccionar...</option>
-            {employees.filter(e => e.hireDate).map(e => <option key={e.id} value={e.id} style={{ backgroundColor: '#162d55' }}>{e.name} — {e.role}</option>)}
+            {employees.filter(e => (e as any).hire_date).map(e => <option key={e.id} value={e.id} style={{ backgroundColor: '#162d55' }}>{e.name} — {e.role}</option>)}
           </select>
         </div>
         <div>
@@ -493,7 +497,7 @@ export default function RHManagement() {
     { key: 'permisos', label: 'Permisos', icon: FileText },
     { key: 'tiempos_extras', label: 'Tiempos Extras', icon: Clock },
     { key: 'incapacidades', label: 'Incapacidades', icon: AlertCircle },
-    { key: 'resumen', label: 'Resumen Nómina', icon: TrendingUp },
+    { key: 'resumen', label: 'Período actual', icon: TrendingUp },
     { key: 'liquidacion', label: '⚖️ Liquidación', icon: TrendingUp },
   ];
 
