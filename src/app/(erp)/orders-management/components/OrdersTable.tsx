@@ -124,6 +124,7 @@ export default function OrdersTable() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const { branch: activeBranch } = useBranch();
   const { log: auditLog } = useAudit();
 
@@ -134,6 +135,7 @@ export default function OrdersTable() {
       .from('orders')
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
       .eq('tenant_id', getTenantId())
+      .eq('branch_id', activeBranchId || undefined)
       .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
       .neq('kitchen_status', 'en_edicion')  // exclude abandoned drafts never sent to kitchen
       .order('created_at', { ascending: false });

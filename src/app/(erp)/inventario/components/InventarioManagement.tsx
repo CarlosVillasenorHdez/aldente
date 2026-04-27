@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, X, AlertTriangle, Package, BoxSelect, History, ExternalLink, Phone, TrendingDown, TrendingUp, ArrowDownCircle, ArrowUpCircle, RefreshCw, Bell, Scale, BarChart2, Download, Upload, ShoppingCart } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
@@ -254,6 +255,7 @@ export default function InventarioManagement() {
   const [deleteEquivId, setDeleteEquivId] = useState<string | null>(null);
   const { appUser } = useAuth();
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const fetchIngredients = useCallback(async () => {
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) { setLoading(false); return; }

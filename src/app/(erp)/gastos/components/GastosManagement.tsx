@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { Plus, Edit2, Trash2, CheckCircle, Clock, AlertTriangle, X, Save, Zap, Home, Shield, Megaphone, Wrench, DollarSign, TrendingDown, RefreshCw, Calendar, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -556,6 +557,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
 
 export default function GastosManagement() {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const [activeTab, setActiveTab] = useState<ActiveTab>('gastos');
   const [gastos, setGastos] = useState<GastoRecurrente[]>([]);
   const [depreciaciones, setDepreciaciones] = useState<Depreciacion[]>([]);
@@ -574,11 +576,13 @@ export default function GastosManagement() {
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   async function fetchGastos() {
-    const { data } = await supabase
+    let _qGastos = supabase
       .from('gastos_recurrentes')
       .select('*')
         .eq('tenant_id', getTenantId())
       .order('created_at', { ascending: false });
+    if (activeBranchId) _qGastos = (_qGastos as any).eq('branch_id', activeBranchId);
+    const { data } = await _qGastos;
     if (data) setGastos(data as GastoRecurrente[]);
   }
 

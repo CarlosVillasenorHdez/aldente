@@ -124,7 +124,7 @@ export default function CorteCaja() {
   // ── Load corte activo ───────────────────────────────────────────────────────
   const loadCorte = useCallback(async () => {
     setLoading(true);
-    const { data: activo } = await supabase
+    let _qActivo = supabase
       .from('cortes_caja')
       .select('*')
         .eq('tenant_id', getTenantId())
@@ -132,6 +132,8 @@ export default function CorteCaja() {
       .order('apertura_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (activeBranchId) _qActivo = (_qActivo as any).eq('branch_id', activeBranchId);
+    const { data: activo } = await _qActivo;
 
     if (activo) {
       setCorteActivo(mapRow(activo));

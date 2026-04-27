@@ -30,6 +30,7 @@ interface Employee {
   status: Status;
   salary: number;
   salaryFrequency: SalaryFrequency;
+  numeroEmpleado?: number;
   // Campos legales
   rfc: string;
   nss: string;
@@ -89,6 +90,12 @@ function toMonthlySalary(salary: number, freq: SalaryFrequency): number {
   if (freq === 'semanal') return salary * 4.33;
   return salary;
 }
+
+
+const DEPARTAMENTOS_DEFAULT = [
+  'Cocina', 'Bar', 'Sala', 'Caja / POS', 'Administración',
+  'Entrega / Delivery', 'Limpieza', 'Seguridad', 'Gerencia',
+];
 
 const emptyForm = (): Omit<Employee, 'id'> => ({
   name: '', role: 'Mesero', phone: '', hireDate: '', status: 'activo',
@@ -561,10 +568,22 @@ export default function PersonalManagement() {
                     <tr key={emp.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: avatarColor(emp.id), color: '#1B3A6B' }}>
-                            {getInitials(emp.name)}
+                          <div className="flex-shrink-0 text-center">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: avatarColor(emp.id), color: '#1B3A6B' }}>
+                              {getInitials(emp.name)}
+                            </div>
+                            {emp.numeroEmpleado && (
+                              <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '9px' }}>
+                                #{emp.numeroEmpleado}
+                              </span>
+                            )}
                           </div>
-                          <span className="text-sm font-semibold text-white">{emp.name}</span>
+                          <div>
+                            <span className="text-sm font-semibold text-white">{emp.name}</span>
+                            {emp.departamento && (
+                              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{emp.departamento}</p>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
@@ -935,7 +954,6 @@ export default function PersonalManagement() {
                     { label: 'RFC', key: 'rfc', placeholder: 'GOCA850101ABC' },
                     { label: 'NSS (Núm. Seguridad Social)', key: 'nss', placeholder: '12345678901' },
                     { label: 'CURP', key: 'curp', placeholder: 'GOCA850101HMCRCR01' },
-                    { label: 'Departamento / Área', key: 'departamento', placeholder: 'Cocina' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{f.label}</label>
@@ -944,6 +962,19 @@ export default function PersonalManagement() {
                         style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
                     </div>
                   ))}
+                  {/* Departamento como lista desplegable */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Departamento / Área</label>
+                    <select className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      value={form.departamento}
+                      onChange={e => updateForm('departamento', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
+                      <option value="" style={{ backgroundColor: '#162d55' }}>Sin departamento</option>
+                      {DEPARTAMENTOS_DEFAULT.map(d => (
+                        <option key={d} value={d} style={{ backgroundColor: '#162d55' }}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Fecha de nacimiento</label>
                     <input type="date" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" value={form.fechaNacimiento}
