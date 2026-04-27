@@ -15,6 +15,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react';
 import { calcCostoEmpleadoConConfig, calcResumenNominaConConfig, NOMINA_COMPLETA } from '@/lib/laboralMX';
+import { imprimirReciboNomina } from '@/lib/reciboNomina';
+import { Printer } from 'lucide-react';
 import { downloadXLSX, empleadosToRows } from '@/lib/exportUtils';
 import { Download } from 'lucide-react';
 import { useNominaConfig } from '@/hooks/useNominaConfig';
@@ -138,6 +140,45 @@ function EmployeeCard({ emp, flags }: { emp: Employee; flags: typeof NOMINA_COMP
               <span>+{costo.porcentajeSobreSalario}% sobre el salario</span>
             </div>
           </div>
+
+          {/* Botón recibo de nómina */}
+          <button
+            onClick={() => {
+              const hoy = new Date();
+              const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+              imprimirReciboNomina({
+                nombreEmpleado:    emp.name,
+                puesto:            emp.role,
+                rfc:               (emp as any).rfc || '',
+                nss:               (emp as any).nss || '',
+                tipoContrato:      (emp as any).tipoContrato || 'planta',
+                fechaIngreso:      (emp as any).hireDate || '',
+                departamento:      (emp as any).departamento || '',
+                nombreRestaurante: 'Mi Restaurante',
+                rfcRestaurante:    '',
+                fechaInicio:       inicioMes.toISOString().split('T')[0],
+                fechaFin:          hoy.toISOString().split('T')[0],
+                frecuencia:        emp.salaryFrequency,
+                salarioDiario:     Math.round((salMes / 30.4) * 100) / 100,
+                diasLaborados:     hoy.getDate(),
+                salarioBruto:      Math.round(salMes * (hoy.getDate() / 30.4) * 100) / 100,
+                horasExtra: 0, importeHorasExtra: 0, bonos: 0, valesDespensa: 0,
+                imssObrero:     flags.incluyeIMSS ? Math.round(costo.sbcMensual * 0.0250) : 0,
+                isrRetenido:    0,
+                faltas: 0, importeFaltas: 0, otros: 0,
+                totalPercepciones: Math.round(salMes * (hoy.getDate() / 30.4) * 100) / 100,
+                totalDeducciones:  flags.incluyeIMSS ? Math.round(costo.sbcMensual * 0.0250) : 0,
+                netoAPagar:        Math.round((salMes * (hoy.getDate() / 30.4)) - (flags.incluyeIMSS ? costo.sbcMensual * 0.0250 : 0)),
+                banco:             (emp as any).banco || '',
+                clabe:             (emp as any).clabe || '',
+                metodoPago:        'transferencia',
+                fechaPago:         hoy.toISOString().split('T')[0],
+              });
+            }}
+            className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+          >
+            <Printer size={13} /> Generar recibo de nómina del mes
+          </button>
         </div>
       )}
     </div>

@@ -38,7 +38,7 @@ interface PaymentModalProps {
     showDiscount?: boolean; showUnitPrice?: boolean;
   };
   onClose: () => void;
-  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number) => void;
+  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => void;
 }
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
@@ -130,6 +130,12 @@ export default function PaymentModal({
   const [tipCustom, setTipCustom] = useState(''); // monto fijo manual
   const tipAmount = tipCustom ? parseFloat(tipCustom) || 0 : Math.round(total * tipPct / 100 * 100) / 100;
   const effectiveTotal = Math.max(0, total - pointsDiscount + tipAmount);
+
+  // RFC para factura
+  const [necesitaFactura, setNecesitaFactura] = useState(false);
+  const [rfcCliente, setRfcCliente] = useState('');
+  const [razonSocial, setRazonSocial] = useState('');
+  const [cfdiUso, setCfdiUso] = useState('G03'); // G03 = Gastos en general
 
   React.useEffect(() => { setRedeemPoints(false); setPointsToRedeem(0); }, [selectedCustomer]);
   // Modes: 'single' | 'split_amount' | 'split_items'
@@ -554,6 +560,68 @@ export default function PaymentModal({
           {mode === 'single' && (
             <>
               <div>
+                {/* ── FACTURACIÓN (RFC) ── */}
+                <div className="mb-5">
+                  <button
+                    onClick={() => setNecesitaFactura(v => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: necesitaFactura ? '#3b82f6' : '#e5e7eb',
+                      backgroundColor: necesitaFactura ? '#eff6ff' : '#f9fafb',
+                      color: necesitaFactura ? '#1d4ed8' : '#6b7280',
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      🧾 ¿El cliente necesita factura?
+                    </span>
+                    <div className="w-9 h-5 rounded-full relative transition-all"
+                      style={{ backgroundColor: necesitaFactura ? '#3b82f6' : '#d1d5db' }}>
+                      <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
+                        style={{ left: necesitaFactura ? '18px' : '2px' }} />
+                    </div>
+                  </button>
+                  {necesitaFactura && (
+                    <div className="mt-3 space-y-2.5 p-3 rounded-xl border border-blue-100 bg-blue-50">
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-800 mb-1">RFC del cliente *</label>
+                        <input
+                          value={rfcCliente}
+                          onChange={e => setRfcCliente(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                          placeholder="XAXX010101000 (público en general)"
+                          maxLength={13}
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-mono focus:outline-none focus:border-blue-400 bg-white"
+                        />
+                        <p className="text-xs text-blue-500 mt-1">RFC sin factura: XAXX010101000</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-800 mb-1">Razón social</label>
+                        <input
+                          value={razonSocial}
+                          onChange={e => setRazonSocial(e.target.value.toUpperCase())}
+                          placeholder="NOMBRE O EMPRESA S.A. DE C.V."
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-800 mb-1">Uso del CFDI</label>
+                        <select
+                          value={cfdiUso}
+                          onChange={e => setCfdiUso(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-white"
+                        >
+                          <option value="G01">G01 — Adquisición de mercancias</option>
+                          <option value="G03">G03 — Gastos en general</option>
+                          <option value="D01">D01 — Honorarios médicos</option>
+                          <option value="S01">S01 — Sin efectos fiscales</option>
+                        </select>
+                      </div>
+                      <p className="text-xs text-blue-400 bg-blue-50 rounded-lg p-2">
+                        📋 Los datos quedan guardados en la orden. Tu contador los usa para timbrar el CFDI en el PAC.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <p className="text-sm font-semibold text-gray-700 mb-2">Método de pago</p>
                 <div className="grid grid-cols-2 gap-3">
                   {(['efectivo', 'tarjeta'] as const).map((m) => (
