@@ -120,6 +120,9 @@ export default function DashboardKPIs() {
     alertasInventario: [] as string[],
     gastosPorPagar: [] as {nombre:string;monto:number;proximo_pago:string}[],
     totalGastosPorPagar: 0,
+    puntoEquilibrioHoy: 0,   // cuánto necesita vender hoy para cubrir costos fijos
+    proyeccionCierre: 0,      // proyección de ventas al cierre del día
+    horasTranscurridas: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -199,6 +202,29 @@ export default function DashboardKPIs() {
         });
         const totalGastosPorPagar = gastosPorPagar.reduce((s: number, g: any) => s + Number(g.monto), 0);
 
+        // Punto de equilibrio diario (gastos fijos ÷ 30)
+        // Usar nómina + gastos recurrentes del tenant
+        const { data: empData } = await supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', getTenantId()).eq('status', 'activo');
+        const { data: gastosData } = await supabase.from('gastos_recurrentes').select('monto, frecuencia').eq('tenant_id', getTenantId()).eq('activo', true);
+        const nominaMes = (empData ?? []).reduce((s: number, e: any) => {
+          const sal = Number(e.salary ?? 0);
+          const freq = e.salary_frequency ?? 'mensual';
+          return s + (freq === 'quincenal' ? sal * 2 : freq === 'semanal' ? sal * 4.33 : sal);
+        }, 0);
+        const gastosMes = (gastosData ?? []).reduce((s: number, g: any) => {
+          const f = g.frecuencia ?? 'mensual';
+          const factor = f==='diario'?30 : f==='semanal'?4.33 : f==='quincenal'?2 : f==='mensual'?1 : f==='bimestral'?0.5 : f==='trimestral'?1/3 : f==='semestral'?1/6 : 1/12;
+          return s + Number(g.monto ?? 0) * factor;
+        }, 0);
+        const costosFijosMes = nominaMes + gastosMes;
+        const puntoEquilibrioHoy = costosFijosMes > 0 ? Math.round(costosFijosMes / 30) : 0;
+
+        // Proyección de cierre (extrapolación lineal por hora del día)
+        const horasTranscurridas = nowMX.getHours() + nowMX.getMinutes() / 60;
+        const proyeccionCierre = horasTranscurridas > 1
+          ? Math.round((ventasHoy / horasTranscurridas) * 24 * 0.6) // factor 0.6 = no lineal, hay horas pico
+          : 0;
+
         setKpis({
           ventasHoy, ventasAyer,
           ordenesAbiertas: (abiertas || []).length,
@@ -210,6 +236,8 @@ export default function DashboardKPIs() {
           alertasInventario,
           gastosPorPagar: gastosPorPagar as {nombre:string;monto:number;proximo_pago:string}[],
           totalGastosPorPagar,
+          puntoEquilibrioHoy, proyeccionCierre,
+          horasTranscurridas,
         });
       } catch (err) {
         console.error('Dashboard KPI fetch error:', err);
@@ -305,6 +333,35 @@ export default function DashboardKPIs() {
         alert={kpis.mermaHoy > 0}
         loading={loading}
       />
+
+      {/* Punto de equilibrio */}
+      {kpis.puntoEquilibrioHoy > 0 && (
+        <div className="kpi-card col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Punto de equilibrio hoy</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+              {kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? '✓ Cubierto' : `Faltan $${(kpis.puntoEquilibrioHoy - kpis.ventasHoy).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`}
+            </span>
+          </div>
+          <div className="flex items-end gap-3 mb-3">
+            <span className="text-2xl font-black text-gray-900">${kpis.ventasHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
+            <span className="text-sm text-gray-400 mb-0.5">de ${kpis.puntoEquilibrioHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })} necesarios</span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.min(100, (kpis.ventasHoy / kpis.puntoEquilibrioHoy) * 100)}%`,
+                backgroundColor: kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? '#22c55e' : '#f59e0b',
+              }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            {Math.round((kpis.ventasHoy / kpis.puntoEquilibrioHoy) * 100)}% del punto de equilibrio diario
+            {kpis.proyeccionCierre > 0 && ` · Proyección cierre: $${kpis.proyeccionCierre.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`}
+          </p>
+        </div>
+      )}
 
       {/* Gastos por pagar alert */}
       {/* Gastos por pagar — prominent card with list */}

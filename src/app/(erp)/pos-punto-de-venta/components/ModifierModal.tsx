@@ -66,8 +66,19 @@ export interface ExtraIngredient {
 type IngredientState = 'normal' | 'excluded' | 'extra';
 
 const QUICK_NOTES = [
-  'Sin sal', 'Poco picante', 'Muy picante', 'Sin hielo',
-  'Bien cocido', 'Término medio', 'Sin salsa', 'Extra salsa',
+  // Temperatura / cocción
+  'Sin sal', 'Poco sal',
+  'Sin picante', 'Poco picante', 'Muy picante', 'Extra picante',
+  'Bien cocido', 'Término medio', 'Término rojo',
+  // Ingredientes
+  'Sin cebolla', 'Sin cilantro', 'Sin ajo', 'Sin chile',
+  'Sin salsa', 'Extra salsa', 'Sin crema', 'Extra crema',
+  'Sin aguacate', 'Extra aguacate', 'Sin queso', 'Extra queso',
+  // Bebidas
+  'Sin hielo', 'Poco hielo', 'Mucho hielo',
+  'Sin azúcar', 'Poco azúcar', 'Extra dulce',
+  // Preferencias
+  'Para llevar', 'Urgente', 'Alergia', 'Para niño',
 ];
 
 export default function ModifierModal({ item, onConfirm, onCancel }: ModifierModalProps) {
@@ -253,10 +264,10 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
   };
 
   function ingBtnStyle(state: IngredientState, isRequired: boolean) {
-    if (isRequired) return { padding:'7px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'rgba(255,255,255,0.3)', fontSize:'12px', cursor:'not-allowed' as const, display:'flex', alignItems:'center', gap:'5px' };
-    if (state === 'excluded') return { padding:'7px 12px', borderRadius:'8px', border:'1px solid rgba(239,68,68,0.35)', background:'rgba(239,68,68,0.12)', color:'#f87171', fontSize:'12px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'5px', textDecoration:'line-through' as const };
-    if (state === 'extra') return { padding:'7px 12px', borderRadius:'8px', border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.12)', color:'#fbbf24', fontSize:'12px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'5px', fontWeight:600 };
-    return { padding:'7px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'12px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'5px' };
+    if (isRequired) return { padding:'10px 16px', borderRadius:'10px', border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'rgba(255,255,255,0.3)', fontSize:'13px', cursor:'not-allowed' as const, display:'flex', alignItems:'center', gap:'6px', minHeight:'44px' };
+    if (state === 'excluded') return { padding:'10px 16px', borderRadius:'10px', border:'1px solid rgba(239,68,68,0.35)', background:'rgba(239,68,68,0.12)', color:'#f87171', fontSize:'13px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'6px', textDecoration:'line-through' as const, minHeight:'44px' };
+    if (state === 'extra') return { padding:'10px 16px', borderRadius:'10px', border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.12)', color:'#fbbf24', fontSize:'13px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'6px', fontWeight:600, minHeight:'44px' };
+    return { padding:'10px 16px', borderRadius:'10px', border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'rgba(255,255,255,0.6)', fontSize:'13px', cursor:'pointer' as const, display:'flex', alignItems:'center', gap:'6px', minHeight:'44px' };
   }
 
   function ingBtnLabel(state: IngredientState, name: string, isRequired: boolean) {
@@ -424,13 +435,22 @@ export default function ModifierModal({ item, onConfirm, onCancel }: ModifierMod
                       {/* Quick notes */}
                       <div style={{marginBottom:'10px'}}>
                         <div style={{fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.35)', textTransform:'uppercase' as const, letterSpacing:'0.07em', marginBottom:'8px'}}>Notas rápidas</div>
-                        <div style={{display:'flex', flexWrap:'wrap' as const, gap:'6px'}}>
-                          {QUICK_NOTES.map(n => (
-                            <button key={n} onClick={() => appendQuickNote(idx, n)}
-                              style={{padding:'5px 11px', borderRadius:'7px', border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'rgba(255,255,255,0.45)', fontSize:'12px', cursor:'pointer'}}>
-                              {n}
-                            </button>
-                          ))}
+                        <div style={{display:'flex', flexWrap:'wrap' as const, gap:'6px', maxHeight:'130px', overflowY:'auto' as const}}>
+                          {QUICK_NOTES.map(n => {
+                            const isSelected = rows[idx].note.includes(n);
+                            return (
+                              <button key={n} onClick={() => appendQuickNote(idx, n)}
+                                style={{
+                                  padding:'8px 12px', borderRadius:'8px', minHeight:'36px',
+                                  border: isSelected ? '1px solid rgba(245,158,11,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                                  background: isSelected ? 'rgba(245,158,11,0.12)' : 'transparent',
+                                  color: isSelected ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                                  fontSize:'12px', cursor:'pointer', fontWeight: isSelected ? 600 : 400,
+                                }}>
+                                {n}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
