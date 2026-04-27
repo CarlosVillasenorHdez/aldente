@@ -584,6 +584,7 @@ export default function AnalisisFinanciero() {
   const [cortesias,    setCortesias]    = useState(0);
   const [nomina,       setNomina]       = useState(0);
   const [nominaDetalle, setNominaDetalle] = useState<ResumenNomina | null>(null);
+  const [nominaPagadaReal, setNominaPagadaReal] = useState<number | null>(null);
   const nominaConfig = useNominaConfig();
   const [gastosOp,     setGastosOp]     = useState<{nombre:string;monto:number;cat:string;metodo:string;proveedor:string;dias_credito:number}[]>([]);
   const [depTotal,     setDepTotal]     = useState(0);
@@ -644,6 +645,7 @@ export default function AnalisisFinanciero() {
       { data: usersData },
       { data: extrasData },
       { data: loyaltyTxData },
+      { data: pagosNominaData },
     ] = await Promise.all([
       supabase.from('orders').select('total,cost_actual,pay_method,discount,iva,is_cortesia')
         .eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false)
@@ -664,6 +666,9 @@ export default function AnalisisFinanciero() {
         .gte('sold_at', start).lte('sold_at', end),
       supabase.from('loyalty_transactions').select('financial_impact_type,financial_amount,type').eq('tenant_id', tid)
         .gte('created_at', start).lte('created_at', end),
+      supabase.from('pagos_nomina').select('monto_pagado').eq('tenant_id', tid)
+        .in('status', ['pagado','parcial'])
+        .gte('periodo_inicio', start.split('T')[0]).lte('periodo_fin', end.split('T')[0]),
     ]);
 
     // Ventas
@@ -709,8 +714,14 @@ export default function AnalisisFinanciero() {
     }));
     const flags = { incluyeIMSS: nominaConfig.incluyeIMSS, incluyeINFONAVIT: nominaConfig.incluyeINFONAVIT, incluyePrestaciones: nominaConfig.incluyePrestaciones };
     const resumenNom = calcResumenNominaConConfig(empleadosActivos, flags);
+    // Si hay pagos reales registrados en el período, usar ese monto
+    const nominaPagadaTotal = (pagosNominaData ?? []).reduce((s: number, p: any) => s + Number(p.monto_pagado ?? 0), 0);
+    if (nominaPagadaTotal > 0) setNominaPagadaReal(nominaPagadaTotal);
+    else setNominaPagadaReal(null);
     // El total incluye salarios + IMSS patronal + INFONAVIT + prestaciones prorrateadas
-    setNomina(resumenNom.totalNomina * periodFactor);
+    // Si hay pagos reales registrados, usar ese monto; si no, usar la estimación
+    const nominaFinal = nominaPagadaTotal > 0 ? nominaPagadaTotal : resumenNom.totalNomina * periodFactor;
+    setNomina(nominaFinal);
     setNominaDetalle(resumenNom);
 
     // Gastos operativos
@@ -783,7 +794,7 @@ export default function AnalisisFinanciero() {
     ] : []),
     { concepto: '',                                         monto: 0,            tipo: 'divider' },
     { concepto: 'GASTOS OPERATIVOS',                        monto: 0,            tipo: 'header' },
-    { concepto: 'Sueldos y salarios',                          monto: (nominaDetalle?.salariosBrutos ?? nomina * 0.70) * periodFactor, tipo: 'item', indent:1, note: `${nominaDetalle?.empleados ?? 0} empleados · Configurable en Personal` },
+    { concepto: 'Sueldos y salarios',                          monto: (nominaDetalle?.salariosBrutos ?? nomina * 0.70) * periodFactor, tipo: 'item', indent:1, note: `${nominaDetalle?.empleados ?? 0} empleados · ${nominaPagadaReal !== null ? '✓ Monto real pagado' : 'Estimado — Configurable en Personal'}` },
     { concepto: 'Cuotas IMSS patronal',                         monto: (nominaDetalle?.cuotasIMSS ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'EM + IV + Guarderías + RT' },
     { concepto: 'INFONAVIT (5% SBC)',                           monto: (nominaDetalle?.cuotasINFONAVIT ?? 0) * periodFactor, tipo: 'item', indent:1 },
     { concepto: 'Prestaciones prorrateadas',                    monto: (nominaDetalle?.prestacionesMensuales ?? 0) * periodFactor, tipo: 'item', indent:1, note: 'Aguinaldo + prima vac. + vacaciones' },

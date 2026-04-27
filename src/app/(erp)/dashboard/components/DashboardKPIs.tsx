@@ -111,6 +111,8 @@ export default function DashboardKPIs() {
   const { features } = useFeatures();
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  const [proximaNomina, setProximaNomina] = useState<{ diasPara: number; monto: number; frecuencia: string } | null>(null);
+
   const [kpis, setKpis] = useState({
     ventasHoy: 0, ventasAyer: 0,
     ordenesAbiertas: 0, totalMesas: 0, mesasOcupadas: 0,
@@ -201,6 +203,20 @@ export default function DashboardKPIs() {
           return diffDias <= 7; // due in 7 days or overdue
         });
         const totalGastosPorPagar = gastosPorPagar.reduce((s: number, g: any) => s + Number(g.monto), 0);
+
+        // Próximo pago de nómina
+        const { data: ultimoPagoNom } = await supabase.from('pagos_nomina')
+          .select('fecha_pago, frecuencia, monto_pagado')
+          .eq('tenant_id', getTenantId()).eq('status', 'pagado')
+          .order('fecha_pago', { ascending: false }).limit(1).maybeSingle();
+        
+        if (ultimoPagoNom) {
+          const freq = ultimoPagoNom.frecuencia ?? 'mensual';
+          const diasCiclo = freq === 'semanal' ? 7 : freq === 'quincenal' ? 15 : 30;
+          const diasDesde = Math.floor((Date.now() - new Date(ultimoPagoNom.fecha_pago).getTime()) / 86400000);
+          const diasPara = Math.max(0, diasCiclo - diasDesde);
+          setProximaNomina({ diasPara, monto: Number(ultimoPagoNom.monto_pagado), frecuencia: freq });
+        }
 
         // Punto de equilibrio diario (gastos fijos ÷ 30)
         // Usar nómina + gastos recurrentes del tenant
@@ -333,6 +349,23 @@ export default function DashboardKPIs() {
         alert={kpis.mermaHoy > 0}
         loading={loading}
       />
+
+      {/* Recordatorio próxima nómina */}
+      {proximaNomina !== null && (
+        <div className="kpi-card">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Nómina</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proximaNomina.diasPara <= 3 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+              {proximaNomina.diasPara === 0 ? '¡Hoy!' : `${proximaNomina.diasPara}d`}
+            </span>
+          </div>
+          <p className="text-xl font-black text-gray-900">${Math.round(proximaNomina.monto).toLocaleString('es-MX')}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {proximaNomina.diasPara === 0 ? 'Vence hoy — ' : `En ${proximaNomina.diasPara} días — `}
+            <a href="/recursos-humanos" className="text-blue-600 underline">Registrar pago</a>
+          </p>
+        </div>
+      )}
 
       {/* Punto de equilibrio */}
       {kpis.puntoEquilibrioHoy > 0 && (
