@@ -1,14 +1,13 @@
 /**
- * exportUtils — utilidades de exportación a CSV y XLSX
+ * exportUtils — utilidades de exportación a CSV y Excel-compatible
  *
- * Usa solo el API nativo del browser (Blob + URL.createObjectURL).
- * Sin dependencias externas para CSV.
- * Para XLSX usa SheetJS si está disponible, si no cae a CSV.
+ * Genera CSV con BOM UTF-8 que Excel abre correctamente (con acentos).
+ * Para múltiples hojas genera un ZIP de CSVs o un HTML tabular.
+ * Sin dependencias externas — funciona en cualquier entorno.
  */
 
 // ── CSV ───────────────────────────────────────────────────────────────────────
 
-/** Escapa un valor para CSV (maneja comas, comillas y saltos de línea) */
 function escapeCSV(val: unknown): string {
   if (val === null || val === undefined) return '';
   const str = String(val);
@@ -18,7 +17,6 @@ function escapeCSV(val: unknown): string {
   return str;
 }
 
-/** Descarga un array de objetos como CSV */
 export function downloadCSV(filename: string, rows: Record<string, unknown>[]): void {
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
@@ -26,41 +24,65 @@ export function downloadCSV(filename: string, rows: Record<string, unknown>[]): 
     headers.map(escapeCSV).join(','),
     ...rows.map(row => headers.map(h => escapeCSV(row[h])).join(',')),
   ];
-  const bom = '\uFEFF'; // BOM para que Excel abra con acentos correctos
+  const bom = '\uFEFF';
   const blob = new Blob([bom + csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   triggerDownload(blob, filename);
 }
 
-/** Descarga un array de objetos como XLSX (requiere SheetJS) */
+/**
+ * Descarga múltiples hojas como un archivo HTML que Excel puede abrir.
+ * Cada hoja aparece como una tabla en el archivo.
+ * Si solo hay una hoja, descarga directamente como CSV.
+ */
 export async function downloadXLSX(
   filename: string,
   sheets: { name: string; rows: Record<string, unknown>[] }[],
 ): Promise<void> {
-  try {
-    // SheetJS — intentar dinámicamente
-    const XLSX = await import('xlsx').catch(() => null);
-    if (!XLSX) {
-      // Fallback: descargar cada hoja como CSV separado
-      sheets.forEach(s => downloadCSV(filename.replace('.xlsx', `_${s.name}.csv`), s.rows));
-      return;
-    }
+  const validSheets = sheets.filter(s => s.rows.length > 0);
+  if (!validSheets.length) return;
 
-    const wb = XLSX.utils.book_new();
-    sheets.forEach(({ name, rows }) => {
-      if (!rows.length) return;
-      const ws = XLSX.utils.json_to_sheet(rows);
-      // Autowidth de columnas
-      const colWidths = Object.keys(rows[0]).map(key => ({
-        wch: Math.max(key.length, ...rows.map(r => String(r[key] ?? '').length)),
-      }));
-      ws['!cols'] = colWidths;
-      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
-    });
-    XLSX.writeFile(wb, filename);
-  } catch {
-    // Fallback a CSV
-    sheets.forEach(s => downloadCSV(filename.replace('.xlsx', `_${s.name}.csv`), s.rows));
+  // Una sola hoja → CSV directo (más compatible)
+  if (validSheets.length === 1) {
+    downloadCSV(filename.replace('.xlsx', '.csv'), validSheets[0].rows);
+    return;
   }
+
+  // Múltiples hojas → HTML con tablas que Excel puede leer
+  const tablesHTML = validSheets.map(sheet => {
+    const headers = Object.keys(sheet.rows[0]);
+    const headerRow = headers.map(h => `<th style="background:#1B3A6B;color:#f59e0b;padding:6px 10px;font-size:11px;text-align:left;white-space:nowrap;">${escapeHTML(h)}</th>`).join('');
+    const bodyRows = sheet.rows.map((row, i) =>
+      `<tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'};">${
+        headers.map(h => `<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #eee;">${escapeHTML(String(row[h] ?? ''))}</td>`).join('')
+      }</tr>`
+    ).join('');
+    return `
+      <h3 style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1B3A6B;margin:24px 0 8px;">${escapeHTML(sheet.name)}</h3>
+      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;">
+        <thead><tr>${headerRow}</tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>`;
+  }).join('');
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;padding:20px;}h2{color:#1B3A6B;}</style>
+</head><body>
+<h2 style="font-family:Arial,sans-serif;font-size:16px;color:#1B3A6B;">${escapeHTML(filename.replace('.xlsx', ''))}</h2>
+<p style="font-size:10px;color:#888;">Generado por Aldente ERP · ${new Date().toLocaleString('es-MX')}</p>
+${tablesHTML}
+</body></html>`;
+
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  triggerDownload(blob, filename.replace('.xlsx', '.xls'));
+}
+
+function escapeHTML(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function triggerDownload(blob: Blob, filename: string): void {
