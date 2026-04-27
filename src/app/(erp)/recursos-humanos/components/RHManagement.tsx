@@ -1,4 +1,5 @@
 'use client';
+import { calcLiquidacion, calcSaldoVacaciones, type MotivoBaja } from '@/lib/laboralMX';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -31,7 +32,7 @@ interface Incapacidad {
   notas: string | null;
   created_at: string;
 }
-type ActiveTab = 'vacaciones' | 'permisos' | 'tiempos_extras' | 'incapacidades' | 'resumen';
+type ActiveTab = 'vacaciones' | 'permisos' | 'tiempos_extras' | 'incapacidades' | 'resumen' | 'liquidacion';
 
 interface Employee {
   id: string;
@@ -166,6 +167,145 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+
+// ─── Calculadora de Liquidación / Finiquito ───────────────────────────────────
+
+function LiquidacionCalculator({ employees }: { employees: { id: string; name: string; role: string; salary: number; salaryFrequency: string; hireDate: string; [key: string]: unknown }[] }) {
+  const [empId, setEmpId]         = useState('');
+  const [motivo, setMotivo]       = useState<MotivoBaja>('renuncia_voluntaria');
+  const [fechaBaja, setFechaBaja] = useState(new Date().toISOString().substring(0, 10));
+  const [diasTomados, setDiasTomados] = useState(0);
+
+  const emp = employees.find(e => e.id === empId);
+  const salMes = emp ? (emp.salaryFrequency === 'quincenal' ? emp.salary * 2 : emp.salaryFrequency === 'semanal' ? emp.salary * 4.33 : emp.salary) : 0;
+
+  const resultado = emp && emp.hireDate && fechaBaja ? calcLiquidacion(
+    salMes,
+    new Date(emp.hireDate),
+    new Date(fechaBaja),
+    motivo,
+    diasTomados,
+  ) : null;
+
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-MX')}`;
+  const inp = "w-full px-3 py-2.5 rounded-lg text-sm outline-none";
+  const s = { backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' };
+
+  const motivoLabels: Record<MotivoBaja, string> = {
+    renuncia_voluntaria: 'Renuncia voluntaria',
+    despido_injustificado: 'Despido injustificado',
+    despido_justificado: 'Despido justificado (causa grave)',
+    termino_contrato: 'Término de contrato',
+    mutuo_acuerdo: 'Mutuo acuerdo',
+    fallecimiento: 'Fallecimiento',
+  };
+
+  return (
+    <div className="p-6 max-w-2xl space-y-5">
+      <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+        <p className="text-xs text-amber-300">⚠️ Esta calculadora es orientativa. Los montos exactos pueden variar según antigüedad, convenios colectivos y resoluciones laborales. Confirma con tu abogado laboral.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Empleado</label>
+          <select className={inp} style={s} value={empId} onChange={e => setEmpId(e.target.value)}>
+            <option value="">Seleccionar...</option>
+            {employees.filter(e => e.hireDate).map(e => <option key={e.id} value={e.id} style={{ backgroundColor: '#162d55' }}>{e.name} — {e.role}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Fecha de baja</label>
+          <input type="date" className={inp} style={{ ...s, colorScheme: 'dark' }} value={fechaBaja} onChange={e => setFechaBaja(e.target.value)} />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Motivo de la baja</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.entries(motivoLabels) as [MotivoBaja, string][]).map(([v, l]) => (
+              <label key={v} className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer" style={{ border: `1px solid ${motivo === v ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.1)'}`, backgroundColor: motivo === v ? 'rgba(245,158,11,0.08)' : 'transparent' }}>
+                <input type="radio" checked={motivo === v} onChange={() => setMotivo(v)} />
+                <span className="text-xs text-gray-200">{l}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Días de vacaciones ya tomados</label>
+          <input type="number" min={0} className={inp} style={s} value={diasTomados} onChange={e => setDiasTomados(Number(e.target.value))} />
+        </div>
+      </div>
+
+      {resultado && emp && (
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #243f72' }}>
+          <div className="px-5 py-3" style={{ backgroundColor: '#162032' }}>
+            <p className="text-sm font-bold text-white">{emp.name} — {motivoLabels[motivo]}</p>
+            <p className="text-xs text-gray-400">{resultado.aniosServicio} años de servicio · SD: {fmt(resultado.salarioDiario)}/día</p>
+          </div>
+        <div className="divide-y divide-[#1e2d3d]">
+            {/* Finiquito */}
+            <div className="px-5 py-3 space-y-2">
+              <p className="text-xs font-bold text-blue-400 uppercase tracking-wide">Finiquito (siempre aplica)</p>
+              {[
+                { label: `Vacaciones pendientes (${resultado.finiquito.diasVacacionesPendientes} días)`, val: resultado.finiquito.vacaciones },
+                { label: 'Prima vacacional (25%)', val: resultado.finiquito.primaVacacional },
+                { label: 'Aguinaldo proporcional', val: resultado.finiquito.aguinaldoProporcional },
+              ].map(r => (
+                <div key={r.label} className="flex justify-between text-sm">
+                  <span className="text-gray-300">{r.label}</span>
+                  <span className="text-white font-mono">{fmt(r.val)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-sm pt-1" style={{ borderTop: '1px solid #243f72' }}>
+                <span className="font-semibold text-blue-300">Subtotal finiquito</span>
+                <span className="font-bold text-blue-300 font-mono">{fmt(resultado.finiquito.totalFiniquito)}</span>
+              </div>
+            </div>
+
+            {/* Indemnización */}
+            {resultado.totalIndemnizacion > 0 && (
+              <div className="px-5 py-3 space-y-2">
+                <p className="text-xs font-bold text-red-400 uppercase tracking-wide">Indemnización constitucional</p>
+                {resultado.tresMesesSalario > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">3 meses de salario (90 días)</span>
+                    <span className="text-white font-mono">{fmt(resultado.tresMesesSalario)}</span>
+                  </div>
+                )}
+                {resultado.veintieDiasPorAnio > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">20 días × {resultado.aniosServicio} años</span>
+                    <span className="text-white font-mono">{fmt(resultado.veintieDiasPorAnio)}</span>
+                  </div>
+                )}
+                {resultado.primaAntiguedad > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">Prima de antigüedad (12 días × {resultado.aniosServicio} años)</span>
+                    <span className="text-white font-mono">{fmt(resultado.primaAntiguedad)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm pt-1" style={{ borderTop: '1px solid #243f72' }}>
+                  <span className="font-semibold text-red-300">Subtotal indemnización</span>
+                  <span className="font-bold text-red-300 font-mono">{fmt(resultado.totalIndemnizacion)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Total */}
+            <div className="px-5 py-4" style={{ backgroundColor: 'rgba(245,158,11,0.06)' }}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-base font-bold text-white">TOTAL A PAGAR</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Antes de deducciones fiscales del empleado</p>
+                </div>
+                <p className="text-2xl font-black" style={{ color: '#f59e0b' }}>{fmt(resultado.totalLiquidacion)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RHManagement() {
   const supabase = createClient();
@@ -354,6 +494,7 @@ export default function RHManagement() {
     { key: 'tiempos_extras', label: 'Tiempos Extras', icon: Clock },
     { key: 'incapacidades', label: 'Incapacidades', icon: AlertCircle },
     { key: 'resumen', label: 'Resumen Nómina', icon: TrendingUp },
+    { key: 'liquidacion', label: '⚖️ Liquidación', icon: TrendingUp },
   ];
 
   async function saveIncapacidad() {
@@ -767,6 +908,11 @@ export default function RHManagement() {
                   </table>
                 </div>
               </div>
+            )}
+
+            {/* ── TAB: LIQUIDACIÓN Y FINIQUITO ── */}
+            {activeTab === 'liquidacion' && (
+              <LiquidacionCalculator employees={employees as any} />
             )}
           </>
         )}

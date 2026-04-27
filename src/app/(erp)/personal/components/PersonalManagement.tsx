@@ -30,6 +30,23 @@ interface Employee {
   status: Status;
   salary: number;
   salaryFrequency: SalaryFrequency;
+  // Campos legales
+  rfc: string;
+  nss: string;
+  curp: string;
+  fechaNacimiento: string;
+  direccion: string;
+  tipoContrato: string;
+  fechaBaja: string;
+  motivoBaja: string;
+  // Pago
+  banco: string;
+  cuentaBancaria: string;
+  clabe: string;
+  // Emergencia
+  contactoEmergenciaNombre: string;
+  contactoEmergenciaTel: string;
+  departamento: string;
 }
 
 const ROLES: Role[] = ['Administrador', 'Gerente', 'Cajero', 'Mesero', 'Cocinero', 'Ayudante de Cocina', 'Repartidor'];
@@ -76,6 +93,10 @@ function toMonthlySalary(salary: number, freq: SalaryFrequency): number {
 const emptyForm = (): Omit<Employee, 'id'> => ({
   name: '', role: 'Mesero', phone: '', hireDate: '', status: 'activo',
   salary: 0, salaryFrequency: 'mensual',
+  rfc: '', nss: '', curp: '', fechaNacimiento: '', direccion: '',
+  tipoContrato: 'planta', fechaBaja: '', motivoBaja: '',
+  banco: '', cuentaBancaria: '', clabe: '',
+  contactoEmergenciaNombre: '', contactoEmergenciaTel: '', departamento: '',
 });
 
 // ─── Shift Schedule Types ─────────────────────────────────────────────────────
@@ -180,6 +201,20 @@ export default function PersonalManagement() {
         status: e.status as Status,
         salary: Number(e.salary ?? 0),
         salaryFrequency: (e.salary_frequency ?? 'mensual') as SalaryFrequency,
+        rfc: (e as any).rfc ?? '',
+        nss: (e as any).nss ?? '',
+        curp: (e as any).curp ?? '',
+        fechaNacimiento: (e as any).fecha_nacimiento ?? '',
+        direccion: (e as any).direccion ?? '',
+        tipoContrato: (e as any).tipo_contrato ?? 'planta',
+        fechaBaja: (e as any).fecha_baja ?? '',
+        motivoBaja: (e as any).motivo_baja ?? '',
+        banco: (e as any).banco ?? '',
+        cuentaBancaria: (e as any).cuenta_bancaria ?? '',
+        clabe: (e as any).clabe ?? '',
+        contactoEmergenciaNombre: (e as any).contacto_emergencia_nombre ?? '',
+        contactoEmergenciaTel: (e as any).contacto_emergencia_tel ?? '',
+        departamento: (e as any).departamento ?? '',
       })));
     }
     setLoading(false);
@@ -238,7 +273,7 @@ export default function PersonalManagement() {
   function openAdd() { setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true); }
   function openEdit(emp: Employee) {
     setEditingId(emp.id);
-    setForm({ name: emp.name, role: emp.role, phone: emp.phone, hireDate: emp.hireDate, status: emp.status, salary: emp.salary, salaryFrequency: emp.salaryFrequency });
+    setForm({ name: emp.name, role: emp.role, phone: emp.phone, hireDate: emp.hireDate, status: emp.status, salary: emp.salary, salaryFrequency: emp.salaryFrequency, rfc: emp.rfc, nss: emp.nss, curp: emp.curp, fechaNacimiento: emp.fechaNacimiento, direccion: emp.direccion, tipoContrato: emp.tipoContrato, fechaBaja: emp.fechaBaja, motivoBaja: emp.motivoBaja, banco: emp.banco, cuentaBancaria: emp.cuentaBancaria, clabe: emp.clabe, contactoEmergenciaNombre: emp.contactoEmergenciaNombre, contactoEmergenciaTel: emp.contactoEmergenciaTel, departamento: emp.departamento });
     setFormErrors({});
     setModalOpen(true);
   }
@@ -258,6 +293,16 @@ export default function PersonalManagement() {
     if (editingId) {
       const { error } = await supabase.from('employees').update({
         name: form.name, role: form.role, phone: form.phone,
+        rfc: form.rfc, nss: form.nss, curp: form.curp,
+        fecha_nacimiento: form.fechaNacimiento || null,
+        direccion: form.direccion,
+        tipo_contrato: form.tipoContrato,
+        fecha_baja: form.fechaBaja || null,
+        motivo_baja: form.motivoBaja,
+        banco: form.banco, cuenta_bancaria: form.cuentaBancaria, clabe: form.clabe,
+        contacto_emergencia_nombre: form.contactoEmergenciaNombre,
+        contacto_emergencia_tel: form.contactoEmergenciaTel,
+        departamento: form.departamento,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,
         updated_at: new Date().toISOString(),
@@ -882,6 +927,85 @@ export default function PersonalManagement() {
                   </p>
                 )}
               </div>
+              {/* Datos legales */}
+              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#60a5fa' }}>📋 Datos legales y fiscales</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'RFC', key: 'rfc', placeholder: 'GOCA850101ABC' },
+                    { label: 'NSS (Núm. Seguridad Social)', key: 'nss', placeholder: '12345678901' },
+                    { label: 'CURP', key: 'curp', placeholder: 'GOCA850101HMCRCR01' },
+                    { label: 'Departamento / Área', key: 'departamento', placeholder: 'Cocina' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{f.label}</label>
+                      <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" placeholder={f.placeholder}
+                        value={(form as any)[f.key]} onChange={e => updateForm(f.key as any, e.target.value.toUpperCase())}
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Fecha de nacimiento</label>
+                    <input type="date" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" value={form.fechaNacimiento}
+                      onChange={e => updateForm('fechaNacimiento', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white', colorScheme: 'dark' }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Tipo de contrato</label>
+                    <select className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" value={form.tipoContrato}
+                      onChange={e => updateForm('tipoContrato', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
+                      {[['planta','Planta (indefinido)'],['temporal','Temporal'],['tiempo_parcial','Tiempo parcial'],['confianza','Confianza'],['honorarios','Honorarios / Freelance'],['otro','Otro']].map(([v,l]) =>
+                        <option key={v} value={v} style={{ backgroundColor: '#162d55' }}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Dirección</label>
+                    <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" placeholder="Calle, colonia, ciudad"
+                      value={form.direccion} onChange={e => updateForm('direccion', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos bancarios */}
+              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#34d399' }}>🏦 Datos bancarios (pago de nómina)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Banco', key: 'banco', placeholder: 'BBVA, Santander, HSBC...' },
+                    { label: 'Número de cuenta', key: 'cuentaBancaria', placeholder: '1234567890' },
+                    { label: 'CLABE interbancaria', key: 'clabe', placeholder: '012345678901234567' },
+                  ].map(f => (
+                    <div key={f.key} className={f.key === 'clabe' ? 'col-span-2' : ''}>
+                      <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{f.label}</label>
+                      <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" placeholder={f.placeholder}
+                        value={(form as any)[f.key]} onChange={e => updateForm(f.key as any, e.target.value)}
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contacto de emergencia */}
+              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#f87171' }}>🆘 Contacto de emergencia</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Nombre</label>
+                    <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" placeholder="Nombre del familiar"
+                      value={form.contactoEmergenciaNombre} onChange={e => updateForm('contactoEmergenciaNombre', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Teléfono</label>
+                    <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" placeholder="55 1234 5678" type="tel"
+                      value={form.contactoEmergenciaTel} onChange={e => updateForm('contactoEmergenciaTel', e.target.value)}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
+                  </div>
+                </div>
+              </div>
+
             </div>
             <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#243f72' }}>
               <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>

@@ -278,3 +278,166 @@ export function calcResumenNomina(
     factorPromedioEquipo:  salarios > 0 ? Math.round((total / salarios) * 100) / 100 : 1,
   };
 }
+
+// ── Liquidación y finiquito (LFT art. 48, 50, 76, 79, 80, 87) ────────────────
+
+export type MotivoBaja =
+  | 'renuncia_voluntaria'
+  | 'despido_injustificado'
+  | 'despido_justificado'
+  | 'termino_contrato'
+  | 'mutuo_acuerdo'
+  | 'fallecimiento';
+
+export interface CalculoFiniquito {
+  diasVacacionesPendientes: number;
+  vacaciones: number;              // pago por días de vacaciones pendientes
+  primaVacacional: number;         // 25% sobre vacaciones
+  aguinaldoProporcional: number;   // parte proporcional del año en curso
+  totalFiniquito: number;
+}
+
+export interface CalculoLiquidacion {
+  // Finiquito (siempre aplica)
+  finiquito: CalculoFiniquito;
+  // Indemnización (solo despido injustificado)
+  tresMesesSalario: number;        // 90 días × salario diario
+  veintieDiasPorAnio: number;      // 20 días × años de servicio × SD
+  primaAntiguedad: number;         // 12 días × años (solo si >15 años o despido)
+  totalIndemnizacion: number;
+  // Total
+  totalLiquidacion: number;
+  // Desglose
+  aniosServicio: number;
+  salarioDiario: number;
+  motivo: MotivoBaja;
+}
+
+/**
+ * Calcula el finiquito (aplica a cualquier tipo de baja)
+ * Incluye: vacaciones no tomadas + prima vacacional + aguinaldo proporcional
+ */
+export function calcFiniquito(
+  salarioMensual: number,
+  fechaIngreso: Date,
+  fechaBaja: Date,
+  diasVacacionesTomados = 0,
+): CalculoFiniquito {
+  const sd = salarioMensual / 30.4;
+  const anios = Math.max(0, (fechaBaja.getTime() - fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000));
+  const aniosCompletos = Math.floor(anios);
+
+  const diasVacCorresponden = diasVacacionesPorAntiguedad(Math.max(1, aniosCompletos));
+  const diasVacPendientes = Math.max(0, diasVacCorresponden - diasVacacionesTomados);
+
+  const vacaciones = Math.round(diasVacPendientes * sd);
+  const primaVacacional = Math.round(vacaciones * 0.25);
+
+  // Aguinaldo proporcional: días transcurridos del año / 365 × 15 días
+  const inicioAnio = new Date(fechaBaja.getFullYear(), 0, 1);
+  const diasDelAnio = Math.floor((fechaBaja.getTime() - inicioAnio.getTime()) / (24 * 3600 * 1000));
+  const aguinaldoProporcional = Math.round((diasDelAnio / 365) * 15 * sd);
+
+  return {
+    diasVacacionesPendientes: diasVacPendientes,
+    vacaciones, primaVacacional, aguinaldoProporcional,
+    totalFiniquito: vacaciones + primaVacacional + aguinaldoProporcional,
+  };
+}
+
+/**
+ * Calcula liquidación completa según motivo de baja (LFT)
+ *
+ * Despido injustificado: finiquito + 3 meses + 20 días/año + prima antigüedad
+ * Renuncia voluntaria:   finiquito + prima antigüedad (si >15 años)
+ * Término de contrato:   finiquito
+ * Despido justificado:   finiquito
+ */
+export function calcLiquidacion(
+  salarioMensual: number,
+  fechaIngreso: Date,
+  fechaBaja: Date,
+  motivo: MotivoBaja,
+  diasVacacionesTomados = 0,
+): CalculoLiquidacion {
+  const sd = salarioMensual / 30.4;
+  const anios = (fechaBaja.getTime() - fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000);
+  const aniosCompletos = Math.max(0, Math.floor(anios));
+  const finiquito = calcFiniquito(salarioMensual, fechaIngreso, fechaBaja, diasVacacionesTomados);
+
+  let tresMeses = 0, veintieDias = 0, primaAnt = 0;
+
+  if (motivo === 'despido_injustificado' || motivo === 'mutuo_acuerdo') {
+    tresMeses   = Math.round(90 * sd);
+    veintieDias = Math.round(20 * aniosCompletos * sd);
+    primaAnt    = Math.round(12 * aniosCompletos * sd);  // prima de antigüedad
+  } else if (motivo === 'renuncia_voluntaria' && aniosCompletos >= 15) {
+    primaAnt = Math.round(12 * aniosCompletos * sd);
+  }
+
+  const totalIndemnizacion = tresMeses + veintieDias + primaAnt;
+
+  return {
+    finiquito,
+    tresMesesSalario: tresMeses,
+    veintieDiasPorAnio: veintieDias,
+    primaAntiguedad: primaAnt,
+    totalIndemnizacion,
+    totalLiquidacion: finiquito.totalFiniquito + totalIndemnizacion,
+    aniosServicio: aniosCompletos,
+    salarioDiario: Math.round(sd * 100) / 100,
+    motivo,
+  };
+}
+
+// ── Días festivos LFT art. 74 (2025) ─────────────────────────────────────────
+
+export const DIAS_FESTIVOS_LFT_2025: { fecha: string; nombre: string }[] = [
+  { fecha: '2025-01-01', nombre: 'Año Nuevo' },
+  { fecha: '2025-02-03', nombre: 'Día de la Constitución (1er lunes feb)' },
+  { fecha: '2025-03-17', nombre: 'Natalicio de Benito Juárez (3er lunes mar)' },
+  { fecha: '2025-05-01', nombre: 'Día del Trabajo' },
+  { fecha: '2025-09-16', nombre: 'Independencia de México' },
+  { fecha: '2025-11-17', nombre: 'Revolución Mexicana (3er lunes nov)' },
+  { fecha: '2025-12-25', nombre: 'Navidad' },
+];
+
+/** Verifica si una fecha es festivo oficial LFT */
+export function esDiaFestivo(fecha: Date): string | null {
+  const iso = fecha.toISOString().substring(0, 10);
+  return DIAS_FESTIVOS_LFT_2025.find(d => d.fecha === iso)?.nombre ?? null;
+}
+
+/** Calcula si un día tiene prima dominical (domingo trabajado = +25%) */
+export function tienePrimaDominical(fecha: Date): boolean {
+  return fecha.getDay() === 0;  // 0 = domingo
+}
+
+// ── Vacaciones disponibles (control por empleado) ─────────────────────────────
+
+export interface SaldoVacaciones {
+  aniosCompletos: number;
+  diasCorresponden: number;   // según tabla LFT
+  diasTomados: number;
+  diasPendientes: number;
+  diasVencidos: number;       // si no tomó en el período (pierden vigencia a 1 año en MX)
+}
+
+export function calcSaldoVacaciones(
+  fechaIngreso: Date,
+  fechaReferencia: Date,
+  diasTomados: number,
+): SaldoVacaciones {
+  const anios = (fechaReferencia.getTime() - fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000);
+  const aniosCompletos = Math.floor(Math.max(0, anios));
+  const diasCorresponden = diasVacacionesPorAntiguedad(Math.max(1, aniosCompletos));
+  const diasPendientes = Math.max(0, diasCorresponden - diasTomados);
+
+  return {
+    aniosCompletos,
+    diasCorresponden,
+    diasTomados,
+    diasPendientes,
+    diasVencidos: 0,  // requeriría historial año por año
+  };
+}
