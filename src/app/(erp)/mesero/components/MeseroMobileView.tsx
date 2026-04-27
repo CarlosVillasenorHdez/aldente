@@ -23,6 +23,8 @@ interface Table {
   status: string;
   currentOrderId?: string;
   waiter?: string;
+  openedAt?: string | null;       // cuándo se abrió la orden
+  kitchenStatus?: string | null;  // si hay comanda lista para servir
 }
 
 const CATEGORIES = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas', 'Extras'];
@@ -72,6 +74,7 @@ export default function MeseroMobileView() {
   const { features } = useFeatures();
 
   const [tables, setTables] = useState<Table[]>([]);
+  const [tick, setTick] = useState(0); // Para actualizar el tiempo transcurrido cada minuto
   const [dishes, setDishes] = useState<DbDish[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [orderItems, setOrderItems] = useState<OrderFlowItem[]>([]);
@@ -134,17 +137,31 @@ export default function MeseroMobileView() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: tablesData }, { data: dishesData }] = await Promise.all([
+      const [{ data: tablesData }, { data: dishesData }, { data: ordersData }] = await Promise.all([
         activeBranch
         ? supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).eq('branch_id', activeBranch).order('number')
         : supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).order('number'),
         supabase.from('dishes').select('*').eq('tenant_id', getTenantId()).eq('available', true).order('category').order('name'),
+        supabase.from('orders').select('id, opened_at, kitchen_status')
+          .eq('tenant_id', getTenantId()).eq('status', 'abierta').eq('is_comanda', false),
       ]);
-      setTables((tablesData || []).map((t: DbTable) => ({
-        id: t.id, number: t.number, name: t.name, capacity: t.capacity,
-        status: t.status, currentOrderId: t.current_order_id ?? undefined,
-        waiter: (t as any).waiter ?? undefined,
-      })));
+
+      // Indexar órdenes por id para lookup rápido
+      const orderMap: Record<string, { openedAt: string; kitchenStatus: string }> = {};
+      (ordersData ?? []).forEach((o: any) => {
+        orderMap[o.id] = { openedAt: o.opened_at, kitchenStatus: o.kitchen_status };
+      });
+
+      setTables((tablesData || []).map((t: DbTable) => {
+        const ord = t.current_order_id ? orderMap[t.current_order_id] : null;
+        return {
+          id: t.id, number: t.number, name: t.name, capacity: t.capacity,
+          status: t.status, currentOrderId: t.current_order_id ?? undefined,
+          waiter: (t as any).waiter ?? undefined,
+          openedAt: ord?.openedAt ?? null,
+          kitchenStatus: ord?.kitchenStatus ?? null,
+        };
+      }));
       setDishes((dishesData || []) as DbDish[]);
     } catch (err: any) {
       toast.error('Error al cargar datos: ' + err.message);
@@ -154,6 +171,12 @@ export default function MeseroMobileView() {
   }, [supabase]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Tick cada 30s para actualizar los tiempos sin recargar datos
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const playReadyChime = React.useCallback(() => {
     try {
@@ -824,9 +847,18 @@ export default function MeseroMobileView() {
               const isLibre = table.status === 'libre';
               const isReady = readyOrders.includes(table.name);
 
+              // Tiempo transcurrido desde que se abrió la orden
+              const elapsedMin = table.openedAt && !isLibre
+                ? Math.floor((Date.now() - new Date(table.openedAt).getTime()) / 60000)
+                : null;
+              const isSlowTable = elapsedMin !== null && elapsedMin >= 45; // +45min = alerta
+              const isOrderReady = table.kitchenStatus === 'lista';
+
               let borderClass = '';
               let bgStyle: React.CSSProperties = {};
               if (isLibre) { borderClass = 'border-green-200'; bgStyle = { backgroundColor: '#f0fdf4' }; }
+              else if (isOrderReady && isMyTable) { borderClass = 'border-green-400'; bgStyle = { backgroundColor: '#f0fdf4' }; }
+              else if (isSlowTable && isMyTable) { borderClass = 'border-red-300'; bgStyle = { backgroundColor: '#fef2f2' }; }
               else if (isMyTable) { borderClass = 'border-amber-300'; bgStyle = { backgroundColor: '#fffbeb' }; }
               else if (isOtherTable) { borderClass = 'border-gray-200'; bgStyle = { backgroundColor: '#f9fafb', opacity: 0.6 }; }
               else { borderClass = 'border-amber-200'; bgStyle = { backgroundColor: '#fffbeb' }; }
@@ -846,13 +878,25 @@ export default function MeseroMobileView() {
                   className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 border-2 transition-all active:scale-95 ${borderClass} ${isOtherTable ? 'cursor-not-allowed' : 'hover:brightness-95'}`}
                   style={bgStyle}
                 >
-                  <span className="text-2xl">{isOtherTable ? '🔒' : isMyTable ? '🪑' : '🪑'}</span>
+                  <span className="text-2xl">
+                    {isOrderReady && isMyTable ? '🔔' : isOtherTable ? '🔒' : '🪑'}
+                  </span>
                   <span className="text-xs font-bold text-gray-800">{table.name}</span>
+
                   {isLibre && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Libre</span>}
-                  {isMyTable && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">Mi mesa</span>}
+
+                  {!isLibre && elapsedMin !== null && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                      isSlowTable ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {elapsedMin < 60 ? `${elapsedMin}min` : `${Math.floor(elapsedMin/60)}h${elapsedMin%60 > 0 ? elapsedMin%60+'m' : ''}`}
+                    </span>
+                  )}
+
+                  {isMyTable && !isOrderReady && <span className="text-xs text-amber-700 font-medium">Mi mesa</span>}
                   {isOtherTable && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500">{table.waiter?.split(' ')[0]}</span>}
-                  {!isLibre && !isMyTable && !isOtherTable && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">Espera</span>}
-                  {isReady && isMyTable && (
+
+                  {isOrderReady && isMyTable && (
                     <span className="text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse"
                       style={{ backgroundColor: '#bbf7d0', color: '#15803d' }}>
                       ✓ Lista
