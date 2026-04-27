@@ -1,10 +1,11 @@
 /**
- * exportUtils — utilidades de exportación a CSV y Excel-compatible
+ * exportUtils — utilidades de exportación a CSV y XLSX
  *
- * Genera CSV con BOM UTF-8 que Excel abre correctamente (con acentos).
- * Para múltiples hojas genera un ZIP de CSVs o un HTML tabular.
- * Sin dependencias externas — funciona en cualquier entorno.
+ * Usa SheetJS (xlsx) para generar archivos .xlsx nativos con múltiples hojas.
+ * CSV con BOM UTF-8 para compatibilidad con Excel en español.
  */
+
+import * as XLSX from 'xlsx';
 
 // ── CSV ───────────────────────────────────────────────────────────────────────
 
@@ -29,11 +30,8 @@ export function downloadCSV(filename: string, rows: Record<string, unknown>[]): 
   triggerDownload(blob, filename);
 }
 
-/**
- * Descarga múltiples hojas como un archivo HTML que Excel puede abrir.
- * Cada hoja aparece como una tabla en el archivo.
- * Si solo hay una hoja, descarga directamente como CSV.
- */
+// ── XLSX ──────────────────────────────────────────────────────────────────────
+
 export async function downloadXLSX(
   filename: string,
   sheets: { name: string; rows: Record<string, unknown>[] }[],
@@ -41,48 +39,32 @@ export async function downloadXLSX(
   const validSheets = sheets.filter(s => s.rows.length > 0);
   if (!validSheets.length) return;
 
-  // Una sola hoja → CSV directo (más compatible)
-  if (validSheets.length === 1) {
+  // Una sola hoja sin nombre específico → CSV es más simple
+  if (validSheets.length === 1 && !filename.endsWith('.xlsx')) {
     downloadCSV(filename.replace('.xlsx', '.csv'), validSheets[0].rows);
     return;
   }
 
-  // Múltiples hojas → HTML con tablas que Excel puede leer
-  const tablesHTML = validSheets.map(sheet => {
-    const headers = Object.keys(sheet.rows[0]);
-    const headerRow = headers.map(h => `<th style="background:#1B3A6B;color:#f59e0b;padding:6px 10px;font-size:11px;text-align:left;white-space:nowrap;">${escapeHTML(h)}</th>`).join('');
-    const bodyRows = sheet.rows.map((row, i) =>
-      `<tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'};">${
-        headers.map(h => `<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #eee;">${escapeHTML(String(row[h] ?? ''))}</td>`).join('')
-      }</tr>`
-    ).join('');
-    return `
-      <h3 style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1B3A6B;margin:24px 0 8px;">${escapeHTML(sheet.name)}</h3>
-      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;">
-        <thead><tr>${headerRow}</tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>`;
-  }).join('');
+  const wb = XLSX.utils.book_new();
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
-<head><meta charset="UTF-8">
-<style>body{font-family:Arial,sans-serif;padding:20px;}h2{color:#1B3A6B;}</style>
-</head><body>
-<h2 style="font-family:Arial,sans-serif;font-size:16px;color:#1B3A6B;">${escapeHTML(filename.replace('.xlsx', ''))}</h2>
-<p style="font-size:10px;color:#888;">Generado por Aldente ERP · ${new Date().toLocaleString('es-MX')}</p>
-${tablesHTML}
-</body></html>`;
+  validSheets.forEach(({ name, rows }) => {
+    const ws = XLSX.utils.json_to_sheet(rows);
 
-  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  triggerDownload(blob, filename.replace('.xlsx', '.xls'));
-}
+    // Autowidth de columnas
+    const colWidths = Object.keys(rows[0]).map(key => ({
+      wch: Math.max(
+        key.length + 2,
+        ...rows.map(r => String(r[key] ?? '').length),
+      ),
+    }));
+    ws['!cols'] = colWidths;
 
-function escapeHTML(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    // Estilo de encabezado (solo SheetJS Pro soporta estilos completos,
+    // pero el autowidth y la estructura sí funcionan en la versión libre)
+    XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+  });
+
+  XLSX.writeFile(wb, filename);
 }
 
 function triggerDownload(blob: Blob, filename: string): void {
