@@ -60,7 +60,7 @@ const COLUMNS: KitchenStatus[] = ['pendiente', 'preparacion', 'lista'];
 function useElapsedTick() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000); // cada segundo
     return () => clearInterval(id);
   }, []);
   return tick;
@@ -69,6 +69,16 @@ function useElapsedTick() {
 function calcElapsed(createdAt: string): number {
   const diff = Date.now() - new Date(createdAt).getTime();
   return Math.floor(diff / 60000);
+}
+
+/** Tiempo en formato MM:SS para el cronómetro */
+function calcElapsedMMSS(createdAt: string, startedAt?: string | null): string {
+  const from = startedAt ? new Date(startedAt) : new Date(createdAt);
+  const diff = Math.max(0, Date.now() - from.getTime());
+  const totalSec = Math.floor(diff / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 }
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
@@ -178,8 +188,18 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
             style={{ backgroundColor: timeBg, color: timeColor }}
           >
             <Clock size={10} />
-            <span>{isPrep ? elapsedForThisStatus : elapsed} min / {expected} min esperado</span>
+            <span className="font-mono text-sm tracking-wide">
+              {calcElapsedMMSS(order.createdAt, isPrep ? order.kitchenStartedAt : null)}
+            </span>
+            {!isLista && (
+              <span className="opacity-60">/ {expected}min</span>
+            )}
           </div>
+          {isCritical && (
+            <span className="text-xs font-bold animate-pulse" style={{ color: '#ef4444' }}>
+              +{elapsedForThisStatus - expected}min tarde
+            </span>
+          )}
           <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>{order.id.slice(-6)}</span>
         </div>
       </div>
@@ -338,6 +358,51 @@ export default function KitchenModule() {
   const playNewOrderSound = React.useCallback(() => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+  /** Beep urgente para órdenes que superaron el tiempo esperado */
+  const playUrgentBeep = React.useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+      // Tres beeps cortos y agudos
+      [0, 0.25, 0.5].forEach(offset => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.3, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.15);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.15);
+      });
+    } catch {}
+  }, []);
+
+  // Detectar órdenes que acaban de volverse críticas y reproducir beep
+  const prevCriticalRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (orders.length === 0) return;
+    const now = Date.now();
+    const currentCritical = new Set(
+      orders
+        .filter(o => {
+          if (o.kitchenStatus === 'lista' || o.kitchenStatus === 'entregada') return false;
+          const expected = o.expectedPrepMin > 0 ? o.expectedPrepMin : 15;
+          const from = o.kitchenStatus === 'preparacion' && o.kitchenStartedAt
+            ? new Date(o.kitchenStartedAt)
+            : new Date(o.createdAt);
+          const elapsedMin = (now - from.getTime()) / 60000;
+          return elapsedMin >= expected;
+        })
+        .map(o => o.id)
+    );
+
+    // Nuevas órdenes críticas (que no lo eran antes)
+    const newCritical = [...currentCritical].filter(id => !prevCriticalRef.current.has(id));
+    if (newCritical.length > 0) playUrgentBeep();
+    prevCriticalRef.current = currentCritical;
+  }, [tick, orders, playUrgentBeep]);
       // Two short urgent beeps
       [0, 0.25].forEach((t) => {
         const osc = ctx.createOscillator();
