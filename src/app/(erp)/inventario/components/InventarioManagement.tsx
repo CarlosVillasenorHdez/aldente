@@ -1009,6 +1009,25 @@ export default function InventarioManagement() {
                 <AlertTriangle size={14} />
                 Stock crítico
               </button>
+              <button
+                onClick={async () => {
+                  const { downloadXLSX: dl } = await import('@/lib/exportUtils');
+                  await dl(`inventario_${new Date().toISOString().split('T')[0]}.xlsx`, [{
+                    name: 'Inventario',
+                    rows: filtered.map(i => ({
+                      'Ingrediente': i.name, 'Categoría': i.category, 'Unidad': i.unit,
+                      'Stock actual': i.stock, 'Stock mínimo': i.minStock,
+                      'Punto de reorden': i.reorderPoint, 'Costo unitario': i.cost,
+                      'Valor en stock': (i.stock * i.cost).toFixed(2),
+                      'Proveedor': i.supplier || '', 'Estado': i.stock <= 0 ? 'Agotado' : i.stock <= i.minStock ? 'Crítico' : i.stock <= i.reorderPoint ? 'Bajo' : 'OK',
+                    })),
+                  }]);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all"
+                style={{ backgroundColor: 'rgba(96,165,250,0.08)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}
+              >
+                <Download size={14} /> Exportar
+              </button>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {CATEGORIES.map((cat) => (

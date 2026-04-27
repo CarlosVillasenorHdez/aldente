@@ -2,6 +2,7 @@
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { downloadXLSX } from '@/lib/exportUtils';
 import { calcResumenNominaConConfig, type ResumenNomina } from '@/lib/laboralMX';
 import { useNominaConfig } from '@/hooks/useNominaConfig';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1076,8 +1077,11 @@ ${horizontalHtml}
             <button onClick={load} style={{ padding:'8px 12px', borderRadius:8, background:'#f3f4f6', border:'none', cursor:'pointer' }}>
               <RefreshCw size={14} style={{ color:'#6b7280' }} />
             </button>
-            <button onClick={exportCSV} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#16a34a', border:'none', color:'white', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-              <Download size={13} /> CSV
+            <button onClick={async () => {
+              const sheets = [{ name: 'P&L', rows: plRows.filter(r=>r.tipo!=='divider').map(r=>({ Concepto: r.concepto, Monto: r.monto.toFixed(2), Tipo: r.tipo })) }];
+              await downloadXLSX(`pl-${dateRange.label.replace(/ /g,'-')}.xlsx`, sheets);
+            }} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#16a34a', border:'none', color:'white', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+              <Download size={13} /> Excel
             </button>
             <button onClick={exportPDF} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', borderRadius:8, background:'#1B3A6B', border:'none', color:'white', fontSize:12, fontWeight:600, cursor:'pointer' }}>
               <Download size={13} /> PDF

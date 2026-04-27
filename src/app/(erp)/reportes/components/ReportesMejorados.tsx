@@ -4,6 +4,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, ShoppingCart, DollarSign, AlertTriangle, BarChart3, Package, Award, Users, ChevronDown } from 'lucide-react';
 import { useReportesMejorados, Period } from '@/hooks/useReportesMejorados';
 
+import { downloadXLSX } from '@/lib/exportUtils';
+import { createClient } from '@/lib/supabase/client';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { ordenesToRows } from '@/lib/exportUtils';
+import { Download } from 'lucide-react';
+
 export default function ReportesMejorados() {
   const {
     period, setPeriod,
@@ -12,7 +18,79 @@ export default function ReportesMejorados() {
     topProducts, bottomProducts, lowStock,
   } = useReportesMejorados();
 
+  const supabase = createClient();
+  const [exporting, setExporting] = React.useState(false);
+
   const PERIOD_LABELS: Record<Period, string> = { dia: 'Hoy', semana: 'Esta Semana', mes: 'Este Mes' };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { start, end } = (() => {
+        const now = new Date();
+        if (period === 'dia') {
+          const s = new Date(now); s.setHours(0,0,0,0);
+          return { start: s.toISOString(), end: now.toISOString() };
+        } else if (period === 'semana') {
+          const s = new Date(now); s.setDate(now.getDate() - 7);
+          return { start: s.toISOString(), end: now.toISOString() };
+        } else {
+          const s = new Date(now); s.setDate(now.getDate() - 30);
+          return { start: s.toISOString(), end: now.toISOString() };
+        }
+      })();
+
+      const { data: orders } = await supabase
+        .from('orders').select('*')
+        .eq('tenant_id', getTenantId())
+        .eq('status', 'cerrada')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('closed_at', { ascending: false });
+
+      const fecha = new Date().toISOString().split('T')[0];
+      await downloadXLSX(`aldente_ventas_${PERIOD_LABELS[period].toLowerCase().replace(' ', '_')}_${fecha}.xlsx`, [
+        {
+          name: 'Ventas',
+          rows: ordenesToRows(orders ?? []),
+        },
+        {
+          name: 'KPIs',
+          rows: [
+            { 'Indicador': 'Total ventas',     'Valor': kpis.totalVentas.toFixed(2) },
+            { 'Indicador': 'Ventas restaurante','Valor': kpis.ventasRestaurante.toFixed(2) },
+            { 'Indicador': 'Ventas extras',    'Valor': kpis.ventasExtras.toFixed(2) },
+            { 'Indicador': 'Órdenes',          'Valor': kpis.totalOrdenes },
+            { 'Indicador': 'Ticket promedio',  'Valor': kpis.ticketPromedio.toFixed(2) },
+            { 'Indicador': 'Utilidad bruta',   'Valor': kpis.utilidadBruta.toFixed(2) },
+            { 'Indicador': 'Margen %',         'Valor': kpis.margenPct.toFixed(1) + '%' },
+            { 'Indicador': 'Merma',            'Valor': kpis.mermaTotal.toFixed(2) },
+            { 'Indicador': 'Punto de equilibrio', 'Valor': breakeven.toFixed(2) },
+          ],
+        },
+        {
+          name: 'Por mesero',
+          rows: waiterStats.map(w => ({
+            'Mesero': w.mesero,
+            'Órdenes': w.ordenes,
+            'Total ventas': w.total.toFixed(2),
+            'Ticket promedio': w.ticketPromedio.toFixed(2),
+          })),
+        },
+        {
+          name: 'Top platillos',
+          rows: topProducts.map((p, i) => ({
+            'Posición': i + 1,
+            'Platillo': p.nombre,
+            'Cantidad vendida': p.cantidad,
+            'Ingresos': p.ingresos.toFixed(2),
+          })),
+        },
+      ]);
+    } finally {
+      setExporting(false);
+    }
+  };
 
 
   if (loading) {
@@ -25,18 +103,29 @@ export default function ReportesMejorados() {
 
   return (
     <div className="space-y-6">
-      {/* Period selector */}
-      <div className="flex gap-2">
-        {(['dia', 'semana', 'mes'] as Period[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
-            style={period === p ? { backgroundColor: '#1B3A6B' } : {}}
+      {/* Period selector + Export */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2">
+          {(['dia', 'semana', 'mes'] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
+              style={period === p ? { backgroundColor: '#1B3A6B' } : {}}
           >
             {PERIOD_LABELS[p]}
           </button>
         ))}
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting || loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
+          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+        >
+          <Download size={15} />
+          {exporting ? 'Exportando...' : 'Excel / CSV'}
+        </button>
       </div>
 
       {/* KPIs */}

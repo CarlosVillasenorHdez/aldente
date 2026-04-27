@@ -15,6 +15,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react';
 import { calcCostoEmpleadoConConfig, calcResumenNominaConConfig, NOMINA_COMPLETA } from '@/lib/laboralMX';
+import { downloadXLSX, empleadosToRows } from '@/lib/exportUtils';
+import { Download } from 'lucide-react';
 import { useNominaConfig } from '@/hooks/useNominaConfig';
 
 interface Employee {
@@ -204,6 +206,34 @@ export default function NominaTab({ employees }: Props) {
             Confirma con tu contador o despacho de nómina.
           </p>
         </div>
+      </div>
+
+      {/* Botón de exportación */}
+      <div className="flex justify-end">
+        <button
+          onClick={async () => {
+            const rows = empleadosToRows(
+              activos.map(e => ({ ...e as any, hire_date: (e as any).hireDate })),
+              flags,
+            );
+            await downloadXLSX(`nomina_${new Date().toISOString().split('T')[0]}.xlsx`, [
+              { name: 'Nómina', rows },
+              { name: 'Resumen', rows: [
+                { Concepto: 'Empleados activos',    Monto: resumen.empleados },
+                { Concepto: 'Sueldos y salarios',   Monto: resumen.salariosBrutos.toFixed(2) },
+                { Concepto: 'IMSS patronal',        Monto: resumen.cuotasIMSS.toFixed(2) },
+                { Concepto: 'INFONAVIT',            Monto: resumen.cuotasINFONAVIT.toFixed(2) },
+                { Concepto: 'Prestaciones',         Monto: resumen.prestacionesMensuales.toFixed(2) },
+                { Concepto: 'Total nómina mensual', Monto: resumen.totalNomina.toFixed(2) },
+                { Concepto: 'Factor de carga',      Monto: resumen.factorPromedioEquipo + 'x' },
+              ]},
+            ]);
+          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border"
+          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+        >
+          <Download size={15} /> Exportar nómina
+        </button>
       </div>
 
       {/* Resumen del equipo */}
