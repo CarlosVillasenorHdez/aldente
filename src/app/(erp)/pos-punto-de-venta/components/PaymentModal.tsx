@@ -39,6 +39,8 @@ interface PaymentModalProps {
   };
   onClose: () => void;
   onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => void;
+  /** Cuando viene de división por personas — sobrescribe el total a cobrar */
+  splitOverride?: { amount: number; n: number };
 }
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
@@ -65,13 +67,18 @@ function personSubtotal(person: Person, items: OrderItemRef[], ivaRate: number):
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PaymentModal({
-  total, onClose, onComplete, orderNumber, mesa, mesero, items, subtotal, iva, discount,
+  total: totalProp, onClose, onComplete, orderNumber, mesa, mesero, items, subtotal, iva, discount,
   orderType, customerName,
   restaurantName, branchName, printerConfig,
+  splitOverride,
 }: PaymentModalProps) {
 
   const supabase = createClient();
   const { features } = useFeatures();
+
+  // Si viene de división por personas, usar el monto por persona
+  const total = splitOverride ? splitOverride.amount : totalProp;
+
   const ivaRate = subtotal && subtotal > 0 ? (iva ?? 0) / subtotal : 0.16;
 
   // ── Load loyalty config from DB ───────────────────────────────────────────
@@ -387,6 +394,22 @@ export default function PaymentModal({
         </div>
 
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+
+          {/* Banner de división por personas */}
+          {splitOverride && (
+            <div className="flex items-center gap-3 p-3 rounded-xl"
+              style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)' }}>
+              <span className="text-2xl">👥</span>
+              <div>
+                <p className="text-sm font-bold text-green-700">
+                  División entre {splitOverride.n} personas
+                </p>
+                <p className="text-xs text-green-600">
+                  Monto por persona: ${splitOverride.amount.toFixed(2)} · Total original: ${totalProp.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* ── PROPINA ── */}
           <div className="rounded-xl p-3" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>

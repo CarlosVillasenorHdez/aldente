@@ -19,6 +19,7 @@ interface OrderPanelProps {
   onDiscountChange: (d: { type: 'pct' | 'fixed'; value: number }) => void;
   onCheckout: () => void;
   onPartialCheckout?: (itemIds: string[]) => void;
+  onSplitCheckout?: (amountPerPerson: number, splitTotal: number, splitN: number) => void;
   onSendToKitchen: () => void;
   onShowMenu: () => void;
   onUpdateNote: (itemId: string, note: string) => void;
@@ -51,6 +52,7 @@ export default function OrderPanel({
   onDiscountChange,
   onCheckout,
   onPartialCheckout,
+  onSplitCheckout,
   onSendToKitchen,
   onShowMenu,
   onUpdateNote,
@@ -624,13 +626,27 @@ export default function OrderPanel({
                       </button>
                       {splitPaid < splitCount - 1 ? (
                         <button
-                          onClick={() => setSplitPaid(p => p + 1)}
+                          onClick={() => {
+                            // Pagos intermedios: registrar sin cerrar la mesa
+                            setSplitPaid(p => p + 1);
+                          }}
                           style={{ flex:2, padding:'10px', borderRadius:10, background:'#1d4ed8', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
                           Cobrar persona {splitPaid + 1} — ${(total / splitCount).toFixed(2)}
                         </button>
                       ) : splitPaid === splitCount - 1 ? (
                         <button
-                          onClick={() => { onCheckout(); setShowPartial(false); setSplitPaid(0); setSplitCount(2); }}
+                          onClick={() => {
+                            // Última persona — abrir PaymentModal con el monto correcto
+                            const amountPerPerson = Math.round((total / splitCount) * 100) / 100;
+                            setShowPartial(false);
+                            setSplitPaid(0);
+                            setSplitCount(2);
+                            if (onSplitCheckout) {
+                              onSplitCheckout(amountPerPerson, total, splitCount);
+                            } else {
+                              onCheckout(); // fallback
+                            }
+                          }}
                           style={{ flex:2, padding:'10px', borderRadius:10, background:'#22c55e', border:'none', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
                           Última persona — Cerrar mesa ✓
                         </button>

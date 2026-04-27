@@ -211,6 +211,7 @@ export default function POSClient() {
   const [takeoutOrders, setTakeoutOrders] = useState<TakeoutOrder[]>([]);
   const [discount, setDiscount] = useState<{ type: 'pct' | 'fixed'; value: number }>({ type: 'pct', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [splitOverride, setSplitOverride] = useState<{ amount: number; n: number } | null>(null);
   const [showTermoWidget, setShowTermoWidget] = useState(false);
 
   // Lealtad
@@ -1406,6 +1407,13 @@ export default function POSClient() {
     toast.success(`${selectedTable.name} liberada`);
   };
 
+  // ─── Split checkout — dividir total entre N personas ─────────────────────────
+  // Abre el PaymentModal con el monto por persona pre-establecido
+  const handleSplitCheckout = (amountPerPerson: number, _splitTotal: number, splitN: number) => {
+    setSplitOverride({ amount: amountPerPerson, n: splitN });
+    setShowPaymentModal(true);
+  };
+
   // ─── Partial payment — cobrar subset of items, keep table open ──────────────
 
   const handlePartialCheckout = async (lineIds: string[]) => {
@@ -2041,6 +2049,7 @@ export default function POSClient() {
             onStay={handleStay}
             isOnHold={isOnHold}
             onPartialCheckout={handlePartialCheckout}
+            onSplitCheckout={handleSplitCheckout}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
             kitchenSent={kitchenSent}
@@ -2252,7 +2261,8 @@ export default function POSClient() {
           restaurantName={restaurantName || branchName}
           branchName={branchName}
           printerConfig={printerConfigData ?? undefined}
-          onClose={() => setShowPaymentModal(false)}
+          splitOverride={splitOverride ?? undefined}
+          onClose={() => { setShowPaymentModal(false); setSplitOverride(null); }}
           onComplete={handlePaymentComplete}
         />
       )}
