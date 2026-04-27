@@ -11,6 +11,7 @@ import ConfigPlan         from './sections/ConfigPlan';
 import ConfigEstablecimiento from './sections/ConfigEstablecimiento';
 import ConfigLealtad        from './sections/ConfigLealtad';
 import MisDatos             from './sections/MisDatos';
+import GoLive               from './sections/GoLive';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -29,6 +30,7 @@ const SECTIONS = [
   { id: 'usuarios',      label: 'Usuarios & Roles',    icon: Users,      group: 'Sistema' },
   { id: 'auditoria',     label: 'Auditoría',            icon: Shield,     group: 'Sistema' },
   { id: 'mis-datos',    label: 'Mis Datos',             icon: Database,   group: 'Sistema' },
+  { id: 'golive',       label: '🚀 Preparar lanzamiento', icon: Zap,       group: 'Sistema' },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
@@ -47,6 +49,7 @@ function resolveComponent(section: SectionId): string {
   if (section === 'lealtad_config') return 'lealtad';
   if (section === 'auditoria') return 'auditoria';
   if (section === 'mis-datos') return 'mis-datos';
+  if (section === 'golive') return 'golive';
   return 'sistema';
 }
 
@@ -115,6 +118,7 @@ export default function ConfiguracionManagement() {
           {activeComponent === 'lealtad'     && <ConfigLealtad />}
           {activeComponent === 'auditoria'    && <AuditLog />}
           {activeComponent === 'mis-datos'    && <MisDatos activeSection={activeSection} />}
+          {activeComponent === 'golive'       && <GoLive />}
         </div>
       </div>
     </div>
