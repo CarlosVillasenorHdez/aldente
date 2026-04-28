@@ -682,7 +682,6 @@ export default function MeseroMobileView() {
     <div className="max-w-lg mx-auto">
       {view === 'tables' && (
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">Selecciona una mesa para tomar el pedido</p>
           {/* Waiter name badge */}
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm text-gray-500">Selecciona una mesa para tomar el pedido</p>

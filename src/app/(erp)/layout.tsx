@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import SubscriptionWall from '@/components/SubscriptionWall';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useOnlineSync } from '@/hooks/useOnlineSync';
 
 interface TenantStatus {
