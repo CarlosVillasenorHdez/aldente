@@ -7,7 +7,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-import { Users, ExternalLink } from 'lucide-react';
+import { Users, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useAttendanceAlerts } from '@/hooks/useAttendanceAlerts';
 
 interface EmpStatus {
   id: string;
@@ -38,6 +39,7 @@ const roleLabel = (r: string) =>
 export default function AttendanceWidget() {
   const supabase = createClient();
   const [employees, setEmployees] = useState<EmpStatus[]>([]);
+  const { alerts, requestPermission } = useAttendanceAlerts();
   const [loading, setLoading] = useState(true);
   const [slug, setSlug] = useState('');
 
@@ -193,6 +195,41 @@ export default function AttendanceWidget() {
             No hay empleados registrados.<br />
             <a href="/personal" className="text-blue-600 underline text-xs">Agregar en Personal →</a>
           </p>
+        )}
+
+        {/* Alertas de tardanza */}
+        {alerts.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-red-600 uppercase tracking-wide flex items-center gap-1">
+                <AlertTriangle size={11} /> Sin registrar entrada
+              </p>
+              <button onClick={requestPermission}
+                className="text-xs text-gray-400 hover:text-gray-600">
+                Activar notificaciones
+              </button>
+            </div>
+            {alerts.map(a => (
+              <div key={a.employeeId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                style={{ backgroundColor: a.severity === 'falta' ? '#fef2f2' : '#fff7ed' }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ backgroundColor: a.severity === 'falta' ? '#fecaca' : '#fed7aa', color: a.severity === 'falta' ? '#dc2626' : '#d97706' }}>
+                  {a.name.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: a.severity === 'falta' ? '#dc2626' : '#d97706' }}>
+                    {a.name}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Debió llegar a las {a.horaEntrada}
+                  </p>
+                </div>
+                <span className="text-xs font-bold flex-shrink-0" style={{ color: a.severity === 'falta' ? '#dc2626' : '#d97706' }}>
+                  +{a.minutosRetraso}min
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

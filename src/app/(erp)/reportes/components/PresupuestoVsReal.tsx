@@ -103,10 +103,11 @@ function KPICard({ label, real, meta, delta, positiveIsGood = true, suffix = '$'
 
 // ── Modal de crear/editar presupuesto ─────────────────────────────────────────
 
-function PresupuestoModal({ initial, onSave, onClose }: {
+function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
   initial?: Partial<Presupuesto>;
   onSave: () => void;
   onClose: () => void;
+  isSugerencia?: boolean;
 }) {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
@@ -175,10 +176,15 @@ function PresupuestoModal({ initial, onSave, onClose }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-base font-bold text-gray-900">
-            {initial?.id ? 'Editar presupuesto' : 'Nuevo presupuesto'}
+            {initial?.id ? 'Editar presupuesto' : isSugerencia ? '✨ Meta sugerida (+10% mes anterior)' : 'Nuevo presupuesto'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
+        {isSugerencia && (
+          <div className="mx-6 mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+            Metas pre-llenadas con base en el mes anterior <strong>+10%</strong>. Puedes editarlas antes de guardar.
+          </div>
+        )}
 
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -264,6 +270,45 @@ export default function PresupuestoVsReal() {
   const [selectedInicio, setSelectedInicio] = useState(mes.inicio);
   const [selectedFin, setSelectedFin]       = useState(mes.fin);
   const [showModal, setShowModal]           = useState(false);
+  const [sugerencia, setSugerencia]         = useState<Record<string, number> | null>(null);
+  const [loadingSug, setLoadingSug]         = useState(false);
+  const supabase = createClient();
+
+  // Calcular sugerencia automática basada en el mes anterior
+  const calcularSugerencia = async () => {
+    setLoadingSug(true);
+    const mesAnterior = new Date(new Date(selectedInicio + 'T12:00:00').setMonth(
+      new Date(selectedInicio + 'T12:00:00').getMonth() - 1
+    ));
+    const inicioAnterior = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth(), 1).toISOString().split('T')[0];
+    const finAnterior    = new Date(mesAnterior.getFullYear(), mesAnterior.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    // Ventas del mes anterior
+    const { data: orders } = await supabase.from('orders')
+      .select('total, cost_actual')
+      .eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false)
+      .gte('created_at', inicioAnterior + 'T00:00:00').lte('created_at', finAnterior + 'T23:59:59');
+
+    const ventasAnt = (orders ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
+    const cogsAnt   = (orders ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+    const ordenesAnt = (orders ?? []).length;
+    const ticketAnt  = ordenesAnt > 0 ? ventasAnt / ordenesAnt : 0;
+
+    // También revisar si hay presupuesto del mes anterior para usar como referencia
+    const presAnterior = lista.find(p => p.periodoInicio === inicioAnterior);
+    
+    const factor = 1.1; // sugerir +10% sobre el mes anterior
+    setSugerencia({
+      metaVentas:          Math.round(ventasAnt * factor),
+      metaTicketPromedio:  Math.round(ticketAnt * factor),
+      metaOrdenes:         Math.round(ordenesAnt * factor),
+      metaCogsPct:         ventasAnt > 0 ? Math.round((cogsAnt / ventasAnt) * 100 * 10) / 10 : 30,
+      metaMargenPct:       ventasAnt > 0 ? Math.round(((ventasAnt - cogsAnt) / ventasAnt) * 100 * 10) / 10 : 65,
+      metaNomina:          presAnterior?.metaNomina ?? 0,
+      metaGastosOp:        presAnterior?.metaGastosOp ?? 0,
+    });
+    setLoadingSug(false);
+  };
   const [editing, setEditing]               = useState<Presupuesto | undefined>();
 
   const { presupuesto, real, loading, reload } = usePresupuesto(selectedInicio, selectedFin);
@@ -326,13 +371,23 @@ export default function PresupuestoVsReal() {
             </button>
           )}
         </div>
-        <button
-          onClick={() => { setEditing(undefined); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ backgroundColor: '#1B3A6B' }}
-        >
-          <Plus size={15} /> Nuevo presupuesto
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => { await calcularSugerencia(); setEditing(undefined); setShowModal(true); }}
+            disabled={loadingSug}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border"
+            style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+          >
+            {loadingSug ? '⏳ Calculando...' : '✨ Sugerir metas'}
+          </button>
+          <button
+            onClick={() => { setSugerencia(null); setEditing(undefined); setShowModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ backgroundColor: '#1B3A6B' }}
+          >
+            <Plus size={15} /> Nuevo presupuesto
+          </button>
+        </div>
       </div>
 
       {/* Sin presupuesto */}
@@ -488,9 +543,14 @@ export default function PresupuestoVsReal() {
       {/* Modal */}
       {showModal && (
         <PresupuestoModal
-          initial={editing}
-          onSave={() => { reload(); reloadLista(); }}
-          onClose={() => { setShowModal(false); setEditing(undefined); }}
+          initial={editing ?? (sugerencia ? {
+            nombre: new Date(selectedInicio + 'T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }),
+            periodoInicio: selectedInicio, periodoFin: selectedFin, periodoTipo: 'mes',
+            ...sugerencia,
+          } as any : undefined)}
+          isSugerencia={!!sugerencia && !editing}
+          onSave={() => { reload(); reloadLista(); setSugerencia(null); }}
+          onClose={() => { setShowModal(false); setEditing(undefined); setSugerencia(null); }}
         />
       )}
     </div>

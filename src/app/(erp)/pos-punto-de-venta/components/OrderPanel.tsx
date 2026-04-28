@@ -20,6 +20,7 @@ interface OrderPanelProps {
   onCheckout: () => void;
   onPartialCheckout?: (itemIds: string[]) => void;
   onSplitCheckout?: (amountPerPerson: number, splitTotal: number, splitN: number) => void;
+  onQuickCash?: (total: number) => void;
   onSendToKitchen: () => void;
   onShowMenu: () => void;
   onUpdateNote: (itemId: string, note: string) => void;
@@ -53,6 +54,7 @@ export default function OrderPanel({
   onCheckout,
   onPartialCheckout,
   onSplitCheckout,
+  onQuickCash,
   onSendToKitchen,
   onShowMenu,
   onUpdateNote,
@@ -473,6 +475,17 @@ export default function OrderPanel({
               >
                 Cobrar todo ${total.toFixed(2)}
               </button>
+              {/* Cobro rápido en efectivo — para cobros simples sin modal completo */}
+              {onQuickCash && kitchenSent && orderItems.length > 0 && (
+                <button
+                  onClick={() => onQuickCash(total)}
+                  title="Cobro rápido en efectivo — sin cambio, sin propina"
+                  className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}
+                >
+                  💵
+                </button>
+              )}
               {onPartialCheckout && kitchenSent && orderItems.length > 1 && (
                 <button
                   onClick={() => { setShowPartial(true); setPartialSelected(new Set()); }}

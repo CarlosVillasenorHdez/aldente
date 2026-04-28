@@ -1414,6 +1414,12 @@ export default function POSClient() {
     setShowPaymentModal(true);
   };
 
+  // ─── Quick cash — cobro rápido en efectivo sin abrir el modal ────────────────
+  const handleQuickCash = async (amount: number) => {
+    if (!selectedTable?.currentOrderId) return;
+    await handlePaymentComplete('efectivo', amount, null, 0, null);
+  };
+
   // ─── Partial payment — cobrar subset of items, keep table open ──────────────
 
   const handlePartialCheckout = async (lineIds: string[]) => {
@@ -2052,6 +2058,7 @@ export default function POSClient() {
             isOnHold={isOnHold}
             onPartialCheckout={handlePartialCheckout}
             onSplitCheckout={handleSplitCheckout}
+            onQuickCash={handleQuickCash}
             onShowMenu={() => setView('menu')}
             onUpdateNote={handleUpdateNote}
             kitchenSent={kitchenSent}

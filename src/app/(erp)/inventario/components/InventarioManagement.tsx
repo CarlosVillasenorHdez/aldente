@@ -1,4 +1,5 @@
 'use client';
+import ConteoFisico from './ConteoFisico';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -23,7 +24,7 @@ import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInve
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste' | 'merma';
-type ActiveTab = 'inventario' | 'extras' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica';
+type ActiveTab = 'inventario' | 'extras' | 'movimientos' | 'alertas' | 'equivalencias' | 'analisis' | 'pronostico' | 'compras' | 'analitica' | 'conteo';
 
 type IngredientSupplier = {
   id: string;
@@ -989,6 +990,7 @@ export default function InventarioManagement() {
           { key: 'analisis', label: 'Desperdicio', icon: <TrendingDown size={14} /> },
           { key: 'pronostico', label: 'Pronóstico 7 días', icon: <TrendingUp size={14} /> },
           { key: 'compras', label: 'Lista de Compras', icon: <Download size={14} /> },
+          { key: 'conteo', label: '📋 Conteo físico', icon: null },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150"
