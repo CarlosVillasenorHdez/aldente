@@ -9,9 +9,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/hooks/useBranch';
 import { toast } from 'sonner';
-import { CheckCircle, AlertTriangle, Save, RefreshCw } from 'lucide-react';
+import { CheckCircle, Save, RefreshCw } from 'lucide-react';
 
 interface Ingredient {
   id: string;
@@ -28,6 +29,7 @@ const fmt = (n: number, unit: string) =>
 
 export default function ConteoFisico() {
   const supabase = createClient();
+  const { appUser } = useAuth();
   const { activeBranchId } = useBranch();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,13 +39,24 @@ export default function ConteoFisico() {
   const [showOnlyDiffs, setShowOnlyDiffs] = useState(false);
 
   const load = useCallback(async () => {
+    const tenantId = appUser?.tenantId ?? getTenantId();
+    if (!tenantId) return;
+
     setLoading(true);
     let q = supabase.from('ingredients')
       .select('id, name, category, unit, stock, cost')
-      .eq('tenant_id', getTenantId())
+      .eq('tenant_id', tenantId)
       .order('category').order('name');
     if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
-    const { data } = await q;
+
+    const { data, error } = await q;
+
+    if (error) {
+      toast.error('Error al cargar ingredientes: ' + error.message);
+      setLoading(false);
+      return;
+    }
+
     setIngredients((data ?? []).map((i: any) => ({
       id: i.id, name: i.name, category: i.category,
       unit: i.unit, stockSistema: Number(i.stock ?? 0),
@@ -51,7 +64,7 @@ export default function ConteoFisico() {
     })));
     setLoading(false);
     setSaved(false);
-  }, [supabase, activeBranchId]);
+  }, [supabase, activeBranchId, appUser?.tenantId]);
 
   useEffect(() => { load(); }, [load]);
 
