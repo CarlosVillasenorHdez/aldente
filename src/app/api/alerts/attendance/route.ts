@@ -7,14 +7,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenant_id');
   if (!tenantId) return NextResponse.json({ alerts: [] });
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0=dom, 1=lun...
   const todayISO = today.toISOString().split('T')[0];
