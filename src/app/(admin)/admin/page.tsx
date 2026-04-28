@@ -206,6 +206,17 @@ export default function AdminDashboardPage() {
     ? tenants.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || (t.city??'').toLowerCase().includes(search.toLowerCase()) || (t.owner_email??'').toLowerCase().includes(search.toLowerCase()))
     : tenants;
 
+  // Métricas adicionales de adopción
+  const avgHealthGrade = active.length > 0 ? (
+    active.reduce((s, t) => {
+      const g = t.healthGrade ?? 'F';
+      return s + (g === 'A' ? 5 : g === 'B' ? 4 : g === 'C' ? 3 : g === 'D' ? 2 : 1);
+    }, 0) / active.length
+  ).toFixed(1) : '—';
+
+  const atRiskLow = active.filter(t => t.healthGrade === 'F' || t.healthGrade === 'D');
+  const trendingUp = active.filter(t => (t.ordersLast7 ?? 0) >= 14);
+
   const kpis = [
     { label:'MRR', value:`$${fmt(mrr)}`, sub:'MXN/mes', color:'#f59e0b' },
     { label:'Pagados', value:paidBucket.length, sub:'activos', color:'#34d399' },
@@ -213,6 +224,9 @@ export default function AdminDashboardPage() {
     { label:'En riesgo', value:riskBucket.length, sub:'vencen ≤7 días', color:'#fb923c' },
     { label:'Churned', value:churnBucket.length, sub:'inactivos o vencidos', color:'#f87171' },
     { label:'Con ubicación', value:dots.length, sub:`de ${tenants.length} restaurantes`, color:'rgba(255,255,255,.5)' },
+    { label:'Health prom.', value:avgHealthGrade, sub:'A=+14 órdenes/sem', color:'#a78bfa' },
+    { label:'Sin actividad', value:atRiskLow.length, sub:'grade D o F', color:'#f43f5e' },
+    { label:'Activos+', value:trendingUp.length, sub:'+14 órdenes esta sem', color:'#34d399' },
   ];
 
   return (
@@ -240,6 +254,55 @@ export default function AdminDashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* 🚨 Alertas proactivas de Customer Success */}
+      {!loading && (atRiskLow.length > 0 || riskBucket.length > 0) && (
+        <div style={{ ...S.card, marginBottom: 20, borderColor: 'rgba(244,63,94,0.3)', background: 'rgba(244,63,94,0.05)' }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#f43f5e', marginBottom:12 }}>
+            🚨 Requieren atención inmediata
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {riskBucket.map(t => {
+              const d = t.trial_ends_at ?? t.plan_valid_until;
+              const days = d ? daysUntil(d) : 0;
+              return (
+                <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:8, background:'rgba(251,146,60,0.1)', border:'1px solid rgba(251,146,60,0.2)' }}>
+                  <div>
+                    <span style={{ fontSize:12, fontWeight:600, color:'#f1f5f9' }}>{t.name}</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginLeft:8 }}>{t.city ?? ''}</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color: days <= 2 ? '#f87171' : '#fb923c' }}>
+                      ⏰ {days === 0 ? 'Vence hoy' : days < 0 ? 'Venció' : `${days}d`}
+                    </span>
+                    <span style={{ fontSize:10, fontWeight:600, color:'#c9963a', background:'rgba(201,150,58,0.15)', padding:'2px 8px', borderRadius:4 }}>
+                      {PLAN_LABEL[t.plan] ?? t.plan}
+                    </span>
+                    <a href={`/admin/tenants/${t.id}`} style={{ fontSize:11, color:'#60a5fa', textDecoration:'none' }}>Ver →</a>
+                  </div>
+                </div>
+              );
+            })}
+            {atRiskLow.filter(t => !riskBucket.find(r => r.id === t.id)).map(t => (
+              <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderRadius:8, background:'rgba(244,63,94,0.08)', border:'1px solid rgba(244,63,94,0.15)' }}>
+                <div>
+                  <span style={{ fontSize:12, fontWeight:600, color:'#f1f5f9' }}>{t.name}</span>
+                  <span style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginLeft:8 }}>{t.city ?? ''}</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#f43f5e' }}>
+                    💀 Sin actividad esta semana
+                  </span>
+                  <span style={{ fontSize:10, color:'rgba(255,255,255,.3)' }}>
+                    {t.ordersLast7 ?? 0} órdenes/7d
+                  </span>
+                  <a href={`/admin/tenants/${t.id}`} style={{ fontSize:11, color:'#60a5fa', textDecoration:'none' }}>Ver →</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Fleet Health Distribution */}
       {!loading && tenants.length > 0 && (

@@ -35,6 +35,15 @@ interface UsageStats {
   ordersThisMonth: number; ordersTotal: number; activeDaysLast14: number;
   lastOrderAt: string | null; tablesCount: number; dishesCount: number;
   employeesCount: number; branchesCount: number;
+  // Feature adoption
+  usesKDS: boolean;        // órdenes con kitchen_status != null
+  usesLoyalty: boolean;    // tiene loyalty_customers
+  usesInventory: boolean;  // tiene ingredients con stock > 0
+  usesReservations: boolean; // tiene reservations este mes
+  usesAttendance: boolean; // tiene employee_attendance este mes
+  usesMultiBranch: boolean; // más de 1 branch activo
+  usesPresupuesto: boolean; // tiene presupuestos definidos
+  hasRecipes: boolean;     // tiene dish_recipes
 }
 interface HealthSignal {
   label: string; status: 'ok' | 'warn' | 'risk'; detail: string;
@@ -160,6 +169,25 @@ export default function TenantDetailPage() {
       supabase.from('system_config').select('config_value').eq('tenant_id', id).eq('config_key', 'admin_note').maybeSingle(),
     ]);
 
+    // Feature adoption queries (en paralelo, silenciosas)
+    const [
+      { count: kdsCount },
+      { count: loyaltyCount },
+      { count: inventoryCount },
+      { count: reservationsCount },
+      { count: attendanceCount },
+      { count: presupuestoCount },
+      { count: recipesCount },
+    ] = await Promise.all([
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('tenant_id', id).not('kitchen_status', 'is', null),
+      supabase.from('loyalty_customers').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('ingredients').select('*', { count: 'exact', head: true }).eq('tenant_id', id).gt('stock', 0),
+      supabase.from('reservations').select('*', { count: 'exact', head: true }).eq('tenant_id', id).gte('created_at', monthStart),
+      supabase.from('employee_attendance').select('*', { count: 'exact', head: true }).eq('tenant_id', id).gte('date', monthStart.split('T')[0]),
+      supabase.from('presupuestos').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+      supabase.from('dish_recipes').select('*', { count: 'exact', head: true }).eq('tenant_id', id),
+    ]);
+
     // Count active days (distinct dates with orders)
     const activeDays = new Set((recentOrders || []).map((o: any) => o.created_at.slice(0, 10))).size;
     const lastOrder = recentOrders?.[0]?.created_at ?? null;
@@ -173,6 +201,14 @@ export default function TenantDetailPage() {
       dishesCount: dishes ?? 0,
       employeesCount: employees ?? 0,
       branchesCount: branches ?? 0,
+      usesKDS: (kdsCount ?? 0) > 0,
+      usesLoyalty: (loyaltyCount ?? 0) > 0,
+      usesInventory: (inventoryCount ?? 0) > 0,
+      usesReservations: (reservationsCount ?? 0) > 0,
+      usesAttendance: (attendanceCount ?? 0) > 0,
+      usesMultiBranch: (branches ?? 0) > 1,
+      usesPresupuesto: (presupuestoCount ?? 0) > 0,
+      hasRecipes: (recipesCount ?? 0) > 0,
     };
     setUsage(stats);
     if (noteData?.config_value) setAdminNote(noteData.config_value);
@@ -720,6 +756,77 @@ export default function TenantDetailPage() {
       {/* TAB: Inteligencia */}
       {activeTab === 'inteligencia' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Feature Adoption Tracker ── */}
+          {usage && (
+            <div style={card}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>
+                📊 Adopción de funcionalidades
+              </div>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 16, lineHeight: 1.6 }}>
+                Módulos que el restaurante está usando activamente. Los grises son oportunidades de activación.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px,1fr))', gap: 10 }}>
+                {[
+                  { key: 'usesKDS',          label: 'KDS / Cocina',       icon: '👨‍🍳', tip: 'Mostrar el flujo de comandas al KDS' },
+                  { key: 'usesLoyalty',      label: 'Programa Lealtad',   icon: '🏆', tip: 'Registrar al menos 1 socio de lealtad' },
+                  { key: 'usesInventory',    label: 'Inventario',         icon: '📦', tip: 'Agregar ingredientes con stock inicial' },
+                  { key: 'hasRecipes',       label: 'Recetas + COGS',     icon: '🧾', tip: 'Vincular recetas para ver el margen real' },
+                  { key: 'usesReservations', label: 'Reservaciones',      icon: '📅', tip: 'Registrar reservaciones en el módulo' },
+                  { key: 'usesAttendance',   label: 'Control asistencia', icon: '✅', tip: 'Empleados haciendo check-in con PIN' },
+                  { key: 'usesPresupuesto',  label: 'Presupuesto vs Real', icon: '🎯', tip: 'Definir metas mensuales de ventas' },
+                  { key: 'usesMultiBranch',  label: 'Multi-sucursal',     icon: '🏪', tip: 'Activar cuando tengan más de 1 sucursal' },
+                ].map(f => {
+                  const active = usage[f.key as keyof UsageStats] as boolean;
+                  return (
+                    <div key={f.key}
+                      title={active ? 'Módulo activo' : `Inactivo — ${f.tip}`}
+                      style={{
+                        padding: '10px 12px', borderRadius: 10,
+                        background: active ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${active ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        transition: 'all .15s',
+                      }}>
+                      <span style={{ fontSize: 18, opacity: active ? 1 : 0.3 }}>{f.icon}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: active ? '#86efac' : 'rgba(255,255,255,0.3)', lineHeight: 1.2 }}>
+                          {f.label}
+                        </div>
+                        <div style={{ fontSize: 10, color: active ? 'rgba(134,239,172,0.6)' : 'rgba(255,255,255,0.15)', marginTop: 2 }}>
+                          {active ? '✓ Activo' : '○ Sin usar'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Score de adopción */}
+              {(() => {
+                const features = ['usesKDS','usesLoyalty','usesInventory','hasRecipes','usesReservations','usesAttendance','usesPresupuesto'] as const;
+                const active = features.filter(f => usage[f]).length;
+                const pct = Math.round((active / features.length) * 100);
+                const color = pct >= 70 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
+                return (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: 'monospace', flexShrink: 0 }}>
+                      {active}/{features.length} módulos · {pct}%
+                    </span>
+                    {pct < 40 && (
+                      <span style={{ fontSize: 10, color: '#f87171', flexShrink: 0 }}>Baja adopción</span>
+                    )}
+                    {pct >= 70 && (
+                      <span style={{ fontSize: 10, color: '#22c55e', flexShrink: 0 }}>Alta adopción ✓</span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Financial trend */}
           <div style={card}>

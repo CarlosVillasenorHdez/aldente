@@ -8,8 +8,8 @@ const T = {
     navProblem:'El problema', navWhy:'Por qué nosotros', navDemo:'Demo', navPlans:'Planes', navFeatures:'Funcionalidades',
     navLogin:'Iniciar sesión', navCta:'14 días gratis →',
     heroEyebrow:'Sistema de gestión para restaurantes · México',
-    heroH1a:'Por primera vez,', heroH1b:'sabes exactamente', heroH1c:'qué pasa en tu restaurante.',
-    heroSub:'Sin esperar el corte. Sin llamar al cajero. Sin adivinar si te quedaste sin un ingrediente clave.',
+    heroH1a:'Tu restaurante', heroH1b:'en números reales —', heroH1c:'para que dirijas el negocio,', heroH1d:'no el caos.',
+    heroSub:'Certeza financiera. Visibilidad en tiempo real. Decisiones con información, no con intuición.',
     heroCta:'Probar 14 días gratis →', heroDemo:'Ver demo',
     heroTrust:['Sin tarjeta de crédito','14 días gratis','Cancela cuando quieras','Soporte en español'],
     statsLabels:['para cerrar un corte de caja','ROI en el primer mes','de mejora de margen promedio'],
@@ -27,7 +27,7 @@ const T = {
     plansMonthly:'Mensual', plansAnnual:'Anual', plansMo:'/mes',
     plansDiscount:'−15%', plansBefore:'Antes',
     plansStart:'Empezar en', plansPriceNote:'Todos los precios en MXN · No incluyen IVA',
-    ctaEyebrow:'Empieza hoy', ctaH:'Tu restaurante merece', ctaHEm:'saber la verdad.',
+    ctaEyebrow:'Empieza hoy', ctaH:'Deja de adivinar.', ctaHEm:'Empieza a dirigir.',
     ctaSub:'14 días sin costo, sin tarjeta. El sistema queda configurado el mismo día.',
     ctaBtn:'Probar Aldente gratis →',
     footerRights:'© 2026 Aldente · México',
@@ -36,8 +36,8 @@ const T = {
     navProblem:'The problem', navWhy:'Why us', navDemo:'Demo', navPlans:'Plans', navFeatures:'Features',
     navLogin:'Log in', navCta:'14 days free →',
     heroEyebrow:'Restaurant management system · Mexico',
-    heroH1a:"For the first time,", heroH1b:"you know exactly", heroH1c:"what's happening in your restaurant.",
-    heroSub:'Without waiting for the daily close. Without calling the cashier. Without guessing what ingredient you ran out of.',
+    heroH1a:"Your restaurant", heroH1b:"in real numbers —", heroH1c:"so you run the business,", heroH1d:"not the chaos.",
+    heroSub:'Financial clarity. Real-time visibility. Decisions based on information, not instinct.',
     heroCta:'Try 14 days free →', heroDemo:'See demo',
     heroTrust:['No credit card','14 days free','Cancel anytime','Spanish & English support'],
     statsLabels:['to close a daily register','ROI in the first month','average margin improvement'],
@@ -394,7 +394,7 @@ export default function MarketingPage() {
         <div className="wrap" style={{position:'relative',zIndex:1,paddingTop:'clamp(60px,10vw,120px)',paddingBottom:'clamp(60px,10vw,120px)',textAlign:'center'}}>
           <div className="eyebrow" style={{justifyContent:'center',marginBottom:28,opacity:0,animation:'tick-in .6s .1s ease both'}}>{t.heroEyebrow}</div>
           <h1 className="serif" style={{fontSize:'clamp(38px,7vw,96px)',fontWeight:700,lineHeight:1.02,marginBottom:24,opacity:0,animation:'tick-in .7s .2s ease both'}}>
-            {t.heroH1a}<br/><em style={{color:'#c9963a',fontStyle:'italic'}}>{t.heroH1b}</em><br/>{t.heroH1c}
+            {t.heroH1a}<br/><em style={{color:'#c9963a',fontStyle:'italic'}}>{t.heroH1b}</em><br/>{t.heroH1c}<br/><em style={{color:'#c9963a',fontStyle:'italic'}}>{(t as any).heroH1d}</em>
           </h1>
           <p style={{fontSize:'clamp(14px,2vw,19px)',fontWeight:300,color:'rgba(240,236,228,.6)',maxWidth:520,margin:'0 auto 20px',lineHeight:1.75,opacity:0,animation:'tick-in .7s .32s ease both'}}>{t.heroSub}</p>
           {/* Pain ticker */}
