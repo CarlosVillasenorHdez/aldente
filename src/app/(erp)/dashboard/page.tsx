@@ -10,14 +10,18 @@ import LiveOperations from './components/LiveOperations';
 import RecentActivity from './components/RecentActivity';
 import AttendanceWidget from './components/AttendanceWidget';
 import UpgradeGate from '@/components/UpgradeGate';
+import AhaMomentTour from './components/AhaMomentTour';
 
 export default function DashboardPage() {
   return (
     <AppLayout
       title="Dashboard"
-      subtitle="Resumen operativo del día"
+      subtitle="Tu restaurante en números reales — para que dirijas el negocio, no el caos."
     >
       <div className="flex flex-col gap-5">
+
+        {/* 0. Aha Moment Tour — solo la primera vez, post-onboarding */}
+        <AhaMomentTour />
 
         {/* 1. Primeros pasos — solo visible si faltan cosas */}
         <FirstStepsChecklist />

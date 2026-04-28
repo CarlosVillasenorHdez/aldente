@@ -194,9 +194,9 @@ export default function LoginPage() {
             <span style={{ display:'block', width:24, height:1, background:'rgba(201,150,58,.4)' }} />Sistema para restaurantes
           </p>
           <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(34px,4vw,54px)', fontWeight:700, color:'#f0ece4', lineHeight:1.08, marginBottom:18 }}>
-            Sabes exactamente<br /><em style={{ color:'#c9963a', fontStyle:'italic' }}>qué pasa</em><br />en tu restaurante.
+            Tu restaurante<br />en números reales —<br /><em style={{ color:'#c9963a', fontStyle:'italic' }}>para que dirijas</em><br />el negocio, no el caos.
           </h1>
-          <p style={{ fontSize:15, fontWeight:300, color:'rgba(240,236,228,.5)', lineHeight:1.8 }}>P&L del día. Inventario vivo.<br />Merma real. En tiempo real.</p>
+          <p style={{ fontSize:15, fontWeight:300, color:'rgba(240,236,228,.5)', lineHeight:1.8 }}>P&L en tiempo real. Inventario vivo.<br />Decisiones con información, no con intuición.</p>
           <div style={{ display:'flex', gap:32, marginTop:36 }}>
             {[['30 seg','Corte de caja'],['Multi','Sucursal'],['0 papel','En operación']].map(([v,l])=>(
               <div key={l}>

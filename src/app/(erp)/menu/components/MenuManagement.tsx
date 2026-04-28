@@ -1167,9 +1167,10 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
 
 // ─── Dish Card ────────────────────────────────────────────────────────────────
 
-function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onModifier, priceMultiplier = 1 }: {
+function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onModifier, priceMultiplier = 1, dishCost = null }: {
   dish: Dish;
   recipeCount: number;
+  dishCost?: number | null;
   onModifier: (dish: Dish) => void;
   priceMultiplier?: number;
   onEdit: (d: Dish) => void;
@@ -1178,6 +1179,15 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onM
   onRecipe: (d: Dish) => void;
   [key: string]: unknown;
 }) {
+  // Calcular margen si hay costo de receta
+  const price = dish.price * priceMultiplier;
+  const marginPct = dishCost !== null && dishCost > 0 && price > 0
+    ? Math.round(((price - dishCost) / price) * 100)
+    : null;
+  const marginColor = marginPct === null ? null
+    : marginPct >= 60 ? { bg: 'rgba(34,197,94,0.2)', text: '#86efac', border: 'rgba(34,197,94,0.3)' }
+    : marginPct >= 40 ? { bg: 'rgba(245,158,11,0.2)', text: '#fcd34d', border: 'rgba(245,158,11,0.3)' }
+    : { bg: 'rgba(239,68,68,0.2)', text: '#f87171', border: 'rgba(239,68,68,0.3)' };
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:translate-y-[-2px]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72', opacity: dish.available ? 1 : 0.65 }}>
       <div className="relative h-36 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
@@ -1192,6 +1202,13 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onM
         {recipeCount > 0 && (
           <span className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)', fontSize: '10px' }}>
             {recipeCount} ing.
+          </span>
+        )}
+        {/* Badge de margen — verde ≥60%, ámbar 40-59%, rojo <40% */}
+        {marginPct !== null && marginColor && (
+          <span className="absolute bottom-2 right-2 text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{ backgroundColor: marginColor.bg, color: marginColor.text, border: `1px solid ${marginColor.border}`, fontSize: '10px' }}>
+            {marginPct}% margen
           </span>
         )}
         {!dish.available && (
@@ -1257,6 +1274,7 @@ export default function MenuManagement() {
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [modifierDish, setModifierDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
+  const [dishCosts, setDishCosts] = useState<Record<string, number>>({});  // costo total de insumos por platillo
 
   const { appUser } = useAuth();
   const supabase = createClient();
@@ -1288,19 +1306,28 @@ export default function MenuManagement() {
         image: d.image, imageAlt: d.image_alt, emoji: d.emoji, popular: d.popular,
       }));
       setDishes(mapped);
-      // Fetch recipe counts — only for dishes that actually exist in this tenant
+      // Fetch recipe counts + costos para mostrar margen por platillo
       const dishIds = new Set(mapped.map((d: any) => d.id));
       if (dishIds.size > 0) {
-        const { data: recipeData } = await supabase.from('dish_recipes').select('dish_id').eq('tenant_id', getTenantId());
+        const { data: recipeData } = await supabase
+          .from('dish_recipes')
+          .select('dish_id, quantity, ingredients(cost)')
+          .eq('tenant_id', getTenantId());
         if (recipeData) {
           const counts: Record<string, number> = {};
-          // Only count recipes for dishes that exist
+          const costs: Record<string, number> = {};
           recipeData.filter((r: any) => dishIds.has(r.dish_id))
-            .forEach((r: any) => { counts[r.dish_id] = (counts[r.dish_id] || 0) + 1; });
+            .forEach((r: any) => {
+              counts[r.dish_id] = (counts[r.dish_id] || 0) + 1;
+              const ingredientCost = Number((r.ingredients as any)?.cost ?? 0);
+              costs[r.dish_id] = (costs[r.dish_id] || 0) + (Number(r.quantity) * ingredientCost);
+            });
           setRecipeCounts(counts);
+          setDishCosts(costs);
         }
       } else {
-        setRecipeCounts({}); // no dishes → no recipes to show
+        setRecipeCounts({});
+        setDishCosts({});
       }
     }
     setLoading(false);
@@ -1524,6 +1551,7 @@ export default function MenuManagement() {
               dish={dish as Dish}
               priceMultiplier={priceLists.find(pl => pl.id === activePriceList)?.multiplier ?? 1}
               recipeCount={recipeCounts[dish.id] || 0}
+              dishCost={dishCosts[dish.id] ?? null}
               onModifier={setModifierDish}
               onEdit={openEdit}
               onDelete={setDeletingDish}
