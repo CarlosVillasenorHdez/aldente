@@ -1170,6 +1170,9 @@ export default function InventarioManagement() {
       {/* ── TAB: PRONÓSTICO ── */}
       {activeTab === 'pronostico' && <ForecastingChart />}
 
+      {/* ── TAB: CONTEO FÍSICO ── */}
+      {activeTab === 'conteo' && <ConteoFisico />}
+
       {/* ── TAB: LISTA DE COMPRAS INTELIGENTE ── */}
       {activeTab === 'compras' && (
         <div className="flex-1 overflow-auto p-6">
