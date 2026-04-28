@@ -81,30 +81,33 @@ export default function ConteoFisico() {
     if (diffs.length === 0) { toast.info('Sin diferencias que ajustar'); return; }
     setSaving(true);
     const now = new Date().toISOString();
-    const tid = getTenantId();
 
     const results = await Promise.allSettled(diffs.map(async ing => {
       const newStock = Number(ing.stockFisico);
       const diff = newStock - ing.stockSistema;
 
-      // Actualizar stock
-      await supabase.from('ingredients')
+      // 1. Actualizar stock del ingrediente
+      const { error: updateErr } = await supabase
+        .from('ingredients')
         .update({ stock: newStock, updated_at: now })
         .eq('id', ing.id);
 
-      // Registrar movimiento de ajuste
-      await supabase.from('stock_movements').insert({
-        tenant_id: tid,
-        ingredient_id: ing.id,
-        movement_type: diff > 0 ? 'ajuste_positivo' : 'ajuste_negativo',
-        quantity: Math.abs(diff),
-        previous_stock: ing.stockSistema,
-        new_stock: newStock,
-        reason: `Conteo físico — ajuste ${diff > 0 ? '+' : ''}${diff.toFixed(2)} ${ing.unit}`,
-        created_by: 'Conteo físico',
-        unit_cost: ing.cost,
-        total_cost: Math.abs(diff) * ing.cost,
-      });
+      if (updateErr) throw updateErr;
+
+      // 2. Registrar movimiento — solo campos que existen en la DB
+      const { error: movErr } = await supabase
+        .from('stock_movements')
+        .insert({
+          ingredient_id: ing.id,
+          movement_type: 'ajuste',          // 'entrada' | 'salida' | 'ajuste'
+          quantity: Math.abs(diff),
+          previous_stock: ing.stockSistema,
+          new_stock: newStock,
+          reason: `Conteo físico — ${diff > 0 ? '+' : ''}${diff.toFixed(2)} ${ing.unit}`,
+          created_by: 'Conteo físico',
+        });
+
+      if (movErr) throw movErr;
     }));
 
     const ok = results.filter(r => r.status === 'fulfilled').length;
