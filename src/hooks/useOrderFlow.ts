@@ -74,6 +74,8 @@ export interface CloseOrderParams {
   branchName: string;
   openedAt: string | null;
   loyaltyCustomerId?: string | null;
+  loyaltyPointsEarned?: number;  // puntos que el cliente gana con esta compra
+  tip?: number;                  // propina
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -222,7 +224,8 @@ export function useOrderFlow() {
 
   const closeOrder = useCallback(async (params: CloseOrderParams): Promise<boolean> => {
     const { orderId, tableIds, items, subtotal, discountAmount, iva, total,
-            payMethod, openedAt, branchName, waiterName, loyaltyCustomerId } = params;
+            payMethod, openedAt, branchName, waiterName, loyaltyCustomerId,
+            loyaltyPointsEarned, tip } = params;
     const now = new Date().toISOString();
 
     try {
@@ -457,6 +460,44 @@ export function useOrderFlow() {
         merge_group_id: null,
         updated_at: now,
       }).in('id', tableIds);
+
+      // ── Acumular puntos de lealtad ─────────────────────────────────────────
+      if (loyaltyCustomerId && loyaltyPointsEarned && loyaltyPointsEarned > 0) {
+        await Promise.allSettled([
+          // Sumar los puntos ganados al saldo del cliente
+          supabase.rpc('increment_loyalty_points', {
+            p_customer_id: loyaltyCustomerId,
+            p_points: loyaltyPointsEarned,
+            p_total_spent: total,
+          }).then(async ({ error }) => {
+            // Si la RPC no existe, usar UPDATE directo
+            if (error) {
+              const { data: customer } = await supabase
+                .from('loyalty_customers').select('points, total_spent, total_visits')
+                .eq('id', loyaltyCustomerId).single();
+              if (customer) {
+                await supabase.from('loyalty_customers').update({
+                  points: (customer.points ?? 0) + loyaltyPointsEarned,
+                  total_spent: (customer.total_spent ?? 0) + total,
+                  total_visits: (customer.total_visits ?? 0) + 1,
+                  last_visit: now,
+                  updated_at: now,
+                }).eq('id', loyaltyCustomerId);
+              }
+            }
+          }),
+          // Registrar la transacción en el historial
+          supabase.from('loyalty_transactions').insert({
+            tenant_id: DEFAULT_TENANT,
+            customer_id: loyaltyCustomerId,
+            order_id: orderId,
+            type: 'acumulacion',
+            points: loyaltyPointsEarned,
+            amount: total,
+            notes: `Compra — Orden ${orderId}`,
+          }),
+        ]);
+      }
 
       return true;
     } catch (err: unknown) {

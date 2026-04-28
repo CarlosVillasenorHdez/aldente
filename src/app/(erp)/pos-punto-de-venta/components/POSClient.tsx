@@ -1570,6 +1570,8 @@ export default function POSClient() {
       branchName,
       openedAt: selectedTable.openedAt ?? null,
       loyaltyCustomerId: loyaltyCustomerId ?? null,
+      loyaltyPointsEarned: loyaltyCustomerId ? Math.floor(total / 10) : 0,
+      tip: tip ?? 0,
     });
 
     if (!ok) return;
