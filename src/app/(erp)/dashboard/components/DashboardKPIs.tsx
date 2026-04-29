@@ -158,10 +158,10 @@ export default function DashboardKPIs() {
           { data: gastosAlert },
         ] = await Promise.all([
           (activeBranchId
-            ? supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)
+            ? supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', todayUTC)
             : supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
           supabase.from('orders').select('waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
-          supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', yesterdayUTC).lt('created_at', sameHourYesterdayUTC),
+          supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', yesterdayUTC).lt('closed_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']),
           supabase.from('restaurant_tables').select('status').eq('tenant_id', getTenantId()),
           supabase.from('order_items').select('name, qty, order_id').eq('tenant_id', getTenantId()).gte('created_at', todayUTC),

@@ -1,7 +1,6 @@
 'use client';
 
 import AppLayout from '@/components/AppLayout';
-import ReportesManagement from './components/ReportesManagement';
 import ReportesMejorados from './components/ReportesMejorados';
 import ReportesConsolidado from './components/ReportesConsolidado';
 import AnalisisFinanciero from './components/AnalisisFinanciero';
