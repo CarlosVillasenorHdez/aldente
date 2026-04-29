@@ -1,0 +1,210 @@
+flowchart TB
+
+%% ─────────────────────────────────────────────
+%%  ALDENTE ERP — Mapa completo de módulos
+%%  Flujo de información, datos de entrada/salida
+%% ─────────────────────────────────────────────
+
+%% ══════════════════════════════════════
+%%  ACTORES EXTERNOS
+%% ══════════════════════════════════════
+COMENSAL([👤 Comensal])
+DUENO([👑 Dueño / Admin])
+MESERO_ACT([🛎️ Mesero])
+CAJERO_ACT([💰 Cajero])
+COCINERO_ACT([👨‍🍳 Cocinero])
+SUPERADMIN([🔧 SuperAdmin])
+
+%% ══════════════════════════════════════
+%%  CAPA DE PRESENTACIÓN (módulos ERP)
+%% ══════════════════════════════════════
+
+subgraph OPERATIVO ["⚡ Núcleo operativo"]
+    POS["POS — Punto de venta\n──────────────────\nEntrada: mesa, platillos, modificadores\nSalida: orden cerrada, COGS, stock −"]
+    KDS["KDS — Cocina\n──────────────────\nEntrada: comanda (Realtime)\nSalida: kitchen_status actualizado"]
+    MESERO["Mesero móvil\n──────────────────\nEntrada: mesa seleccionada\nSalida: order_items, tabla ocupada"]
+    CORTE["Corte de caja\n──────────────────\nEntrada: órdenes del turno\nSalida: corte cerrado, diferencia"]
+    DELIVERY["Delivery\n──────────────────\nEntrada: pedido externo\nSalida: delivery_order + order"]
+end
+
+subgraph MENU_INV ["🍽️ Menú e inventario"]
+    MENU["Menú\n──────────────────\nEntrada: platillo + receta + modificadores\nSalida: dishes, dish_recipes"]
+    INVENTARIO["Inventario\n──────────────────\nEntrada: conteo físico, movimientos\nSalida: stock actualizado, alertas"]
+    PROVEEDORES["Proveedores\n──────────────────\nEntrada: compra registrada\nSalida: supplier_payments, stock +"]
+end
+
+subgraph CLIENTES ["🏆 Clientes y experiencia"]
+    LEALTAD["Lealtad\n──────────────────\nEntrada: socio, uso beneficio\nSalida: puntos +/−, daily_benefit_log"]
+    RESERVACIONES["Reservaciones\n──────────────────\nEntrada: reserva + mesa asignada\nSalida: reservations, tabla reservada"]
+    CARTA_QR["Carta QR pública\n──────────────────\nEntrada: slug del restaurante\nSalida: menú sin login"]
+end
+
+subgraph RRHH_MOD ["👥 Recursos humanos"]
+    PERSONAL["Personal\n──────────────────\nEntrada: datos empleado, PIN\nSalida: employees, shifts"]
+    RRHH["RRHH\n──────────────────\nEntrada: vacaciones, permisos, incapacidades\nSalida: rh_*, pagos_nomina"]
+    CHECKIN["Check-in kiosko\n──────────────────\nEntrada: PIN del empleado\nSalida: employee_attendance"]
+end
+
+subgraph ANALISIS ["📊 Análisis y reportes"]
+    DASHBOARD["Dashboard\n──────────────────\nEntrada: todas las tablas (read-only)\nSalida: KPIs en tiempo real"]
+    REPORTES["Reportes\n──────────────────\nEntrada: órdenes, gastos, nómina\nSalida: P&L, ventas, presupuesto vs real"]
+    GASTOS["Gastos\n──────────────────\nEntrada: gasto recurrente / depreciación\nSalida: gastos_recurrentes, depreciaciones"]
+end
+
+subgraph CONFIG_MOD ["⚙️ Configuración"]
+    CONFIG["Configuración\n──────────────────\nEntrada: parámetros del sistema\nSalida: system_config, dishes, tablas"]
+    ADMIN["SuperAdmin\n──────────────────\nEntrada: métricas de todos los tenants\nSalida: CRM, feature adoption"]
+end
+
+%% ══════════════════════════════════════
+%%  BASE DE DATOS — TABLAS CLAVE
+%% ══════════════════════════════════════
+
+subgraph DB ["🗄️ Supabase — Tablas principales (RLS por tenant_id)"]
+    direction LR
+    T_ORDERS[("orders\norder_items\norder_item_modifiers")]
+    T_DISHES[("dishes\ndish_recipes\nmodifier_groups")]
+    T_STOCK[("ingredients\nstock_movements\nextras_catalog")]
+    T_LOYALTY[("loyalty_customers\nloyalty_transactions\nloyalty_daily_benefit_log")]
+    T_RRHH[("employees\nemployee_attendance\nemployee_schedules\nrh_vacaciones / permisos")]
+    T_FINANZAS[("orders (cerradas)\ngastos_recurrentes\ndepreciaciones\npagos_nomina\npresupuestos")]
+    T_CONFIG[("system_config\nrestaurant_tables\nbranches")]
+end
+
+%% ══════════════════════════════════════
+%%  HOOKS COMPARTIDOS (lógica de negocio)
+%% ══════════════════════════════════════
+
+subgraph HOOKS ["🔧 Hooks y motores (lógica compartida)"]
+    direction LR
+    H_ORDER["useOrderFlow\nCOGS · stock · lealtad · cierre"]
+    H_LOYALTY["useLoyaltyConfig\npuntos · beneficios · tiers"]
+    H_ATTENDANCE["attendanceEngine\ncheck-in · retardos · descuentos"]
+    H_REPORTES["useReportesMejorados\nuseReportesConsolidado"]
+    H_LABORAL["laboralMX\nIMSS · INFONAVIT · LFT"]
+    H_PRESUPUESTO["usePresupuesto\nmeta vs real"]
+end
+
+%% ══════════════════════════════════════
+%%  FLUJOS DE ACTORES → MÓDULOS
+%% ══════════════════════════════════════
+
+CAJERO_ACT -->|"cobra · divide cuenta · busca socio"| POS
+MESERO_ACT -->|"agrega platillos · ve mesas"| MESERO
+MESERO_ACT -->|"toca su nombre + PIN"| CHECKIN
+COCINERO_ACT -->|"avanza estado comanda"| KDS
+DUENO -->|"ve KPIs · alertas · asistencia"| DASHBOARD
+DUENO -->|"ve P&L · ventas · presupuesto"| REPORTES
+DUENO -->|"configura programa"| CONFIG
+COMENSAL -->|"escanea QR"| CARTA_QR
+COMENSAL -->|"reserva mesa"| RESERVACIONES
+SUPERADMIN -->|"monitorea todos los tenants"| ADMIN
+
+%% ══════════════════════════════════════
+%%  FLUJOS ENTRE MÓDULOS
+%% ══════════════════════════════════════
+
+%% POS consume
+POS -->|"lee platillos + precios"| MENU
+POS -->|"lee recetas para COGS"| INVENTARIO
+POS -->|"busca / registra socio"| LEALTAD
+POS -->|"comanda en tiempo real"| KDS
+POS -->|"libera mesa al cerrar"| RESERVACIONES
+
+%% POS → hooks
+POS -->|"closeOrder"| H_ORDER
+POS -->|"config puntos y beneficios"| H_LOYALTY
+
+%% useOrderFlow → DB (el más crítico)
+H_ORDER -->|"orders status=cerrada\norder_items"| T_ORDERS
+H_ORDER -->|"ingredients.stock −\nstock_movements"| T_STOCK
+H_ORDER -->|"loyalty_customers.points +\nloyalty_transactions"| T_LOYALTY
+
+%% KDS
+KDS -->|"lee órdenes (Realtime)"| T_ORDERS
+KDS -->|"kitchen_status update"| T_ORDERS
+
+%% Mesero
+MESERO -->|"lee restaurant_tables"| T_CONFIG
+MESERO -->|"inserta order_items"| T_ORDERS
+
+%% Menú → tablas
+MENU -->|"CRUD dishes + recetas"| T_DISHES
+MENU -->|"recipe cost → margen"| T_STOCK
+
+%% Inventario
+INVENTARIO -->|"lee / ajusta stock"| T_STOCK
+INVENTARIO -->|"lee recetas"| T_DISHES
+PROVEEDORES -->|"stock_movements + +"| T_STOCK
+
+%% Lealtad
+LEALTAD -->|"CRUD loyalty_customers"| T_LOYALTY
+LEALTAD -->|"lee config programa"| T_CONFIG
+H_LOYALTY -->|"lee system_config"| T_CONFIG
+
+%% Reservaciones
+RESERVACIONES -->|"reservations + tables"| T_CONFIG
+
+%% RRHH
+PERSONAL -->|"CRUD employees"| T_RRHH
+RRHH -->|"vacaciones, permisos"| T_RRHH
+RRHH -->|"pagos_nomina"| T_FINANZAS
+CHECKIN -->|"employee_attendance"| T_RRHH
+H_ATTENDANCE -->|"lee schedules + attendance"| T_RRHH
+RRHH -->|"cálculo IMSS / LFT"| H_LABORAL
+
+%% Reportes
+REPORTES -->|"lee órdenes cerradas"| T_ORDERS
+REPORTES -->|"lee gastos + nómina"| T_FINANZAS
+REPORTES -->|"lee employees"| T_RRHH
+REPORTES -->|"H_REPORTES"| H_REPORTES
+REPORTES -->|"H_PRESUPUESTO"| H_PRESUPUESTO
+H_REPORTES -->|"lee orders + gastos"| T_FINANZAS
+H_PRESUPUESTO -->|"presupuestos + órdenes"| T_FINANZAS
+
+%% Dashboard
+DASHBOARD -->|"lee todas (read-only)"| T_ORDERS
+DASHBOARD -->|"lee employees + attendance"| T_RRHH
+DASHBOARD -->|"lee stock + alertas"| T_STOCK
+DASHBOARD -->|"alertas tardanza"| H_ATTENDANCE
+
+%% Gastos
+GASTOS -->|"gastos_recurrentes\ndepreciaciones"| T_FINANZAS
+
+%% Corte de caja
+CORTE -->|"lee orders del turno"| T_ORDERS
+CORTE -->|"insert cortes_caja"| T_ORDERS
+
+%% Config
+CONFIG -->|"system_config\ndishes · tables · lealtad"| T_CONFIG
+
+%% SuperAdmin (lee de todos los tenants)
+ADMIN -->|"lee orders + employees (multi-tenant)"| T_ORDERS
+ADMIN -->|"feature adoption tracking"| T_RRHH
+
+%% Delivery
+DELIVERY -->|"delivery_orders + orders"| T_ORDERS
+
+%% ══════════════════════════════════════
+%%  ESTILOS
+%% ══════════════════════════════════════
+
+classDef operativo fill:#1D9E75,stroke:#0F6E56,color:#f0fdf4
+classDef menuInv   fill:#BA7517,stroke:#854F0B,color:#fffbeb
+classDef clientes  fill:#D85A30,stroke:#993C1D,color:#fff7ed
+classDef rrhh      fill:#534AB7,stroke:#3C3489,color:#f5f3ff
+classDef analisis  fill:#5F5E5A,stroke:#444441,color:#f9fafb
+classDef config    fill:#185FA5,stroke:#0C447C,color:#eff6ff
+classDef db        fill:#0f172a,stroke:#334155,color:#94a3b8
+classDef hook      fill:#27500A,stroke:#173404,color:#f0fdf4
+classDef actor     fill:#e2e8f0,stroke:#94a3b8,color:#0f172a
+
+class POS,KDS,MESERO,CORTE,DELIVERY operativo
+class MENU,INVENTARIO,PROVEEDORES menuInv
+class LEALTAD,RESERVACIONES,CARTA_QR clientes
+class PERSONAL,RRHH,CHECKIN rrhh
+class DASHBOARD,REPORTES,GASTOS analisis
+class CONFIG,ADMIN config
+class T_ORDERS,T_DISHES,T_STOCK,T_LOYALTY,T_RRHH,T_FINANZAS,T_CONFIG db
+class H_ORDER,H_LOYALTY,H_ATTENDANCE,H_REPORTES,H_LABORAL,H_PRESUPUESTO hook
+class COMENSAL,DUENO,MESERO_ACT,CAJERO_ACT,COCINERO_ACT,SUPERADMIN actor
