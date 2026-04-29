@@ -88,7 +88,17 @@ export default function PaymentModal({
   const ivaRate = subtotal && subtotal > 0 ? (iva ?? 0) / subtotal : 0.16;
 
   // ── Load loyalty config from DB ───────────────────────────────────────────
-  const [loyaltyConfig, setLoyaltyConfig] = React.useState({ pesosPerPoint: 10, pointValue: 0.50, minRedeem: 50, maxRedeemPct: 30 });
+  const [loyaltyConfig, setLoyaltyConfig] = React.useState({
+    pesosPerPoint: 10, pointValue: 0.50, minRedeem: 50, maxRedeemPct: 30,
+    // Beneficios de membresía
+    discountEnabled: false, discountPct: 0, discountAuto: false,
+    priceTagEnabled: false, priceTagLabel: 'Precio de socio',
+    birthdayEnabled: false, birthdayType: 'descuento', birthdayDiscountPct: 0,
+  });
+
+  // Estado de beneficios activos para el socio seleccionado
+  const [membershipDiscount, setMembershipDiscount] = React.useState(false);
+  const [birthdayActive, setBirthdayActive] = React.useState(false);
 
   // Cliente pre-seleccionado desde el POS — o null si no hay ninguno
   const [selectedCustomer, setSelectedCustomer] = React.useState<{
@@ -99,7 +109,53 @@ export default function PaymentModal({
   const handleSetCustomer = React.useCallback((c: typeof selectedCustomer) => {
     setSelectedCustomer(c);
     onLoyaltyCustomerChange?.(c);
+    // Resetear beneficios al cambiar socio
+    setMembershipDiscount(false);
+    setBirthdayActive(false);
   }, [onLoyaltyCustomerChange]);
+
+  // Verificar beneficios del socio cuando se selecciona
+  React.useEffect(() => {
+    if (!selectedCustomer) {
+      setMembershipDiscount(false);
+      setBirthdayActive(false);
+      return;
+    }
+    // Cumpleaños — verificar si es hoy
+    if (loyaltyConfig.birthdayEnabled) {
+      supabase.from('loyalty_customers')
+        .select('birthday, is_active, membership_type')
+        .eq('id', selectedCustomer.id)
+        .single()
+        .then(({ data: cust }) => {
+          if (!cust?.is_active) return;
+          // Verificar si es su cumpleaños hoy
+          if (cust.birthday) {
+            const today = new Date();
+            const bday = new Date(cust.birthday);
+            if (bday.getMonth() === today.getMonth() && bday.getDate() === today.getDate()) {
+              setBirthdayActive(true);
+            }
+          }
+          // Descuento automático de membresía
+          if (loyaltyConfig.discountEnabled && loyaltyConfig.discountAuto &&
+              (cust.membership_type === 'membresia' || cust.membership_type === 'termo')) {
+            setMembershipDiscount(true);
+          }
+        });
+    } else if (loyaltyConfig.discountEnabled && loyaltyConfig.discountAuto) {
+      supabase.from('loyalty_customers')
+        .select('is_active, membership_type')
+        .eq('id', selectedCustomer.id)
+        .single()
+        .then(({ data: cust }) => {
+          if (cust?.is_active &&
+              (cust.membership_type === 'membresia' || cust.membership_type === 'termo')) {
+            setMembershipDiscount(true);
+          }
+        });
+    }
+  }, [selectedCustomer?.id, loyaltyConfig.birthdayEnabled, loyaltyConfig.discountEnabled, loyaltyConfig.discountAuto]);
   React.useEffect(() => {
     if (!features.lealtad) return;
     supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).like('config_key', 'loyalty_%')
@@ -111,6 +167,15 @@ export default function PaymentModal({
           pointValue:    m['loyalty_point_value']     ? Number(m['loyalty_point_value'])     : 0.50,
           minRedeem:     m['loyalty_min_redeem']      ? Number(m['loyalty_min_redeem'])      : 50,
           maxRedeemPct:  m['loyalty_max_redeem_pct']  ? Number(m['loyalty_max_redeem_pct'])  : 30,
+          // Beneficios de membresía
+          discountEnabled:    m['loyalty_benefit_discount_enabled'] === 'true',
+          discountPct:        m['loyalty_benefit_discount_pct']      ? Number(m['loyalty_benefit_discount_pct'])      : 0,
+          discountAuto:       m['loyalty_benefit_discount_auto']     === 'true',
+          priceTagEnabled:    m['loyalty_benefit_price_tag_enabled'] === 'true',
+          priceTagLabel:      m['loyalty_benefit_price_tag_label']   || 'Precio de socio',
+          birthdayEnabled:    m['loyalty_benefit_birthday_enabled']  === 'true',
+          birthdayType:       m['loyalty_benefit_birthday_type']     || 'descuento',
+          birthdayDiscountPct: m['loyalty_benefit_birthday_discount_pct'] ? Number(m['loyalty_benefit_birthday_discount_pct']) : 0,
         });
       });
   }, [features.lealtad]);
@@ -148,11 +213,19 @@ export default function PaymentModal({
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const pointsDiscount = redeemPoints ? pointsToRedeem * POINTS_VALUE : 0;
 
+  // Descuento de membresía (auto si está configurado)
+  const membershipDiscountAmt = membershipDiscount && loyaltyConfig.discountPct > 0
+    ? Math.round(total * loyaltyConfig.discountPct / 100 * 100) / 100 : 0;
+
+  // Descuento de cumpleaños
+  const birthdayDiscountAmt = birthdayActive && loyaltyConfig.birthdayType === 'descuento' && loyaltyConfig.birthdayDiscountPct > 0
+    ? Math.round(total * loyaltyConfig.birthdayDiscountPct / 100 * 100) / 100 : 0;
+
   // ── Propina ──────────────────────────────────────────────────────────────────
   const [tipPct, setTipPct] = useState(0); // 0, 10, 15, 20 %
   const [tipCustom, setTipCustom] = useState(''); // monto fijo manual
   const tipAmount = tipCustom ? parseFloat(tipCustom) || 0 : Math.round(total * tipPct / 100 * 100) / 100;
-  const effectiveTotal = Math.max(0, total - pointsDiscount + tipAmount);
+  const effectiveTotal = Math.max(0, total - pointsDiscount - membershipDiscountAmt - birthdayDiscountAmt + tipAmount);
 
   // RFC para factura
   const [necesitaFactura, setNecesitaFactura] = useState(false);
@@ -497,6 +570,57 @@ export default function PaymentModal({
                   </div>
                   <UserCheck size={16} style={{ color: '#10b981' }} />
                 </div>
+
+                {/* Beneficios activos del socio */}
+                {(birthdayActive || membershipDiscount || loyaltyConfig.priceTagEnabled) && (
+                  <div className="space-y-1.5 mt-2">
+                    {birthdayActive && (
+                      <div className="flex items-center justify-between px-3 py-2 rounded-lg"
+                        style={{ backgroundColor: '#fdf2f8', border: '1px solid #f0abfc' }}>
+                        <span className="text-xs font-semibold text-purple-700">
+                          🎂 ¡Feliz cumpleaños! — {loyaltyConfig.birthdayType === 'descuento'
+                            ? `${loyaltyConfig.birthdayDiscountPct}% de descuento`
+                            : 'Sorpresa del día'}
+                        </span>
+                        {birthdayDiscountAmt > 0 && (
+                          <span className="text-xs font-bold text-purple-700">−${birthdayDiscountAmt.toFixed(2)}</span>
+                        )}
+                      </div>
+                    )}
+                    {membershipDiscount && loyaltyConfig.discountPct > 0 && (
+                      <div className="flex items-center justify-between px-3 py-2 rounded-lg"
+                        style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-green-700">
+                            🏷️ Descuento de socio — {loyaltyConfig.discountPct}% aplicado
+                          </span>
+                          {loyaltyConfig.discountAuto && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                              style={{ backgroundColor: '#bbf7d0', color: '#15803d' }}>Auto</span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-green-700">−${membershipDiscountAmt.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {loyaltyConfig.priceTagEnabled && !membershipDiscount && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                        style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                        <span className="text-xs font-semibold text-blue-700">
+                          🔵 {loyaltyConfig.priceTagLabel} — aplica precio especial
+                        </span>
+                      </div>
+                    )}
+                    {!loyaltyConfig.discountAuto && loyaltyConfig.discountEnabled && loyaltyConfig.discountPct > 0 && !membershipDiscount && (
+                      <button
+                        onClick={() => setMembershipDiscount(true)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors hover:opacity-90"
+                        style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', color: '#15803d' }}>
+                        <span>🏷️ Aplicar descuento de socio ({loyaltyConfig.discountPct}%)</span>
+                        <span>−${Math.round(total * loyaltyConfig.discountPct / 100 * 100) / 100}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {selectedCustomer.points >= loyaltyConfig.minRedeem && (
                   <div className="rounded-lg border overflow-hidden" style={{ borderColor: redeemPoints ? '#fde68a' : '#e5e7eb' }}>
