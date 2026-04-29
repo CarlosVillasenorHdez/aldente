@@ -113,22 +113,41 @@ export default function LoyaltyCRM() {
       .eq('tenant_id', tid)
       .gte('used_at', inicioMes);
 
-    // Impacto financiero del mes
+    // Impacto financiero del mes — primero desde loyalty_transactions
     const { data: txMes } = await supabase
       .from('loyalty_transactions')
       .select('financial_impact_type,financial_amount')
       .eq('tenant_id', tid)
       .gte('created_at', inicioMes);
 
-    const costoBeneficios = (txMes ?? [])
+    const costoDesdeTransacciones = (txMes ?? [])
       .filter(t => t.financial_impact_type === 'costo_beneficio')
       .reduce((s, t) => s + (t.financial_amount ?? 0), 0);
 
-    // Si no hay registros en loyalty_transactions (fallback directo),
-    // estimar el costo desde el conteo del log × costo promedio del beneficio
-    const costoFinal = costoBeneficios > 0
-      ? costoBeneficios
-      : (beneficiosMesCount ?? 0) * 0; // se actualizará cuando tengamos el costo del dish
+    // Si no hay en transactions, calcular desde el precio del platillo de beneficio
+    let costoFinal = costoDesdeTransacciones;
+    if (costoFinal === 0 && (beneficiosMesCount ?? 0) > 0) {
+      // Leer el platillo configurado como beneficio
+      const { data: configBenefit } = await supabase
+        .from('system_config')
+        .select('config_value')
+        .eq('tenant_id', tid)
+        .eq('config_key', 'loyalty_benefit_free_product_id')
+        .maybeSingle();
+
+      if (configBenefit?.config_value) {
+        const { data: dish } = await supabase
+          .from('dishes')
+          .select('price')
+          .eq('id', configBenefit.config_value)
+          .maybeSingle();
+
+        if (dish?.price) {
+          // Costo = precio de venta × número de beneficios usados este mes
+          costoFinal = Number(dish.price) * (beneficiosMesCount ?? 0);
+        }
+      }
+    }
 
     const ingresoMembresias = (txMes ?? [])
       .filter(t => t.financial_impact_type === 'ingreso_membresia')
