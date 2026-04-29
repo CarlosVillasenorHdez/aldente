@@ -82,9 +82,9 @@ export function useReportesConsolidado() {
     await Promise.all(branchesToLoad.map(async (branch) => {
       const { data: orders } = await supabase.from('orders')
         .select('id, total, created_at, closed_at, mesero')
-        .eq('tenant_id', getTenantId()).eq('status', 'cerrada')
+        .eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false)
         .eq('branch_id', branch.id)
-        .gte('created_at', start).lte('created_at', end).limit(2000);
+        .gte('closed_at', start).lte('closed_at', end).limit(2000);
 
       const orderList = orders ?? [];
       const orderIds = orderList.map((o: any) => o.id);
@@ -159,7 +159,7 @@ export function useReportesConsolidado() {
       { data: allOrders }, { data: allEmployees }, { data: allGastos },
       { data: allDeps }, { data: allRecipes }, { data: allItems }, { data: allExtras },
     ] = await Promise.all([
-      supabase.from('orders').select('id, total, branch_id').eq('tenant_id', getTenantId()).eq('status', 'cerrada').gte('created_at', start).lte('created_at', end).limit(5000),
+      supabase.from('orders').select('id, total, branch_id').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', start).lte('closed_at', end).limit(5000),
       supabase.from('employees').select('salary, salary_frequency, status, branch_id').eq('tenant_id', getTenantId()).eq('status', 'activo'),
       supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria, branch_id, activo').eq('tenant_id', getTenantId()).eq('activo', true),
       supabase.from('depreciaciones').select('valor_original, valor_residual, vida_util_anios, activo, branch_id').eq('tenant_id', getTenantId()).eq('activo', true),

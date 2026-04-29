@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
         .select('tenant_id')
         .eq('is_comanda', false)
         .neq('kitchen_status', 'en_edicion')
-        .gte('created_at', sevenDaysAgo);
+        .gte('closed_at', sevenDaysAgo);
 
       const ordersByTenant: Record<string, number> = {};
       (recentOrders ?? []).forEach((o: any) => {

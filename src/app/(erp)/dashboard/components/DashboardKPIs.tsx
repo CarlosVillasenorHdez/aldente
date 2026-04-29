@@ -149,6 +149,7 @@ export default function DashboardKPIs() {
 
         const [
           { data: cerradasHoy },
+          { data: extrasHoy },
           { data: mermaOrdersRaw },
           { data: cerradasAyer },
           { data: abiertas },
@@ -159,7 +160,8 @@ export default function DashboardKPIs() {
         ] = await Promise.all([
           (activeBranchId
             ? supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', todayUTC)
-            : supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', todayUTC)),
+            : supabase.from('orders').select('id, total, cost_actual, margin_actual, waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', todayUTC)),
+          supabase.from('extras_sales').select('price, qty').eq('tenant_id', getTenantId()).gte('sold_at', todayUTC),
           supabase.from('orders').select('waste_cost').eq('tenant_id', getTenantId()).eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', todayUTC),
           supabase.from('orders').select('total, cost_actual, margin_actual').eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', yesterdayUTC).lt('closed_at', sameHourYesterdayUTC),
           supabase.from('orders').select('id').eq('tenant_id', getTenantId()).in('status', ['abierta', 'preparacion', 'lista']),
@@ -173,7 +175,9 @@ export default function DashboardKPIs() {
             .eq('estado', 'pendiente'),
         ]);
 
-        const ventasHoy = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
+        const ventasRestaurante = (cerradasHoy || []).reduce((s, o) => s + Number(o.total), 0);
+        const ventasExtrasHoy   = (extrasHoy || []).reduce((s: number, e: any) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+        const ventasHoy  = ventasRestaurante + ventasExtrasHoy;
         const ventasAyer = (cerradasAyer || []).reduce((s, o) => s + Number(o.total), 0);
         const ticketPromedio = cerradasHoy?.length ? ventasHoy / cerradasHoy.length : 0;
         const utilidadHoy = (cerradasHoy || []).reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);

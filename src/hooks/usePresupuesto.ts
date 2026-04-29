@@ -113,7 +113,7 @@ export function usePresupuesto(periodoInicio: string, periodoFin: string) {
       .select('total, cost_actual, margin_actual')
       .eq('tenant_id', tid)
       .eq('status', 'cerrada').eq('is_comanda', false)
-      .gte('created_at', start).lte('created_at', end);
+      .gte('closed_at', start).lte('closed_at', end);
     if (activeBranchId) qo = (qo as any).eq('branch_id', activeBranchId);
 
     let qg = supabase.from('gastos_recurrentes')
@@ -127,11 +127,18 @@ export function usePresupuesto(periodoInicio: string, periodoFin: string) {
       .gte('periodo_inicio', periodoInicio).lte('periodo_fin', periodoFin);
     if (activeBranchId) qn = (qn as any).eq('branch_id', activeBranchId);
 
-    const [{ data: orders }, { data: gastos }, { data: nominaPagos }] = await Promise.all([qo, qg, qn]);
+    let qe = supabase.from('extras_sales')
+      .select('price, qty')
+      .eq('tenant_id', tid)
+      .gte('sold_at', start).lte('sold_at', end);
+    if (activeBranchId) qe = (qe as any).eq('branch_id', activeBranchId);
+
+    const [{ data: orders }, { data: gastos }, { data: nominaPagos }, { data: extrasData }] = await Promise.all([qo, qg, qn, qe]);
 
     const orderList = orders ?? [];
-    const ventas = orderList.reduce((s, o) => s + Number(o.total ?? 0), 0);
-    const cogs   = orderList.reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
+    const extrasVentas = (extrasData ?? []).reduce((s: number, e: any) => s + Number(e.price ?? 0) * Number(e.qty ?? 1), 0);
+    const ventas  = orderList.reduce((s, o) => s + Number(o.total ?? 0), 0) + extrasVentas;
+    const cogs    = orderList.reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
     const ordenes = orderList.length;
 
     // Gastos operativos del período (prorratear a días del período)
