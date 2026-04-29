@@ -8,8 +8,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/hooks/useBranch';
 import { toast } from 'sonner';
 import { CheckCircle, Save, RefreshCw } from 'lucide-react';
@@ -27,9 +25,8 @@ interface Ingredient {
 const fmt = (n: number, unit: string) =>
   `${Number(n).toFixed(n % 1 === 0 ? 0 : 2)} ${unit}`;
 
-export default function ConteoFisico() {
+export default function ConteoFisico({ tenantId }: { tenantId: string }) {
   const supabase = createClient();
-  const { appUser } = useAuth();
   const { activeBranchId } = useBranch();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +36,6 @@ export default function ConteoFisico() {
   const [showOnlyDiffs, setShowOnlyDiffs] = useState(false);
 
   const load = useCallback(async () => {
-    const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) return;
 
     setLoading(true);
@@ -64,7 +60,7 @@ export default function ConteoFisico() {
     })));
     setLoading(false);
     setSaved(false);
-  }, [supabase, activeBranchId, appUser?.tenantId]);
+  }, [supabase, activeBranchId, tenantId]);
 
   useEffect(() => { load(); }, [load]);
 

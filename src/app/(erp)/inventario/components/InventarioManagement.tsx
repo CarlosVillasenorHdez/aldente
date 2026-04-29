@@ -24,7 +24,7 @@ import AnalyticaInventario from '@/app/(erp)/inventario/components/AnalyticaInve
 type UnitType = 'kg' | 'lt' | 'pz' | 'g' | 'ml' | 'caja' | 'bolsa' | 'paquete' | 'bandeja' | 'lata' | 'botella' | 'costal' | 'sobre' | 'pieza' | 'par';
 type Category = string;
 type MovementType = 'entrada' | 'salida' | 'ajuste' | 'merma';
-type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'conteo';
+type ActiveTab = 'inventario' | 'movimientos' | 'alertas' | 'conteo' | 'analitica' | 'pronostico';
 
 type IngredientSupplier = {
   id: string;
@@ -997,6 +997,8 @@ export default function InventarioManagement() {
           { key: 'movimientos', label: 'Movimientos', icon: <History size={14} /> },
           { key: 'alertas', label: `Alertas${(lowStockItems.length + reorderItems.length) > 0 ? ` (${lowStockItems.length + reorderItems.length})` : ''}`, icon: <Bell size={14} /> },
           { key: 'conteo', label: 'Conteo físico', icon: <Package size={14} /> },
+          { key: 'analitica', label: 'Analítica', icon: <BarChart2 size={14} /> },
+          { key: 'pronostico', label: 'Pronóstico', icon: <TrendingUp size={14} /> },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150"
@@ -1161,8 +1163,14 @@ export default function InventarioManagement() {
       )}
       {/* ── TAB: ANÁLISIS DE DESPERDICIO (oculto — accesible desde Alertas) ── */}
 
+      {/* ── TAB: ANALÍTICA ── */}
+      {activeTab === 'analitica' && <AnalyticaInventario />}
+
+      {/* ── TAB: PRONÓSTICO ── */}
+      {activeTab === 'pronostico' && <ForecastingChart />}
+
       {/* ── TAB: CONTEO FÍSICO ── */}
-      {activeTab === 'conteo' && <ConteoFisico />}
+      {activeTab === 'conteo' && <ConteoFisico tenantId={appUser?.tenantId ?? getTenantId() ?? ''} />}
 
       {/* ── TAB: LISTA DE COMPRAS INTELIGENTE ── */}
 
