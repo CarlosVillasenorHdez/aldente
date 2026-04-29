@@ -1070,9 +1070,18 @@ export default function POSClient() {
         });
         // Si la RPC falla (ej: no es tipo termo), marcar directamente
         if (!benefitResult?.ok) {
+          const now = new Date().toISOString();
           await supabase.from('loyalty_customers')
-            .update({ daily_benefit_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .update({ daily_benefit_used_at: now, updated_at: now })
             .eq('id', pendingBenefit.memberId);
+          // Registrar en el log para los contadores del módulo de Lealtad
+          await supabase.from('loyalty_daily_benefit_log').insert({
+            tenant_id:     getTenantId(),
+            customer_id:   pendingBenefit.memberId,
+            branch_id:     activeBranch ?? null,
+            benefit_type:  'cafe_gratis',
+            registered_by: pendingBenefit.waiterName,
+          });
         }
         setPendingBenefit(null);
       }
@@ -1603,9 +1612,17 @@ export default function POSClient() {
         p_benefit_type:  'cafe_gratis',
       });
       if (!benefitResult?.ok) {
+        const now = new Date().toISOString();
         await supabase.from('loyalty_customers')
-          .update({ daily_benefit_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .update({ daily_benefit_used_at: now, updated_at: now })
           .eq('id', pendingBenefit.memberId);
+        await supabase.from('loyalty_daily_benefit_log').insert({
+          tenant_id:     getTenantId(),
+          customer_id:   pendingBenefit.memberId,
+          branch_id:     activeBranch ?? null,
+          benefit_type:  'cafe_gratis',
+          registered_by: selectedTable?.waiter || appUser?.fullName || 'POS',
+        });
       }
       setPendingBenefit(null);
     }

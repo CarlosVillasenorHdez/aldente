@@ -101,15 +101,15 @@ export default function LoyaltyCRM() {
       .order('created_at', { ascending: false });
 
     // Beneficios usados hoy y este mes
-    const { data: beneficiosHoy } = await supabase
+    const { count: beneficiosHoyCount } = await supabase
       .from('loyalty_daily_benefit_log')
-      .select('id', { count: 'exact' })
+      .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tid)
       .gte('used_at', new Date().toISOString().slice(0, 10));
 
-    const { data: beneficiosMes } = await supabase
+    const { count: beneficiosMesCount } = await supabase
       .from('loyalty_daily_benefit_log')
-      .select('id', { count: 'exact' })
+      .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tid)
       .gte('used_at', inicioMes);
 
@@ -123,6 +123,12 @@ export default function LoyaltyCRM() {
     const costoBeneficios = (txMes ?? [])
       .filter(t => t.financial_impact_type === 'costo_beneficio')
       .reduce((s, t) => s + (t.financial_amount ?? 0), 0);
+
+    // Si no hay registros en loyalty_transactions (fallback directo),
+    // estimar el costo desde el conteo del log × costo promedio del beneficio
+    const costoFinal = costoBeneficios > 0
+      ? costoBeneficios
+      : (beneficiosMesCount ?? 0) * 0; // se actualizará cuando tengamos el costo del dish
 
     const ingresoMembresias = (txMes ?? [])
       .filter(t => t.financial_impact_type === 'ingreso_membresia')
@@ -158,9 +164,9 @@ export default function LoyaltyCRM() {
       sociosVencidos:    vencidos,
       sociosPorVencer:   porVencer,
       sociosEnRiesgo:    enRiesgo,
-      beneficiosHoy:     (beneficiosHoy as any)?.length ?? 0,
-      beneficiosMes:     (beneficiosMes as any)?.length ?? 0,
-      costoBeneficios,
+      beneficiosHoy:     beneficiosHoyCount ?? 0,
+      beneficiosMes:     beneficiosMesCount ?? 0,
+      costoBeneficios:   costoFinal,
       ingresoMembresias,
       conversionRate:    null, // se calcula si hay trigger=venta_producto
     });
