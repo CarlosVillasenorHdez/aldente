@@ -620,7 +620,7 @@ export default function AnalisisFinanciero() {
     const y = now.getFullYear(), m = now.getMonth();
     if (period === 'mes_actual') return {
       start: new Date(y, m, 1).toISOString(),
-      end:   new Date(y, m + 1, 0, 23, 59, 59).toISOString(),
+      end:   new Date(y, m, now.getDate(), 23, 59, 59).toISOString(),  // hasta hoy, no el 30
       label: now.toLocaleString('es-MX', { month: 'long', year: 'numeric' }),
     };
     if (period === 'mes_anterior') return {

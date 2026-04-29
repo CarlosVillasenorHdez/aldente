@@ -147,8 +147,8 @@ export default function OrdersTable() {
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
     if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
-    if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');
-    if (dateTo)   query = query.lte('created_at', dateTo   + 'T23:59:59');
+    if (dateFrom) query = query.gte('closed_at', dateFrom + 'T00:00:00');
+    if (dateTo)   query = query.lte('closed_at', dateTo   + 'T23:59:59');
     if (!dateFrom && !dateTo) query = query.limit(1000);
 
     const { data: ordersData, error } = await query;
