@@ -10,7 +10,7 @@ import UpgradeGate from '@/components/UpgradeGate';
 import { useState, useEffect } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
 
-type View = 'ventas' | 'avanzado' | 'financiero' | 'consolidado' | 'presupuesto';
+type View = 'ventas' | 'financiero' | 'presupuesto' | 'consolidado';
 
 export default function ReportesPage() {
   const { features } = useFeatures();
@@ -21,11 +21,10 @@ export default function ReportesPage() {
   }, [features.multiSucursal]);
 
   const tabs = [
-    { id: 'ventas' as View,       label: '📊 Ventas',                    show: true },
-    { id: 'avanzado' as View,     label: '📈 COGS · Análisis',           show: true },
-    { id: 'financiero' as View,   label: '📋 Análisis Financiero',         show: true },
-    { id: 'presupuesto' as View,  label: '🎯 Presupuesto vs Real',        show: true },
-    { id: 'consolidado' as View,  label: '🏢 Multi-Sucursal',            show: features.multiSucursal },
+    { id: 'ventas' as View,       label: '📊 Ventas',             show: true },
+    { id: 'financiero' as View,   label: '📋 P&L · Financiero',   show: true },
+    { id: 'presupuesto' as View,  label: '🎯 Presupuesto vs Real', show: true },
+    { id: 'consolidado' as View,  label: '🏢 Multi-Sucursal',     show: features.multiSucursal },
   ].filter(t => t.show);
 
   return (
@@ -55,26 +54,13 @@ export default function ReportesPage() {
         {/* Presupuesto vs Real */}
         {activeView === 'presupuesto' && <PresupuestoVsReal />}
 
-        {/* P&L, COGS, Market Basket — Estándar+ */}
-        {activeView === 'avanzado' && (
-          <UpgradeGate
-            feature="reportes"
-            requiredPlan="negocio"
-            title="Reportes avanzados: P&L, COGS y Market Basket"
-            description="Descubre cuánto te cuesta realmente cada platillo, cuál es tu margen real y qué productos se venden juntos. El análisis que necesitas para tomar decisiones con números reales."
-            blurAmount={8}
-          >
-            <ReportesManagement />
-          </UpgradeGate>
-        )}
-
-        {/* Análisis Financiero — P&L + Balance Sheet */}
+        {/* P&L · Análisis Financiero */}
         {activeView === 'financiero' && (
           <UpgradeGate
             feature="reportes"
             requiredPlan="negocio"
-            title="Análisis Financiero: P&L + Balance Sheet"
-            description="Estado de Resultados real, Balance General y Flujo de Caja. Los reportes que necesita tu contador para el cierre fiscal."
+            title="P&L · Análisis Financiero"
+            description="Estado de Resultados real con COGS, nómina y gastos. Los números reales de tu restaurante."
             blurAmount={8}
           >
             <AnalisisFinanciero />

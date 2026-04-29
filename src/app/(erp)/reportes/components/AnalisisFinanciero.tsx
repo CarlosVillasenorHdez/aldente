@@ -120,19 +120,26 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         const descuentos = orders.reduce((s, o) => s + Number(o.discount ?? 0), 0);
         const ivaAmt = orders.reduce((s, o) => s + Number(o.iva ?? 0), 0);
 
-        // Nomina mensual
+        // Prorrateo: si es el mes actual, dividir por días transcurridos
+        const diasDelMes = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        const esActual = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        const diasPeriodo = esActual ? now.getDate() : diasDelMes;
+        const factorPeriodo = diasPeriodo / diasDelMes;
+
+        // Nómina mensual → prorateada al período real
         const FREQ: Record<string, number> = { diario: 30, semanal: 4.33, quincenal: 2, mensual: 1, bimestral: 0.5 };
-        const nomina = (nomRes.data ?? []).reduce((s, e) => {
+        const nominaMensual = (nomRes.data ?? []).reduce((s, e) => {
           const sal = Number(e.salary ?? 0);
           const freq = FREQ[e.salary_frequency ?? 'mensual'] ?? 1;
           return s + sal * freq;
         }, 0);
+        const nomina = nominaMensual * factorPeriodo;
 
-        // Gastos operativos mensual
+        // Gastos operativos → prorateados
         const GFREQ: Record<string, number> = { diaria: 30, semanal: 4.33, quincenal: 2, mensual: 1, trimestral: 0.33, anual: 0.083 };
         const gastosOp = (gastosRes.data ?? [])
           .filter((g: any) => g.categoria !== 'nomina')
-          .reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
+          .reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0) * factorPeriodo;
 
         // Depreciacion mensual
         const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => {
@@ -254,9 +261,19 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const descuentos = orders.reduce((s, o) => s + Number(o.discount ?? 0), 0);
       const ivaAmt = orders.reduce((s, o) => s + Number(o.iva ?? 0), 0);
       const FREQ: Record<string, number> = { diario:30, semanal:4.33, quincenal:2, mensual:1, bimestral:0.5 };
-      const nomina = (nomRes.data ?? []).reduce((s, e) => s + Number(e.salary ?? 0) * (FREQ[(e as any).salary_frequency ?? 'mensual'] ?? 1), 0);
+      // Prorrateo: calcular días del período vs días del mes
+      const startDate2 = new Date(start);
+      const diasDelMes2 = new Date(startDate2.getFullYear(), startDate2.getMonth() + 1, 0).getDate();
+      const endDate2 = new Date(end);
+      const diasPeriodo2 = Math.min(
+        Math.ceil((endDate2.getTime() - startDate2.getTime()) / 86400000) + 1,
+        diasDelMes2
+      );
+      const factor2 = diasPeriodo2 / diasDelMes2;
+      const nominaMensual2 = (nomRes.data ?? []).reduce((s, e) => s + Number(e.salary ?? 0) * (FREQ[(e as any).salary_frequency ?? 'mensual'] ?? 1), 0);
+      const nomina = nominaMensual2 * factor2;
       const GFREQ: Record<string, number> = { diaria:30, semanal:4.33, quincenal:2, mensual:1, trimestral:0.33, anual:0.083 };
-      const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0);
+      const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0) * factor2;
       const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(Number(a.vida_util_anios) * 12, 1), 0);
       // COGS — priorizar WACC real de stock_movements
       const cogsFromMovements = (cogsData.data ?? []).reduce((s: number, m: any) => {
@@ -1071,6 +1088,20 @@ ${horizontalHtml}
             <h1 style={{ fontSize:20, fontWeight:800, color:'#1f2937', margin:0 }}>Análisis Financiero</h1>
             <p style={{ fontSize:13, color:'#6b7280', marginTop:4 }}>
               {dateRange.label} · Datos en tiempo real desde Supabase
+              {(() => {
+                const hoy = new Date();
+                const esMesActual = hoy.getMonth() === new Date(dateRange.start).getMonth() &&
+                  hoy.getFullYear() === new Date(dateRange.start).getFullYear();
+                if (!esMesActual) return null;
+                const diasDelMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+                const pct = Math.round((hoy.getDate() / diasDelMes) * 100);
+                return (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d' }}>
+                    Nómina y gastos al {pct}% del mes ({hoy.getDate()}/{diasDelMes} días)
+                  </span>
+                );
+              })()}
             </p>
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
