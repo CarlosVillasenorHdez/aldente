@@ -666,7 +666,7 @@ export default function AnalisisFinanciero() {
     ] = await Promise.all([
       supabase.from('orders').select('total,cost_actual,pay_method,discount,iva,is_cortesia')
         .eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false)
-        .gte('created_at', start).lte('created_at', end),
+        .gte('closed_at', start).lte('closed_at', end),
       supabase.from('orders').select('waste_cost')
         .eq('tenant_id', tid).eq('status', 'cancelada').eq('cancel_type', 'con_costo')
         .gte('updated_at', start).lte('updated_at', end),

@@ -81,12 +81,12 @@ export function useReportesMejorados() {
       // Órdenes cerradas
       let q = supabase
         .from('orders')
-        .select('id, mesero, total, subtotal, created_at, cost_actual, margin_actual, waste_cost')
+        .select('id, mesero, total, subtotal, closed_at, cost_actual, margin_actual, waste_cost')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
-        .gte('created_at', start)
-        .lte('created_at', end);
+        .gte('closed_at', start)
+        .lte('closed_at', end);
       if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
 
       const [{ data: orders, error }, { data: extrasRows }] = await Promise.all([
@@ -129,7 +129,7 @@ export function useReportesMejorados() {
       // Tendencia de ventas
       const trendMap: Record<string, { ventas: number; ordenes: number }> = {};
       orderList.forEach((o: any) => {
-        const date = new Date(o.created_at);
+        const date = new Date(o.closed_at ?? o.created_at);
         const key = p === 'dia'
           ? `${String(date.getHours()).padStart(2, '0')}:00`
           : p === 'semana'
