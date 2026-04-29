@@ -214,6 +214,11 @@ export default function POSClient() {
   const [splitOverride, setSplitOverride] = useState<{ amount: number; n: number } | null>(null);
   const [showTermoWidget, setShowTermoWidget] = useState(false);
 
+  // Cliente de lealtad seleccionado — persiste entre aperturas del PaymentModal
+  const [activeLoyaltyCustomer, setActiveLoyaltyCustomer] = useState<{
+    id: string; name: string; phone: string; points: number;
+  } | null>(null);
+
   // Lealtad
   const { features } = useFeatures();
   const { config: loyaltyConfig } = useLoyaltyConfig();
@@ -502,6 +507,7 @@ export default function POSClient() {
                   setView('tables');
                   setKitchenSent(false);
                   setSentItemsSnapshot([]);
+                  setActiveLoyaltyCustomer(null); // limpiar cliente de lealtad
                 }, 0);
                 return null;
               }
@@ -2068,6 +2074,7 @@ export default function POSClient() {
             orderType={selectedTable?.number === 0 ? 'para_llevar' : 'mesa'}
             loyaltyEnabled={features.lealtad}
             onVerifyMember={() => setShowTermoWidget(true)}
+            activeLoyaltyCustomer={activeLoyaltyCustomer}
           />
           </div>
         </div>
@@ -2271,6 +2278,8 @@ export default function POSClient() {
           branchName={branchName}
           printerConfig={printerConfigData ?? undefined}
           splitOverride={splitOverride ?? undefined}
+          initialLoyaltyCustomer={activeLoyaltyCustomer ?? undefined}
+          onLoyaltyCustomerChange={setActiveLoyaltyCustomer}
           onClose={() => { setShowPaymentModal(false); setSplitOverride(null); }}
           onComplete={handlePaymentComplete}
         />

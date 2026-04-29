@@ -36,6 +36,8 @@ interface OrderPanelProps {
   /** Lealtad — para verificar socios desde la mesa */
   loyaltyEnabled?: boolean;
   onVerifyMember?: () => void;
+  /** Cliente de lealtad ya seleccionado — mostrar badge en el panel */
+  activeLoyaltyCustomer?: { id: string; name: string; points: number } | null;
 }
 
 export default function OrderPanel({
@@ -68,6 +70,7 @@ export default function OrderPanel({
   orderType,
   loyaltyEnabled = false,
   onVerifyMember,
+  activeLoyaltyCustomer,
 }: OrderPanelProps) {
   const [showDiscount, setShowDiscount] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
@@ -122,7 +125,7 @@ export default function OrderPanel({
                 En cocina
               </span>
             )}
-            {loyaltyEnabled && onVerifyMember && (
+            {loyaltyEnabled && onVerifyMember && !activeLoyaltyCustomer && (
               <button
                 onClick={onVerifyMember}
                 title="Verificar membresía del cliente"
@@ -130,6 +133,18 @@ export default function OrderPanel({
               >
                 ⭐
               </button>
+            )}
+            {activeLoyaltyCustomer && (
+              <div title={`${activeLoyaltyCustomer.points} puntos disponibles`}
+                style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 6, padding: '3px 8px', color: '#FCD34D', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, maxWidth: 130 }}>
+                <span>⭐</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                  {activeLoyaltyCustomer.name.split(' ')[0]}
+                </span>
+                <span style={{ color: 'rgba(252,211,77,0.6)', flexShrink: 0 }}>
+                  {activeLoyaltyCustomer.points}pts
+                </span>
+              </div>
             )}
           </div>
         )}

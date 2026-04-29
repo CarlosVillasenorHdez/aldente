@@ -39,6 +39,10 @@ interface PaymentModalProps {
   };
   onClose: () => void;
   onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => void;
+  /** Cliente de lealtad ya seleccionado desde el POS — aparece pre-cargado */
+  initialLoyaltyCustomer?: { id: string; name: string; phone: string; points: number };
+  /** Notifica al padre cuando el cajero selecciona/deselecciona un cliente */
+  onLoyaltyCustomerChange?: (customer: { id: string; name: string; phone: string; points: number } | null) => void;
   /** Cuando viene de división por personas — sobrescribe el total a cobrar */
   splitOverride?: { amount: number; n: number };
 }
@@ -71,6 +75,8 @@ export default function PaymentModal({
   orderType, customerName,
   restaurantName, branchName, printerConfig,
   splitOverride,
+  initialLoyaltyCustomer,
+  onLoyaltyCustomerChange,
 }: PaymentModalProps) {
 
   const supabase = createClient();
@@ -83,6 +89,17 @@ export default function PaymentModal({
 
   // ── Load loyalty config from DB ───────────────────────────────────────────
   const [loyaltyConfig, setLoyaltyConfig] = React.useState({ pesosPerPoint: 10, pointValue: 0.50, minRedeem: 50, maxRedeemPct: 30 });
+
+  // Cliente pre-seleccionado desde el POS — o null si no hay ninguno
+  const [selectedCustomer, setSelectedCustomer] = React.useState<{
+    id: string; name: string; phone: string; points: number;
+  } | null>(initialLoyaltyCustomer ?? null);
+
+  // Notificar al padre cuando cambia el cliente seleccionado
+  const handleSetCustomer = React.useCallback((c: typeof selectedCustomer) => {
+    setSelectedCustomer(c);
+    onLoyaltyCustomerChange?.(c);
+  }, [onLoyaltyCustomerChange]);
   React.useEffect(() => {
     if (!features.lealtad) return;
     supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).like('config_key', 'loyalty_%')
@@ -101,7 +118,6 @@ export default function PaymentModal({
   // ── Loyalty customer search ──
   const [loyaltySearch, setLoyaltySearch] = useState('');
   const [loyaltyResults, setLoyaltyResults] = useState<{ id: string; name: string; phone: string; points: number }[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; phone: string; points: number } | null>(null);
   const [loyaltySearching, setLoyaltySearching] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -458,7 +474,7 @@ export default function PaymentModal({
               <Star size={14} style={{ color: '#d97706' }} />
               <span className="text-xs font-semibold text-amber-800">Programa de Lealtad</span>
               {selectedCustomer && (
-                <button onClick={() => { setSelectedCustomer(null); setLoyaltySearch(''); setLoyaltyResults([]); }}
+                <button onClick={() => { handleSetCustomer(null); setLoyaltySearch(''); setLoyaltyResults([]); }}
                   className="ml-auto text-gray-400 hover:text-gray-600">
                   <XCircle size={14} />
                 </button>
@@ -543,7 +559,7 @@ export default function PaymentModal({
                   <div className="mt-1.5 rounded-lg border overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
                     {loyaltyResults.map(c => (
                       <button key={c.id}
-                        onClick={() => { setSelectedCustomer(c); setLoyaltySearch(''); setLoyaltyResults([]); }}
+                        onClick={() => { handleSetCustomer(c); setLoyaltySearch(''); setLoyaltyResults([]); }}
                         className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50 transition-colors"
                         style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <span className="font-medium text-gray-800">{c.name}</span>
