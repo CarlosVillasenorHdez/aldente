@@ -72,10 +72,9 @@ function calcElapsed(createdAt: string): number {
   return Math.floor(diff / 60000);
 }
 
-/** Tiempo en formato MM:SS para el cronómetro */
-function calcElapsedMMSS(createdAt: string, startedAt?: string | null): string {
-  const from = startedAt ? new Date(startedAt) : new Date(createdAt);
-  const diff = Math.max(0, Date.now() - from.getTime());
+/** Tiempo en formato MM:SS — SIEMPRE desde que llegó la comanda */
+function calcElapsedMMSS(createdAt: string): string {
+  const diff = Math.max(0, Date.now() - new Date(createdAt).getTime());
   const totalSec = Math.floor(diff / 1000);
   const mm = Math.floor(totalSec / 60);
   const ss = totalSec % 60;
@@ -101,17 +100,12 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
   const elapsed = calcElapsed(order.createdAt);
   const cfg = STATUS_CONFIG[order.kitchenStatus];
   const isLista    = order.kitchenStatus === 'lista';
-  // Urgencia basada en tiempo esperado de preparación del platillo más tardado
   const expected   = order.expectedPrepMin > 0 ? order.expectedPrepMin : 15;
-  const isPrep     = order.kitchenStatus === 'preparacion';
-  // Use kitchen_started_at when in prep, otherwise use createdAt
-  const elapsedForThisStatus = isPrep && order.kitchenStartedAt
-    ? Math.floor((Date.now() - new Date(order.kitchenStartedAt).getTime()) / 60000)
-    : elapsed;
-  const pct        = isPrep ? elapsedForThisStatus / expected : elapsed / (expected + 5);
-  const isCritical = !isLista && pct >= 1.0;        // 100%+ del tiempo esperado
-  const isUrgent   = !isLista && pct >= 0.8 && pct < 1.0; // 80-99%
-  const isWarning  = !isLista && pct >= 0.5 && pct < 0.8; // 50-79%
+  // Barra de progreso y urgencia siempre basadas en tiempo total desde la comanda
+  const pct        = elapsed / expected;
+  const isCritical = !isLista && pct >= 1.0;
+  const isUrgent   = !isLista && pct >= 0.8 && pct < 1.0;
+  const isWarning  = !isLista && pct >= 0.5 && pct < 0.8;
   const isOk       = isLista || pct < 0.5;
 
   // Color dinámico para el borde y badge de tiempo
@@ -190,7 +184,7 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
           >
             <Clock size={10} />
             <span className="font-mono text-sm tracking-wide">
-              {calcElapsedMMSS(order.createdAt, isPrep ? order.kitchenStartedAt : null)}
+              {calcElapsedMMSS(order.createdAt)}
             </span>
             {!isLista && (
               <span className="opacity-60">/ {expected}min</span>
@@ -198,7 +192,7 @@ function OrderCard({ order, onAdvance, onDeliver, onCancel, tick, isDragging, on
           </div>
           {isCritical && (
             <span className="text-xs font-bold animate-pulse" style={{ color: '#ef4444' }}>
-              +{elapsedForThisStatus - expected}min tarde
+              +{elapsed - expected}min tarde
             </span>
           )}
           <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>{order.id.slice(-6)}</span>

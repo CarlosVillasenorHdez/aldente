@@ -1,5 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 
@@ -127,18 +128,24 @@ export default function OrdersTable() {
   const { activeBranchId } = useBranch();
   const { branch: activeBranch } = useBranch();
   const { log: auditLog } = useAudit();
+  const { appUser } = useAuth();
 
   const fetchOrders = useCallback(async () => {
+    const tenantId = appUser?.tenantId ?? getTenantId();
+    if (!tenantId) { setLoading(false); return; }
+
     setLoading(true);
     // Base query — si hay filtro de fechas no ponemos límite; si no, cap en 500
     let query = supabase
       .from('orders')
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
-      .eq('tenant_id', getTenantId())
-      .eq('branch_id', activeBranchId || undefined)
+      .eq('tenant_id', tenantId)
       .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
       .neq('kitchen_status', 'en_edicion')  // exclude abandoned drafts never sent to kitchen
       .order('created_at', { ascending: false });
+
+    // Filtro de sucursal — solo si hay una seleccionada (null = todas)
+    if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');
     if (dateTo)   query = query.lte('created_at', dateTo   + 'T23:59:59');
