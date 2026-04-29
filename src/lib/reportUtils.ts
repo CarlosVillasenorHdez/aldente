@@ -9,23 +9,30 @@ export type DateRange = 'hoy' | 'semana' | 'mes' | 'personalizado';
 /** Retorna start/end ISO para un período simple */
 export function getPeriodRange(period: ReportPeriod): { start: string; end: string } {
   const now = new Date();
-  const end = now.toISOString();
-  let start: string;
 
   if (period === 'dia') {
-    const d = new Date(now);
-    d.setHours(0, 0, 0, 0);
-    start = d.toISOString();
-  } else if (period === 'semana') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 7);
-    start = d.toISOString();
-  } else {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 30);
-    start = d.toISOString();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    return { start: start.toISOString(), end: end.toISOString() };
   }
-  return { start, end };
+
+  if (period === 'semana') {
+    // Lunes de esta semana
+    const start = new Date(now);
+    start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    return { start: start.toISOString(), end: end.toISOString() };
+  }
+
+  // mes — mes calendario actual (del 1 al día de hoy)
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const end   = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 /** Retorna start/end ISO para un DateRange estilo consolidado */
