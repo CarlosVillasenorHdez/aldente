@@ -1062,12 +1062,18 @@ export default function POSClient() {
 
       // Marcar el beneficio de lealtad como usado ahora que la orden es real
       if (pendingBenefit && !kitchenSent) {
-        await supabase.rpc('loyalty_use_daily_benefit', {
+        const { data: benefitResult } = await supabase.rpc('loyalty_use_daily_benefit', {
           p_customer_id:   pendingBenefit.memberId,
           p_branch_id:     activeBranch ?? null,
           p_registered_by: pendingBenefit.waiterName,
           p_benefit_type:  'cafe_gratis',
         });
+        // Si la RPC falla (ej: no es tipo termo), marcar directamente
+        if (!benefitResult?.ok) {
+          await supabase.from('loyalty_customers')
+            .update({ daily_benefit_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq('id', pendingBenefit.memberId);
+        }
         setPendingBenefit(null);
       }
     }
@@ -1587,6 +1593,22 @@ export default function POSClient() {
     });
 
     if (!ok) return;
+
+    // Marcar beneficio diario si no se procesó al enviar a cocina
+    if (pendingBenefit) {
+      const { data: benefitResult } = await supabase.rpc('loyalty_use_daily_benefit', {
+        p_customer_id:   pendingBenefit.memberId,
+        p_branch_id:     activeBranch ?? null,
+        p_registered_by: pendingBenefit.memberId,
+        p_benefit_type:  'cafe_gratis',
+      });
+      if (!benefitResult?.ok) {
+        await supabase.from('loyalty_customers')
+          .update({ daily_benefit_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', pendingBenefit.memberId);
+      }
+      setPendingBenefit(null);
+    }
 
     // Guardar propina y RFC de facturación si los hay
     const updates: Record<string, unknown> = {};
