@@ -295,13 +295,15 @@ export default function LoyaltyConfig() {
   const [editingTier, setEditingTier] = useState<MembershipTier | null>(null);
   const [savingTiers, setSavingTiers] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !initialized) {
       setDraft(config);
       setTiers(config.tiers ?? []);
+      setInitialized(true);
     }
-  }, [loading, config]);
+  }, [loading, config, initialized]);
 
   useEffect(() => {
     const tid = appUser?.tenantId;

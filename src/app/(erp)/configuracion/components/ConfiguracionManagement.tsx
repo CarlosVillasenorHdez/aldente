@@ -61,7 +61,7 @@ export default function ConfiguracionManagement() {
   const groups = [...new Set(SECTIONS.map(s => s.group))];
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1923', minHeight: '100vh' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1923' }}>
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-5 border-b" style={{ borderColor: '#1e2d3d' }}>
         <div className="flex items-center gap-3">

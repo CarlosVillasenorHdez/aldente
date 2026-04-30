@@ -135,13 +135,11 @@ export default function OrdersTable() {
     if (!tenantId) { setLoading(false); return; }
 
     setLoading(true);
-    // Base query — si hay filtro de fechas no ponemos límite; si no, cap en 500
     let query = supabase
       .from('orders')
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
       .eq('tenant_id', tenantId)
-      .eq('is_comanda', false)   // exclude comanda sub-orders — show only billing orders
-      .neq('kitchen_status', 'en_edicion')  // exclude abandoned drafts never sent to kitchen
+      .eq('is_comanda', false)
       .order('created_at', { ascending: false });
 
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
@@ -249,7 +247,7 @@ export default function OrdersTable() {
       const matchStatus = statusFilter === 'todas' || o.status === statusFilter;
       const matchMesero = meseroFilter === 'todos' || o.mesero === meseroFilter;
       const matchSearch = search === '' || o.id.toLowerCase().includes(search.toLowerCase()) || o.mesa.toLowerCase().includes(search.toLowerCase()) || o.mesero.toLowerCase().includes(search.toLowerCase()) || (o.customerName ?? '').toLowerCase().includes(search.toLowerCase());
-      const orderDate = o.openedAt ? o.openedAt.slice(0, 10) : '';
+      const orderDate = (o.closedAt ?? o.openedAt ?? '').slice(0, 10);
       const matchFrom = !dateFrom || orderDate >= dateFrom;
       const matchTo = !dateTo || orderDate <= dateTo;
       const matchBranch = !activeBranch || !o.branch || o.branch === activeBranch;
