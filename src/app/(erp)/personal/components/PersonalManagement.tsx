@@ -2,6 +2,7 @@
 import { calcCostoEmpleado, calcResumenNomina, diasVacacionesPorAntiguedad } from '@/lib/laboralMX';
 import NominaTab from './NominaTab';
 import { useBranch } from '@/hooks/useBranch';
+import { useAuth } from '@/contexts/AuthContext';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -31,6 +32,7 @@ interface Employee {
   salary: number;
   salaryFrequency: SalaryFrequency;
   numeroEmpleado?: number;
+  branchId: string;   // sucursal a la que pertenece
   // Campos legales
   rfc: string;
   nss: string;
@@ -99,7 +101,7 @@ const DEPARTAMENTOS_DEFAULT = [
 
 const emptyForm = (): Omit<Employee, 'id'> => ({
   name: '', role: 'Mesero', phone: '', hireDate: '', status: 'activo',
-  salary: 0, salaryFrequency: 'mensual',
+  salary: 0, salaryFrequency: 'mensual', branchId: '',
   rfc: '', nss: '', curp: '', fechaNacimiento: '', direccion: '',
   tipoContrato: 'planta', fechaBaja: '', motivoBaja: '',
   banco: '', cuentaBancaria: '', clabe: '',
@@ -186,6 +188,16 @@ export default function PersonalManagement() {
   const supabase = createClient();
 
   const { activeBranchId } = useBranch();
+  const { appUser } = useAuth();
+
+  // Sucursales disponibles
+  const [branches, setBranches] = useState<{id:string;name:string}[]>([]);
+  useEffect(() => {
+    const tid = appUser?.tenantId ?? getTenantId();
+    if (!tid) return;
+    supabase.from('branches').select('id,name').eq('tenant_id', tid).eq('is_active', true).order('name')
+      .then(({ data }) => setBranches(data ?? []));
+  }, [appUser?.tenantId]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -222,6 +234,7 @@ export default function PersonalManagement() {
         contactoEmergenciaNombre: (e as any).contacto_emergencia_nombre ?? '',
         contactoEmergenciaTel: (e as any).contacto_emergencia_tel ?? '',
         departamento: (e as any).departamento ?? '',
+        branchId: (e as any).branch_id ?? '',
       })));
     }
     setLoading(false);
@@ -280,7 +293,7 @@ export default function PersonalManagement() {
   function openAdd() { setEditingId(null); setForm(emptyForm()); setFormErrors({}); setModalOpen(true); }
   function openEdit(emp: Employee) {
     setEditingId(emp.id);
-    setForm({ name: emp.name, role: emp.role, phone: emp.phone, hireDate: emp.hireDate, status: emp.status, salary: emp.salary, salaryFrequency: emp.salaryFrequency, rfc: emp.rfc, nss: emp.nss, curp: emp.curp, fechaNacimiento: emp.fechaNacimiento, direccion: emp.direccion, tipoContrato: emp.tipoContrato, fechaBaja: emp.fechaBaja, motivoBaja: emp.motivoBaja, banco: emp.banco, cuentaBancaria: emp.cuentaBancaria, clabe: emp.clabe, contactoEmergenciaNombre: emp.contactoEmergenciaNombre, contactoEmergenciaTel: emp.contactoEmergenciaTel, departamento: emp.departamento });
+    setForm({ name: emp.name, role: emp.role, phone: emp.phone, hireDate: emp.hireDate, status: emp.status, salary: emp.salary, salaryFrequency: emp.salaryFrequency, rfc: emp.rfc, nss: emp.nss, curp: emp.curp, fechaNacimiento: emp.fechaNacimiento, direccion: emp.direccion, tipoContrato: emp.tipoContrato, fechaBaja: emp.fechaBaja, motivoBaja: emp.motivoBaja, banco: emp.banco, cuentaBancaria: emp.cuentaBancaria, clabe: emp.clabe, contactoEmergenciaNombre: emp.contactoEmergenciaNombre, contactoEmergenciaTel: emp.contactoEmergenciaTel, departamento: emp.departamento, branchId: emp.branchId ?? '' });
     setFormErrors({});
     setModalOpen(true);
   }
@@ -297,6 +310,8 @@ export default function PersonalManagement() {
 
   async function handleSave() {
     if (!validate()) return;
+    const tid = getTenantId();
+
     if (editingId) {
       const { error } = await supabase.from('employees').update({
         name: form.name, role: form.role, phone: form.phone,
@@ -312,16 +327,43 @@ export default function PersonalManagement() {
         departamento: form.departamento,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,
+        branch_id: form.branchId || null,
         updated_at: new Date().toISOString(),
       }).eq('id', editingId);
       if (error) { toast.error('Error al actualizar empleado.'); return; }
     } else {
-      const { error } = await supabase.from('employees').insert({ tenant_id: getTenantId(),
+      // 1. Crear el empleado
+      const { data: empData, error } = await supabase.from('employees').insert({
+        tenant_id: tid,
         name: form.name, role: form.role, phone: form.phone,
         hire_date: form.hireDate || null, status: form.status,
         salary: form.salary, salary_frequency: form.salaryFrequency,
-      });
+        branch_id: form.branchId || null,
+      }).select('id').single();
       if (error) { toast.error('Error al agregar empleado.'); return; }
+
+      // 2. Crear acceso al sistema automáticamente (PIN = 12345 por defecto)
+      if (empData?.id) {
+        const defaultPin = '12345';
+        const encoder = new TextEncoder();
+        const buf = await crypto.subtle.digest('SHA-256', encoder.encode(defaultPin + 'aldente_salt_2024'));
+        const hashed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+        const username = form.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 20)
+          + '_' + Math.floor(Math.random() * 1000);
+
+        await supabase.from('app_users').insert({
+          tenant_id: tid,
+          employee_id: empData.id,
+          full_name: form.name,
+          username,
+          pin: hashed,
+          app_role: form.role === 'Administrador' ? 'admin' : form.role === 'Gerente' ? 'gerente' : 'mesero',
+          branch_id: form.branchId || null,
+          is_active: true,
+        });
+        toast.success(`Empleado creado. PIN temporal: 12345 — cámbialo en Configuración → Usuarios`);
+      }
     }
     closeModal();
     await fetchEmployees();
@@ -904,6 +946,27 @@ export default function PersonalManagement() {
                   </div>
                 </div>
               </div>
+
+              {/* Sucursal — solo si hay más de una */}
+              {branches.length > 1 && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    Sucursal asignada
+                  </label>
+                  <div className="relative">
+                    <select value={form.branchId} onChange={(e) => updateForm('branchId', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
+                      <option value="" style={{ backgroundColor: '#162d55' }}>— Todas las sucursales (Administrador) —</option>
+                      {branches.map(b => <option key={b.id} value={b.id} style={{ backgroundColor: '#162d55' }}>{b.name}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    El empleado solo verá datos de esta sucursal al iniciar sesión. Los administradores pueden ver todas.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Teléfono <span className="text-red-400">*</span></label>
                 <input type="text" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="55 1234 5678" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: formErrors.phone ? '1px solid #f87171' : '1px solid rgba(255,255,255,0.12)', color: 'white' }} />
