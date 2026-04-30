@@ -1462,7 +1462,11 @@ export default function MenuManagement() {
       </div>
 
       {/* Combos view */}
-      {menuView === 'combos' && <CombosManagement dishes={dishes.filter(d => d.available)} />}
+      {menuView === 'combos' && (
+        <div style={{ background: '#0f1923', borderRadius: 16, padding: 24, minHeight: 400 }}>
+          <CombosManagement dishes={dishes.filter(d => d.available)} />
+        </div>
+      )}
 
       {/* Platillos view */}
       {menuView === 'platillos' && <>

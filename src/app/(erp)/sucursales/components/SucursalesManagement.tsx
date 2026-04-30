@@ -28,6 +28,19 @@ const ROLE_COLORS: Record<string,string> = {
 
 const empty: Omit<Branch,'id'> = { name:'', address:'', phone:'', email:'', managerName:'', isActive:true };
 
+async function geocodeAddress(address: string): Promise<{lat:number;lng:number} | null> {
+  if (!address.trim()) return null;
+  try {
+    const params = new URLSearchParams({ q: address, format: 'json', limit: '1', countrycodes: 'mx' });
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { 'Accept-Language': 'es', 'User-Agent': 'AldentePOS/1.0' }
+    });
+    const data = await r.json();
+    if (data?.[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {}
+  return null;
+}
+
 export default function SucursalesManagement() {
   const supabase = createClient();
   const { appUser } = useAuth();
@@ -67,11 +80,15 @@ export default function SucursalesManagement() {
     if (!form.name.trim()) { toast.error('El nombre es requerido'); return; }
     setSaving(true);
     try {
+      // Geocodificar dirección para el mapa del SuperAdmin
+      const coords = await geocodeAddress(form.address);
+      const geoFields = coords ? { lat: coords.lat, lng: coords.lng } : {};
+
       if (editingId) {
-        await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, updated_at:new Date().toISOString() }).eq('id', editingId);
+        await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, ...geoFields, updated_at:new Date().toISOString() }).eq('id', editingId);
         toast.success('Sucursal actualizada');
       } else {
-        await supabase.from('branches').insert({ tenant_id: getTenantId(), name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive });
+        await supabase.from('branches').insert({ tenant_id: getTenantId(), name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, ...geoFields });
         toast.success('Sucursal creada');
       }
       setShowForm(false); setEditingId(null); setForm(empty);
@@ -141,8 +158,25 @@ export default function SucursalesManagement() {
             </div>
             <div style={{ gridColumn:'span 2' }}>
               <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Dirección</label>
-              <input style={inp} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Calle, número, colonia"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+              <input style={inp} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Calle, número, colonia, ciudad"
+                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')}
+                onBlur={async e => {
+                  e.target.style.borderColor='rgba(255,255,255,.1)';
+                  if (form.address.length > 10) {
+                    const coords = await geocodeAddress(form.address);
+                    if (coords) {
+                      const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng-0.005},${coords.lat-0.005},${coords.lng+0.005},${coords.lat+0.005}&layer=mapnik&marker=${coords.lat},${coords.lng}`;
+                      const iframe = document.getElementById('branch-map-preview') as HTMLIFrameElement | null;
+                      if (iframe) iframe.src = mapUrl;
+                    }
+                  }
+                }} />
+              <iframe id="branch-map-preview" title="Ubicación de la sucursal" width="100%" height="150"
+                style={{ marginTop:8, borderRadius:10, border:'1px solid rgba(255,255,255,0.1)', display:'block' }}
+                src="about:blank" loading="lazy" />
+              <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:4 }}>
+                El mapa se actualiza al salir del campo de dirección
+              </p>
             </div>
             <div>
               <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Teléfono</label>
