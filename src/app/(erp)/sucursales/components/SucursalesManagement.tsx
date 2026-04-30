@@ -28,19 +28,6 @@ const ROLE_COLORS: Record<string,string> = {
 
 const empty: Omit<Branch,'id'> = { name:'', address:'', phone:'', email:'', managerName:'', isActive:true };
 
-async function geocodeAddress(address: string): Promise<{lat:number;lng:number} | null> {
-  if (!address.trim()) return null;
-  try {
-    const params = new URLSearchParams({ q: address, format: 'json', limit: '1', countrycodes: 'mx' });
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-      headers: { 'Accept-Language': 'es', 'User-Agent': 'AldentePOS/1.0' }
-    });
-    const data = await r.json();
-    if (data?.[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-  } catch {}
-  return null;
-}
-
 export default function SucursalesManagement() {
   const supabase = createClient();
   const { appUser } = useAuth();
@@ -53,9 +40,18 @@ export default function SucursalesManagement() {
   const [form, setForm] = useState<Omit<Branch,'id'>>(empty);
   const [saving, setSaving] = useState(false);
   const [expandedBranch, setExpandedBranch] = useState<string|null>(null);
-  const [assigningUser, setAssigningUser] = useState<string|null>(null); // userId being assigned
-
+  const [assigningUser, setAssigningUser] = useState<string|null>(null);
   const [tenantInfo, setTenantInfo] = useState<{name:string;address:string;phone:string} | null>(null);
+
+  // Campos de dirección separados — igual que ConfigRestaurante
+  const [street, setStreet]         = useState('');
+  const [colonia, setColonia]       = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity]             = useState('');
+  const [stateReg, setStateReg]     = useState('');
+  const [geocoding, setGeocoding]   = useState(false);
+  const [geoStatus, setGeoStatus]   = useState<'idle'|'ok'|'error'>('idle');
+  const [geoCoords, setGeoCoords]   = useState<{lat:number;lng:number}|null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,19 +72,86 @@ export default function SucursalesManagement() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function runGeocode() {
+    if (!street.trim()) return;
+    setGeocoding(true); setGeoStatus('idle');
+    try {
+      const build = (mode: 'structured'|'free') => {
+        const p = new URLSearchParams({ format: 'json', limit: '3', 'accept-language': 'es' });
+        if (mode === 'structured') {
+          p.append('street', street);
+          if (colonia) p.append('neighbourhood', colonia);
+          if (postalCode) p.append('postalcode', postalCode);
+          if (city) p.append('city', city);
+          if (stateReg) p.append('state', stateReg);
+          p.append('country', 'México');
+        } else {
+          const parts = [street, colonia, postalCode, city, stateReg, 'México'].filter(Boolean);
+          p.append('q', parts.join(', '));
+        }
+        return p;
+      };
+      let data: any[] = [];
+      try { const r = await fetch(`https://nominatim.openstreetmap.org/search?${build('structured')}`); data = await r.json(); } catch {}
+      if (!data?.length) {
+        try { const r = await fetch(`https://nominatim.openstreetmap.org/search?${build('free')}`); data = await r.json(); } catch {}
+      }
+      if (data?.[0]) {
+        setGeoCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+        setGeoStatus('ok');
+      } else { setGeoStatus('error'); setGeoCoords(null); }
+    } catch { setGeoStatus('error'); }
+    finally { setGeocoding(false); }
+  }
+
+  function openNew() {
+    setEditingId(null); setForm(empty);
+    setStreet(''); setColonia(''); setPostalCode(''); setCity(''); setStateReg('');
+    setGeoStatus('idle'); setGeoCoords(null);
+    setShowForm(true);
+  }
+  function openEdit(b: Branch) {
+    setEditingId(b.id); setForm(b);
+    // Poner la dirección completa en el campo calle para edición
+    setStreet(b.address); setColonia(''); setPostalCode(''); setCity(''); setStateReg('');
+    setGeoStatus('idle'); setGeoCoords(null);
+    setShowForm(true);
+  }
+
   async function handleSave() {
     if (!form.name.trim()) { toast.error('El nombre es requerido'); return; }
     setSaving(true);
     try {
-      // Geocodificar dirección para el mapa del SuperAdmin
-      const coords = await geocodeAddress(form.address);
+      // Construir dirección completa desde campos separados
+      const fullAddress = [street, colonia, postalCode, city, stateReg].filter(Boolean).join(', ');
+      const addressToSave = fullAddress || form.address;
+
+      // Geocoding si no se hizo antes
+      let coords = geoCoords;
+      if (!coords && street.trim()) {
+        setGeocoding(true);
+        const p = new URLSearchParams({ q: [street, colonia, city, stateReg, 'México'].filter(Boolean).join(', '), format: 'json', limit: '1' });
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/search?${p}`);
+          const d = await r.json();
+          if (d?.[0]) coords = { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+        } catch {}
+        setGeocoding(false);
+      }
       const geoFields = coords ? { lat: coords.lat, lng: coords.lng } : {};
 
+      const payload = {
+        name: form.name, address: addressToSave,
+        city: city || '', state_region: stateReg || '', colonia: colonia || '', postal_code: postalCode || '',
+        phone: form.phone, email: form.email, manager_name: form.managerName, is_active: form.isActive,
+        ...geoFields,
+      };
+
       if (editingId) {
-        await supabase.from('branches').update({ name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, ...geoFields, updated_at:new Date().toISOString() }).eq('id', editingId);
+        await supabase.from('branches').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
         toast.success('Sucursal actualizada');
       } else {
-        await supabase.from('branches').insert({ tenant_id: getTenantId(), name:form.name, address:form.address, phone:form.phone, email:form.email, manager_name:form.managerName, is_active:form.isActive, ...geoFields });
+        await supabase.from('branches').insert({ tenant_id: getTenantId(), ...payload });
         toast.success('Sucursal creada');
       }
       setShowForm(false); setEditingId(null); setForm(empty);
@@ -121,6 +184,8 @@ export default function SucursalesManagement() {
   }
 
   const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #e5e7eb', background:'#f9fafb', color:'#1f2937', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
+  const fInp = { padding:'9px 12px', borderRadius:9, border:'1px solid #2a3f5f', background:'#0f1923', color:'#f1f5f9', fontSize:13, outline:'none', width:'100%', fontFamily:'inherit', boxSizing:'border-box' } as React.CSSProperties;
+  const lbl = { display:'block', fontSize:11, color:'rgba(255,255,255,0.45)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' } as React.CSSProperties;
 
   if (loading) return <div style={{ textAlign:'center', padding:48, color:'#6b7280' }}>Cargando sucursales...</div>;
 
@@ -140,97 +205,130 @@ export default function SucursalesManagement() {
 
       {/* Form */}
       {showForm && (
-        <div style={{ padding:24, borderRadius:16, background:'#f9fafb', border:'1px solid #e5e7eb', marginBottom:20 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
-            <h3 style={{ fontSize:16, fontWeight:700, color:'#1f2937', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
-            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'#6b7280', cursor:'pointer' }}><X size={16}/></button>
+        <div style={{ borderRadius:16, background:'#0f1923', border:'1px solid #243f72', marginBottom:20, overflow:'hidden' }}>
+          {/* Header */}
+          <div style={{ padding:'16px 24px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <h3 style={{ fontSize:16, fontWeight:700, color:'#f1f5f9', margin:0 }}>{editingId?'Editar sucursal':'Nueva sucursal'}</h3>
+            <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.4)', cursor:'pointer' }}><X size={16}/></button>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-            <div>
-              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Nombre *</label>
-              <input style={inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Ej: Sucursal Centro"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+
+          <div style={{ padding:24 }}>
+            {/* Nombre y Gerente */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+              <div>
+                <label style={lbl}>Nombre *</label>
+                <input style={fInp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Ej: Sucursal Norte" />
+              </div>
+              <div>
+                <label style={lbl}>Gerente / Responsable</label>
+                <input style={fInp} value={form.managerName} onChange={e=>setForm(p=>({...p,managerName:e.target.value}))} placeholder="Nombre del encargado" />
+              </div>
             </div>
-            <div>
-              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Gerente / Responsable</label>
-              <input style={inp} value={form.managerName} onChange={e=>setForm(p=>({...p,managerName:e.target.value}))} placeholder="Nombre del encargado"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+
+            {/* Dirección estructurada — idéntica a ConfigRestaurante */}
+            <div style={{ borderRadius:12, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', padding:16, marginBottom:16 }}>
+              <p style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.4)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.06em' }}>📍 Dirección</p>
+              <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginBottom:12 }}>Entre más completa, más precisa será la ubicación en el mapa del SuperAdmin.</p>
+
+              <div style={{ marginBottom:10 }}>
+                <label style={lbl}>Calle y número</label>
+                <input style={fInp} value={street} onChange={e=>setStreet(e.target.value)} placeholder="Av. Insurgentes Sur 1234" />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 90px', gap:10, marginBottom:10 }}>
+                <div>
+                  <label style={lbl}>Colonia / Barrio</label>
+                  <input style={fInp} value={colonia} onChange={e=>setColonia(e.target.value)} placeholder="Col. Roma Norte" />
+                </div>
+                <div>
+                  <label style={lbl}>C.P.</label>
+                  <input style={{ ...fInp, fontFamily:'monospace' }} value={postalCode} onChange={e=>setPostalCode(e.target.value.replace(/[^0-9]/g,''))} maxLength={6} placeholder="06700" />
+                </div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>Ciudad / Municipio</label>
+                  <input style={fInp} value={city} onChange={e=>setCity(e.target.value)} placeholder="Ciudad de México" />
+                </div>
+                <div>
+                  <label style={lbl}>Estado / Región</label>
+                  <input style={fInp} value={stateReg} onChange={e=>setStateReg(e.target.value)} placeholder="CDMX" />
+                </div>
+              </div>
+
+              {/* Botón Localizar — idéntico a ConfigRestaurante */}
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <button type="button" onClick={runGeocode} disabled={geocoding||!street.trim()}
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 18px', borderRadius:9,
+                    border:`1px solid ${geoStatus==='ok'?'rgba(52,211,153,.4)':geoStatus==='error'?'rgba(248,113,113,.4)':'#2a3f5f'}`,
+                    background:geoStatus==='ok'?'rgba(52,211,153,.08)':geoStatus==='error'?'rgba(248,113,113,.06)':'#0f1923',
+                    color:geoStatus==='ok'?'#34d399':geoStatus==='error'?'#f87171':'rgba(255,255,255,0.6)',
+                    cursor:geocoding||!street.trim()?'not-allowed':'pointer', fontSize:13, fontWeight:600,
+                    opacity:geocoding||!street.trim()?0.5:1 }}>
+                  <span>{geocoding?'⏳':geoStatus==='ok'?'✓':geoStatus==='error'?'✗':'📍'}</span>
+                  <span>{geocoding?'Localizando…':geoStatus==='ok'?'Ubicado en el mapa':geoStatus==='error'?'No encontrado — revisa la dirección':'Localizar en el mapa'}</span>
+                </button>
+                {geoStatus==='idle'&&street.trim()&&(
+                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', margin:0 }}>Haz clic para verificar · Se localiza automáticamente al guardar</p>
+                )}
+              </div>
             </div>
-            <div style={{ gridColumn:'span 2' }}>
-              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Dirección</label>
-              <input style={inp} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Calle, número, colonia, ciudad"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')}
-                onBlur={async e => {
-                  e.target.style.borderColor='rgba(255,255,255,.1)';
-                  if (form.address.length > 10) {
-                    const coords = await geocodeAddress(form.address);
-                    if (coords) {
-                      const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng-0.005},${coords.lat-0.005},${coords.lng+0.005},${coords.lat+0.005}&layer=mapnik&marker=${coords.lat},${coords.lng}`;
-                      const iframe = document.getElementById('branch-map-preview') as HTMLIFrameElement | null;
-                      if (iframe) iframe.src = mapUrl;
-                    }
-                  }
-                }} />
-              <iframe id="branch-map-preview" title="Ubicación de la sucursal" width="100%" height="150"
-                style={{ marginTop:8, borderRadius:10, border:'1px solid rgba(255,255,255,0.1)', display:'block' }}
-                src="about:blank" loading="lazy" />
-              <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:4 }}>
-                El mapa se actualiza al salir del campo de dirección
-              </p>
+
+            {/* Teléfono y Correo */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+              <div>
+                <label style={lbl}>Teléfono</label>
+                <input style={fInp} type="tel" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="55 1234 5678" />
+              </div>
+              <div>
+                <label style={lbl}>Correo</label>
+                <input style={fInp} type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="sucursal@restaurante.mx" />
+              </div>
             </div>
-            <div>
-              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Teléfono</label>
-              <input style={inp} value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="55 1234 5678"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
-            </div>
-            <div>
-              <label style={{ display:'block', fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' }}>Correo</label>
-              <input style={inp} value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="sucursal@restaurante.mx"
-                onFocus={e=>(e.target.style.borderColor='rgba(201,150,58,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
-            </div>
+
+            {/* Panel informativo */}
+            {!editingId && (
+              <div style={{ padding:'14px 16px', borderRadius:12, background:'rgba(201,150,58,.08)', border:'1px solid rgba(201,150,58,.2)' }}>
+                <p style={{ fontSize:12, fontWeight:700, color:'#c9963a', marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>
+                  ✓ Esta sucursal hereda automáticamente del restaurante:
+                </p>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                  {[
+                    ['🍽️ Menú completo', 'Todos los platillos y categorías'],
+                    ['📦 Inventario base', 'Ingredientes y recetas'],
+                    ['🚚 Proveedores', 'Catálogo completo de proveedores'],
+                    ['⭐ Socios de lealtad', 'Los clientes con membresía pueden usarla aquí'],
+                  ].map(([title, desc]) => (
+                    <div key={title} style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.8)' }}>{title}</span>
+                      <span style={{ fontSize:11, color:'#a78a4e' }}>{desc}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ paddingTop:12, borderTop:'1px solid rgba(201,150,58,.15)' }}>
+                  <p style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:6, fontWeight:600 }}>
+                    ✗ Exclusivo por sucursal (no se comparte):
+                  </p>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 16px' }}>
+                    {['Ventas y órdenes', 'Empleados y turnos', 'Stock físico', 'Gastos', 'Mesas'].map(item => (
+                      <span key={item} style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>• {item}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+
+          {/* Footer con botones */}
+          <div style={{ padding:'16px 24px', borderTop:'1px solid rgba(255,255,255,0.06)', display:'flex', gap:10, justifyContent:'flex-end' }}>
             <button onClick={()=>{ setShowForm(false); setEditingId(null); setForm(empty); }}
-              style={{ padding:'9px 20px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'transparent', color:'#4b5563', fontSize:13, cursor:'pointer' }}>
+              style={{ padding:'9px 20px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'transparent', color:'rgba(255,255,255,0.5)', fontSize:13, cursor:'pointer' }}>
               Cancelar
             </button>
             <button onClick={handleSave} disabled={saving||!form.name.trim()}
-              style={{ padding:'9px 20px', borderRadius:10, border:'none', background: form.name.trim()?'#c9963a':'rgba(201,150,58,.25)', color:'#07090f', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              style={{ padding:'9px 20px', borderRadius:10, border:'none', background:form.name.trim()?'#c9963a':'rgba(201,150,58,.25)', color:'#07090f', fontSize:13, fontWeight:700, cursor:'pointer' }}>
               {saving?'Guardando...':editingId?'Guardar cambios':'Crear sucursal'}
             </button>
           </div>
-
-          {/* Panel informativo — qué se hereda automáticamente */}
-          {!editingId && (
-            <div style={{ marginTop:20, padding:'14px 16px', borderRadius:12, background:'rgba(201,150,58,.08)', border:'1px solid rgba(201,150,58,.2)' }}>
-              <p style={{ fontSize:12, fontWeight:700, color:'#c9963a', marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>
-                ✓ Esta sucursal hereda automáticamente del restaurante:
-              </p>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                {[
-                  ['🍽️ Menú completo', 'Todos los platillos y categorías'],
-                  ['📦 Inventario base', 'Ingredientes y recetas'],
-                  ['🚚 Proveedores', 'Catálogo completo de proveedores'],
-                  ['⭐ Socios de lealtad', 'Los clientes con membresía pueden usarla aquí'],
-                ].map(([title, desc]) => (
-                  <div key={title} style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                    <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,.8)' }}>{title}</span>
-                    <span style={{ fontSize:11, color:'#6b7280' }}>{desc}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid rgba(201,150,58,.15)' }}>
-                <p style={{ fontSize:12, color:'#6b7280', marginBottom:6, fontWeight:600 }}>
-                  ✗ Exclusivo por sucursal (no se comparte):
-                </p>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 16px' }}>
-                  {['Ventas y órdenes', 'Empleados y turnos', 'Stock físico', 'Gastos', 'Mesas'].map(item => (
-                    <span key={item} style={{ fontSize:11, color:'rgba(255,255,255,.35)' }}>• {item}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
