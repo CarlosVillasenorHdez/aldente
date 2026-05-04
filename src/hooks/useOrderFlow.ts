@@ -248,12 +248,12 @@ export function useOrderFlow() {
       });
       // Si la RPC existe y tuvo éxito, retornar
       if (!rpcErr) return true;   // éxito — la transacción fue atómica
-      // Extraer mensaje legible del error de Supabase (PostgrestError)
       const rpcErrMsg = rpcErr.message ?? rpcErr.details ?? rpcErr.hint ?? JSON.stringify(rpcErr);
       console.error('[close_order RPC]', rpcErr.code, rpcErrMsg);
-      // Código 42883 = función no existe → caer al fallback JS
-      if (rpcErr.code === '42883') {
-        // continuar al fallback
+      // SOLO usar fallback si la función no existe en DB (PGRST202)
+      // Cualquier otro error es un error real dentro de la función → mostrar al usuario
+      if (rpcErr.code === 'PGRST202' || rpcErrMsg.includes('Could not find the function')) {
+        console.warn('[close_order] RPC no encontrada, usando fallback JS');
       } else {
         toast.error('Error al procesar pago: ' + rpcErrMsg);
         return false;
@@ -261,13 +261,13 @@ export function useOrderFlow() {
     } catch (rpcEx: unknown) {
       const rpcMsg = rpcEx instanceof Error ? rpcEx.message : JSON.stringify(rpcEx);
       console.error('[close_order catch]', rpcMsg);
-      if (!rpcMsg.includes('42883') && !rpcMsg.includes('does not exist')) {
+      if (!rpcMsg.includes('Could not find the function') && !rpcMsg.includes('PGRST202')) {
         toast.error('Error al procesar pago: ' + rpcMsg);
         return false;
       }
     }
 
-    // ── Fallback JS (lógica original, sin atomicidad) ────────────────────────
+    // ── Fallback JS (solo si la RPC no existe en DB) ─────────────────────────
     try {
       // Update order to closed
       const { error: orderErr } = await supabase.from('orders').update({
