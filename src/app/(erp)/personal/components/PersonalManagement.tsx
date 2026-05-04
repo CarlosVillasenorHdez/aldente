@@ -352,13 +352,23 @@ export default function PersonalManagement() {
         const username = form.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 20)
           + '_' + Math.floor(Math.random() * 1000);
 
+        const roleToAppRole: Record<string, string> = {
+          'Administrador': 'admin',
+          'Gerente': 'gerente',
+          'Cajero': 'cajero',
+          'Mesero': 'mesero',
+          'Cocinero': 'cocinero',
+          'Ayudante de Cocina': 'ayudante_cocina',
+          'Repartidor': 'repartidor',
+        };
+
         await supabase.from('app_users').insert({
           tenant_id: tid,
           employee_id: empData.id,
           full_name: form.name,
           username,
           pin: hashed,
-          app_role: form.role === 'Administrador' ? 'admin' : form.role === 'Gerente' ? 'gerente' : 'mesero',
+          app_role: roleToAppRole[form.role] ?? 'mesero',
           branch_id: form.branchId || null,
           is_active: true,
         });
@@ -435,7 +445,10 @@ export default function PersonalManagement() {
     const timeStr = now.toTimeString().slice(0, 5);
     const [inH, inM] = checkIn.split(':').map(Number);
     const [outH, outM] = timeStr.split(':').map(Number);
-    const hoursWorked = Math.round(((outH * 60 + outM) - (inH * 60 + inM)) / 60 * 100) / 100;
+    let totalMinutes = (outH * 60 + outM) - (inH * 60 + inM);
+    // Si el resultado es negativo, el turno cruzó medianoche (ej: entrada 22:00, salida 02:00)
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
+    const hoursWorked = Math.round(totalMinutes / 60 * 100) / 100;
     const { error } = await supabase.from('employee_attendance')
       .update({ check_out: timeStr, hours_worked: hoursWorked, updated_at: new Date().toISOString() })
       .eq('id', recordId);

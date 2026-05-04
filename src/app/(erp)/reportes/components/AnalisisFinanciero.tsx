@@ -136,7 +136,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         const nomina = nominaMensual * factorPeriodo;
 
         // Gastos operativos → prorateados
-        const GFREQ: Record<string, number> = { diaria: 30, semanal: 4.33, quincenal: 2, mensual: 1, trimestral: 0.33, anual: 0.083 };
+        const GFREQ: Record<string, number> = { diario: 30, diaria: 30, semanal: 4.33, quincenal: 2, mensual: 1, bimestral: 0.5, trimestral: 1/3, semestral: 1/6, anual: 1/12, unico: 0 };
         const gastosOp = (gastosRes.data ?? [])
           .filter((g: any) => g.categoria !== 'nomina')
           .reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0) * factorPeriodo;
@@ -272,7 +272,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const factor2 = diasPeriodo2 / diasDelMes2;
       const nominaMensual2 = (nomRes.data ?? []).reduce((s, e) => s + Number(e.salary ?? 0) * (FREQ[(e as any).salary_frequency ?? 'mensual'] ?? 1), 0);
       const nomina = nominaMensual2 * factor2;
-      const GFREQ: Record<string, number> = { diaria:30, semanal:4.33, quincenal:2, mensual:1, trimestral:0.33, anual:0.083 };
+      const GFREQ: Record<string, number> = { diario: 30, diaria: 30, semanal: 4.33, quincenal: 2, mensual: 1, bimestral: 0.5, trimestral: 1/3, semestral: 1/6, anual: 1/12, unico: 0 };
       const gastosOp = (gastosRes.data ?? []).filter((g: any) => g.categoria !== 'nomina').reduce((s: number, g: any) => s + Number(g.monto) * (GFREQ[g.frecuencia] ?? 1), 0) * factor2;
       const depreciacion = (depRes.data ?? []).reduce((s: number, a: any) => s + (Number(a.valor_original) - Number(a.valor_residual)) / Math.max(Number(a.vida_util_anios) * 12, 1), 0);
       // COGS — priorizar WACC real de stock_movements
