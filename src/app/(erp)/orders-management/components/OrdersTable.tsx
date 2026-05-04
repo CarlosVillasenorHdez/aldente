@@ -145,22 +145,38 @@ export default function OrdersTable() {
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
     if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
-    // Filtrar por fecha: órdenes cerradas por closed_at, abiertas por created_at
-    if (dateFrom || dateTo) {
-      const from = (dateFrom || '2000-01-01') + 'T00:00:00';
-      const to   = (dateTo   || '2099-12-31') + 'T23:59:59';
-      // Cerradas: filtrar por closed_at; Abiertas: filtrar por created_at
-      query = query.or(
-        `and(status.in.(cerrada,cancelada),closed_at.gte.${from},closed_at.lte.${to}),and(status.in.(abierta,preparacion,lista),created_at.gte.${from},created_at.lte.${to})`
-      );
-    } else {
-      query = query.limit(500);
+    // Dos queries: cerradas/canceladas por closed_at, abiertas siempre del día
+    const from = (dateFrom || '2000-01-01') + 'T00:00:00';
+    const to   = (dateTo   || '2099-12-31') + 'T23:59:59';
+
+    // Query 1: órdenes cerradas/canceladas filtradas por closed_at
+    let qCerradas = query
+      .in('status', ['cerrada', 'cancelada'])
+      .gte('closed_at', from)
+      .lte('closed_at', to)
+      .limit(500);
+
+    // Query 2: órdenes abiertas/en prep — siempre visibles
+    let qAbiertas = supabase
+      .from('orders')
+      .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
+      .eq('tenant_id', tenantId)
+      .eq('is_comanda', false)
+      .in('status', ['abierta', 'preparacion', 'lista'])
+      .limit(100);
+    if (activeBranchId) qAbiertas = qAbiertas.eq('branch_id', activeBranchId);
+
+    const [{ data: cerradas, error: errC }, { data: abiertas, error: errA }] = await Promise.all([qCerradas, qAbiertas]);
+
+    if (errC || errA) {
+      toast.error('Error al cargar órdenes: ' + (errC?.message ?? errA?.message));
+      setLoading(false);
+      return;
     }
-
-    const { data: ordersData, error } = await query;
-
-    if (error) {
-      toast.error('Error al cargar órdenes: ' + error.message);
+    const ordersData = [...(cerradas ?? []), ...(abiertas ?? [])];
+    const error = null;
+    if (false) {  // mantener compatibilidad con el bloque de error de abajo
+      toast.error('');
       setLoading(false);
       return;
     }
