@@ -1,5 +1,7 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useSysConfig } from '@/hooks/useSysConfig';
+import { useLoyaltyConfig } from '@/hooks/useLoyaltyConfig';
 
 
 
@@ -72,6 +74,9 @@ export default function MeseroMobileView() {
   const { branchId: activeBranch } = useBranch();
   const { ensureOpenOrder, syncItems, loadOrderItems, sendToKitchen, closeOrder, cancelOrder, cancelItemFromKDS } = useOrderFlow();
   const { features } = useFeatures();
+  const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
+  const IVA_RATE = ivaPercent / 100;
+  const { config: loyaltyConfig } = useLoyaltyConfig();
 
   const [tables, setTables] = useState<Table[]>([]);
   const [tick, setTick] = useState(0); // Para actualizar el tiempo transcurrido cada minuto
@@ -474,8 +479,10 @@ export default function MeseroMobileView() {
   const getQty = (dishId: string) => orderItems.find(i => i.dishId === dishId)?.qty || 0;
 
   const subtotal = computeTotal(orderItems);
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
+  const iva = ivaIncludedInPrice
+    ? subtotal - subtotal / (1 + IVA_RATE)
+    : subtotal * IVA_RATE;
+  const total = ivaIncludedInPrice ? subtotal : subtotal + iva;
   const itemCount = orderItems.reduce((s, i) => s + i.qty, 0);
 
   // ─── Send order to kitchen ────────────────────────────────────────────────
@@ -529,6 +536,9 @@ export default function MeseroMobileView() {
       branchName,
       openedAt: null,
       loyaltyCustomerId: loyaltyCustomerId ?? null,
+      loyaltyPointsEarned: loyaltyCustomerId
+        ? Math.floor(total / (loyaltyConfig.points?.pesosPerPoint ?? 10))
+        : 0,
     });
     if (!ok) return;
 

@@ -281,7 +281,7 @@ export default function POSClient() {
 
   const subtotal = orderItems.reduce((sum, item) =>
     sum + (item.menuItem.price + (item.priceDelta ?? 0)) * item.quantity, 0);
-  const discountAmount = discount.type === 'pct' ? subtotal * (discount.value / 100) : discount.value;
+  const discountAmount = discount.type === 'pct' ? subtotal * (discount.value / 100) : Math.min(discount.value, subtotal);
   const taxableAmount = subtotal - discountAmount;
   // México: precios incluyen IVA por ley (Art. 18 LIVA)
   // iva_included_in_price=true → extraemos el IVA del precio (total no cambia)
@@ -317,8 +317,8 @@ export default function POSClient() {
     const [{ data: configData }, { data, error }] = await Promise.all([
       supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'table_count').single(),
       activeBranch
-        ? supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).eq('branch_id', activeBranch).order('number')
-        : supabase.from('restaurant_tables').select('*').eq('tenant_id', JSON.parse(sessionStorage.getItem('aldente_session')||'{}')?.tenantId).gt('number', 0).order('number'),
+        ? supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).eq('branch_id', activeBranch).order('number')
+        : supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).order('number'),
     ]);
 
     let layoutData: any = null;
@@ -1397,9 +1397,19 @@ export default function POSClient() {
     };
     setSelectedTable(virtualTable);
     setOrderItems((orderData.order_items || []).map((i: any) => ({
-      id: i.id, dishId: i.dish_id, name: i.name, price: Number(i.price),
-      quantity: i.qty, emoji: i.emoji || '🍽️', category: i.category || '',
-      notes: i.notes || '', modifiers: [],
+      lineId: i.id,
+      menuItem: {
+        id: i.dish_id ?? i.id,
+        name: i.name,
+        category: i.category ?? '',
+        price: Number(i.price),
+        description: '',
+        available: true,
+        emoji: i.emoji || '🍽️',
+      },
+      quantity: i.qty,
+      notes: i.notes || undefined,
+      modifier: i.modifier || undefined,
     })));
     setKitchenSent(true);
     setView('menu');
@@ -1449,9 +1459,11 @@ export default function POSClient() {
     if (!selectedItems.length) return;
 
     const partialSubtotal = selectedItems.reduce((s, i) => s + (i.menuItem.price + (i.priceDelta ?? 0)) * i.quantity, 0);
-    const ivaRate = 0.16;
-    const partialIva = partialSubtotal * ivaRate;
-    const partialTotal = partialSubtotal + partialIva;
+    // Usar IVA configurado del restaurante — nunca hardcodear 0.16
+    const partialIva = ivaIncludedInPrice
+      ? partialSubtotal - partialSubtotal / (1 + IVA_RATE)
+      : partialSubtotal * IVA_RATE;
+    const partialTotal = ivaIncludedInPrice ? partialSubtotal : partialSubtotal + partialIva;
 
     // Create a separate "partial" order record for accounting
     const partialId = `ORD-P-${Date.now()}`;
@@ -1502,13 +1514,13 @@ export default function POSClient() {
     await Promise.all([
       supabase.from('orders').update({
         subtotal: newSubtotal,
-        iva: newSubtotal * ivaRate,
-        total: newSubtotal * (1 + ivaRate),
+        iva: ivaIncludedInPrice ? newSubtotal - newSubtotal / (1 + IVA_RATE) : newSubtotal * IVA_RATE,
+        total: ivaIncludedInPrice ? newSubtotal : newSubtotal * (1 + IVA_RATE),
         updated_at: now,
       }).eq('id', selectedTable.currentOrderId).eq('tenant_id', getTenantId()),
       supabase.from('restaurant_tables').update({
         item_count: newCount,
-        partial_total: newSubtotal * (1 + ivaRate),
+        partial_total: ivaIncludedInPrice ? newSubtotal : newSubtotal * (1 + IVA_RATE),
         updated_at: now,
       }).eq('id', selectedTable.id),
     ]);

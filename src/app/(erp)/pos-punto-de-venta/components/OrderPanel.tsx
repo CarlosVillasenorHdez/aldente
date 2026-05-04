@@ -90,7 +90,8 @@ export default function OrderPanel({
   const applyDiscount = () => {
     const val = parseFloat(discountInput);
     if (!isNaN(val) && val >= 0) {
-      onDiscountChange({ type: discount.type, value: val });
+      const clamped = discount.type === 'pct' ? Math.min(val, 100) : val;
+      onDiscountChange({ type: discount.type, value: clamped });
     }
   };
 
