@@ -11,6 +11,7 @@ import { useAudit } from '@/hooks/useAudit';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import CombosManagement from './CombosManagement';
 import ModifierGroupsModal from './ModifierGroupsModal';
+import MenuAIAssistant from './MenuAIAssistant';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1274,7 +1275,8 @@ export default function MenuManagement() {
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [modifierDish, setModifierDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
-  const [dishCosts, setDishCosts] = useState<Record<string, number>>({});  // costo total de insumos por platillo
+  const [dishCosts, setDishCosts] = useState<Record<string, number>>({});
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const { appUser } = useAuth();
   const supabase = createClient();
@@ -1510,6 +1512,9 @@ export default function MenuManagement() {
             <Upload size={15} />CSV
             <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
           </label>
+          <button onClick={() => setShowAIAssistant(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }} title="Cargar menú con IA">
+            ✨ Asistente IA
+          </button>
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
             <Plus size={16} />Agregar platillo
           </button>
@@ -1649,6 +1654,21 @@ export default function MenuManagement() {
             fetchDishes();
           }}
         />
+      )}
+
+      {/* ── Asistente IA de menú ── */}
+      {showAIAssistant && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', overflowY: 'auto', padding: '24px 16px' }}>
+          <div style={{ maxWidth: 940, margin: '0 auto', position: 'relative' }}>
+            <button
+              onClick={() => { setShowAIAssistant(false); fetchDishes(); }}
+              style={{ position: 'absolute', top: 0, right: 0, zIndex: 1, width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}
+            >
+              ✕
+            </button>
+            <MenuAIAssistant onDone={() => { setShowAIAssistant(false); fetchDishes(); }} />
+          </div>
+        </div>
       )}
     </>}
     </div>
