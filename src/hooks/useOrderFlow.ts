@@ -228,6 +228,38 @@ export function useOrderFlow() {
             loyaltyPointsEarned, tip } = params;
     const now = new Date().toISOString();
 
+    // ── Intentar la RPC atómica (cierra todo en una transacción PostgreSQL) ─
+    try {
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc('close_order', {
+        p_order_id:            orderId,
+        p_tenant_id:           DEFAULT_TENANT,
+        p_subtotal:            subtotal,
+        p_iva:                 iva,
+        p_discount:            discountAmount,
+        p_total:               total,
+        p_pay_method:          payMethod,
+        p_mesero:              waiterName,
+        p_branch:              branchName,
+        p_opened_at:           openedAt ?? now,
+        p_loyalty_customer_id: loyaltyCustomerId ?? null,
+        p_loyalty_points:      loyaltyPointsEarned ?? 0,
+        p_tip:                 tip ?? 0,
+        p_table_ids:           tableIds,
+      });
+      // Si la RPC existe y tuvo éxito, retornar
+      if (!rpcErr && rpcResult) return true;
+      // Código 42883 = función aún no existe en DB → caer al fallback JS
+      if (rpcErr && rpcErr.code !== '42883') throw rpcErr;
+    } catch (rpcEx: unknown) {
+      const rpcMsg = rpcEx instanceof Error ? rpcEx.message : String(rpcEx);
+      if (!rpcMsg.includes('42883') && !rpcMsg.includes('does not exist')) {
+        toast.error('Error al procesar pago: ' + rpcMsg);
+        return false;
+      }
+      // función no existe → continuar con fallback
+    }
+
+    // ── Fallback JS (lógica original, sin atomicidad) ────────────────────────
     try {
       // Update order to closed
       const { error: orderErr } = await supabase.from('orders').update({
