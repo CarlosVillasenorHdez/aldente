@@ -131,7 +131,8 @@ export default function SalesChart() {
 
       // Weekly: last 7 days
       const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - 6);
+      // Lunes de esta semana
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
       weekStart.setHours(0, 0, 0, 0);
 
       const { data: weekOrders, error: weekError } = await supabase

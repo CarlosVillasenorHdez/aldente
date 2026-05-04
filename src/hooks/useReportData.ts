@@ -93,7 +93,7 @@ function dateRangeToISO(
     startDate = now.toISOString().split('T')[0];
   } else if (range === 'semana') {
     const d = new Date(now);
-    d.setDate(d.getDate() - 7);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
     startDate = d.toISOString().split('T')[0];
   } else if (range === 'mes') {
     const d = new Date(now);
@@ -254,7 +254,7 @@ export function useReportData(
     if (dateRange === 'hoy') {
       const s = new Date(now); s.setHours(0, 0, 0, 0); startISO = s.toISOString();
     } else if (dateRange === 'semana') {
-      const s = new Date(now); s.setDate(now.getDate() - 7); startISO = s.toISOString();
+      const s = new Date(now); s.setDate(now.getDate() - ((now.getDay() + 6) % 7)); s.setHours(0,0,0,0); startISO = s.toISOString();
     } else if (dateRange === 'mes') {
       startISO = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     } else {

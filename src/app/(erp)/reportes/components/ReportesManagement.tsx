@@ -190,8 +190,9 @@ export default function ReportesManagement() {
       start = new Date(now);
       start.setHours(0, 0, 0, 0);
     } else if (dateRange === 'semana') {
+      // Lunes de esta semana
       start = new Date(now);
-      start.setDate(now.getDate() - 6);
+      start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
       start.setHours(0, 0, 0, 0);
     } else if (dateRange === 'mes') {
       start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
@@ -200,9 +201,7 @@ export default function ReportesManagement() {
       start = customStart ? new Date(customStart + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
       end = customEnd ? new Date(customEnd + 'T23:59:59') : end;
     }
-    const result = { start: start.toISOString(), end: end.toISOString() };
-    if (typeof window !== 'undefined') console.log('[ReportesManagement] getDateBounds', dateRange, result);
-    return result;
+    return { start: start.toISOString(), end: end.toISOString() };
   }, [dateRange, customStart, customEnd]);
 
   // ─── Fetch real data for the selected date range ──────────────────────────

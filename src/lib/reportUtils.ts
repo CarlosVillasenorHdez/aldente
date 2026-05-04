@@ -49,8 +49,9 @@ export function getDateRangeISO(
     start = new Date(now);
     start.setHours(0, 0, 0, 0);
   } else if (dateRange === 'semana') {
+    // Lunes de esta semana — consistente con period=semana y Multi-Sucursal
     start = new Date(now);
-    start.setDate(now.getDate() - 6);
+    start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     start.setHours(0, 0, 0, 0);
   } else if (dateRange === 'mes') {
     start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
