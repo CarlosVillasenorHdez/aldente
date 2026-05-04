@@ -248,15 +248,23 @@ export function useOrderFlow() {
       });
       // Si la RPC existe y tuvo éxito, retornar
       if (!rpcErr) return true;   // éxito — la transacción fue atómica
-      // Código 42883 = función aún no existe en DB → caer al fallback JS
-      if (rpcErr.code !== '42883') throw rpcErr;
+      // Extraer mensaje legible del error de Supabase (PostgrestError)
+      const rpcErrMsg = rpcErr.message ?? rpcErr.details ?? rpcErr.hint ?? JSON.stringify(rpcErr);
+      console.error('[close_order RPC]', rpcErr.code, rpcErrMsg);
+      // Código 42883 = función no existe → caer al fallback JS
+      if (rpcErr.code === '42883') {
+        // continuar al fallback
+      } else {
+        toast.error('Error al procesar pago: ' + rpcErrMsg);
+        return false;
+      }
     } catch (rpcEx: unknown) {
-      const rpcMsg = rpcEx instanceof Error ? rpcEx.message : String(rpcEx);
+      const rpcMsg = rpcEx instanceof Error ? rpcEx.message : JSON.stringify(rpcEx);
+      console.error('[close_order catch]', rpcMsg);
       if (!rpcMsg.includes('42883') && !rpcMsg.includes('does not exist')) {
         toast.error('Error al procesar pago: ' + rpcMsg);
         return false;
       }
-      // función no existe → continuar con fallback
     }
 
     // ── Fallback JS (lógica original, sin atomicidad) ────────────────────────
