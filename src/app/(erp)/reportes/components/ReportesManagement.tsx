@@ -210,14 +210,15 @@ export default function ReportesManagement() {
       const { start, end } = getDateBounds();
 
       // Fetch closed orders in range — exclude comanda sub-orders (billing only)
+      // SIEMPRE filtrar por closed_at (fecha de cobro), nunca por created_at
       let rmQ = supabase
         .from('orders')
         .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
-        .gte('created_at', start)
-        .lte('created_at', end)
+        .gte('closed_at', start)
+        .lte('closed_at', end)
         .limit(2000);
       if (activeBranchId) rmQ = rmQ.eq('branch_id', activeBranchId);
       const { data: orders, error: ordersError } = await rmQ;
@@ -558,7 +559,7 @@ export default function ReportesManagement() {
     const supabasePDF = supabase;
     const [{ data: pdfOrders }, { data: pdfMermaOrders }, { data: pdfItems }] = await Promise.all([
       supabasePDF.from('orders').select('id, total, subtotal, cost_actual, margin_actual, discount, iva').eq('tenant_id', getTenantId())
-        .eq('status', 'cerrada').eq('is_comanda', false).gte('created_at', startISO).lte('created_at', endISO),
+        .eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', startISO).lte('closed_at', endISO),
       supabasePDF.from('orders').select('waste_cost').eq('tenant_id', getTenantId())
         .eq('status', 'cancelada').eq('cancel_type', 'con_costo').gte('updated_at', startISO).lte('updated_at', endISO),
       supabasePDF.from('order_items').select('name, qty, price, order_id').eq('tenant_id', getTenantId()),

@@ -87,8 +87,8 @@ export default function SalesChart() {
         .eq('status', 'cerrada');
       if (activeBranchId) ordersQ = ordersQ.eq('branch_id', activeBranchId);
       const { data: todayOrders, error: todayError } = await ordersQ
-        .gte('created_at', todayStart.toISOString())
-        .lte('created_at', todayEnd.toISOString());
+        .gte('closed_at', todayStart.toISOString())
+        .lte('closed_at', todayEnd.toISOString());
 
       if (todayError) throw todayError;
 
@@ -109,7 +109,7 @@ export default function SalesChart() {
         } else if (dateStr && dateStr.includes(':')) {
           h = parseInt(dateStr.split(':')[0], 10);
         } else {
-          h = new Date(o.created_at).getHours();
+          h = new Date(o.closed_at || o.created_at).getHours();
         }
         if (h >= 8 && h <= 23) {
           const label = `${String(h).padStart(2, '0')}:00`;
@@ -136,11 +136,11 @@ export default function SalesChart() {
 
       const { data: weekOrders, error: weekError } = await supabase
         .from('orders')
-        .select('total, created_at')
+        .select('total, closed_at')
         .eq('tenant_id', getTenantId())
         .eq('is_comanda', false)
         .eq('status', 'cerrada')
-        .gte('created_at', weekStart.toISOString());
+        .gte('closed_at', weekStart.toISOString());
 
       if (weekError) throw weekError;
 
@@ -152,7 +152,7 @@ export default function SalesChart() {
       }
 
       (weekOrders || []).forEach((o) => {
-        const d = new Date(o.created_at);
+        const d = new Date(o.closed_at);
         const label = DAYS_ES[d.getDay()];
         if (label in dayBuckets) {
           dayBuckets[label] += Number(o.total);
