@@ -208,13 +208,12 @@ export default function ReportesManagement() {
     setDataLoading(true);
     try {
       const { start, end } = getDateBounds();
-      console.log('[Reportes] dateRange:', dateRange, 'start:', start, 'end:', end, 'tenant:', getTenantId());
 
       // Fetch closed orders in range — exclude comanda sub-orders (billing only)
       // SIEMPRE filtrar por closed_at (fecha de cobro), nunca por created_at
       let rmQ = supabase
         .from('orders')
-        .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type, closed_at')
+        .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
@@ -223,7 +222,6 @@ export default function ReportesManagement() {
         .limit(2000);
       if (activeBranchId) rmQ = rmQ.eq('branch_id', activeBranchId);
       const { data: orders, error: ordersError } = await rmQ;
-      console.log('[Reportes] orders result:', orders?.length, 'error:', ordersError, 'first:', orders?.[0]);
 
       if (ordersError) throw ordersError;
 

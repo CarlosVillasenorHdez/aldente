@@ -97,7 +97,7 @@ export function useReportesConsolidado() {
         hourBuckets[`${String(h).padStart(2,'0')}:00`] = { ventas: 0, ordenes: 0 };
       }
       orderList.forEach((o: any) => {
-        const h = new Date(o.created_at).getHours();
+        const h = new Date(o.closed_at || o.created_at).getHours();
         if (h >= 8 && h <= 23) {
           const label = `${String(h).padStart(2,'0')}:00`;
           hourBuckets[label].ventas  += Number(o.total);
