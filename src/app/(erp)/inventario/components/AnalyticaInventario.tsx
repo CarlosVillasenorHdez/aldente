@@ -73,7 +73,7 @@ export default function AnalyticaInventario() {
     const [{ data: ings }, { data: movements }, { data: recipes }, { data: orderItems }, { data: extrasStock }] = await Promise.all([
       supabase.from('ingredients').select('id, name, unit, category, stock, min_stock, cost, supplier').eq('tenant_id', tid).order('name'),
       supabase.from('stock_movements').select('ingredient_id, movement_type, quantity, total_cost, unit_cost').eq('tenant_id', tid).gte('created_at', since),
-      supabase.from('recipe_ingredients').select('ingredient_id, dish_id, quantity').eq('tenant_id', tid),
+      supabase.from('dish_recipes').select('ingredient_id, dish_id, quantity').eq('tenant_id', tid),
       supabase.from('order_items').select('dish_id, qty, price').eq('tenant_id', tid).gte('created_at', since),
       supabase.from('extras_catalog').select('name,stock_actual,costo_unitario,tracks_inventory').eq('tenant_id', tid).eq('is_active', true).eq('tracks_inventory', true),
     ]);

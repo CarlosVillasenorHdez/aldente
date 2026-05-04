@@ -262,7 +262,25 @@ export default function CorteCaja() {
   }, [supabase]);
 
   useEffect(() => {
-    if (corteActivo) loadSummary(corteActivo.aperturaAt);
+    if (corteActivo) {
+      loadSummary(corteActivo.aperturaAt);
+      // Cargar movimientos persistidos de esta sesión de caja
+      supabase.from('caja_movimientos')
+        .select('tipo, monto, concepto, created_at')
+        .eq('corte_id', corteActivo.id)
+        .eq('tenant_id', getTenantId())
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setMovimientos(data.map((m: any) => ({
+              tipo: m.tipo as 'ingreso' | 'egreso',
+              monto: Number(m.monto),
+              concepto: m.concepto,
+              at: m.created_at,
+            })));
+          }
+        });
+    }
   }, [corteActivo, loadSummary]);
 
   // ── Apertura de caja ────────────────────────────────────────────────────────
@@ -274,6 +292,7 @@ export default function CorteCaja() {
       fondo_inicial: fondo,
       apertura_por: aperturaPor.trim(),
       tenant_id: getTenantId(),
+      branch_id: activeBranchId ?? null,
       status: 'abierto',
     });
     if (error) { toast.error('Error al abrir caja: ' + error.message); setAbriendo(false); return; }
@@ -285,11 +304,25 @@ export default function CorteCaja() {
   };
 
   // ── Movimientos de caja (ingresos/egresos extra) ────────────────────────────
-  const handleAddMovimiento = () => {
+  const handleAddMovimiento = async () => {
     const monto = parseFloat(movForm.monto);
     if (!monto || monto <= 0) { toast.error('Ingresa un monto válido'); return; }
     if (!movForm.concepto.trim()) { toast.error('Ingresa un concepto'); return; }
-    const newMov = { tipo: movForm.tipo, monto, concepto: movForm.concepto.trim(), at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const newMov = { tipo: movForm.tipo, monto, concepto: movForm.concepto.trim(), at: now };
+    // Persistir en DB si hay corte activo
+    if (corteActivo?.id) {
+      await supabase.from('caja_movimientos').insert({
+        corte_id: corteActivo.id,
+        tenant_id: getTenantId(),
+        tipo: movForm.tipo,
+        monto,
+        concepto: movForm.concepto.trim(),
+        created_at: now,
+      }).then(({ error }) => {
+        if (error) console.warn('[CorteCaja] movimiento no persistido:', error.message);
+      });
+    }
     setMovimientos(prev => [newMov, ...prev]);
     setMovForm({ tipo: 'ingreso', monto: '', concepto: '' });
     setShowMovModal(false);

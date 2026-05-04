@@ -107,6 +107,7 @@ export default function ConteoFisico({ tenantId }: { tenantId: string }) {
       const { error: movErr } = await supabase
         .from('stock_movements')
         .insert({
+          tenant_id: tenantId,
           ingredient_id: ing.id,
           movement_type: 'ajuste',          // 'entrada' | 'salida' | 'ajuste'
           quantity: Math.abs(diff),

@@ -395,9 +395,13 @@ export default function InventarioManagement() {
           .eq('tenant_id', getTenantId());
 
         (items || []).forEach((item: any) => {
-          const dishRecipes = recipes.filter((r: any) => r.ingredient_id && item.dish_id);
-          // Use recipes to calculate ingredient consumption per dish served
-          // Simplified: total consumption per ingredient
+          // Para cada platillo vendido, buscar sus recetas y sumar consumo de ingredientes
+          const itemRecipes = recipes.filter((r: any) => r.ingredient_id === item.dish_id || r.dish_id === item.dish_id);
+          itemRecipes.forEach((r: any) => {
+            const ingId = r.ingredient_id;
+            if (!ingId) return;
+            consumption[ingId] = (consumption[ingId] ?? 0) + Number(r.quantity ?? 0) * Number(item.qty ?? 1);
+          });
         });
       }
 
@@ -405,7 +409,11 @@ export default function InventarioManagement() {
       const smart = ingredients
         .filter(i => i.stock < i.reorderPoint || i.stock < i.minStock * 1.5)
         .map(i => {
-          const avgDailyUse = i.reorderPoint > 0 ? i.reorderPoint / 7 : i.minStock / 14;
+          // Usar consumo real de los últimos 7 días si está disponible
+          const realConsumed = consumption[i.id] ?? 0;
+          const avgDailyUse = realConsumed > 0
+            ? realConsumed / 7
+            : (i.reorderPoint > 0 ? i.reorderPoint / 7 : i.minStock / 14);
           const daysLeft = avgDailyUse > 0 ? Math.floor(i.stock / avgDailyUse) : 999;
           const urgency: 'critical'|'soon'|'ok' = daysLeft <= 1 ? 'critical' : daysLeft <= 3 ? 'soon' : 'ok';
           const suggestedQty = Math.max(0, i.reorderPoint * 2 - i.stock);
