@@ -200,7 +200,9 @@ export default function ReportesManagement() {
       start = customStart ? new Date(customStart + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
       end = customEnd ? new Date(customEnd + 'T23:59:59') : end;
     }
-    return { start: start.toISOString(), end: end.toISOString() };
+    const result = { start: start.toISOString(), end: end.toISOString() };
+    if (typeof window !== 'undefined') console.log('[ReportesManagement] getDateBounds', dateRange, result);
+    return result;
   }, [dateRange, customStart, customEnd]);
 
   // ─── Fetch real data for the selected date range ──────────────────────────
@@ -213,12 +215,13 @@ export default function ReportesManagement() {
       // SIEMPRE filtrar por closed_at (fecha de cobro), nunca por created_at
       let rmQ = supabase
         .from('orders')
-        .select('id, total, subtotal, iva, discount, mesero, created_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
+        .select('id, total, subtotal, iva, discount, mesero, created_at, closed_at, cost_actual, margin_actual, margin_pct, waste_cost, cancel_type')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
         .eq('is_comanda', false)
         .gte('closed_at', start)
         .lte('closed_at', end)
+        .order('closed_at', { ascending: false })
         .limit(2000);
       if (activeBranchId) rmQ = rmQ.eq('branch_id', activeBranchId);
       const { data: orders, error: ordersError } = await rmQ;
