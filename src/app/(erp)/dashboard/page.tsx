@@ -11,6 +11,7 @@ import RecentActivity from './components/RecentActivity';
 import AttendanceWidget from './components/AttendanceWidget';
 import UpgradeGate from '@/components/UpgradeGate';
 import AhaMomentTour from './components/AhaMomentTour';
+import HealthScore from './components/HealthScore';
 
 export default function DashboardPage() {
   return (
@@ -32,7 +33,10 @@ export default function DashboardPage() {
         {/* 3. KPIs — ventas, equilibrio, margen */}
         <DashboardKPIs />
 
-        {/* 4. Operaciones en vivo + alertas */}
+        {/* 4. Score de salud del restaurante */}
+        <HealthScore />
+
+        {/* 5. Operaciones en vivo + alertas */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <div className="xl:col-span-2">
             <LiveOperations />
@@ -50,7 +54,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 5. Asistencia + Gráfica de ventas + actividad reciente */}
+        {/* 6. Asistencia + Gráfica de ventas + actividad reciente */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
           <div className="xl:col-span-1">
             <AttendanceWidget />
@@ -63,7 +67,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 6. Órdenes del día */}
+        {/* 7. Órdenes del día */}
         <RecentOrders />
 
       </div>

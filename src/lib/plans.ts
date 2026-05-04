@@ -1,45 +1,24 @@
-// ─── Fuente de verdad de planes Aldente ───────────────────────────────────────
+/**
+ * src/lib/plans.ts — DEPRECATED
+ * Fuente canónica: src/hooks/useFeatures.ts (PLAN_PRICES, PLAN_NAMES, PLAN_FEATURES)
+ * Este archivo existe solo para compatibilidad. No agregar lógica aquí.
+ */
+import { PLAN_NAMES, PLAN_PRICES, PLAN_FEATURES } from '@/hooks/useFeatures';
+
 export const PLAN_MODULES = {
-  basico: {
-    label: 'Básico',
-    price: 800,
-    pages: ['dashboard', 'pos', 'orders', 'menu', 'personal', 'corte_caja'],
-    features: {} as Record<string, never>,
-  },
-  estandar: {
-    label: 'Estándar',
-    price: 1500,
-    pages: [
-      'dashboard', 'pos', 'orders', 'menu', 'personal', 'corte_caja',
-      'inventario', 'lealtad', 'reservaciones', 'reportes', 'mesero', 'cocina',
-      'alarmas',
-    ],
-    features: {
-      inventario: true, lealtad: true, reservaciones: true, cocina: true,
-      meseroMovil: true, alarmas: true,
-    },
-  },
-  premium: {
-    label: 'Premium',
-    price: 2500,
-    pages: [
-      'dashboard', 'pos', 'orders', 'menu', 'personal', 'corte_caja',
-      'inventario', 'lealtad', 'reservaciones', 'reportes', 'mesero', 'cocina',
-      'alarmas', 'delivery', 'recursos_humanos', 'gastos', 'sucursales', 'configuracion',
-    ],
-    features: {
-      inventario: true, lealtad: true, reservaciones: true, cocina: true,
-      meseroMovil: true, alarmas: true,
-      delivery: true, recursosHumanos: true, gastos: true,
-      multiSucursal: true,
-    },
-  },
+  operacion: { label: PLAN_NAMES.operacion, price: PLAN_PRICES.operacion, pages: PLAN_FEATURES.operacion, features: {} as Record<string, never> },
+  negocio:   { label: PLAN_NAMES.negocio,   price: PLAN_PRICES.negocio,   pages: PLAN_FEATURES.negocio,   features: {} as Record<string, never> },
+  empresa:   { label: PLAN_NAMES.empresa,   price: PLAN_PRICES.empresa,   pages: PLAN_FEATURES.empresa,   features: {} as Record<string, never> },
+  // legacy aliases
+  basico:    { label: PLAN_NAMES.operacion, price: PLAN_PRICES.operacion, pages: PLAN_FEATURES.operacion, features: {} as Record<string, never> },
+  estandar:  { label: PLAN_NAMES.negocio,   price: PLAN_PRICES.negocio,   pages: PLAN_FEATURES.negocio,   features: {} as Record<string, never> },
+  premium:   { label: PLAN_NAMES.empresa,   price: PLAN_PRICES.empresa,   pages: PLAN_FEATURES.empresa,   features: {} as Record<string, never> },
 } as const;
 
 export type PlanKey = keyof typeof PLAN_MODULES;
 
-export function getPlan(plan: string): (typeof PLAN_MODULES)[PlanKey] {
-  return PLAN_MODULES[plan as PlanKey] ?? PLAN_MODULES.basico;
+export function getPlan(plan: string): { label: string; price: number; pages: readonly string[]; features: Record<string, never> } {
+  return PLAN_MODULES[plan as PlanKey] ?? PLAN_MODULES.operacion;
 }
 
 export function planPrice(plan: string): number {

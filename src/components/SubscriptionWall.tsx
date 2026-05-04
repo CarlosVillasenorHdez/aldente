@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPlan } from '@/lib/plans';
+import { PLAN_NAMES, PLAN_PRICES, PLAN_FEATURES as PLAN_FEATURE_KEYS } from '@/hooks/useFeatures';
 
 interface SubscriptionWallProps {
   reason: 'inactive' | 'expired' | 'trial_ended';
@@ -37,13 +37,13 @@ const MESSAGES = {
   },
 };
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  basico:   ['POS y mapa de mesas', 'Menú digital', 'Corte de caja', 'Gestión de personal'],
-  estandar: ['Todo lo de Básico', 'KDS cocina', 'Mesero móvil (PWA)', 'Inventario y recetas', 'Reportes P&L y COGS', 'Reservaciones', 'Lealtad', 'Alarmas inteligentes'],
-  premium:  ['Todo lo de Estándar', 'Delivery integrado', 'Multi-sucursal', 'RH y nómina', 'Control de gastos', 'Análisis de desperdicios'],
+const PLAN_DISPLAY_FEATURES: Record<string, string[]> = {
+  operacion: ['POS con mapa de mesas', 'Cocina KDS', 'Mesero móvil (PWA)', 'Corte de caja', 'Roles por PIN', 'Reservaciones'],
+  negocio:   ['Todo lo de Operación', 'Inventario vivo', 'P&L y reportes', 'Gastos y depreciaciones', 'Lealtad', 'Alarmas inteligentes', 'RRHH y nómina'],
+  empresa:   ['Todo lo de Negocio', 'Multi-sucursal consolidado', 'Delivery integrado', 'Analytics comparativo'],
 };
 
-export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: SubscriptionWallProps) {
+export default function SubscriptionWall({ reason, plan = 'operacion', tenantId }: SubscriptionWallProps) {
   const msg = MESSAGES[reason];
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -94,8 +94,10 @@ export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: 
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              {(['basico', 'estandar', 'premium'] as const).map(key => {
-                const p = getPlan(key);
+              {(['operacion', 'negocio', 'empresa'] as const).map(key => {
+                const label = PLAN_NAMES[key];
+                const price = PLAN_PRICES[key];
+                const features = PLAN_DISPLAY_FEATURES[key] ?? [];
                 const isCurrentPlan = key === plan;
                 const isLoading = loading === key;
                 return (
@@ -103,11 +105,11 @@ export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: 
                     {isCurrentPlan && (
                       <div style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Plan actual</div>
                     )}
-                    <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '14px', marginBottom: '2px' }}>{p.label}</div>
-                    <div style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 700, fontFamily: 'monospace', marginBottom: '2px' }}>${p.price.toLocaleString('es-MX')}</div>
+                    <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '14px', marginBottom: '2px' }}>{label}</div>
+                    <div style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 700, fontFamily: 'monospace', marginBottom: '2px' }}>${price.toLocaleString('es-MX')}</div>
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginBottom: '12px' }}>/mes MXN</div>
                     <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', flex: 1 }}>
-                      {PLAN_FEATURES[key].map(f => (
+                      {features.map(f => (
                         <li key={f} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', padding: '2px 0', display: 'flex', alignItems: 'flex-start', gap: '5px' }}>
                           <span style={{ color: '#22c55e', flexShrink: 0 }}>✓</span> {f}
                         </li>
@@ -118,7 +120,7 @@ export default function SubscriptionWall({ reason, plan = 'basico', tenantId }: 
                       disabled={!!loading}
                       style={{ width: '100%', padding: '9px', borderRadius: '8px', border: 'none', backgroundColor: isLoading ? 'rgba(245,158,11,0.5)' : '#f59e0b', color: '#1B3A6B', fontWeight: 700, fontSize: '12px', cursor: loading ? 'wait' : 'pointer', transition: 'opacity .15s' }}
                     >
-                      {isLoading ? '...' : `Contratar ${p.label}`}
+                      {isLoading ? '...' : `Contratar ${label}`}
                     </button>
                   </div>
                 );

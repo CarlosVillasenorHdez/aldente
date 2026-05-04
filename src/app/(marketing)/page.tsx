@@ -748,7 +748,7 @@ export default function MarketingPage() {
             <img src="/assets/images/logo_aldente.png" alt="" style={{width:24,height:24,objectFit:'contain'}}/>Aldente
           </div>
           <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
-            {[['soporte@aldente.app','mailto:soporte@aldente.app'],['Términos','#'],['Privacidad','#'],['Admin','/admin/login']].map(([l,h])=>(
+            {[['soporte@aldenteerp.com','mailto:soporte@aldenteerp.com'],['Términos','/terminos'],['Privacidad','/privacidad'],['Admin','/admin/login']].map(([l,h])=>(
               <a key={l} href={h} style={{fontSize:12,color:'rgba(240,236,228,.5)',transition:'color .2s'}} onMouseEnter={e=>(e.currentTarget.style.color='rgba(240,236,228,.7)')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(240,236,228,.5)')}>{l}</a>
             ))}
           </div>

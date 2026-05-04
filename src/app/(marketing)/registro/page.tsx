@@ -353,8 +353,12 @@ export default function RegistroPage() {
               </button>
             </form>
 
-            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'rgba(240,237,232,0.15)' }}>
-              Al registrarte aceptas los términos de servicio de Aldente
+            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'rgba(240,237,232,0.2)', lineHeight: 1.6 }}>
+              Al registrarte aceptas los{' '}
+              <a href="/terminos" target="_blank" style={{ color: 'rgba(212,146,42,0.6)', textDecoration: 'underline' }}>Términos de Servicio</a>
+              {' '}y el{' '}
+              <a href="/privacidad" target="_blank" style={{ color: 'rgba(212,146,42,0.6)', textDecoration: 'underline' }}>Aviso de Privacidad</a>
+              {' '}de Aldente.
             </p>
           </div>
         </div>

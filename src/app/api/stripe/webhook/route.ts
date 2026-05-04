@@ -111,6 +111,41 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString(),
           }).eq('id', tenantId);
           await syncPlanFeatures(supabase, tenantId, plan);
+
+          // Enviar email de confirmación de pago
+          try {
+            const { data: tenantData } = await supabase
+              .from('tenants')
+              .select('name, owner_email')
+              .eq('id', tenantId)
+              .single();
+            if (tenantData?.owner_email) {
+              const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
+              const PLAN_MXN: Record<string, number>   = { operacion: 699, negocio: 1299, empresa: 2199 };
+              const nextBilling = new Date(validUntil);
+              await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/emails/send`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-aldente-source': 'stripe-webhook',
+                },
+                body: JSON.stringify({
+                  type: 'pago_confirmado',
+                  to: tenantData.owner_email,
+                  data: {
+                    restaurantName: tenantData.name,
+                    adminName: tenantData.owner_email,
+                    plan: PLAN_LABEL[plan] ?? plan,
+                    amount: `$${(PLAN_MXN[plan] ?? 0).toLocaleString('es-MX')}`,
+                    nextBillingDate: nextBilling.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/r/${tenantId}`,
+                  },
+                }),
+              });
+            }
+          } catch (emailErr) {
+            console.error('[webhook] Email pago_confirmado falló (no bloqueante):', emailErr);
+          }
         }
         break;
       }
