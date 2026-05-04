@@ -44,8 +44,8 @@ export default function ReportesMejorados() {
         .from('orders').select('*')
         .eq('tenant_id', getTenantId())
         .eq('status', 'cerrada')
-        .gte('created_at', start)
-        .lte('created_at', end)
+        .gte('closed_at', start)
+        .lte('closed_at', end)
         .order('closed_at', { ascending: false });
 
       const fecha = new Date().toISOString().split('T')[0];

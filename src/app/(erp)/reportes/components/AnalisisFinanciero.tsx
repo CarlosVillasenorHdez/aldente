@@ -182,7 +182,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
           .select('cost_actual')
           .eq('tenant_id', tenantId).eq('is_comanda', false)
           .in('status', ['cancelada'])
-          .gte('created_at', start).lte('created_at', end);
+          .gte('updated_at', start).lte('updated_at', end);
         const mermaFromOrders = (mermaOrdersData ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
 
         // Usar WACC si hay datos, sino fallback a cost_actual

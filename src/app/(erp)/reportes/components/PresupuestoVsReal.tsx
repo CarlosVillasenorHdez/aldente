@@ -287,7 +287,7 @@ export default function PresupuestoVsReal() {
     const { data: orders } = await supabase.from('orders')
       .select('total, cost_actual')
       .eq('tenant_id', getTenantId()).eq('status', 'cerrada').eq('is_comanda', false)
-      .gte('created_at', inicioAnterior + 'T00:00:00').lte('created_at', finAnterior + 'T23:59:59');
+      .gte('closed_at', inicioAnterior + 'T00:00:00').lte('closed_at', finAnterior + 'T23:59:59');
 
     const ventasAnt = (orders ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
     const cogsAnt   = (orders ?? []).reduce((s, o) => s + Number(o.cost_actual ?? 0), 0);
