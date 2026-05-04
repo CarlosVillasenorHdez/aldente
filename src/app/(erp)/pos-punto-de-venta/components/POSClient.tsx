@@ -1585,6 +1585,7 @@ export default function POSClient() {
         payMethod: 'efectivo', // DB enum only has efectivo/tarjeta; flag via is_cortesia
         waiterName: selectedTable.waiter || appUser?.fullName || 'Administrador',
         branchName,
+        branchId: activeBranch ?? null,
         openedAt: selectedTable.openedAt ?? null,
         loyaltyCustomerId: loyaltyCustomerId ?? null,
       });
@@ -1607,6 +1608,7 @@ export default function POSClient() {
       payMethod: method,
       waiterName: selectedTable.waiter || appUser?.fullName || 'Administrador',
       branchName,
+      branchId: activeBranch ?? null,
       openedAt: selectedTable.openedAt ?? null,
       loyaltyCustomerId: loyaltyCustomerId ?? null,
       loyaltyPointsEarned: loyaltyCustomerId ? Math.floor(total / (loyaltyConfig.points?.pesosPerPoint ?? 10)) : 0,

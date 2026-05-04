@@ -72,10 +72,11 @@ export interface CloseOrderParams {
   payMethod: 'efectivo' | 'tarjeta';
   waiterName: string;
   branchName: string;
+  branchId?: string | null;
   openedAt: string | null;
   loyaltyCustomerId?: string | null;
-  loyaltyPointsEarned?: number;  // puntos que el cliente gana con esta compra
-  tip?: number;                  // propina
+  loyaltyPointsEarned?: number;
+  tip?: number;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ export function useOrderFlow() {
 
   const closeOrder = useCallback(async (params: CloseOrderParams): Promise<boolean> => {
     const { orderId, tableIds, items, subtotal, discountAmount, iva, total,
-            payMethod, openedAt, branchName, waiterName, loyaltyCustomerId,
+            payMethod, openedAt, branchName, branchId, waiterName, loyaltyCustomerId,
             loyaltyPointsEarned, tip } = params;
     const now = new Date().toISOString();
 
@@ -245,6 +246,7 @@ export function useOrderFlow() {
         p_loyalty_points:      loyaltyPointsEarned ?? 0,
         p_tip:                 tip ?? 0,
         p_table_ids:           tableIds,
+        p_branch_id:           branchId ?? null,
       });
       // Si la RPC existe y tuvo éxito, retornar
       if (!rpcErr) return true;   // éxito — la transacción fue atómica
@@ -278,6 +280,7 @@ export function useOrderFlow() {
         closed_at: now,
         updated_at: now,
         branch: branchName,
+        branch_id: branchId ?? null,
         mesero: waiterName,
         ...(loyaltyCustomerId ? { loyalty_customer_id: loyaltyCustomerId } : {}),
       }).eq('id', orderId);
