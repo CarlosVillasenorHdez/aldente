@@ -145,41 +145,8 @@ export default function OrdersTable() {
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
     if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
-    // Dos queries: cerradas/canceladas por closed_at, abiertas siempre del día
-    const from = (dateFrom || '2000-01-01') + 'T00:00:00';
-    const to   = (dateTo   || '2099-12-31') + 'T23:59:59';
-
-    // Query 1: órdenes cerradas/canceladas filtradas por closed_at
-    let qCerradas = query
-      .in('status', ['cerrada', 'cancelada'])
-      .gte('closed_at', from)
-      .lte('closed_at', to)
-      .limit(500);
-
-    // Query 2: órdenes abiertas/en prep — siempre visibles
-    let qAbiertas = supabase
-      .from('orders')
-      .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
-      .eq('tenant_id', tenantId)
-      .eq('is_comanda', false)
-      .in('status', ['abierta', 'preparacion', 'lista'])
-      .limit(100);
-    if (activeBranchId) qAbiertas = qAbiertas.eq('branch_id', activeBranchId);
-
-    const [{ data: cerradas, error: errC }, { data: abiertas, error: errA }] = await Promise.all([qCerradas, qAbiertas]);
-
-    if (errC || errA) {
-      toast.error('Error al cargar órdenes: ' + (errC?.message ?? errA?.message));
-      setLoading(false);
-      return;
-    }
-    const ordersData = [...(cerradas ?? []), ...(abiertas ?? [])];
-    const error = null;
-    if (false) {  // mantener compatibilidad con el bloque de error de abajo
-      toast.error('');
-      setLoading(false);
-      return;
-    }
+    // Query simple: sin filtro de fecha en DB — filtrar en cliente
+    const { data: ordersData, error } = await query.limit(1000);
 
     if (ordersData) {
       setOrders(ordersData.map((o) => ({
@@ -274,7 +241,7 @@ export default function OrdersTable() {
       const orderDate = (o.closedAt ?? o.openedAt ?? '').slice(0, 10);
       const matchFrom = !dateFrom || orderDate >= dateFrom;
       const matchTo = !dateTo || orderDate <= dateTo;
-      const matchBranch = !activeBranchId || !activeBranchId;  // branch filter applied at query level
+      const matchBranch = true;  // branch filter applied at query level via .eq('branch_id')
       return matchStatus && matchMesero && matchSearch && matchFrom && matchTo && matchBranch;
     });
 
