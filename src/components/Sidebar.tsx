@@ -12,6 +12,7 @@ import { useFeatures, type Features } from '@/hooks/useFeatures';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { checkOut, getTodayStatus } from '@/lib/attendanceEngine';
+import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 
@@ -128,9 +129,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   // Load real open orders count and refresh every 60s
   useEffect(() => {
     const fetchOpenOrders = async () => {
+      const tid = getTenantId();
+      if (!tid) return;
       const { count } = await supabase
         .from('orders')
         .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tid)
+        .eq('is_comanda', false)
         .eq('status', 'abierta');
       setOpenOrdersCount(count ?? 0);
     };

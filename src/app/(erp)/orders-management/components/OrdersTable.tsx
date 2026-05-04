@@ -114,8 +114,8 @@ export default function OrdersTable() {
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'todas'>('todas');
   const [meseroFilter, setMeseroFilter] = useState('todos');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => todayStr());
+  const [dateTo, setDateTo] = useState(() => todayStr());
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
@@ -126,7 +126,7 @@ export default function OrdersTable() {
 
   const supabase = createClient();
   const { activeBranchId } = useBranch();
-  const { branch: activeBranch } = useBranch();
+  const { activeBranchName } = useBranch();
   const { log: auditLog } = useAudit();
   const { appUser } = useAuth();
 
@@ -140,14 +140,22 @@ export default function OrdersTable() {
       .select('*, order_items(*), cancelled_comandas:orders!parent_order_id(id, status, cancel_type, cancel_reason, waste_cost, order_items(name, qty))')
       .eq('tenant_id', tenantId)
       .eq('is_comanda', false)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }); // abiertas no tienen closed_at
 
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
     if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
-    if (dateFrom) query = query.gte('closed_at', dateFrom + 'T00:00:00');
-    if (dateTo)   query = query.lte('closed_at', dateTo   + 'T23:59:59');
-    if (!dateFrom && !dateTo) query = query.limit(1000);
+    // Filtrar por fecha: órdenes cerradas por closed_at, abiertas por created_at
+    if (dateFrom || dateTo) {
+      const from = (dateFrom || '2000-01-01') + 'T00:00:00';
+      const to   = (dateTo   || '2099-12-31') + 'T23:59:59';
+      // Cerradas: filtrar por closed_at; Abiertas: filtrar por created_at
+      query = query.or(
+        `and(status.in.(cerrada,cancelada),closed_at.gte.${from},closed_at.lte.${to}),and(status.in.(abierta,preparacion,lista),created_at.gte.${from},created_at.lte.${to})`
+      );
+    } else {
+      query = query.limit(500);
+    }
 
     const { data: ordersData, error } = await query;
 
@@ -250,7 +258,7 @@ export default function OrdersTable() {
       const orderDate = (o.closedAt ?? o.openedAt ?? '').slice(0, 10);
       const matchFrom = !dateFrom || orderDate >= dateFrom;
       const matchTo = !dateTo || orderDate <= dateTo;
-      const matchBranch = !activeBranch || !o.branch || o.branch === activeBranch;
+      const matchBranch = !activeBranchId || !activeBranchId;  // branch filter applied at query level
       return matchStatus && matchMesero && matchSearch && matchFrom && matchTo && matchBranch;
     });
 
@@ -265,7 +273,7 @@ export default function OrdersTable() {
       return 0;
     });
     return result;
-  }, [orders, search, statusFilter, meseroFilter, sortField, sortDir, dateFrom, dateTo, activeBranch]);
+  }, [orders, search, statusFilter, meseroFilter, sortField, sortDir, dateFrom, dateTo, activeBranchId, activeBranchName]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -495,10 +503,10 @@ export default function OrdersTable() {
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto">
-          {activeBranch && (
+          {activeBranchName && (
             <span className="text-xs px-2.5 py-2 rounded-lg font-semibold"
               style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}>
-              📍 {activeBranch}
+              📍 {activeBranchName}
             </span>
           )}
           <button onClick={handleRefresh} className="btn-secondary py-2 px-3 flex items-center gap-1.5">
