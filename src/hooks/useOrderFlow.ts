@@ -247,9 +247,9 @@ export function useOrderFlow() {
         p_table_ids:           tableIds,
       });
       // Si la RPC existe y tuvo éxito, retornar
-      if (!rpcErr && rpcResult) return true;
+      if (!rpcErr) return true;   // éxito — la transacción fue atómica
       // Código 42883 = función aún no existe en DB → caer al fallback JS
-      if (rpcErr && rpcErr.code !== '42883') throw rpcErr;
+      if (rpcErr.code !== '42883') throw rpcErr;
     } catch (rpcEx: unknown) {
       const rpcMsg = rpcEx instanceof Error ? rpcEx.message : String(rpcEx);
       if (!rpcMsg.includes('42883') && !rpcMsg.includes('does not exist')) {
