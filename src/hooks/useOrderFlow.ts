@@ -479,7 +479,8 @@ export function useOrderFlow() {
                 await supabase.from('loyalty_customers').update({
                   points: (customer.points ?? 0) + loyaltyPointsEarned,
                   total_spent: (customer.total_spent ?? 0) + total,
-                  total_visits: (customer.total_visits ?? 0) + 1,
+                  // NO incrementamos total_visits aquí — el cajero lo registra
+                  // manualmente desde el módulo de Lealtad para evitar doble conteo
                   last_visit: now,
                   updated_at: now,
                 }).eq('id', loyaltyCustomerId);

@@ -204,7 +204,7 @@ export default function PaymentModal({
   }, [loyaltySearch]);
 
   const POINTS_VALUE = loyaltyConfig.pointValue;
-  const pointsToEarn = selectedCustomer ? Math.floor(total / 10) : 0;
+  const pointsToEarn = selectedCustomer ? Math.floor(total / (loyaltyConfig.pesosPerPoint ?? 10)) : 0;
   const [redeemPoints, setRedeemPoints] = useState(false);
   const maxRedeemPoints = Math.floor(total * loyaltyConfig.maxRedeemPct / 100 / POINTS_VALUE);
   const maxRedeemablePoints = selectedCustomer

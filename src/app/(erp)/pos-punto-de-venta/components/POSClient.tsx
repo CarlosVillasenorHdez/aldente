@@ -1597,32 +1597,44 @@ export default function POSClient() {
       branchName,
       openedAt: selectedTable.openedAt ?? null,
       loyaltyCustomerId: loyaltyCustomerId ?? null,
-      loyaltyPointsEarned: loyaltyCustomerId ? Math.floor(total / 10) : 0,
+      loyaltyPointsEarned: loyaltyCustomerId ? Math.floor(total / (loyaltyConfig.points?.pesosPerPoint ?? 10)) : 0,
       tip: tip ?? 0,
     });
 
     if (!ok) return;
 
     // Marcar beneficio diario si no se procesó al enviar a cocina
+    // Verificar primero que no se haya marcado ya (evita doble marcado)
     if (pendingBenefit) {
-      const { data: benefitResult } = await supabase.rpc('loyalty_use_daily_benefit', {
-        p_customer_id:   pendingBenefit.memberId,
-        p_branch_id:     activeBranch ?? null,
-        p_registered_by: pendingBenefit.memberId,
-        p_benefit_type:  'cafe_gratis',
-      });
-      if (!benefitResult?.ok) {
-        const now = new Date().toISOString();
-        await supabase.from('loyalty_customers')
-          .update({ daily_benefit_used_at: now, updated_at: now })
-          .eq('id', pendingBenefit.memberId);
-        await supabase.from('loyalty_daily_benefit_log').insert({
-          tenant_id:     getTenantId(),
-          customer_id:   pendingBenefit.memberId,
-          branch_id:     activeBranch ?? null,
-          benefit_type:  'cafe_gratis',
-          registered_by: selectedTable?.waiter || appUser?.fullName || 'POS',
+      const { data: custCheck } = await supabase
+        .from('loyalty_customers')
+        .select('daily_benefit_used_at')
+        .eq('id', pendingBenefit.memberId)
+        .single();
+      const toMex = (d: Date) => new Date(d.getTime() - 6 * 3600000).toISOString().slice(0, 10);
+      const alreadyUsedToday = custCheck?.daily_benefit_used_at &&
+        toMex(new Date(custCheck.daily_benefit_used_at)) >= toMex(new Date());
+
+      if (!alreadyUsedToday) {
+        const { data: benefitResult } = await supabase.rpc('loyalty_use_daily_benefit', {
+          p_customer_id:   pendingBenefit.memberId,
+          p_branch_id:     activeBranch ?? null,
+          p_registered_by: pendingBenefit.memberId,
+          p_benefit_type:  'cafe_gratis',
         });
+        if (!benefitResult?.ok) {
+          const now = new Date().toISOString();
+          await supabase.from('loyalty_customers')
+            .update({ daily_benefit_used_at: now, updated_at: now })
+            .eq('id', pendingBenefit.memberId);
+          await supabase.from('loyalty_daily_benefit_log').insert({
+            tenant_id:     getTenantId(),
+            customer_id:   pendingBenefit.memberId,
+            branch_id:     activeBranch ?? null,
+            benefit_type:  'cafe_gratis',
+            registered_by: selectedTable?.waiter || appUser?.fullName || 'POS',
+          });
+        }
       }
       setPendingBenefit(null);
     }
