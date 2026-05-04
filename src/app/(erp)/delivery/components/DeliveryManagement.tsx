@@ -1,6 +1,7 @@
 'use client';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useSysConfig } from '@/hooks/useSysConfig';
 
 
 
@@ -71,6 +72,8 @@ const emptyForm = {
 export default function DeliveryManagement() {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
+  const IVA_RATE = ivaPercent / 100;
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -167,8 +170,10 @@ export default function DeliveryManagement() {
       const platformLabel = PLATFORM_LABELS[order.platform] ?? order.platform;
       const orderId = `DEL-${order.id.slice(-8).toUpperCase()}`;
       const subtotal = order.subtotal;
-      const iva = Math.round(subtotal * 0.16 * 100) / 100;
-      const total = subtotal + iva;
+      const iva = ivaIncludedInPrice
+        ? Math.round((subtotal - subtotal / (1 + IVA_RATE)) * 100) / 100
+        : Math.round(subtotal * IVA_RATE * 100) / 100;
+      const total = ivaIncludedInPrice ? subtotal : subtotal + iva;
 
       // Evitar duplicados si ya se envió este pedido a cocina
       const { data: existing } = await supabase
