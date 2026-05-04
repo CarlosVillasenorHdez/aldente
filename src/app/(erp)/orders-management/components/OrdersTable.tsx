@@ -145,7 +145,22 @@ export default function OrdersTable() {
     // Filtro de sucursal — solo si hay una seleccionada (null = todas)
     if (activeBranchId) query = query.eq('branch_id', activeBranchId);
 
-    // Query simple: sin filtro de fecha en DB — filtrar en cliente
+    // Filtro de fecha en DB usando created_at (TIMESTAMPTZ) como proxy
+    // closed_at es TEXT, created_at es TIMESTAMPTZ — usamos created_at para el rango
+    // y el cliente refina con closedAt para órdenes cerradas
+    if (dateFrom) {
+      const fromISO = dateFrom + 'T00:00:00';
+      // Para órdenes cerradas: muchas se crearon antes pero se cobran hoy
+      // Traemos un rango amplio y filtramos en cliente con closedAt
+      const fromExtended = new Date(dateFrom);
+      fromExtended.setDate(fromExtended.getDate() - 30); // 30 días antes para cubrir órdenes largas
+      query = query.gte('created_at', fromExtended.toISOString());
+    }
+    if (dateTo) {
+      const toISO = dateTo + 'T23:59:59';
+      query = query.lte('created_at', toISO);
+    }
+
     const { data: ordersData, error } = await query.limit(1000);
 
     if (ordersData) {
@@ -190,7 +205,7 @@ export default function OrdersTable() {
       })));
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, dateFrom, dateTo, activeBranchId]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -238,7 +253,11 @@ export default function OrdersTable() {
       const matchStatus = statusFilter === 'todas' || o.status === statusFilter;
       const matchMesero = meseroFilter === 'todos' || o.mesero === meseroFilter;
       const matchSearch = search === '' || o.id.toLowerCase().includes(search.toLowerCase()) || o.mesa.toLowerCase().includes(search.toLowerCase()) || o.mesero.toLowerCase().includes(search.toLowerCase()) || (o.customerName ?? '').toLowerCase().includes(search.toLowerCase());
-      const orderDate = (o.closedAt ?? o.openedAt ?? '').slice(0, 10);
+      // Para cerradas/canceladas usar closedAt, para abiertas usar openedAt
+      const dateForFilter = (o.status === 'cerrada' || o.status === 'cancelada')
+        ? (o.closedAt ?? o.openedAt ?? '')
+        : (o.openedAt ?? o.closedAt ?? '');
+      const orderDate = dateForFilter.slice(0, 10);
       const matchFrom = !dateFrom || orderDate >= dateFrom;
       const matchTo = !dateTo || orderDate <= dateTo;
       const matchBranch = true;  // branch filter applied at query level via .eq('branch_id')
