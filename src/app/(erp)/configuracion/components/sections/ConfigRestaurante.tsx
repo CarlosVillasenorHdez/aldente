@@ -195,7 +195,7 @@ function QRBigCanvas({ url }: { url: string }) {
 
 export default function ConfigRestaurante({ activeSection }: { activeSection: string }) {
   const supabase = createClient();
-  const { brandConfig, appUser } = useAuth();
+  const { brandConfig, appUser, reloadBrandConfig } = useAuth();
 
   // Restaurant settings
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);

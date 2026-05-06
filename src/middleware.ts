@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // ── CORS helpers ──────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
+  'https://aldente-erp.com',
+  'https://www.aldente-erp.com',
   'https://aldenteerp.com',
   'https://www.aldenteerp.com',
 ];
