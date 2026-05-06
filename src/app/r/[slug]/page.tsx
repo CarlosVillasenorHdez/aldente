@@ -49,6 +49,10 @@ const CSS = `
   .key-btn{transition:all 0.1s;}
   .user-card{transition:all 0.15s;cursor:pointer;}
   .user-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.18)!important;background:rgba(255,255,255,0.07)!important;}
+  .branch-col{transition:all 0.35s cubic-bezier(0.4,0,0.2,1);overflow:hidden;}
+  .branch-header{transition:all 0.2s;cursor:pointer;}
+  .branch-header:hover{background:rgba(255,255,255,0.07)!important;}
+  .users-list{transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;}
 `;
 
 export default function RestaurantLoginPage() {
@@ -132,6 +136,7 @@ export default function RestaurantLoginPage() {
     return ()=>window.removeEventListener('keydown', onKey);
   }, [step, pin, submitting]);
 
+  const [expandedBranch, setExpandedBranch] = useState<string | null>(null);
   // Usuarios globales (admin/gerente sin sucursal específica)
   const globalUsers = users.filter(u => GLOBAL_ROLES.includes(u.appRole));
   // Usuarios por sucursal
@@ -256,47 +261,78 @@ export default function RestaurantLoginPage() {
       {/* Conector hacia sucursales */}
       <div style={{width:1,height:32,background:'linear-gradient(to bottom,rgba(255,255,255,0.15),rgba(255,255,255,0.05))',margin:'6px 0'}} />
 
-      {/* Nivel 2+3: Sucursales con sus empleados */}
-      <div style={{display:'flex',gap:16,flexWrap:'wrap',justifyContent:'center',width:'100%',maxWidth:860,animation:'fadein 0.4s ease'}}>
+      {/* Nivel 2+3: Sucursales con acordeón */}
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',justifyContent:'center',width:'100%',maxWidth:860,animation:'fadein 0.4s ease'}}>
         {branches.map(b=>{
           const bUsers = branchUsers(b.id);
+          const isExpanded = expandedBranch === b.id;
+          const isCollapsed = expandedBranch !== null && expandedBranch !== b.id;
           return (
-            <div key={b.id} style={{flex:'1 1 320px',maxWidth:420,display:'flex',flexDirection:'column',alignItems:'center'}}>
-              {/* Card sucursal */}
-              <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 18px',borderRadius:14,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',width:'100%',marginBottom:0}}>
-                <div style={{width:34,height:34,borderRadius:10,background:'rgba(245,158,11,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <MapPin size={15} style={{color:'#f59e0b'}} />
+            <div key={b.id} className="branch-col"
+              style={{
+                flex: isCollapsed ? '0 1 180px' : '1 1 300px',
+                maxWidth: isCollapsed ? 220 : 420,
+                minWidth: isCollapsed ? 160 : 280,
+                display:'flex',flexDirection:'column',alignItems:'center',
+                opacity: isCollapsed ? 0.45 : 1,
+              }}>
+              {/* Header sucursal — clickeable */}
+              <button className="branch-header" onClick={()=>setExpandedBranch(isExpanded ? null : b.id)}
+                style={{
+                  display:'flex',alignItems:'center',gap:10,padding:'13px 16px',
+                  borderRadius:14,
+                  border: isExpanded ? '1.5px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                  background: isExpanded ? 'rgba(245,158,11,0.07)' : 'rgba(255,255,255,0.04)',
+                  width:'100%',cursor:'pointer',textAlign:'left',
+                }}>
+                <div style={{width:32,height:32,borderRadius:9,background:isExpanded?'rgba(245,158,11,0.2)':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background 0.2s'}}>
+                  <MapPin size={14} style={{color:isExpanded?'#f59e0b':'rgba(255,255,255,0.35)',transition:'color 0.2s'}} />
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:'#f1f5f9'}}>{b.name}</div>
-                  {b.address&&<div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.address}</div>}
+                  <div style={{fontSize:13,fontWeight:700,color: isExpanded ? '#f1f5f9' : 'rgba(255,255,255,0.65)'}}>{b.name}</div>
+                  {!isCollapsed && b.address && <div style={{fontSize:10,color:'rgba(255,255,255,0.28)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.address}</div>}
                 </div>
-              </div>
+                <div style={{
+                  width:22,height:22,borderRadius:'50%',
+                  background:isExpanded?'rgba(245,158,11,0.15)':'rgba(255,255,255,0.05)',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  flexShrink:0,fontSize:13,
+                  color:isExpanded?'#f59e0b':'rgba(255,255,255,0.25)',
+                  transform: isExpanded?'rotate(90deg)':'rotate(0deg)',
+                  transition:'all 0.25s',
+                }}>›</div>
+              </button>
 
-              {/* Conector */}
-              <div style={{width:1,height:16,background:'rgba(255,255,255,0.08)'}} />
-
-              {/* Empleados de esta sucursal */}
-              <div style={{display:'flex',flexDirection:'column',gap:8,width:'100%'}}>
-                {bUsers.length === 0
-                  ? <div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,0.2)',padding:'12px 0'}}>Sin empleados asignados</div>
-                  : bUsers.map(u=>{
-                    const color=ROLE_COLORS[u.appRole]??'#f59e0b';
-                    return (
-                      <button key={u.id} className="user-card" onClick={()=>handleSelectUser(u)}
-                        style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderRadius:14,border:'1px solid rgba(255,255,255,0.07)',background:'rgba(255,255,255,0.03)',textAlign:'left',width:'100%'}}>
-                        <div style={{width:44,height:44,borderRadius:'50%',background:color+'15',border:`1.5px solid ${color}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color,flexShrink:0,fontFamily:'system-ui'}}>
-                          {u.initials}
-                        </div>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#f1f5f9',lineHeight:1.3}}>{u.fullName}</div>
-                          <div style={{fontSize:11,color,marginTop:2,fontWeight:600}}>{ROLE_LABELS[u.appRole]??u.appRole}</div>
-                        </div>
-                        <div style={{color:'rgba(255,255,255,0.18)',fontSize:16}}>›</div>
-                      </button>
-                    );
-                  })
-                }
+              {/* Empleados — expand/collapse con max-height */}
+              <div className="users-list" style={{
+                maxHeight: isExpanded ? `${bUsers.length * 80 + 40}px` : '0px',
+                opacity: isExpanded ? 1 : 0,
+                width:'100%',
+                pointerEvents: isExpanded ? 'auto' : 'none',
+                overflow:'hidden',
+              }}>
+                <div style={{width:1,height:14,background:'rgba(255,255,255,0.08)',margin:'0 auto'}} />
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {bUsers.length === 0
+                    ? <div style={{textAlign:'center',fontSize:11,color:'rgba(255,255,255,0.2)',padding:'14px 0'}}>Sin empleados asignados</div>
+                    : bUsers.map(u=>{
+                      const color=ROLE_COLORS[u.appRole]??'#f59e0b';
+                      return (
+                        <button key={u.id} className="user-card" onClick={()=>handleSelectUser(u)}
+                          style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderRadius:14,border:'1px solid rgba(255,255,255,0.07)',background:'rgba(255,255,255,0.03)',textAlign:'left',width:'100%'}}>
+                          <div style={{width:44,height:44,borderRadius:'50%',background:color+'15',border:`1.5px solid ${color}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color,flexShrink:0,fontFamily:'system-ui'}}>
+                            {u.initials}
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'#f1f5f9',lineHeight:1.3}}>{u.fullName}</div>
+                            <div style={{fontSize:11,color,marginTop:2,fontWeight:600}}>{ROLE_LABELS[u.appRole]??u.appRole}</div>
+                          </div>
+                          <div style={{color:'rgba(255,255,255,0.18)',fontSize:16}}>›</div>
+                        </button>
+                      );
+                    })
+                  }
+                </div>
               </div>
             </div>
           );
