@@ -31,7 +31,7 @@ const empty: Omit<Branch,'id'> = { name:'', address:'', phone:'', email:'', mana
 export default function SucursalesManagement() {
   const supabase = createClient();
   const { appUser } = useAuth();
-  const { activeBranchId, setActiveBranch, canSwitch } = useBranch();
+  const { activeBranchId, setActiveBranch, canSwitch, reloadBranches } = useBranch();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,12 +150,12 @@ export default function SucursalesManagement() {
       if (editingId) {
         const { error: updErr } = await supabase.from('branches').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
         if (updErr) { toast.error('Error al actualizar: ' + updErr.message); setSaving(false); return; }
-        toast.success('Sucursal actualizada');
+        toast.success('Sucursal actualizada'); await reloadBranches();
       } else {
         const tid = getTenantId() || appUser?.tenantId;
         const { data: newBranch, error: insErr } = await supabase.from('branches').insert({ tenant_id: tid, ...payload }).select('id').single();
         if (insErr) { toast.error('Error al crear: ' + insErr.message); setSaving(false); return; }
-        toast.success('Sucursal creada correctamente');
+        toast.success('Sucursal creada correctamente'); await reloadBranches();
       }
       setShowForm(false); setEditingId(null); setForm(empty);
       await load();

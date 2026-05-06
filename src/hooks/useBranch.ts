@@ -15,5 +15,6 @@ export function useBranch() {
     branches: ctx.branches,
     canSwitch: ctx.canSwitch,
     setActiveBranch: ctx.setActiveBranch,
+    reloadBranches: ctx.reloadBranches,
   };
 }

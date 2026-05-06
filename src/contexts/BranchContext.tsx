@@ -27,6 +27,7 @@ interface BranchContextValue {
   branches: BranchOption[];
   canSwitch: boolean;
   setActiveBranch: (branch: BranchOption | null) => void;
+  reloadBranches: () => Promise<void>;
   loading: boolean;
 }
 
@@ -36,6 +37,7 @@ const BranchContext = createContext<BranchContextValue>({
   branches: [],
   canSwitch: false,
   setActiveBranch: () => {},
+  reloadBranches: async () => {},
   loading: true,
 });
 
@@ -117,6 +119,7 @@ export function BranchProvider({ children }: { children?: React.ReactNode }) {
       branches,
       canSwitch,
       setActiveBranch,
+      reloadBranches: load,
       loading,
     }}>
       {children}
