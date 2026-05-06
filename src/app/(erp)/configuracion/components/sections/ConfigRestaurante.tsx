@@ -361,12 +361,33 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     toast.success('Parámetros de operación guardados');
   }
 
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('El logo no puede superar 2MB'); return; }
+
+    // Preview inmediato
     const reader = new FileReader();
     reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+
+    // Intentar subir a Storage
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `logos/${appUser?.tenantId}/logo.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("restaurant-assets")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (!uploadErr) {
+        const { data: { publicUrl } } = supabase.storage
+          .from("restaurant-assets")
+          .getPublicUrl(path);
+        setLogoPreview(publicUrl + "?t=" + Date.now());
+        toast.success("Logo subido al servidor");
+      }
+      // Si hay error de Storage, el base64 del reader ya quedó como preview
+    } catch { /* usar base64 como fallback */ }
   }
 
   return (
