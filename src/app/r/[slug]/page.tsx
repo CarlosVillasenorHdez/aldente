@@ -35,6 +35,7 @@ export default function RestaurantLoginPage() {
   const supabase = createClient();
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string>('');
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -62,6 +63,13 @@ export default function RestaurantLoginPage() {
       .then(async ({ data: tenant }) => {
         if (!tenant) { setNotFound(true); setLoadingRestaurant(false); return; }
         setRestaurant(tenant as Restaurant);
+
+        // Cargar logo del restaurante
+        supabase.from('system_config').select('config_value')
+          .eq('tenant_id', tenant.id).eq('config_key', 'brand_logo_url')
+          .single().then(({ data: logoData }) => {
+            if (logoData?.config_value) setLogoUrl(logoData.config_value);
+          });
 
         const { data: usersData } = await supabase
           .from('app_users')
@@ -147,8 +155,10 @@ export default function RestaurantLoginPage() {
 
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', backgroundColor: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-            <ChefHat size={26} style={{ color: '#f59e0b' }} />
+          <div style={{ width: '80px', height: '80px', borderRadius: '20px', backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', overflow: 'hidden' }}>
+            {logoUrl
+              ? <img src={logoUrl} alt={restaurant?.name || 'Logo'} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+              : <ChefHat size={32} style={{ color: '#f59e0b' }} />}
           </div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{restaurant?.name}</h1>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Selecciona tu nombre e ingresa tu PIN</p>

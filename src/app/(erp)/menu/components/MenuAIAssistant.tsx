@@ -178,9 +178,30 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    setMenuText(text.slice(0, 8000));
-    toast.success('Archivo cargado — revisa el texto y presiona Analizar');
+
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      toast.info('Extrayendo texto del PDF...');
+      try {
+        const ab = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+        const res = await fetch('/api/menu-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'extract_pdf', pdfBase64: base64 }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMenuText((data.text || '').slice(0, 8000));
+          toast.success('PDF procesado — revisa el texto y presiona Analizar');
+        } else {
+          toast.error('No se pudo leer el PDF. Intenta copiar el texto manualmente (Ctrl+A en el PDF).');
+        }
+      } catch { toast.error('Error al procesar el PDF'); }
+    } else {
+      const text = await file.text();
+      setMenuText(text.slice(0, 8000));
+      toast.success('Archivo cargado — revisa el texto y presiona Analizar');
+    }
     e.target.value = '';
   }, []);
 
@@ -424,8 +445,8 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <label style={S.label}>Texto del menú</label>
               <label style={{ ...S.btn, ...S.btnGhost, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
-                <Upload size={13} /> Subir archivo .txt
-                <input type="file" accept=".txt,.csv,.md" style={{ display: 'none' }} onChange={handleFileUpload} />
+                <Upload size={13} /> Subir PDF o .txt
+                <input type="file" accept=".txt,.csv,.md,.pdf" style={{ display: 'none' }} onChange={handleFileUpload} />
               </label>
             </div>
             <textarea

@@ -167,6 +167,33 @@ Responde con este JSON exacto:
       return NextResponse.json(parsed);
     }
 
+    if (mode === 'extract_pdf') {
+      // Extraer texto de PDF usando Claude con visión
+      const pdfBase64 = (body as any).pdfBase64;
+      if (!pdfBase64) return NextResponse.json({ error: 'Falta pdfBase64' }, { status: 400 });
+
+      const msg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
+            },
+            {
+              type: 'text',
+              text: 'Extrae todo el texto de este menú de restaurante. Incluye todos los platillos, precios, categorías y descripciones exactamente como aparecen. Devuelve solo el texto plano, sin formato adicional.',
+            },
+          ],
+        }],
+      });
+
+      const text = (msg.content[0] as { type: string; text: string }).text.trim();
+      return NextResponse.json({ text });
+    }
+
     return NextResponse.json({ error: 'Modo no válido' }, { status: 400 });
 
   } catch (err: unknown) {
