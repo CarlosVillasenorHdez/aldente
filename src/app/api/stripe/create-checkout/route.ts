@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Plan no configurado: ${plan}` }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://aldente.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://aldente-erp.com';
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
