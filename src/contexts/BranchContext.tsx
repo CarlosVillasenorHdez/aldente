@@ -110,6 +110,8 @@ export function BranchProvider({ children }: { children?: React.ReactNode }) {
         else localStorage.removeItem(ACTIVE_BRANCH_KEY + '_' + appUser.tenantId);
       } catch {}
     }
+    // Reload para que todos los módulos re-fetcheen con el nuevo branch
+    setTimeout(() => window.location.reload(), 80);
   }
 
   return (
