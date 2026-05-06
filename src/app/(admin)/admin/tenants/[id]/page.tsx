@@ -552,7 +552,11 @@ export default function TenantDetailPage() {
             <div style={{ textAlign:'center', padding:'20px 0', color:'rgba(255,255,255,.3)', fontSize:12 }}>
               Sin sucursales adicionales. Si este restaurante abre otra ubicación, aparecerá aquí.
             </div>
-          ) : <div style={{ marginTop:4, fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:8 }}>Sucursales adicionales</div>}
+          ) : (
+            <div style={{ marginTop:4, fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:8 }}>
+              {branches.length} Sucursal{branches.length > 1 ? 'es' : ''} adicional{branches.length > 1 ? 'es' : ''}
+            </div>
+          )}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {branches.map(br => (
               <div key={br.id} style={{ padding:'16px 18px', borderRadius:12, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)' }}>
