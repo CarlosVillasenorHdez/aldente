@@ -196,45 +196,75 @@ export default function RestaurantLoginPage() {
 
   // ── Selector ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight:'100dvh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#080b10', padding:'max(32px,env(safe-area-inset-top)) 20px max(32px,env(safe-area-inset-bottom))' }}>
+    <div style={{ minHeight:'100dvh', display:'flex', background:'#080b10' }}>
       <style>{CSS}</style>
 
-      {/* Logo */}
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:36, animation:'fadein 0.4s ease' }}>
-        <div style={{ width:90, height:90, borderRadius:24, background: logoUrl ? '#111827' : 'rgba(245,158,11,0.08)', border: logoUrl ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(245,158,11,0.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, overflow:'hidden', boxShadow:'0 12px 40px rgba(0,0,0,0.5)' }}>
-          {logoUrl
-            ? <img src={logoUrl} alt={restaurant?.name ?? 'Logo'} style={{ width:'100%', height:'100%', objectFit:'contain', padding:10 }} />
-            : <ChefHat size={38} style={{ color:'#f59e0b' }} />}
+      {/* Panel izquierdo — branding (oculto en móvil) */}
+      <div className="brand-panel" style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRight:'1px solid rgba(255,255,255,0.05)', padding:48, position:'relative', overflow:'hidden' }}>
+        {/* Glow de fondo */}
+        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', position:'relative', zIndex:1 }}>
+          <div style={{ width:120, height:120, borderRadius:32, background: logoUrl ? '#111827' : 'rgba(245,158,11,0.08)', border: logoUrl ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(245,158,11,0.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.6)' }}>
+            {logoUrl
+              ? <img src={logoUrl} alt={restaurant?.name ?? 'Logo'} style={{ width:'100%', height:'100%', objectFit:'contain', padding:14 }} />
+              : <ChefHat size={52} style={{ color:'#f59e0b' }} />}
+          </div>
+          <h1 style={{ fontSize:32, fontWeight:800, color:'#f1f5f9', margin:'0 0 8px', textAlign:'center', letterSpacing:'-0.5px' }}>
+            {restaurant?.name}
+          </h1>
+          <p style={{ fontSize:14, color:'rgba(255,255,255,0.3)', margin:'0 0 48px' }}>Sistema de gestión de restaurante</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:12, width:'100%', maxWidth:280 }}>
+            {['POS · Mesas · Para llevar','Cocina · KDS · Mesero móvil','Inventario · P&L · Reportes'].map((txt,i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, color:'rgba(255,255,255,0.35)', fontSize:13 }}>
+                <div style={{ width:6, height:6, borderRadius:'50%', background:'#f59e0b', flexShrink:0 }} />
+                {txt}
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 style={{ fontSize:24, fontWeight:800, color:'#f1f5f9', margin:'0 0 6px', textAlign:'center', letterSpacing:'-0.5px' }}>
-          {restaurant?.name}
-        </h1>
-        <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', margin:0 }}>Selecciona tu perfil</p>
+        <p style={{ position:'absolute', bottom:24, fontSize:11, color:'rgba(255,255,255,0.1)' }}>Powered by Aldente</p>
       </div>
 
-      {/* Cards */}
-      <div style={{ width:'100%', maxWidth:420, display:'flex', flexDirection:'column', gap:8, animation:'fadein 0.5s ease' }}>
-        {users.map((u, i) => {
-          const color = ROLE_COLORS[u.appRole] ?? '#f59e0b';
-          return (
-            <button key={u.id} className="user-btn" onClick={() => handleSelectUser(u)}
-              style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', borderRadius:16, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left', animationDelay:`${i*0.04}s`, width:'100%' }}>
-              <div style={{ width:46, height:46, borderRadius:'50%', background:color+'15', border:`1.5px solid ${color}35`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, color, flexShrink:0, fontFamily:'system-ui' }}>
-                {u.initials}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:600, color:'#f1f5f9', lineHeight:1.3 }}>{u.fullName}</div>
-                <div style={{ fontSize:11, color, marginTop:2, fontWeight:600 }}>{ROLE_LABELS[u.appRole] ?? u.appRole}</div>
-              </div>
-              <div style={{ color:'rgba(255,255,255,0.18)', fontSize:20, lineHeight:1 }}>›</div>
-            </button>
-          );
-        })}
+      {/* Panel derecho — selector */}
+      <div style={{ width:'100%', maxWidth:480, display:'flex', flexDirection:'column', justifyContent:'center', padding:'max(32px,env(safe-area-inset-top)) 32px max(32px,env(safe-area-inset-bottom))' }}>
+
+        {/* Logo móvil (solo visible en pantallas pequeñas) */}
+        <div className="mobile-logo" style={{ display:'none', flexDirection:'column', alignItems:'center', marginBottom:32 }}>
+          <div style={{ width:72, height:72, borderRadius:20, background: logoUrl ? '#111827' : 'rgba(245,158,11,0.08)', border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12, overflow:'hidden' }}>
+            {logoUrl ? <img src={logoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', padding:8 }} /> : <ChefHat size={30} style={{ color:'#f59e0b' }} />}
+          </div>
+          <h2 style={{ fontSize:18, fontWeight:700, color:'#f1f5f9', margin:0 }}>{restaurant?.name}</h2>
+        </div>
+
+        <h2 style={{ fontSize:22, fontWeight:700, color:'#f1f5f9', margin:'0 0 4px' }}>¿Quién eres?</h2>
+        <p style={{ fontSize:13, color:'rgba(255,255,255,0.35)', margin:'0 0 28px' }}>Selecciona tu perfil para continuar</p>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {users.map((u, i) => {
+            const color = ROLE_COLORS[u.appRole] ?? '#f59e0b';
+            return (
+              <button key={u.id} className="user-btn" onClick={() => handleSelectUser(u)}
+                style={{ display:'flex', alignItems:'center', gap:16, padding:'16px 20px', borderRadius:16, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left', width:'100%' }}>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:color+'15', border:`2px solid ${color}35`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color, flexShrink:0, fontFamily:'system-ui' }}>
+                  {u.initials}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:16, fontWeight:600, color:'#f1f5f9', lineHeight:1.3 }}>{u.fullName}</div>
+                  <div style={{ fontSize:12, color, marginTop:3, fontWeight:600 }}>{ROLE_LABELS[u.appRole] ?? u.appRole}</div>
+                </div>
+                <div style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.3)', fontSize:18 }}>›</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <p style={{ textAlign:'center', fontSize:11, color:'rgba(255,255,255,0.08)', marginTop:32 }}>
-        Powered by Aldente
-      </p>
+      <style>{`
+        @media (max-width: 768px) {
+          .brand-panel { display: none !important; }
+          .mobile-logo { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }

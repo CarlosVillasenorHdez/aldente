@@ -86,26 +86,8 @@ export default function LoginPage() {
     if (!found) { setSearchError('No encontramos ese restaurante. Verifica el nombre e intenta de nuevo.'); return; }
 
     localStorage.setItem(SLUG_KEY, found.slug);
-    setRestaurant(found);
-
-    // Load branches
-    const { data: branchData } = await supabase.from('branches').select('id,name,address').eq('tenant_id', found.id).eq('is_active',true).order('name');
-    const bList = (branchData ?? []) as Branch[];
-
-    if (bList.length <= 1) {
-      // Single branch or no branches — skip branch step
-      const branch = bList[0] ?? null;
-      setSelectedBranch(branch);
-      await loadUsers(found.id, branch?.id ?? null);
-      setStep('user');
-    } else {
-      setBranches(bList);
-      // Pre-select last branch if remembered
-      const lastBranchId = localStorage.getItem(BRANCH_KEY);
-      const lastBranch = bList.find(b => b.id === lastBranchId) ?? null;
-      if (lastBranch) setSelectedBranch(lastBranch);
-      setStep('branch');
-    }
+    // Redirigir a /r/[slug] — diseño personalizado con logo y PIN numérico
+    router.push('/r/' + found.slug);
   }
 
   async function handleSelectBranch(branch: Branch) {
