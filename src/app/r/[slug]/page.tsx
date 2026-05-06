@@ -318,7 +318,14 @@ export default function RestaurantLoginPage() {
         </div>
       </div>
 
-      <p style={{ fontSize:11, color:'rgba(255,255,255,0.07)', marginTop:32 }}>Powered by Aldente</p>
+      <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:32 }}>
+        <button onClick={() => router.push('/login')}
+          style={{ background:'none', border:'none', color:'rgba(255,255,255,0.2)', cursor:'pointer', fontSize:12, padding:'6px 10px', borderRadius:8 }}>
+          ← Cambiar restaurante
+        </button>
+        <span style={{ color:'rgba(255,255,255,0.06)' }}>·</span>
+        <p style={{ fontSize:11, color:'rgba(255,255,255,0.07)', margin:0 }}>Powered by Aldente</p>
+      </div>
     </div>
   );
 }

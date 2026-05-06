@@ -202,24 +202,26 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       if (error || !data) return { error: 'Usuario no encontrado' };
       if (!data.is_active) return { error: 'Usuario inactivo. Contacta al administrador.' };
 
-      // ── Verificar bloqueo por intentos fallidos ──────────────────────────
-      const { data: lockoutData } = await supabase.rpc('check_pin_lockout', { p_user_id: userId });
-      if (lockoutData?.locked) {
-        const mins = Math.ceil((lockoutData.seconds_left ?? 60) / 60);
-        return { error: `Cuenta bloqueada. Intenta en ${mins} min.` };
-      }
+      // ── Verificar bloqueo (solo si la función existe en DB) ─────────────
+      try {
+        const { data: lockoutData } = await supabase.rpc('check_pin_lockout', { p_user_id: userId });
+        if (lockoutData?.locked) {
+          const mins = Math.ceil((lockoutData.seconds_left ?? 60) / 60);
+          return { error: `Bloqueado temporalmente. Intenta en ${mins} min.` };
+        }
+      } catch { /* función no instalada aún — continuar sin bloqueo */ }
 
       // Support both plain text (legacy) and SHA-256 hashed PINs
       const hashed = await hashPin(pin);
       const pinMatch = data.pin === pin || data.pin === hashed;
       if (!pinMatch) {
-        // Registrar intento fallido
-        await supabase.rpc('register_failed_pin', { p_user_id: userId });
+        // Registrar intento fallido (silencioso si la función no existe)
+        try { await supabase.rpc('register_failed_pin', { p_user_id: userId }); } catch { /* ok */ }
         return { error: 'PIN incorrecto' };
       }
 
-      // PIN correcto — limpiar intentos fallidos
-      await supabase.rpc('clear_pin_attempts', { p_user_id: userId });
+      // PIN correcto — limpiar intentos
+      try { await supabase.rpc('clear_pin_attempts', { p_user_id: userId }); } catch { /* ok */ }
 
       // ── Sign into Supabase Auth so auth.uid() works for RLS ──────────────
       // Each ERP user gets a Supabase Auth account with a stable password
