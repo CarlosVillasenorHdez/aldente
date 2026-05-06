@@ -148,11 +148,14 @@ export default function SucursalesManagement() {
       };
 
       if (editingId) {
-        await supabase.from('branches').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
+        const { error: updErr } = await supabase.from('branches').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
+        if (updErr) { toast.error('Error al actualizar: ' + updErr.message); setSaving(false); return; }
         toast.success('Sucursal actualizada');
       } else {
-        await supabase.from('branches').insert({ tenant_id: getTenantId(), ...payload });
-        toast.success('Sucursal creada');
+        const tid = getTenantId() || appUser?.tenantId;
+        const { data: newBranch, error: insErr } = await supabase.from('branches').insert({ tenant_id: tid, ...payload }).select('id').single();
+        if (insErr) { toast.error('Error al crear: ' + insErr.message); setSaving(false); return; }
+        toast.success('Sucursal creada correctamente');
       }
       setShowForm(false); setEditingId(null); setForm(empty);
       await load();

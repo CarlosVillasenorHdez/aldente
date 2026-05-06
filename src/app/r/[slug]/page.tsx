@@ -152,6 +152,18 @@ export default function RestaurantLoginPage() {
     }
   }, [pin]);
 
+  // Capturar teclado físico cuando estamos en la pantalla PIN
+  useEffect(() => {
+    if (step !== 'pin') return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key >= '0' && e.key <= '9') { handleKeyPress(e.key); }
+      else if (e.key === 'Backspace') { handleDelete(); }
+      else if (e.key === 'Escape') { setStep('diagram'); setPin(''); setError(''); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [step, pin, submitting]);
+
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (authLoading || loadingRestaurant) {
     return (
