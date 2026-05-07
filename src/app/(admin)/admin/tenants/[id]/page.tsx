@@ -27,6 +27,7 @@ interface TenantDetail {
 interface BranchDetail {
   id: string; name: string; address: string; phone: string;
   email: string; manager_name: string; is_active: boolean;
+  lat?: number; lng?: number;
 }
 interface AppUser {
   id: string; full_name: string; app_role: string; is_active: boolean; pin: string;
@@ -131,7 +132,7 @@ export default function TenantDetailPage() {
     const [{ data: t }, { data: u }, { data: br }] = await Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
       supabase.from('app_users').select('id,full_name,app_role,is_active,pin').eq('tenant_id', id).order('app_role'),
-      supabase.from('branches').select('id,name,address,phone,email,manager_name,is_active').eq('tenant_id', id).order('name'),
+      supabase.from('branches').select('id,name,address,phone,email,manager_name,is_active,lat,lng').eq('tenant_id', id).order('name'),
     ]);
     if (!t) { setLoading(false); return; }
 
@@ -555,6 +556,22 @@ export default function TenantDetailPage() {
           ) : (
             <div style={{ marginTop:4, fontSize:11, fontWeight:700, color:'rgba(255,255,255,.35)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:8 }}>
               {branches.length} Sucursal{branches.length > 1 ? 'es' : ''} adicional{branches.length > 1 ? 'es' : ''}
+            </div>
+          )}
+          {/* Mapa de sucursales cuando hay coordenadas */}
+          {branches.some(br => br.lat && br.lng) && (
+            <div style={{ borderRadius:12, overflow:'hidden', height:220, marginBottom:12, border:'1px solid rgba(255,255,255,0.08)' }}>
+              <iframe
+                title="Mapa sucursales"
+                width="100%" height="220"
+                style={{ border:0 }}
+                loading="lazy"
+                src={
+                  'https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=' +
+                  branches.filter(br=>br.lat&&br.lng).map(br=>br.lat+','+br.lng).join('|') +
+                  '&zoom=13'
+                }
+              />
             </div>
           )}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
