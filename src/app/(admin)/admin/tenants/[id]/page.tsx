@@ -558,22 +558,34 @@ export default function TenantDetailPage() {
               {branches.length} Sucursal{branches.length > 1 ? 'es' : ''} adicional{branches.length > 1 ? 'es' : ''}
             </div>
           )}
-          {/* Mapa de sucursales cuando hay coordenadas */}
-          {branches.some(br => br.lat && br.lng) && (
-            <div style={{ borderRadius:12, overflow:'hidden', height:220, marginBottom:12, border:'1px solid rgba(255,255,255,0.08)' }}>
-              <iframe
-                title="Mapa sucursales"
-                width="100%" height="220"
-                style={{ border:0 }}
-                loading="lazy"
-                src={
-                  'https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=' +
-                  branches.filter(br=>br.lat&&br.lng).map(br=>br.lat+','+br.lng).join('|') +
-                  '&zoom=13'
-                }
-              />
-            </div>
-          )}
+          {/* Mapa de sucursales — OpenStreetMap, sin API key */}
+          {branches.some(br => br.lat && br.lng) && (() => {
+            const withCoords = branches.filter(br => br.lat && br.lng);
+            const avgLat = withCoords.reduce((s,b) => s + (b.lat!), 0) / withCoords.length;
+            const avgLng = withCoords.reduce((s,b) => s + (b.lng!), 0) / withCoords.length;
+            const markers = withCoords.map(b => `${b.lat},${b.lng}`).join('|');
+            const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${avgLng-0.05},${avgLat-0.03},${avgLng+0.05},${avgLat+0.03}&layer=mapnik&marker=${withCoords[0].lat},${withCoords[0].lng}`;
+            return (
+              <div style={{ borderRadius:12, overflow:'hidden', height:220, marginBottom:12, border:'1px solid rgba(255,255,255,0.08)', position:'relative' }}>
+                <iframe
+                  title="Mapa sucursales"
+                  width="100%" height="220"
+                  style={{ border:0 }}
+                  loading="lazy"
+                  src={osmUrl}
+                />
+                {/* Links directos a cada sucursal */}
+                <div style={{ position:'absolute', bottom:8, right:8, display:'flex', flexDirection:'column', gap:4 }}>
+                  {withCoords.map(b => (
+                    <a key={b.id} href={`https://www.google.com/maps?q=${b.lat},${b.lng}`} target="_blank" rel="noopener"
+                      style={{ fontSize:10, background:'rgba(0,0,0,0.7)', color:'#60a5fa', padding:'3px 8px', borderRadius:6, textDecoration:'none', backdropFilter:'blur(4px)' }}>
+                      📍 {b.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {branches.map(br => (
               <div key={br.id} style={{ padding:'16px 18px', borderRadius:12, background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)' }}>
