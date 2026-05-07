@@ -301,7 +301,7 @@ export default function InventarioManagement() {
       })) as Ingredient[]);
     }
     setLoading(false);
-  }, []);
+  }, [activeBranchId, appUser?.tenantId]);
   const fetchMovements = useCallback(async (ingredientId?: string) => {
     setLoadingMovements(true);
     let query = supabase
@@ -349,7 +349,7 @@ export default function InventarioManagement() {
     }
     setLoadingEquiv(false);
   }, []);
-  useEffect(() => { fetchIngredients(); }, [fetchIngredients, appUser?.tenantId]); // eslint-disable-line
+  useEffect(() => { fetchIngredients(); }, [fetchIngredients, appUser?.tenantId, activeBranchId]); // eslint-disable-line
   useEffect(() => {
     if (activeTab === 'movimientos') fetchMovements(historyIngredientId ?? undefined);
   }, [activeTab, historyIngredientId, fetchMovements]);
