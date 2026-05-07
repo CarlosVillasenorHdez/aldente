@@ -563,22 +563,32 @@ export default function TenantDetailPage() {
             const withCoords = branches.filter(br => br.lat && br.lng);
             const avgLat = withCoords.reduce((s,b) => s + (b.lat!), 0) / withCoords.length;
             const avgLng = withCoords.reduce((s,b) => s + (b.lng!), 0) / withCoords.length;
-            const markers = withCoords.map(b => `${b.lat},${b.lng}`).join('|');
-            const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${avgLng-0.05},${avgLat-0.03},${avgLng+0.05},${avgLat+0.03}&layer=mapnik&marker=${withCoords[0].lat},${withCoords[0].lng}`;
+            const markersJs = withCoords.map(b =>
+              `L.marker([${b.lat},${b.lng}]).addTo(map).bindPopup("<b>${b.name}</b>");`
+            ).join('');
+            const mapHtml = `<!DOCTYPE html><html><head>
+              <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+              <style>body{margin:0}#m{height:220px}</style>
+            </head><body><div id="m"></div>
+              <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+              <script>
+                var map=L.map('m',{zoomControl:true,attributionControl:false}).setView([${avgLat},${avgLng}],13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                ${markersJs}
+              </script></body></html>`;
             return (
               <div style={{ borderRadius:12, overflow:'hidden', height:220, marginBottom:12, border:'1px solid rgba(255,255,255,0.08)', position:'relative' }}>
                 <iframe
                   title="Mapa sucursales"
                   width="100%" height="220"
                   style={{ border:0 }}
-                  loading="lazy"
-                  src={osmUrl}
+                  srcDoc={mapHtml}
+                  sandbox="allow-scripts"
                 />
-                {/* Links directos a cada sucursal */}
                 <div style={{ position:'absolute', bottom:8, right:8, display:'flex', flexDirection:'column', gap:4 }}>
                   {withCoords.map(b => (
                     <a key={b.id} href={`https://www.google.com/maps?q=${b.lat},${b.lng}`} target="_blank" rel="noopener"
-                      style={{ fontSize:10, background:'rgba(0,0,0,0.7)', color:'#60a5fa', padding:'3px 8px', borderRadius:6, textDecoration:'none', backdropFilter:'blur(4px)' }}>
+                      style={{ fontSize:10, background:'rgba(0,0,0,0.75)', color:'#60a5fa', padding:'3px 8px', borderRadius:6, textDecoration:'none' }}>
                       📍 {b.name}
                     </a>
                   ))}
