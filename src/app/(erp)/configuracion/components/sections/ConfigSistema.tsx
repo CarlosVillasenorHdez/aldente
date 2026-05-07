@@ -1,7 +1,7 @@
 'use client';
 import { toast } from 'sonner';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-
+import { Shield } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 import { Zap, Star, Settings2, CheckCircle, Save, AlertTriangle, RotateCcw } from 'lucide-react';
@@ -454,7 +454,14 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
               </div>
             </div>
       )}
-      {activeSection === 'usuarios' && <UsuariosManagement />}
+      {activeSection === 'usuarios' && (
+        <div style={{ padding: 32, textAlign: 'center' }}>
+          <Shield size={40} style={{ color: '#c9963a', marginBottom: 16 }} />
+          <h2 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Usuarios & Roles</h2>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20 }}>La gestión de usuarios y permisos se hace desde el módulo de Personal.</p>
+          <a href='/personal' style={{ padding: '10px 24px', borderRadius: 10, background: '#c9963a', color: '#000', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Ir a Personal →</a>
+        </div>
+      )}
     </div>
   );
 }

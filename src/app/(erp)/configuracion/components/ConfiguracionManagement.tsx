@@ -27,7 +27,7 @@ const SECTIONS = [
   { id: 'funcionalidades', label: 'Funcionalidades',  icon: Zap,        group: 'Sistema' },
   { id: 'lealtad_config',label: 'Programa de Lealtad', icon: Star,      group: 'Sistema' },
   { id: 'sistema',       label: 'Sistema',             icon: Settings2,  group: 'Sistema' },
-  { id: 'usuarios',      label: 'Usuarios & Roles',    icon: Users,      group: 'Sistema' },
+  // Usuarios & Roles → movido a Personal (tab Acceso + Permisos)
   { id: 'auditoria',     label: 'Auditoría',            icon: Shield,     group: 'Sistema' },
   { id: 'mis-datos',    label: 'Mis Datos',             icon: Database,   group: 'Sistema' },
   { id: 'golive',       label: '🚀 Preparar lanzamiento', icon: Zap,       group: 'Sistema' },

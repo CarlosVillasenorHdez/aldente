@@ -2,7 +2,8 @@
 import { calcCostoEmpleado, calcResumenNomina, diasVacacionesPorAntiguedad } from '@/lib/laboralMX';
 import NominaTab from './NominaTab';
 import { useBranch } from '@/hooks/useBranch';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRolePermissions, invalidatePermissionsCache } from '@/hooks/useRolePermissions';
+import { useAuth, AppRole, BUILTIN_ROLES } from '@/contexts/AuthContext';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
@@ -10,7 +11,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Pencil, Trash2, X, Users, Phone, Calendar, ChevronDown,
-  UserCheck, UserX, DollarSign, TrendingUp, Clock,
+  UserCheck, UserX, DollarSign, TrendingUp, Clock, Shield, Key, Eye, EyeOff,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -178,6 +179,19 @@ export default function PersonalManagement() {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof Omit<Employee, 'id'>, string>>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'empleados' | 'turnos' | 'asistencia' | 'nomina' | 'acceso' | 'permisos'>('empleados');
+
+  // ─── Estados para tab Acceso al sistema ───────────────────────────────────
+  const [appUsers, setAppUsers] = useState<any[]>([]);
+  const [loadingAppUsers, setLoadingAppUsers] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [newPin, setNewPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [savingPin, setSavingPin] = useState(false);
+
+  // ─── Estados para tab Roles & Permisos ────────────────────────────────────
+  const [allRolePerms, setAllRolePerms] = useState<Record<string, Record<string,boolean>>>({});
+  const [savingPerms, setSavingPerms] = useState(false);
+  const [selectedPermRole, setSelectedPermRole] = useState<string>('mesero');
   const [shifts, setShifts] = useState<EmployeeShift[]>([]);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
@@ -198,6 +212,102 @@ export default function PersonalManagement() {
     supabase.from('branches').select('id,name').eq('tenant_id', tid).eq('is_active', true).order('name')
       .then(({ data }) => setBranches(data ?? []));
   }, [appUser?.tenantId]);
+
+  // ─── Funciones tab Acceso al sistema ─────────────────────────────────────
+  const fetchAppUsers = useCallback(async () => {
+    setLoadingAppUsers(true);
+    const { data } = await supabase.from('app_users')
+      .select('id, full_name, username, app_role, is_active, branch_id, employee_id')
+      .eq('tenant_id', getTenantId())
+      .neq('app_role', 'superadmin')
+      .order('full_name');
+    setAppUsers(data ?? []);
+    setLoadingAppUsers(false);
+  }, []);
+
+  async function handleSavePin(userId: string) {
+    if (newPin.length < 4) { toast.error('El PIN debe tener al menos 4 dígitos'); return; }
+    setSavingPin(true);
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPin));
+    const hashed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    const { error } = await supabase.from('app_users').update({ pin: hashed }).eq('id', userId);
+    setSavingPin(false);
+    if (error) { toast.error('Error al guardar PIN'); return; }
+    toast.success('PIN actualizado');
+    setEditingUserId(null);
+    setNewPin('');
+  }
+
+  async function handleToggleUserActive(userId: string, current: boolean) {
+    await supabase.from('app_users').update({ is_active: !current }).eq('id', userId);
+    await fetchAppUsers();
+    toast.success(current ? 'Usuario desactivado' : 'Usuario activado');
+  }
+
+  async function handleChangeRole(userId: string, role: string) {
+    await supabase.from('app_users').update({ app_role: role }).eq('id', userId);
+    await fetchAppUsers();
+    toast.success('Rol actualizado');
+  }
+
+  // ─── Funciones tab Roles & Permisos ───────────────────────────────────────
+  const PAGE_KEYS = [
+    { key: 'dashboard',    label: 'Dashboard' },
+    { key: 'pos',          label: 'Punto de Venta' },
+    { key: 'orders',       label: 'Gestión de Órdenes' },
+    { key: 'cocina',       label: 'Cocina / KDS' },
+    { key: 'corte',        label: 'Corte de Caja' },
+    { key: 'inventario',   label: 'Inventario' },
+    { key: 'menu',         label: 'Menú' },
+    { key: 'personal',     label: 'Personal' },
+    { key: 'reportes',     label: 'Reportes' },
+    { key: 'gastos',       label: 'Gastos' },
+    { key: 'lealtad',      label: 'Lealtad' },
+    { key: 'proveedores',  label: 'Proveedores' },
+    { key: 'sucursales',   label: 'Multi-Sucursal' },
+    { key: 'configuracion',label: 'Configuración' },
+  ];
+
+  const fetchAllPerms = useCallback(async () => {
+    const roles = ['gerente','cajero','mesero','cocinero','ayudante_cocina','repartidor'];
+    const { data } = await supabase.from('role_permissions')
+      .select('role, page_key, can_access')
+      .eq('tenant_id', getTenantId())
+      .in('role', roles);
+    const map: Record<string,Record<string,boolean>> = {};
+    roles.forEach(r => { map[r] = {}; });
+    (data ?? []).forEach((row: any) => {
+      if (!map[row.role]) map[row.role] = {};
+      map[row.role][row.page_key] = row.can_access;
+    });
+    setAllRolePerms(map);
+  }, []);
+
+  async function handleSavePerms() {
+    setSavingPerms(true);
+    const rows = Object.entries(allRolePerms).flatMap(([role, perms]) =>
+      Object.entries(perms).map(([page_key, can_access]) => ({
+        tenant_id: getTenantId(), role, page_key, can_access,
+      }))
+    );
+    await supabase.from('role_permissions').upsert(rows, { onConflict: 'tenant_id,role,page_key' });
+    invalidatePermissionsCache();
+    setSavingPerms(false);
+    toast.success('Permisos guardados');
+  }
+
+  function togglePerm(role: string, key: string) {
+    setAllRolePerms(prev => ({
+      ...prev,
+      [role]: { ...prev[role], [key]: !prev[role]?.[key] },
+    }));
+  }
+
+  const ROLE_LABELS_ES: Record<string,string> = {
+    admin:'Administrador', gerente:'Gerente', cajero:'Cajero',
+    mesero:'Mesero', cocinero:'Cocinero', ayudante_cocina:'Ayudante de Cocina', repartidor:'Repartidor',
+  };
+  const APP_ROLES_SELECTABLES = ['gerente','cajero','mesero','cocinero','ayudante_cocina','repartidor'];
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -263,7 +373,9 @@ export default function PersonalManagement() {
 
   useEffect(() => {
     if (activeTab === 'turnos') fetchShifts();
-  }, [activeTab, fetchShifts]);
+    if (activeTab === 'acceso') fetchAppUsers();
+    if (activeTab === 'permisos') fetchAllPerms();
+  }, [activeTab, fetchShifts, fetchAppUsers, fetchAllPerms]);
 
   const activeCount = useMemo(() => employees.filter((e) => e.status === 'activo').length, [employees]);
   const inactiveCount = useMemo(() => employees.filter((e) => e.status === 'inactivo').length, [employees]);
@@ -1150,6 +1262,142 @@ export default function PersonalManagement() {
           </div>
         </div>
       )}
+
+      {/* ─── Tab: Acceso al sistema ─────────────────────────────────────────── */}
+      {activeTab === 'acceso' && (
+        <div className="flex flex-col h-full overflow-y-auto p-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-white mb-1">Acceso al sistema</h2>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+              Gestiona PINs y roles de acceso de cada empleado. El PIN se usa para entrar al sistema desde la pantalla de login.
+            </p>
+          </div>
+          {loadingAppUsers ? (
+            <div className="flex justify-center py-12">
+              <div style={{ width:28, height:28, borderRadius:'50%', border:'2px solid rgba(201,150,58,0.2)', borderTopColor:'#c9963a', animation:'spin .7s linear infinite' }} />
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {appUsers.map(u => (
+                <div key={u.id} style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:'14px 18px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                    {/* Avatar */}
+                    <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(201,150,58,0.15)', border:'1.5px solid rgba(201,150,58,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color:'#c9963a', flexShrink:0 }}>
+                      {u.full_name.split(' ').slice(0,2).map((n:string)=>n[0]).join('').toUpperCase()}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:'#f1f5f9' }}>{u.full_name}</div>
+                      <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2 }}>@{u.username}</div>
+                    </div>
+                    {/* Rol selector */}
+                    <select value={u.app_role} onChange={e => handleChangeRole(u.id, e.target.value)}
+                      style={{ padding:'6px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.06)', color:'#f1f5f9', fontSize:12, cursor:'pointer' }}>
+                      {APP_ROLES_SELECTABLES.map(r => (
+                        <option key={r} value={r} style={{ background:'#1a2535' }}>{ROLE_LABELS_ES[r]}</option>
+                      ))}
+                    </select>
+                    {/* Activo/Inactivo */}
+                    <button onClick={() => handleToggleUserActive(u.id, u.is_active)}
+                      style={{ padding:'6px 12px', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:600,
+                        background: u.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: u.is_active ? '#22c55e' : '#ef4444' }}>
+                      {u.is_active ? '● Activo' : '○ Inactivo'}
+                    </button>
+                    {/* Editar PIN */}
+                    <button onClick={() => { setEditingUserId(editingUserId === u.id ? null : u.id); setNewPin(''); setShowPin(false); }}
+                      style={{ padding:'6px 12px', borderRadius:8, border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.7)', fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+                      <Key size={12}/> PIN
+                    </button>
+                  </div>
+                  {/* Formulario de PIN */}
+                  {editingUserId === u.id && (
+                    <div style={{ marginTop:12, padding:'12px', background:'rgba(255,255,255,0.04)', borderRadius:10, display:'flex', alignItems:'center', gap:10 }}>
+                      <div style={{ position:'relative', flex:1 }}>
+                        <input
+                          type={showPin ? 'text' : 'password'}
+                          value={newPin}
+                          onChange={e => setNewPin(e.target.value.replace(/\D/g,''))}
+                          maxLength={8}
+                          placeholder="Nuevo PIN (4-8 dígitos)"
+                          style={{ width:'100%', padding:'8px 36px 8px 12px', borderRadius:8, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.07)', color:'#f1f5f9', fontSize:13, boxSizing:'border-box' }}
+                        />
+                        <button onClick={() => setShowPin(p=>!p)} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.4)', padding:0 }}>
+                          {showPin ? <EyeOff size={14}/> : <Eye size={14}/>}
+                        </button>
+                      </div>
+                      <button onClick={() => handleSavePin(u.id)} disabled={savingPin || newPin.length < 4}
+                        style={{ padding:'8px 16px', borderRadius:8, border:'none', background:'#c9963a', color:'#000', fontSize:12, fontWeight:700, cursor:'pointer', opacity: newPin.length < 4 ? 0.5 : 1 }}>
+                        {savingPin ? '...' : 'Guardar'}
+                      </button>
+                      <button onClick={() => setEditingUserId(null)} style={{ padding:'8px 12px', borderRadius:8, border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'rgba(255,255,255,0.5)', fontSize:12, cursor:'pointer' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {appUsers.length === 0 && (
+                <div style={{ textAlign:'center', padding:'48px 0', color:'rgba(255,255,255,0.3)', fontSize:13 }}>
+                  No hay usuarios de acceso configurados. Crea empleados en el tab Empleados y se generarán automáticamente.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Tab: Roles & Permisos ───────────────────────────────────────────── */}
+      {activeTab === 'permisos' && (
+        <div className="flex flex-col h-full overflow-y-auto p-6">
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Roles & Permisos</h2>
+              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:13 }}>
+                Define qué secciones puede ver cada rol. El Administrador siempre tiene acceso total.
+              </p>
+            </div>
+            <button onClick={handleSavePerms} disabled={savingPerms}
+              style={{ padding:'10px 20px', borderRadius:10, border:'none', background:'#c9963a', color:'#000', fontSize:13, fontWeight:700, cursor:'pointer', opacity: savingPerms ? 0.7 : 1 }}>
+              {savingPerms ? 'Guardando...' : '💾 Guardar permisos'}
+            </button>
+          </div>
+
+          {/* Selector de rol */}
+          <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+            {APP_ROLES_SELECTABLES.map(role => (
+              <button key={role} onClick={() => setSelectedPermRole(role)}
+                style={{ padding:'8px 16px', borderRadius:10, border:`1px solid ${selectedPermRole === role ? 'rgba(201,150,58,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  background: selectedPermRole === role ? 'rgba(201,150,58,0.12)' : 'rgba(255,255,255,0.04)',
+                  color: selectedPermRole === role ? '#c9963a' : 'rgba(255,255,255,0.6)', cursor:'pointer', fontSize:12, fontWeight:600 }}>
+                {ROLE_LABELS_ES[role]}
+              </button>
+            ))}
+          </div>
+
+          {/* Grid de permisos */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:8 }}>
+            {PAGE_KEYS.map(page => {
+              const hasAccess = allRolePerms[selectedPermRole]?.[page.key] ?? false;
+              return (
+                <button key={page.key} onClick={() => togglePerm(selectedPermRole, page.key)}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderRadius:12,
+                    border:`1px solid ${hasAccess ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                    background: hasAccess ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)', cursor:'pointer', textAlign:'left' }}>
+                  <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${hasAccess ? '#22c55e' : 'rgba(255,255,255,0.2)'}`,
+                    background: hasAccess ? '#22c55e' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    {hasAccess && <span style={{ color:'#000', fontSize:11, fontWeight:900 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize:13, fontWeight:500, color: hasAccess ? '#f1f5f9' : 'rgba(255,255,255,0.5)' }}>{page.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ marginTop:16, fontSize:11, color:'rgba(255,255,255,0.3)' }}>
+            * Los cambios se aplican en la siguiente sesión del empleado.
+          </p>
+        </div>
+      )}
+
     </div>
   );
 }
