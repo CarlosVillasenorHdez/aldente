@@ -101,7 +101,7 @@ export default function InventarioConsolidado() {
   }
 
   return (
-    <div style={{ padding: '24px 0' }}>
+    <div style={{ padding: '20px', background: '#0b1827', borderRadius: 16, color: '#f1f5f9' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
@@ -128,7 +128,7 @@ export default function InventarioConsolidado() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar ingrediente..."
-          style={{ flex: 1, minWidth: 200, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#f1f5f9', fontSize: 13 }}
+          style={{ flex: 1, minWidth: 200, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#f1f5f9', fontSize: 13, outline: 'none' }}
         />
         <button onClick={() => setShowCriticalOnly(!showCriticalOnly)}
           style={{ padding: '8px 16px', borderRadius: 10, border: `1px solid ${showCriticalOnly ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: showCriticalOnly ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: showCriticalOnly ? '#ef4444' : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -151,8 +151,8 @@ export default function InventarioConsolidado() {
           </div>
 
           {/* Tabla de ingredientes */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#f1f5f9' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
                   {['Ingrediente', 'Categoría', 'Stock', 'Nivel', 'Mínimo', 'Costo/U'].map(h => (
