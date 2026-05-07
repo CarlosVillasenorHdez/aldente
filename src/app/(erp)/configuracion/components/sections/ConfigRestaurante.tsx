@@ -258,15 +258,10 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (!data) return;
       const map: Record<string,string> = {};
       data.forEach((r: any) => { map[r.config_key] = r.config_value; });
+      // Solo cargar datos GLOBALES del tenant — dirección viene de branches
       if (map.restaurant_name) { setRestaurantName(map.restaurant_name); setRestaurantNameDraft(map.restaurant_name); }
-      if (map.restaurant_colonia) setColonia(map.restaurant_colonia);
-      if (map.restaurant_postal_code) setPostalCode(map.restaurant_postal_code);
       if (map.brand_primary_color) setPrimaryColor(map.brand_primary_color);
       if (map.brand_logo_url) setLogoPreview(map.brand_logo_url);
-      if (map.restaurant_address) setAddress(map.restaurant_address);
-      if (map.restaurant_city) setCity(map.restaurant_city);
-      if (map.restaurant_state) setStateRegion(map.restaurant_state);
-      if (map.restaurant_phone) setPhone(map.restaurant_phone);
       if (map.restaurant_rfc) setRfc(map.restaurant_rfc);
       if (map.brand_theme) setAppTheme(map.brand_theme as 'dark'|'light');
       if (map.iva_percent) { const v = parseFloat(map.iva_percent); setIvaPercent(v); setIvaPercentDraft(v); }
@@ -274,6 +269,8 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (map.currency_code) setCurrencyCode(map.currency_code);
       if (map.currency_locale) setCurrencyLocale(map.currency_locale);
       if (map.takeout_pay_before_kitchen) setTakeoutPayBeforeKitchen(map.takeout_pay_before_kitchen === 'true');
+      // NOTA: address, city, colonia, postal_code, phone vienen de branches (arriba)
+      // NO se cargan desde system_config para evitar pisar la dirección de la sucursal activa
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBranchId, appUser?.tenantId]);
