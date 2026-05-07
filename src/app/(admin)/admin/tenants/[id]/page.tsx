@@ -27,7 +27,7 @@ interface TenantDetail {
 interface BranchDetail {
   id: string; name: string; address: string; phone: string;
   email: string; manager_name: string; is_active: boolean;
-  lat?: number; lng?: number;
+  lat?: number; lng?: number; city?: string; is_main?: boolean;
 }
 interface AppUser {
   id: string; full_name: string; app_role: string; is_active: boolean; pin: string;
@@ -132,7 +132,7 @@ export default function TenantDetailPage() {
     const [{ data: t }, { data: u }, { data: br }] = await Promise.all([
       supabase.from('tenants').select('*').eq('id', id).single(),
       supabase.from('app_users').select('id,full_name,app_role,is_active,pin').eq('tenant_id', id).order('app_role'),
-      supabase.from('branches').select('id,name,address,phone,email,manager_name,is_active,lat,lng').eq('tenant_id', id).order('name'),
+      supabase.from('branches').select('id,name,address,phone,email,manager_name,is_active,lat,lng,city,is_main').eq('tenant_id', id).order('is_main', { ascending: false }).order('name'),
     ]);
     if (!t) { setLoading(false); return; }
 
@@ -461,8 +461,8 @@ export default function TenantDetailPage() {
               ['ID', tenant.id.slice(0,8)+'…'],
               ['Email dueño', tenant.owner_email ?? '—'],
               ['Teléfono', (tenant as any).phone ?? '—'],
-              ['País / Ciudad', [tenant.country, tenant.city].filter(Boolean).join(' / ') || '—'],
-              ['Dirección', tenant.address ?? '—'],
+              ['País / Ciudad', branches.length > 0 ? [branches[0].city].filter(Boolean).join(' / ') || '—' : [tenant.country, (tenant as any).city].filter(Boolean).join(' / ') || '—'],
+              ['Dirección', branches.length > 0 ? (branches.find(b=>(b as any).is_main)?.address || branches[0].address || '—') : (tenant.address ?? '—')],
               ['Colonia', (tenant as any).colonia ?? '—'],
               ['C.P.', (tenant as any).postal_code ?? '—'],
               ['Estado / Región', (tenant as any).state_region ?? '—'],

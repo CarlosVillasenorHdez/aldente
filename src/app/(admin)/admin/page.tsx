@@ -432,7 +432,7 @@ export default function AdminDashboardPage() {
                   {PLAN_LABEL[plan]??plan}
                 </span>
               ))}
-              <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{dots.length} ubicado{dots.length!==1?'s':''}</span>
+              <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{branchDots.length > 0 ? `${branchDots.length} sucursal${branchDots.length!==1?'es':''}` : `${dots.length} restaurante${dots.length!==1?'s':''}`}</span>
             </div>
           </div>
           <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} branches={branchDots} />

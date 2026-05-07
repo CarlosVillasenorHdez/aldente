@@ -155,6 +155,11 @@ export default function SucursalesManagement() {
         const tid = getTenantId() || appUser?.tenantId;
         const { data: newBranch, error: insErr } = await supabase.from('branches').insert({ tenant_id: tid, ...payload }).select('id').single();
         if (insErr) { toast.error('Error al crear: ' + insErr.message); setSaving(false); return; }
+        // Si es la primera branch del tenant, marcarla como principal
+        const { count: branchCount } = await supabase.from('branches').select('id', { count: 'exact', head: true }).eq('tenant_id', tid).eq('is_active', true);
+        if (branchCount === 1 && newBranch?.id) {
+          await supabase.from('branches').update({ is_main: true }).eq('id', newBranch.id);
+        }
         toast.success('Sucursal creada correctamente'); await reloadBranches();
       }
       setShowForm(false); setEditingId(null); setForm(empty);
