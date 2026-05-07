@@ -143,6 +143,37 @@ export default function OnboardingFlow() {
 
   async function saveStep6() {
     const tid = getTenantId();
+
+    // Crear branch principal si el tenant no tiene ninguna
+    try {
+      const { count } = await supabase
+        .from('branches')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tid)
+        .eq('is_active', true);
+
+      if ((count ?? 0) === 0) {
+        // Obtener nombre y ciudad del restaurante
+        const { data: cfg } = await supabase
+          .from('system_config')
+          .select('config_key, config_value')
+          .eq('tenant_id', tid)
+          .in('config_key', ['restaurant_name', 'city', 'restaurant_address']);
+
+        const cfgMap: Record<string, string> = {};
+        (cfg ?? []).forEach((r: any) => { cfgMap[r.config_key] = r.config_value; });
+
+        await supabase.from('branches').insert({
+          tenant_id: tid,
+          name: cfgMap['restaurant_name'] || restaurantName || 'Sucursal Principal',
+          address: cfgMap['restaurant_address'] || '',
+          city: cfgMap['city'] || ciudad || '',
+          is_active: true,
+          is_main: true,
+        });
+      }
+    } catch { /* si falla, el dueño puede crear la branch manualmente */ }
+
     await supabase.from('system_config').upsert(
       [{ tenant_id: tid, config_key: 'onboarding_completed', config_value: 'true' }],
       { onConflict: 'tenant_id,config_key' }
