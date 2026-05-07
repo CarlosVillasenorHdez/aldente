@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Store, Upload, Save, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { useAuth } from '@/contexts/AuthContext';
 import { invalidateSysConfigCache } from '@/hooks/useSysConfig';
 import { COUNTRY_CURRENCY } from './types';
@@ -196,6 +197,7 @@ function QRBigCanvas({ url }: { url: string }) {
 export default function ConfigRestaurante({ activeSection }: { activeSection: string }) {
   const supabase = createClient();
   const { brandConfig, appUser, reloadBrandConfig } = useAuth();
+  const { activeBranchId, branches } = useBranch();
 
   // Restaurant settings
   const [tenantSlug, setTenantSlug] = useState<string | null>(null);
@@ -227,19 +229,28 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   // Load system config on mount
   useEffect(() => {
-    // Load tenant data including address fields
+    // Cargar slug del tenant
     if (appUser?.tenantId) {
       supabase.from('tenants')
-        .select('slug, address, city, state_region, colonia, postal_code')
+        .select('slug')
         .eq('id', appUser.tenantId).single()
+        .then(({ data }) => { if (data?.slug) setTenantSlug(data.slug); });
+    }
+
+    // Cargar dirección de la BRANCH activa (cada sucursal tiene su propia dirección)
+    const branchToLoad = activeBranchId;
+    if (branchToLoad) {
+      supabase.from('branches')
+        .select('address, city, state_region, colonia, postal_code, phone')
+        .eq('id', branchToLoad).single()
         .then(({ data }) => {
           if (!data) return;
-          if (data.slug) setTenantSlug(data.slug);
           if (data.address) setAddress(data.address);
           if (data.city) setCity(data.city);
           if (data.state_region) setStateRegion(data.state_region);
           if (data.colonia) setColonia(data.colonia);
           if (data.postal_code) setPostalCode(data.postal_code);
+          if (data.phone) setPhone(data.phone);
         });
     }
 
@@ -265,7 +276,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       if (map.takeout_pay_before_kitchen) setTakeoutPayBeforeKitchen(map.takeout_pay_before_kitchen === 'true');
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeBranchId, appUser?.tenantId]);
 
   async function geocodeAddress(addr: string) {
     if (!addr.trim()) return;
@@ -300,11 +311,13 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       }
       if (data?.[0]) {
         const { lat, lon } = data[0];
-        await supabase.from('tenants').update({
-          lat: parseFloat(lat), lng: parseFloat(lon),
-          address: addr, city, state_region: stateRegion,
-          colonia, postal_code: postalCode,
-        }).eq('id', appUser?.tenantId);
+        // Guardar coordenadas en la branch activa
+        const branchId = activeBranchId;
+        if (branchId) {
+          await supabase.from('branches').update({
+            lat: parseFloat(lat), lng: parseFloat(lon),
+          }).eq('id', branchId);
+        }
         setGeoStatus('ok');
       } else { setGeoStatus('error'); }
     } catch { setGeoStatus('error'); }
@@ -313,28 +326,38 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
   async function handleSaveSettings() {
     const upsertRows: {config_key:string;config_value:string|null|undefined;tenant_id:string|null|undefined}[] = [
-      { config_key: 'restaurant_name',    config_value: restaurantNameDraft ?? '', tenant_id: appUser?.tenantId },
-      { config_key: 'brand_primary_color',config_value: primaryColor ?? '',   tenant_id: appUser?.tenantId },
-      { config_key: 'brand_theme',        config_value: appTheme ?? '',       tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_address', config_value: address,             tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_phone',   config_value: phone,               tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_colonia',    config_value: colonia ?? '',      tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_postal_code',config_value: postalCode ?? '',   tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_city',    config_value: city ?? '',          tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_state',   config_value: stateRegion ?? '',   tenant_id: appUser?.tenantId },
-      { config_key: 'restaurant_rfc',     config_value: rfc,                 tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_name',     config_value: restaurantNameDraft ?? '', tenant_id: appUser?.tenantId },
+      { config_key: 'brand_primary_color', config_value: primaryColor ?? '',        tenant_id: appUser?.tenantId },
+      { config_key: 'brand_theme',         config_value: appTheme ?? '',            tenant_id: appUser?.tenantId },
+      { config_key: 'restaurant_rfc',      config_value: rfc,                       tenant_id: appUser?.tenantId },
     ];
     if (logoPreview) {
       upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: appUser?.tenantId });
     }
+    // Guardar datos globales del tenant (nombre, logo, RFC)
     await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
-    // Also persist address fields directly to tenants table (for SuperAdmin map)
-    if (appUser?.tenantId) {
-      await supabase.from('tenants').update({
-        address, city, state_region: stateRegion,
+
+    // Guardar dirección en la BRANCH activa (cada sucursal tiene su propia dirección)
+    if (activeBranchId) {
+      await supabase.from('branches').update({
+        address: address ?? '',
+        city: city ?? '',
+        state_region: stateRegion ?? '',
         colonia: colonia ?? '',
         postal_code: postalCode ?? '',
-      }).eq('id', appUser.tenantId);
+        phone: phone ?? '',
+      }).eq('id', activeBranchId);
+    } else if (appUser?.tenantId) {
+      // Fallback: si no hay sucursal activa, guardar en la branch principal
+      const { data: mainBranch } = await supabase.from('branches')
+        .select('id').eq('tenant_id', appUser.tenantId).eq('is_main', true).single();
+      if (mainBranch) {
+        await supabase.from('branches').update({
+          address: address ?? '', city: city ?? '',
+          state_region: stateRegion ?? '', colonia: colonia ?? '',
+          postal_code: postalCode ?? '', phone: phone ?? '',
+        }).eq('id', mainBranch.id);
+      }
     }
     setRestaurantName(restaurantNameDraft);
     invalidateSysConfigCache();

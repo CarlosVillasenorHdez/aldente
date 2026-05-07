@@ -177,7 +177,7 @@ export default function PersonalManagement() {
   const [form, setForm] = useState<Omit<Employee, 'id'>>(emptyForm());
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof Omit<Employee, 'id'>, string>>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'empleados' | 'turnos' | 'asistencia' | 'nomina'>('empleados');
+  const [activeTab, setActiveTab] = useState<'empleados' | 'turnos' | 'asistencia' | 'nomina' | 'acceso' | 'permisos'>('empleados');
   const [shifts, setShifts] = useState<EmployeeShift[]>([]);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
@@ -519,13 +519,15 @@ export default function PersonalManagement() {
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
         {[
-          { key: 'empleados', label: 'Empleados' },
-          { key: 'turnos', label: 'Turnos Semanales' },
-          { key: 'asistencia', label: 'Asistencia' },
+          { key: 'empleados', label: '👥 Empleados' },
+          { key: 'turnos', label: '📅 Turnos' },
+          { key: 'asistencia', label: '✅ Asistencia' },
+          { key: 'acceso', label: '🔐 Acceso al sistema' },
+          { key: 'permisos', label: '🛡️ Roles & Permisos' },
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as 'empleados' | 'turnos')}
+            onClick={() => setActiveTab(tab.key as any)}
             className="px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150"
             style={{
               borderColor: activeTab === tab.key ? '#f59e0b' : 'transparent',
