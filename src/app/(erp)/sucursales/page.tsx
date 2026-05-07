@@ -1,19 +1,21 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
 import SucursalesManagement from './components/SucursalesManagement';
+import InventarioConsolidado from './components/InventarioConsolidado';
 import MultiSucursalAnalytics from './components/MultiSucursalAnalytics';
 import { useState } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
 
-type Tab = 'gestion' | 'analitica';
+type Tab = 'gestion' | 'analitica' | 'inventario';
 
 export default function SucursalesPage() {
   const { features } = useFeatures();
   const [tab, setTab] = useState<Tab>('analitica');
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'analitica', label: '📊 Análisis multisucursal' },
-    { id: 'gestion',   label: '🏢 Gestión de sucursales' },
+    { id: 'analitica',   label: '📊 Análisis multisucursal' },
+    { id: 'gestion',     label: '🏢 Gestión de sucursales' },
+    { id: 'inventario',  label: '📦 Inventario consolidado' },
   ];
 
   return (
@@ -37,6 +39,7 @@ export default function SucursalesPage() {
 
         {tab === 'analitica' && <MultiSucursalAnalytics />}
         {tab === 'gestion'   && <SucursalesManagement />}
+        {tab === 'inventario' && <InventarioConsolidado />}
       </div>
     </AppLayout>
   );

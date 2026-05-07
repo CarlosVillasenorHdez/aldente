@@ -270,7 +270,9 @@ export default function InventarioManagement() {
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) { setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await supabase.from('ingredients').select('*').eq('tenant_id', tenantId).order('category').order('name');
+    let q = supabase.from('ingredients').select('*').eq('tenant_id', tenantId);
+    if (activeBranchId) q = q.eq('branch_id', activeBranchId);
+    const { data, error } = await q.order('category').order('name');
     if (error) {
       toast.error('Error al cargar inventario. Verifica tu conexión.');
       setLoading(false);
@@ -535,6 +537,7 @@ export default function InventarioManagement() {
         cost: row.cost, min_stock: row.minStock,
         stock: 0, reorder_point: 0, lead_time_days: 1,
         tenant_id: getTenantId(),
+        branch_id: activeBranchId ?? null,
       });
       if (error) fail++; else ok++;
     }
@@ -611,7 +614,7 @@ export default function InventarioManagement() {
         }).eq('id', editingId);
         if (error) throw error;
         if (oldStock !== form.stock) {
-          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
+          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(), branch_id: activeBranchId ?? null,
             ingredient_id: editingId,
             movement_type: 'ajuste',
             quantity: Math.abs(form.stock - oldStock),
@@ -633,6 +636,7 @@ export default function InventarioManagement() {
           presentation: form.presentation || null,
           lead_time_days: form.leadTimeDays ?? 1,
           tenant_id: getTenantId(),
+          branch_id: activeBranchId ?? null,
         };
         // Purchase fields — only add if migration has been applied
         if (form.purchaseUnit) basePayload.purchase_unit = form.purchaseUnit;
@@ -648,7 +652,7 @@ export default function InventarioManagement() {
         const { data, error } = res;
         if (error) throw error;
         if (data && form.stock > 0) {
-          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(),
+          await supabase.from('stock_movements').insert({ tenant_id: getTenantId(), branch_id: activeBranchId ?? null,
             ingredient_id: data.id,
             movement_type: 'entrada',
             quantity: form.stock,

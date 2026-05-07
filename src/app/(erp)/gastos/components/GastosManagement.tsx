@@ -633,7 +633,7 @@ export default function GastosManagement() {
         const { error } = await supabase.from('gastos_recurrentes').update(data).eq('id', editingGasto.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('gastos_recurrentes').insert([{ ...data, tenant_id: getTenantId() }]);
+        const { error } = await supabase.from('gastos_recurrentes').insert([{ ...data, tenant_id: getTenantId(), branch_id: activeBranchId ?? null }]);
         if (error) throw error;
       }
       setShowGastoModal(false);
@@ -687,7 +687,7 @@ export default function GastosManagement() {
     const gasto = showPagoModal;
 
     // Insert into gastos_pagos
-    const { error } = await supabase.from('gastos_pagos').insert({ tenant_id: getTenantId(),
+    const { error } = await supabase.from('gastos_pagos').insert({ tenant_id: getTenantId(), branch_id: activeBranchId ?? null,
       gasto_id: gasto.id,
       fecha_pago: pagoForm.fecha_pago,
       monto_pagado: pagoForm.monto_pagado || gasto.monto,
