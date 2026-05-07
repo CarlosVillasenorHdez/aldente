@@ -17,6 +17,11 @@ interface TenantRow {
   healthColor?: string;
 }
 
+interface BranchDot {
+  id: string; name: string; tenantId: string; tenantName: string;
+  plan: string; lat: number; lng: number; address?: string; city?: string;
+}
+
 const PLAN_MXN: Record<string, number> = { operacion: 699, negocio: 1299, empresa: 2199 };
 const PLAN_COLOR: Record<string, string> = { operacion: '#4a9eff', negocio: '#c9963a', empresa: '#a78bfa' };
 const PLAN_LABEL: Record<string, string> = { operacion: 'Operación', negocio: 'Negocio', empresa: 'Empresa' };
@@ -33,7 +38,7 @@ const S = { // shared styles
 };
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-function LeafletMap({ dots }: { dots: TenantRow[] }) {
+function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot[] }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstRef = React.useRef<any>(null);
 
@@ -43,7 +48,7 @@ function LeafletMap({ dots }: { dots: TenantRow[] }) {
     const map = L.map(mapRef.current, { center:[23.6,-102.5], zoom:5, zoomControl:true, attributionControl:false });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
     mapInstRef.current = map;
-    addMarkers(L, map, dots);
+    addBranchMarkers(L, map, branches, dots);
   }, [dots]);
 
   React.useEffect(() => {
@@ -62,23 +67,39 @@ function LeafletMap({ dots }: { dots: TenantRow[] }) {
     if (!mapInstRef.current || !(window as any).L) return;
     const L=(window as any).L; const map=mapInstRef.current;
     map.eachLayer((l:any) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
-    addMarkers(L, map, dots);
+    addBranchMarkers(L, map, branches, dots);
   }, [dots]);
 
   return <div ref={mapRef} style={{ height:320, borderRadius:8, overflow:'hidden', background:'#0a1220' }} />;
 }
 
-function addMarkers(L:any, map:any, dots:TenantRow[]) {
-  dots.filter(d=>d.lat&&d.lng).forEach(d=>{
+function addBranchMarkers(L:any, map:any, branches:BranchDot[], tenants:TenantRow[]) {
+  // Si hay branches con coords, mostrar branches (heatmap real por sucursal)
+  if (branches.length > 0) {
+    branches.forEach(b => {
+      const color = PLAN_COLOR[b.plan] ?? '#6b7280';
+      const m = L.circleMarker([b.lat, b.lng], {
+        radius: 9, fillColor: color, color: '#0a1220', weight: 2, fillOpacity: 0.85
+      });
+      m.bindPopup(`<div style="font-family:system-ui;min-width:180px">
+        <b style="font-size:13px">${b.name}</b><br>
+        <span style="font-size:11px;color:rgba(255,255,255,0.5)">${b.tenantName}</span><br>
+        <span style="font-size:11px;color:${color};font-weight:600">${PLAN_LABEL[b.plan]??b.plan}</span>
+        ${b.address ? `<div style="font-size:10px;color:#6b7280;margin-top:4px">${b.address}</div>` : ''}
+        ${b.city ? `<div style="font-size:10px;color:#6b7280">📍 ${b.city}</div>` : ''}
+        <a href="/admin/tenants/${b.tenantId}" style="font-size:11px;color:#c9963a;margin-top:6px;display:block">Ver ficha CRM →</a>
+      </div>`, { maxWidth: 260 });
+      m.addTo(map);
+    });
+    return;
+  }
+  // Fallback: pines de tenants si no hay branches con coords
+  tenants.filter(d=>d.lat&&d.lng).forEach(d=>{
     const color = PLAN_COLOR[d.plan]??'#6b7280';
     const m = L.circleMarker([d.lat!,d.lng!],{ radius:8, fillColor:color, color:'#0a1220', weight:2, fillOpacity: d.is_active?0.9:0.3 });
-    const addr = [d.address,d.colonia,d.postal_code,d.city,d.state_region].filter(Boolean).join('<br>');
     m.bindPopup(`<div style="font-family:system-ui;min-width:180px">
       <b style="font-size:13px">${d.name}</b><br>
-      <span style="font-size:11px;color:${color};font-weight:600">${PLAN_LABEL[d.plan]??d.plan}</span><br>
-      <span style="font-size:11px;color:#6b7280">${d.is_active?'<span style="color:#4ade80">●</span> Activo':'<span style="color:#f87171">●</span> Inactivo'}</span>
-      ${addr?`<div style="font-size:10px;color:#6b7280;margin-top:5px;line-height:1.5">${addr}</div>`:''}
-      ${d.owner_email?`<div style="font-size:10px;color:#9ca3af;margin-top:3px">${d.owner_email}</div>`:''}
+      <span style="font-size:11px;color:${color};font-weight:600">${PLAN_LABEL[d.plan]??d.plan}</span>
       <a href="/admin/tenants/${d.id}" style="font-size:11px;color:#c9963a;margin-top:6px;display:block">Ver ficha CRM →</a>
     </div>`,{ maxWidth:260 });
     m.addTo(map);
@@ -142,6 +163,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'pipeline'|'map'|'list'>('pipeline');
+  const [branchDots, setBranchDots] = useState<BranchDot[]>([]);
 
   useEffect(() => {
     async function loadAll() {
@@ -177,6 +199,28 @@ export default function AdminDashboardPage() {
       });
 
       setTenants(enriched);
+
+      // Cargar branches con coords para el heatmap
+      const { data: branchRows } = await supabase
+        .from('branches')
+        .select('id, name, tenant_id, address, city, lat, lng')
+        .eq('is_active', true)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null);
+
+      // Enriquecer branches con plan del tenant
+      const tenantPlanMap: Record<string, string> = {};
+      const tenantNameMap: Record<string, string> = {};
+      enriched.forEach(t => { tenantPlanMap[t.id] = t.plan; tenantNameMap[t.id] = t.name; });
+
+      setBranchDots((branchRows ?? []).map((b: any) => ({
+        id: b.id, name: b.name, tenantId: b.tenant_id,
+        tenantName: tenantNameMap[b.tenant_id] ?? '',
+        plan: tenantPlanMap[b.tenant_id] ?? 'operacion',
+        lat: b.lat, lng: b.lng,
+        address: b.address, city: b.city,
+      })));
+
       setLoading(false);
     }
     loadAll();
@@ -223,7 +267,7 @@ export default function AdminDashboardPage() {
     { label:'En trial', value:trialBucket.length, sub:'período de prueba', color:'#60a5fa' },
     { label:'En riesgo', value:riskBucket.length, sub:'vencen ≤7 días', color:'#fb923c' },
     { label:'Churned', value:churnBucket.length, sub:'inactivos o vencidos', color:'#f87171' },
-    { label:'Con ubicación', value:dots.length, sub:`de ${tenants.length} restaurantes`, color:'rgba(255,255,255,.5)' },
+    { label:'Sucursales mapa', value:branchDots.length, sub:`pines en el heatmap`, color:'rgba(255,255,255,.5)' },
     { label:'Health prom.', value:avgHealthGrade, sub:'A=+14 órdenes/sem', color:'#a78bfa' },
     { label:'Sin actividad', value:atRiskLow.length, sub:'grade D o F', color:'#f43f5e' },
     { label:'Activos+', value:trendingUp.length, sub:'+14 órdenes esta sem', color:'#34d399' },
@@ -391,7 +435,7 @@ export default function AdminDashboardPage() {
               <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{dots.length} ubicado{dots.length!==1?'s':''}</span>
             </div>
           </div>
-          <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} />
+          <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} branches={branchDots} />
         </div>
       )}
 
