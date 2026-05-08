@@ -873,11 +873,11 @@ export default function MeseroMobileView() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
-            {tables.filter(table => {
-              if (activeSection === 'all') return true;
-              return (table as any).section_id === activeSection;
-            }).map(table => {
+            {(() => {
+              const visibleTables = tables.filter(table => activeSection === 'all' || (table as any).section_id === activeSection);
+              return (
+                <div className="grid grid-cols-3 gap-3">
+                  {visibleTables.map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
               const isOtherTable = table.status === 'ocupada' && table.waiter && table.waiter !== myName;
               const isLibre = table.status === 'libre';
@@ -940,8 +940,10 @@ export default function MeseroMobileView() {
                   )}
                 </button>
               );
-            })}
-            </div>
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
