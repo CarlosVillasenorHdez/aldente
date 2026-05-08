@@ -825,8 +825,7 @@ export default function MeseroMobileView() {
                 })}
               </div>
             )}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {/* Takeout Modal */}
+{/* Takeout Modal */}
             {showTakeoutModal && (
               <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }} onClick={() => setShowTakeoutModal(false)}>
                 <div style={{ background:'#fff', borderRadius:20, padding:'24px', maxWidth:360, width:'100%' }} onClick={e => e.stopPropagation()}>
@@ -871,6 +870,8 @@ export default function MeseroMobileView() {
                 </div>
               </div>
             )}
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {tables.filter(table => activeSection === 'all' || (table as any).section_id === activeSection).map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
               const isOtherTable = table.status === 'ocupada' && table.waiter && table.waiter !== myName;
