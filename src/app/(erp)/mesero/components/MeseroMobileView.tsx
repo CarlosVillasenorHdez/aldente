@@ -871,24 +871,6 @@ export default function MeseroMobileView() {
                 </div>
               </div>
             )}
-
-            {/* Secciones — pills para móvil */}
-            {sections.length > 0 && (
-              <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4,marginBottom:12,WebkitOverflowScrolling:'touch' as any}}>
-                {[{id:'all',name:'Todas',icon:'🍽️',color:'#b45309'},...sections].map(s=>{
-                  const isActive = activeSection === s.id;
-                  const cnt = s.id==='all' ? tables.length : tables.filter(t=>(t as any).section_id===s.id).length;
-                  return (
-                    <button key={s.id} onClick={()=>setActiveSection(s.id as any)}
-                      style={{flexShrink:0,display:'flex',alignItems:'center',gap:5,padding:'8px 14px',borderRadius:20,border:`1.5px solid ${isActive?s.color+'80':'#e5e7eb'}`,background:isActive?s.color+'12':'#f9fafb',color:isActive?s.color:'#6b7280',fontSize:13,fontWeight:isActive?700:500,cursor:'pointer',whiteSpace:'nowrap'}}>
-                      <span>{s.icon}</span><span>{s.name}</span>
-                      <span style={{fontSize:10,padding:'1px 6px',borderRadius:10,background:isActive?s.color+'25':'#e5e7eb',color:isActive?s.color:'#9ca3af',fontWeight:700}}>{cnt}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
             {tables.filter(table => activeSection === 'all' || (table as any).section_id === activeSection).map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
               const isOtherTable = table.status === 'ocupada' && table.waiter && table.waiter !== myName;
