@@ -332,7 +332,10 @@ export default function POSClient() {
 
     let layoutData: any = null;
     try {
-      const res = await supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId()).limit(1).single();
+      // Cargar layout de la sucursal activa
+      let layoutQ = supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId());
+      if (activeBranch) layoutQ = layoutQ.eq('branch_id', activeBranch);
+      const res = await layoutQ.limit(1).single();
       layoutData = res.data ?? null;
     } catch {
       layoutData = null;
