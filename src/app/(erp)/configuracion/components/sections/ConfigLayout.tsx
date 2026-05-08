@@ -44,6 +44,7 @@ export default function ConfigLayout() {
   const [layoutId, setLayoutId] = useState<string | null>(null);
   const [selectedLayoutTable, setSelectedLayoutTable] = useState<string | null>(null);
   const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [dragBlocked, setDragBlocked] = useState(false);
   const CELL = 56;
   const GRID_MIN_COLS = 8; const GRID_MAX_COLS = 24;
   const GRID_MIN_ROWS = 6; const GRID_MAX_ROWS = 16;
@@ -221,6 +222,21 @@ export default function ConfigLayout() {
   }
 
 
+  // ── Detección de colisiones ──────────────────────────────────────────────────
+  function hasCollision(movingId: string, newX: number, newY: number, w?: number, h?: number): boolean {
+    const moving = layoutTables.find(t => t.id === movingId);
+    if (!moving) return false;
+    const mw = w ?? moving.w;
+    const mh = h ?? moving.h;
+    return layoutTables.some(t => {
+      if (t.id === movingId) return false;
+      // AABB collision check
+      const overlapX = newX < t.x + t.w && newX + mw > t.x;
+      const overlapY = newY < t.y + t.h && newY + mh > t.y;
+      return overlapX && overlapY;
+    });
+  }
+
   function handleGridMouseDown(e: React.MouseEvent, tableId: string) {
     e.preventDefault();
     const table = layoutTables.find((t) => t.id === tableId);
@@ -234,14 +250,22 @@ export default function ConfigLayout() {
     if (!dragging) return;
     const dx = Math.round((e.clientX - dragging.startX) / CELL);
     const dy = Math.round((e.clientY - dragging.startY) / CELL);
-    const newX = Math.max(0, Math.min(11, dragging.origX + dx));
-    const newY = Math.max(0, Math.min(7, dragging.origY + dy));
-    updateLayoutTable(dragging.id, { x: newX, y: newY });
+    const moving = layoutTables.find(t => t.id === dragging.id);
+    if (!moving) return;
+    const newX = Math.max(0, Math.min(gridCols - moving.w, dragging.origX + dx));
+    const newY = Math.max(0, Math.min(gridRows - moving.h, dragging.origY + dy));
+    // Solo mover si no hay colisión
+    const blocked = hasCollision(dragging.id, newX, newY);
+    setDragBlocked(blocked);
+    if (!blocked) {
+      updateLayoutTable(dragging.id, { x: newX, y: newY });
+    }
   }
 
 
   function handleGridMouseUp() {
     setDragging(null);
+    setDragBlocked(false);
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -304,6 +328,8 @@ export default function ConfigLayout() {
                     >
                       {layoutTables.map((table) => {
                         const isSelected = selectedLayoutTable === table.id;
+                        const isBeingDragged = dragging?.id === table.id;
+                        const showCollision = isBeingDragged && dragBlocked;
                         return (
                           <div
                             key={table.id}
@@ -506,17 +532,17 @@ export default function ConfigLayout() {
                                 <div>
                                   <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Ancho</label>
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => updateLayoutTable(t.id, { w: Math.max(1, t.w - 1) })} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>−</button>
+                                    <button onClick={() => { const nw = Math.max(1, t.w - 1); if (!hasCollision(t.id, t.x, t.y, nw, t.h)) updateLayoutTable(t.id, { w: nw }); }} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>−</button>
                                     <span className="w-8 text-center text-xs font-bold" style={{ color: '#f1f5f9' }}>{t.w}</span>
-                                    <button onClick={() => updateLayoutTable(t.id, { w: Math.min(8, t.w + 1) })} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>+</button>
+                                    <button onClick={() => { const nw = Math.min(gridCols - t.x, t.w + 1); if (!hasCollision(t.id, t.x, t.y, nw, t.h)) updateLayoutTable(t.id, { w: nw }); }} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>+</button>
                                   </div>
                                 </div>
                                 <div>
                                   <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Alto</label>
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => updateLayoutTable(t.id, { h: Math.max(1, t.h - 1) })} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>−</button>
+                                    <button onClick={() => { const nh = Math.max(1, t.h - 1); if (!hasCollision(t.id, t.x, t.y, t.w, nh)) updateLayoutTable(t.id, { h: nh }); }} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>−</button>
                                     <span className="w-8 text-center text-xs font-bold" style={{ color: '#f1f5f9' }}>{t.h}</span>
-                                    <button onClick={() => updateLayoutTable(t.id, { h: Math.min(6, t.h + 1) })} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>+</button>
+                                    <button onClick={() => { const nh = Math.min(gridRows - t.y, t.h + 1); if (!hasCollision(t.id, t.x, t.y, t.w, nh)) updateLayoutTable(t.id, { h: nh }); }} className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: '#f59e0b' }}>+</button>
                                   </div>
                                 </div>
                               </div>
