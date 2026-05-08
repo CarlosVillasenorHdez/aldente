@@ -873,6 +873,7 @@ export default function MeseroMobileView() {
               </div>
             )}
 
+            <div className="grid grid-cols-3 gap-3">
             {tables.filter(table => {
               if (activeSection === 'all') return true;
               return (table as any).section_id === activeSection;
@@ -940,6 +941,7 @@ export default function MeseroMobileView() {
                 </button>
               );
             })}
+            </div>
           </div>
         </div>
       )}
