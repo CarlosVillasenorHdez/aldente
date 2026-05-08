@@ -856,25 +856,45 @@ export default function MeseroMobileView() {
               </div>
             )}
 
-            {/* Tabs de secciones */}
+            {/* Secciones — tabs sticky scrolleables para móvil */}
             {sections.length > 0 && (
-              <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:8}}>
-                <button onClick={()=>setActiveSection('all')}
-                  style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${activeSection==='all'?'rgba(245,158,11,0.5)':'rgba(0,0,0,0.15)'}`,background:activeSection==='all'?'rgba(245,158,11,0.1)':'#f9fafb',color:activeSection==='all'?'#b45309':'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600,whiteSpace:'nowrap'}}>
-                  Todas
-                </button>
-                {sections.map(s=>(
-                  <button key={s.id} onClick={()=>setActiveSection(activeSection===s.id?'all':s.id)}
-                    style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${activeSection===s.id?s.color+'80':'rgba(0,0,0,0.15)'}`,background:activeSection===s.id?s.color+'15':'#f9fafb',color:activeSection===s.id?s.color:'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600,whiteSpace:'nowrap'}}>
-                    {s.icon} {s.name}
-                  </button>
-                ))}
+              <div style={{
+                position:'sticky',top:0,zIndex:10,
+                background:'#fff',borderBottom:'1px solid #e5e7eb',
+                display:'flex',overflowX:'auto',marginBottom:12,
+              }}>
+                {[{id:'all',name:'Todas',icon:'🍽️',color:'#b45309'},...sections].map(s=>{
+                  const isActive = activeSection === s.id;
+                  return (
+                    <button key={s.id}
+                      onClick={()=>setActiveSection(isActive && s.id!=='all' ? 'all' : s.id as any)}
+                      style={{
+                        flexShrink:0,padding:'10px 16px',
+                        borderBottom:`3px solid ${isActive?s.color:'transparent'}`,
+                        background:'none',border:'none',
+                        color:isActive?s.color:'#9ca3af',
+                        fontSize:13,fontWeight:isActive?700:500,
+                        cursor:'pointer',whiteSpace:'nowrap',
+                        display:'flex',alignItems:'center',gap:5,
+                        transition:'all 0.15s',
+                      }}>
+                      <span>{s.icon}</span>
+                      <span>{s.name}</span>
+                      {s.id!=='all'&&(
+                        <span style={{fontSize:10,padding:'1px 5px',borderRadius:10,
+                          background:isActive?s.color+'20':'#f3f4f6',
+                          color:isActive?s.color:'#9ca3af'}}>
+                          {tables.filter(t=>(t as any).section_id===s.id).length}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
             {tables.filter(table => {
               if (activeSection === 'all') return true;
-              // Filtrar por section_id — está en restaurant_tables
               return (table as any).section_id === activeSection;
             }).map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
