@@ -41,10 +41,16 @@ export default function ConfigLayout() {
   const [layoutTables, setLayoutTables] = useState<LayoutTable[]>([]);
   const [layoutLoading, setLayoutLoading] = useState(true);
   const [layoutSaved, setLayoutSaved] = useState(false);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [activeSection, setActiveSection] = useState<string|'all'>('all');
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [editingSection, setEditingSection] = useState<Section|null>(null);
+  const [sectionForm, setSectionForm] = useState({name:'',color:'#1B3A6B',icon:'🏠'});
   const [layoutId, setLayoutId] = useState<string | null>(null);
   const [selectedLayoutTable, setSelectedLayoutTable] = useState<string | null>(null);
   const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [dragBlocked, setDragBlocked] = useState(false);
+  interface Section { id:string; name:string; color:string; icon:string; sort_order:number; }
   const CELL = 56;
   const GRID_MIN_COLS = 8; const GRID_MAX_COLS = 24;
   const GRID_MIN_ROWS = 6; const GRID_MAX_ROWS = 16;
@@ -57,6 +63,28 @@ export default function ConfigLayout() {
   const [newElementType, setNewElementType] = useState<ElementType>('mesa');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+
+  const fetchSections = useCallback(async () => {
+    let q = supabase.from('restaurant_sections').select('*').eq('tenant_id', getTenantId()).eq('is_active', true).order('sort_order');
+    if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
+    const { data } = await q;
+    setSections((data ?? []) as Section[]);
+  }, [activeBranchId]);
+
+  async function handleSaveSection() {
+    if (!sectionForm.name.trim()) { toast.error('Nombre requerido'); return; }
+    const payload = { tenant_id: getTenantId(), branch_id: activeBranchId ?? null, name: sectionForm.name.trim(), color: sectionForm.color, icon: sectionForm.icon, sort_order: editingSection ? editingSection.sort_order : sections.length, updated_at: new Date().toISOString() };
+    if (editingSection) { await supabase.from('restaurant_sections').update(payload).eq('id', editingSection.id); toast.success('Sección actualizada'); }
+    else { await supabase.from('restaurant_sections').insert(payload); toast.success('Sección creada'); }
+    setShowSectionModal(false); setEditingSection(null); setSectionForm({name:'',color:'#1B3A6B',icon:'🏠'}); fetchSections();
+  }
+
+  async function handleDeleteSection(id: string) {
+    await supabase.from('restaurant_tables').update({ section_id: null } as any).eq('section_id', id);
+    await supabase.from('restaurant_sections').update({ is_active: false }).eq('id', id);
+    if (activeSection === id) setActiveSection('all');
+    fetchSections(); toast.success('Sección eliminada');
+  }
 
   const loadLayout = useCallback(async () => {
     setLayoutLoading(true);
@@ -272,9 +300,10 @@ export default function ConfigLayout() {
 
   // ── Save feature flags ────────────────────────────────────────────────────
 
-  useEffect(() => { loadLayout(); }, [loadLayout]);
+  useEffect(() => { loadLayout(); fetchSections(); }, [loadLayout, fetchSections]);
 
   return (
+    <>
     <div>
               <SectionTitle icon={LayoutGrid} title="Diseñador de Layout del Restaurante" />
               <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -289,6 +318,20 @@ export default function ConfigLayout() {
                 <div className="flex gap-5">
                   {/* Grid canvas */}
                   <div className="flex-1">
+                    {sections.length > 0 && (
+                      <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+                        <button onClick={() => setActiveSection('all')}
+                          style={{padding:'4px 12px',borderRadius:20,border:`1px solid ${activeSection==='all'?'rgba(245,158,11,0.5)':'rgba(255,255,255,0.1)'}`,background:activeSection==='all'?'rgba(245,158,11,0.1)':'transparent',color:activeSection==='all'?'#f59e0b':'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                          Todas
+                        </button>
+                        {sections.map(s => (
+                          <button key={s.id} onClick={() => setActiveSection(activeSection===s.id?'all':s.id)}
+                            style={{padding:'4px 12px',borderRadius:20,border:`1px solid ${activeSection===s.id?s.color+'80':'rgba(255,255,255,0.1)'}`,background:activeSection===s.id?s.color+'20':'transparent',color:activeSection===s.id?s.color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                            {s.icon} {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {/* Grid size controls */}
                     <div className="flex items-center gap-5 mb-3 px-1">
                       {[
@@ -443,6 +486,30 @@ export default function ConfigLayout() {
                       </div>
                     )}
 
+                    <div className="rounded-xl p-4 mb-3" style={{backgroundColor:'#1a2535',border:'1px solid #1e2d3d'}}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span>🏷️</span>
+                          <span className="text-sm font-bold" style={{color:'#f1f5f9'}}>Secciones ({sections.length})</span>
+                        </div>
+                        <button onClick={()=>{setEditingSection(null);setSectionForm({name:'',color:'#1B3A6B',icon:'🏠'});setShowSectionModal(true);}}
+                          style={{fontSize:11,padding:'2px 8px',borderRadius:6,border:'1px solid rgba(245,158,11,0.4)',background:'rgba(245,158,11,0.08)',color:'#f59e0b',cursor:'pointer',fontWeight:700}}>+ Nueva</button>
+                      </div>
+                      <div style={{maxHeight:120,overflowY:'auto'}}>
+                        {sections.map(s => (
+                          <div key={s.id} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 8px',borderRadius:8,marginBottom:3,background:activeSection===s.id?s.color+'18':'rgba(255,255,255,0.03)',border:`1px solid ${activeSection===s.id?s.color+'50':'transparent'}`}}>
+                            <button onClick={()=>setActiveSection(activeSection===s.id?'all':s.id)} style={{flex:1,display:'flex',alignItems:'center',gap:6,background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
+                              <span style={{fontSize:12}}>{s.icon}</span>
+                              <span style={{fontSize:11,color:'#f1f5f9',fontWeight:500}}>{s.name}</span>
+                            </button>
+                            <button onClick={()=>{setEditingSection(s);setSectionForm({name:s.name,color:s.color,icon:s.icon});setShowSectionModal(true);}} style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'rgba(255,255,255,0.3)'}}>✏️</button>
+                            <button onClick={()=>handleDeleteSection(s.id)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'rgba(239,68,68,0.4)'}}>🗑️</button>
+                          </div>
+                        ))}
+                        {sections.length===0&&<p style={{fontSize:10,color:'rgba(255,255,255,0.3)',textAlign:'center',padding:'4px 0'}}>Sin secciones. Crea una para organizar las mesas.</p>}
+                      </div>
+                    </div>
+
                     <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
                       <div className="flex items-center gap-2 mb-3">
                         <Hash size={16} style={{ color: '#f59e0b' }} />
@@ -525,6 +592,21 @@ export default function ConfigLayout() {
                             </div>
                             )}
 
+                            {(!t.elementType || t.elementType === 'mesa') && sections.length > 0 && (
+                              <div>
+                                <label className="block text-xs font-semibold mb-1" style={{color:'rgba(255,255,255,0.6)'}}>Sección</label>
+                                <select value={(t as any).section_id ?? ''} onChange={async e => {
+                                    const sid = e.target.value||null;
+                                    updateLayoutTable(t.id, {section_id:sid} as any);
+                                    await supabase.from('restaurant_tables').update({section_id:sid} as any).eq('tenant_id', getTenantId()).eq('number', t.number);
+                                  }}
+                                  style={{width:'100%',padding:'6px 10px',borderRadius:8,border:'1px solid #2a3f5f',background:'#0f1923',color:'#f1f5f9',fontSize:12}}>
+                                  <option value="">Sin sección</option>
+                                  {sections.map(s=><option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
+                                </select>
+                              </div>
+                            )}
+
                             {/* ── Size controls — for all element types ── */}
                             <div>
                               <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Tamaño (celdas)</label>
@@ -579,5 +661,57 @@ export default function ConfigLayout() {
                 </div>
               )}
             </div>
+      {showSectionModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'#1a2535',borderRadius:16,padding:24,width:'100%',maxWidth:380,border:'1px solid rgba(245,158,11,0.2)'}}>
+            <h2 style={{fontSize:16,fontWeight:700,color:'#f1f5f9',marginBottom:20}}>
+              {editingSection?'Editar sección':'Nueva sección'}
+            </h2>
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.6)',display:'block',marginBottom:6}}>Nombre</label>
+                <input value={sectionForm.name} onChange={e=>setSectionForm(p=>({...p,name:e.target.value}))}
+                  placeholder="Ej: Terraza, Interior, Bar..."
+                  style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid #2a3f5f',background:'#0f1923',color:'#f1f5f9',fontSize:13,boxSizing:'border-box' as const}} />
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.6)',display:'block',marginBottom:6}}>Ícono</label>
+                <div style={{display:'flex',flexWrap:'wrap' as const,gap:6}}>
+                  {['🏠','🌿','🎭','🍸','☀️','🌙','🎪','🏖️','🔒','⭐','🌊','🔥','🎵','🌺','🍃'].map(icon=>(
+                    <button key={icon} onClick={()=>setSectionForm(p=>({...p,icon}))}
+                      style={{width:36,height:36,borderRadius:8,border:`2px solid ${sectionForm.icon===icon?'#f59e0b':'rgba(255,255,255,0.1)'}`,background:sectionForm.icon===icon?'rgba(245,158,11,0.15)':'rgba(255,255,255,0.04)',fontSize:18,cursor:'pointer'}}>
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.6)',display:'block',marginBottom:6}}>Color</label>
+                <div style={{display:'flex',flexWrap:'wrap' as const,gap:6}}>
+                  {['#1B3A6B','#065f46','#78350f','#4c1d95','#831843','#374151','#7c2d12','#0c4a6e','#14532d'].map(color=>(
+                    <button key={color} onClick={()=>setSectionForm(p=>({...p,color}))}
+                      style={{width:28,height:28,borderRadius:'50%',border:`3px solid ${sectionForm.color===color?'#fff':'transparent'}`,background:color,cursor:'pointer'}} />
+                  ))}
+                </div>
+              </div>
+              <div style={{padding:'8px 14px',borderRadius:10,border:`1px solid ${sectionForm.color}60`,background:sectionForm.color+'20',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:20}}>{sectionForm.icon}</span>
+                <span style={{fontSize:14,fontWeight:600,color:'#f1f5f9'}}>{sectionForm.name||'Vista previa'}</span>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:10,marginTop:20}}>
+              <button onClick={()=>{setShowSectionModal(false);setEditingSection(null);}}
+                style={{flex:1,padding:'10px',borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:13}}>
+                Cancelar
+              </button>
+              <button onClick={handleSaveSection}
+                style={{flex:1,padding:'10px',borderRadius:10,border:'none',background:'#f59e0b',color:'#000',cursor:'pointer',fontSize:13,fontWeight:700}}>
+                {editingSection?'Guardar':'Crear sección'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

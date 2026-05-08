@@ -16,6 +16,7 @@ export interface LayoutTablePosition {
   capacity: number;
   elementType?: string;
   color?: string;
+  section_id?: string | null;
 }
 
 const ARCH_ELEMENT_CONFIG: Record<string, { emoji: string; bg: string; border: string; text: string; label: string }> = {
@@ -41,6 +42,10 @@ interface TableMapProps {
   layoutTables?: LayoutTablePosition[];
   onMoveTable?: (tableNumber: number, newX: number, newY: number) => void;
   onDeleteTable?: (tableNumber: number) => void;
+  // Secciones
+  sections?: {id:string;name:string;color:string;icon:string}[];
+  activeSection?: string|'all';
+  onSectionChange?: (id:string|'all') => void;
 }
 
 const statusLabel: Record<TableStatus, string> = {
@@ -66,6 +71,9 @@ export default function TableMap({
   layoutTables,
   onMoveTable,
   onDeleteTable,
+  sections = [],
+  activeSection = 'all',
+  onSectionChange,
 }: TableMapProps) {
   const [hoveredTable, setHoveredTable] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -172,9 +180,40 @@ export default function TableMap({
   }
 
   // ── LAYOUT MODE ───────────────────────────────────────────────────────────
+  // Filtrar layoutTables por sección activa
+  const filteredLayoutTables = layoutTables
+    ? (activeSection === 'all'
+        ? layoutTables
+        : layoutTables.filter(lt => !lt.elementType || lt.elementType !== 'mesa' || (lt as any).section_id === activeSection))
+    : undefined;
+
+  // Filtrar tables (operative) por sección
+  const filteredTables = activeSection === 'all'
+    ? tables
+    : tables.filter(t => {
+        const lt = layoutTables?.find(l => l.number === (t as any).number && (!l.elementType || l.elementType === 'mesa'));
+        return !lt || (lt as any).section_id === activeSection;
+      });
+
   if (layoutTables && layoutTables.length > 0) {
     return (
       <div className="p-5">
+        {/* Tabs de secciones */}
+        {sections.length > 0 && (
+          <div style={{ display:'flex',gap:8,marginBottom:16,flexWrap:'wrap' }}>
+            <button onClick={() => onSectionChange?.('all')}
+              style={{ padding:'6px 14px',borderRadius:20,border:`1px solid ${activeSection==='all'?'rgba(245,158,11,0.5)':'rgba(0,0,0,0.15)'}`,background:activeSection==='all'?'rgba(245,158,11,0.12)':'rgba(0,0,0,0.05)',color:activeSection==='all'?'#b45309':'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600 }}>
+              Todas las mesas
+            </button>
+            {sections.map(s => (
+              <button key={s.id} onClick={() => onSectionChange?.(s.id)}
+                style={{ padding:'6px 14px',borderRadius:20,border:`1px solid ${activeSection===s.id?s.color+'80':'rgba(0,0,0,0.15)'}`,background:activeSection===s.id?s.color+'15':'rgba(0,0,0,0.05)',color:activeSection===s.id?s.color:'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600 }}>
+                {s.icon} {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Legend + Summary + Edit toggle */}
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div className="flex items-center gap-5">

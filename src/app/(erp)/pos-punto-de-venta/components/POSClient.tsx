@@ -199,6 +199,8 @@ export default function POSClient() {
 
   const [layoutId, setLayoutId] = useState<string | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
+  const [sections, setSections] = useState<{id:string;name:string;color:string;icon:string}[]>([]);
+  const [activeSection, setActiveSection] = useState<string|'all'>('all');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
   const [posView, setPosView] = useState<'menu' | 'combos'>('menu');
@@ -311,6 +313,13 @@ export default function POSClient() {
   }, [supabase]);
 
   useEffect(() => { fetchReservations(); }, [fetchReservations]);
+
+  const fetchSections = useCallback(async () => {
+    let q = supabase.from('restaurant_sections').select('id,name,color,icon,sort_order').eq('tenant_id', getTenantId()).eq('is_active', true).order('sort_order');
+    if (activeBranch) q = (q as any).eq('branch_id', activeBranch);
+    const { data } = await q;
+    setSections(data ?? []);
+  }, [activeBranch]);
 
   const fetchTables = useCallback(async () => {
     setLoadingTables(true);
@@ -2024,6 +2033,9 @@ export default function POSClient() {
                     layoutTables={layoutTables.length > 0 ? layoutTables : undefined}
                     onMoveTable={handleMoveTable}
                     onDeleteTable={handleDeleteTable}
+                    sections={sections}
+                    activeSection={activeSection}
+                    onSectionChange={setActiveSection}
                   />
                 )
               ) : (

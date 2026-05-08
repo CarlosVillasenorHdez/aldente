@@ -79,6 +79,8 @@ export default function MeseroMobileView() {
   const { config: loyaltyConfig } = useLoyaltyConfig();
 
   const [tables, setTables] = useState<Table[]>([]);
+  const [sections, setSections] = useState<{id:string;name:string;color:string;icon:string}[]>([]);
+  const [activeSection, setActiveSection] = useState<string|'all'>('all');
   const [tick, setTick] = useState(0); // Para actualizar el tiempo transcurrido cada minuto
   const [dishes, setDishes] = useState<DbDish[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -142,6 +144,10 @@ export default function MeseroMobileView() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      // Cargar secciones en paralelo
+      supabase.from('restaurant_sections').select('id,name,color,icon').eq('tenant_id', getTenantId()).eq('is_active', true).order('sort_order')
+        .then(({ data }) => setSections(data ?? []));
+
       const [{ data: tablesData }, { data: dishesData }, { data: ordersData }] = await Promise.all([
         activeBranch
         ? supabase.from('restaurant_tables').select('*').eq('tenant_id', getTenantId()).gt('number', 0).eq('branch_id', activeBranch).order('number')
@@ -850,7 +856,27 @@ export default function MeseroMobileView() {
               </div>
             )}
 
-            {tables.map(table => {
+            {/* Tabs de secciones */}
+            {sections.length > 0 && (
+              <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,marginBottom:8}}>
+                <button onClick={()=>setActiveSection('all')}
+                  style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${activeSection==='all'?'rgba(245,158,11,0.5)':'rgba(0,0,0,0.15)'}`,background:activeSection==='all'?'rgba(245,158,11,0.1)':'#f9fafb',color:activeSection==='all'?'#b45309':'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600,whiteSpace:'nowrap'}}>
+                  Todas
+                </button>
+                {sections.map(s=>(
+                  <button key={s.id} onClick={()=>setActiveSection(activeSection===s.id?'all':s.id)}
+                    style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${activeSection===s.id?s.color+'80':'rgba(0,0,0,0.15)'}`,background:activeSection===s.id?s.color+'15':'#f9fafb',color:activeSection===s.id?s.color:'#6b7280',fontSize:12,cursor:'pointer',fontWeight:600,whiteSpace:'nowrap'}}>
+                    {s.icon} {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {tables.filter(table => {
+              if (activeSection === 'all') return true;
+              // Filtrar por section_id — está en restaurant_tables
+              return (table as any).section_id === activeSection;
+            }).map(table => {
               const isMyTable = table.status === 'ocupada' && table.waiter === myName;
               const isOtherTable = table.status === 'ocupada' && table.waiter && table.waiter !== myName;
               const isLibre = table.status === 'libre';
