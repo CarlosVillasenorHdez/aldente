@@ -9,6 +9,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { LayoutGrid, Move, XCircle, Hash, Trash2, Save, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAudit } from '@/hooks/useAudit';
+import { useBranch } from '@/hooks/useBranch';
 import { ElementType, LayoutTable, ELEMENT_TYPES } from './types';
 import Icon from '@/components/ui/AppIcon';
 
@@ -34,6 +35,7 @@ function SaveButton({ saved, onClick, label }: { saved: boolean; onClick: () => 
 
 export default function ConfigLayout() {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const { log: auditLog } = useAudit();
 
   const [layoutTables, setLayoutTables] = useState<LayoutTable[]>([]);
@@ -58,7 +60,9 @@ export default function ConfigLayout() {
   const loadLayout = useCallback(async () => {
     setLayoutLoading(true);
     try {
-      const { data } = await supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId()).limit(1).single();
+      let layoutQ = supabase.from('restaurant_layout').select('*').eq('tenant_id', getTenantId());
+      if (activeBranchId) layoutQ = layoutQ.eq('branch_id', activeBranchId);
+      const { data } = await layoutQ.limit(1).single();
       if (data) {
         setLayoutId(data.id);
         setLayoutTables((data.tables_layout as LayoutTable[]) || []);
@@ -70,7 +74,7 @@ export default function ConfigLayout() {
     } finally {
       setLayoutLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, activeBranchId]);
 
   useEffect(() => {
     loadLayout();
@@ -84,7 +88,7 @@ export default function ConfigLayout() {
     if (layoutId) {
       await supabase.from('restaurant_layout').update(payload).eq('id', layoutId);
     } else {
-      const { data } = await supabase.from('restaurant_layout').insert({ ...payload, name: 'Planta Principal', width: 12, height: 8, tenant_id: getTenantId() }).select().single();
+      const { data } = await supabase.from('restaurant_layout').insert({ ...payload, name: 'Planta Principal', width: 12, height: 8, tenant_id: getTenantId(), branch_id: activeBranchId ?? null }).select().single();
       if (data) setLayoutId(data.id);
     }
 
@@ -98,11 +102,12 @@ export default function ConfigLayout() {
     const { data: existingRows } = await supabase
       .from('restaurant_tables')
       .select('id, number, status, current_order_id, waiter')
-      .eq('tenant_id', getTenantId());
+      .eq('tenant_id', getTenantId())
+      .eq('branch_id', activeBranchId ?? '00000000-0000-0000-0000-000000000000');
 
     // 2. Delete ALL existing rows for this tenant — clean slate
     await supabase.from('restaurant_tables')
-      .delete().eq('tenant_id', getTenantId());
+      .delete().eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId ?? '00000000-0000-0000-0000-000000000000');
 
     // 3. Re-insert only real mesa entries, preserving operational state for occupied tables
     for (const lt of realTables) {
@@ -115,6 +120,7 @@ export default function ConfigLayout() {
         current_order_id: existing?.current_order_id ?? null,
         waiter: existing?.waiter ?? null,
         tenant_id: getTenantId(),
+        branch_id: activeBranchId ?? null,
       });
     }
 

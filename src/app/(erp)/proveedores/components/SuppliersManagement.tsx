@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { toast } from 'sonner';
 import { Plus, X, Edit2, Phone, Mail, CreditCard, AlertCircle,
@@ -44,6 +45,7 @@ function SupplierModal({ supplier, onClose, onSaved }: {
   supplier: Partial<Supplier> | null; onClose: () => void; onSaved: () => void;
 }) {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const [form, setForm] = useState<Partial<Supplier>>(supplier ?? EMPTY_SUP);
   const [saving, setSaving] = useState(false);
   const set = (k: keyof Supplier, v: any) => setForm(p => ({ ...p, [k]: v }));
@@ -61,7 +63,7 @@ function SupplierModal({ supplier, onClose, onSaved }: {
       updated_at: new Date().toISOString(),
     };
     if (form.id) await supabase.from('suppliers').update(payload).eq('id', form.id);
-    else await supabase.from('suppliers').insert(payload);
+    else await supabase.from('suppliers').insert({ ...payload, branch_id: activeBranchId ?? null });
     toast.success(form.id ? 'Proveedor actualizado' : 'Proveedor creado');
     setSaving(false); onSaved();
   }
@@ -465,6 +467,7 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
 // ── Main: SuppliersManagement ─────────────────────────────────────────────────
 export default function SuppliersManagement() {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Supplier | null>(null);
@@ -476,7 +479,12 @@ export default function SuppliersManagement() {
     setLoading(true);
     const tid = getTenantId();
     const [{ data: sups }, { data: balances }] = await Promise.all([
-      supabase.from('suppliers').select('*').eq('tenant_id', tid).eq('active', true).order('name'),
+      (() => {
+        let q = supabase.from('suppliers').select('*').eq('tenant_id', tid).eq('active', true).order('name');
+        // Mostrar globales (branch_id null) + los de esta sucursal
+        if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`);
+        return q;
+      })(),
       supabase.from('v_supplier_balance').select('*').eq('tenant_id', tid),
     ]);
     const balMap: Record<string, any> = {};

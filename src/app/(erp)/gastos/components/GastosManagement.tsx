@@ -587,11 +587,9 @@ export default function GastosManagement() {
   }
 
   async function fetchGastosPagos() {
-    const { data } = await supabase
-      .from('gastos_pagos')
-      .select('*')
-        .eq('tenant_id', getTenantId())
-      .order('fecha_pago', { ascending: false });
+    let q = supabase.from('gastos_pagos').select('*').eq('tenant_id', getTenantId()).order('fecha_pago', { ascending: false });
+    if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
+    const { data } = await q;
     if (data) setGastosPagos(data as GastoPago[]);
   }
 
@@ -607,7 +605,8 @@ export default function GastosManagement() {
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchGastos(), fetchDepreciaciones(), fetchGastosPagos()]).finally(() => setLoading(false));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBranchId]);
 
   // ── KPIs ───────────────────────────────────────────────────────────────────
 

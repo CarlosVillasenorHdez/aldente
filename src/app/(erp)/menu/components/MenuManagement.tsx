@@ -5,6 +5,7 @@ import {
   ChevronDown, UtensilsCrossed, BookOpen, FlaskConical, Minus, Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudit } from '@/hooks/useAudit';
@@ -1279,6 +1280,7 @@ export default function MenuManagement() {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const { appUser } = useAuth();
+  const { activeBranchId } = useBranch();
   const supabase = createClient();
   const [priceLists, setPriceLists] = useState<{
     id: string; name: string; multiplier: number; active: boolean;
@@ -1295,7 +1297,10 @@ export default function MenuManagement() {
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) { setLoading(false); return; } // no tenant yet, skip
     setLoading(true);
-    const { data, error } = await supabase.from('dishes').select('*').eq('tenant_id', tenantId).order('category').order('name');
+    // Platillos globales (branch_id null) + los específicos de la sucursal activa
+    let dishQ = supabase.from('dishes').select('*').eq('tenant_id', tenantId);
+    if (activeBranchId) dishQ = (dishQ as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`);
+    const { data, error } = await dishQ.order('category').order('name');
     if (error) {
       toast.error('Error al cargar el menú: ' + error.message);
       setLoading(false);

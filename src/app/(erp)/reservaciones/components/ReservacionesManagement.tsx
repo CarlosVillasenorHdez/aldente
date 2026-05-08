@@ -181,6 +181,7 @@ export default function ReservacionesManagement() {
         notes: form.notes,
         updated_at: new Date().toISOString(),
         tenant_id: getTenantId(),
+        branch_id: activeBranchId ?? null,
       };
       if (editingId) {
         const { error } = await supabase.from('reservations').update(payload).eq('id', editingId);
