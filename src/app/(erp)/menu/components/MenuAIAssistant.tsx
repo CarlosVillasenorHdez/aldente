@@ -182,8 +182,17 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
       toast.info('Extrayendo texto del PDF...');
       try {
+        // Convertir PDF a base64 de forma segura para archivos grandes
         const ab = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+        const bytes = new Uint8Array(ab);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        const base64 = btoa(binary);
+
+        toast.info('Analizando PDF con IA...');
         const res = await fetch('/api/menu-ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -191,10 +200,15 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         });
         if (res.ok) {
           const data = await res.json();
-          setMenuText((data.text || '').slice(0, 8000));
-          toast.success('PDF procesado — revisa el texto y presiona Analizar');
+          if (data.error) {
+            toast.error('Error: ' + data.error);
+          } else {
+            setMenuText((data.text || '').slice(0, 8000));
+            toast.success('PDF procesado — revisa el texto y presiona Analizar');
+          }
         } else {
-          toast.error('No se pudo leer el PDF. Intenta copiar el texto manualmente (Ctrl+A en el PDF).');
+          const errData = await res.json().catch(() => ({}));
+          toast.error('Error al procesar PDF: ' + (errData.error || res.statusText));
         }
       } catch { toast.error('Error al procesar el PDF'); }
     } else {

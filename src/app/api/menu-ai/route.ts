@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+// Aumentar límite de body para PDFs grandes
+export const maxDuration = 60; // 60 segundos timeout para PDFs
+export const dynamic = 'force-dynamic';
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit } from '@/lib/rateLimit';
 
