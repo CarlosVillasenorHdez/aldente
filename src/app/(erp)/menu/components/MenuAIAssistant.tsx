@@ -182,15 +182,8 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
       toast.info('Extrayendo texto del PDF...');
       try {
-        // PDFs grandes (>5MB): advertir al usuario
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error('El PDF es muy grande (>5MB). Intenta copiar el texto manualmente: abre el PDF → Ctrl+A → Ctrl+C → pégalo aquí.');
-          return;
-        }
+        toast.info('Extrayendo texto del PDF...');
 
-        toast.info('Analizando PDF con IA...');
-
-        // Enviar como FormData para evitar el límite de JSON
         const formData = new FormData();
         formData.append('pdf', file);
 
@@ -198,18 +191,32 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
           method: 'POST',
           body: formData,
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.error) {
-            toast.error('Error: ' + data.error);
-          } else {
-            setMenuText((data.text || '').slice(0, 8000));
-            toast.success('PDF procesado — revisa el texto y presiona Analizar');
-          }
-        } else {
+
+        if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          toast.error('Error al procesar PDF: ' + (errData.error || res.statusText));
+          toast.error('Error al leer el PDF: ' + (errData.error || res.statusText));
+          return;
         }
+
+        const data = await res.json();
+
+        if (data.isImagePdf) {
+          // PDF de imágenes (Canva, escaneado) — no se puede extraer texto automáticamente
+          toast.error(
+            `Este PDF (${data.pages} páginas) contiene imágenes, no texto seleccionable. ` +
+            'Abre el PDF → Ctrl+A → Ctrl+C y pega el texto aquí, ' +
+            'o escribe el menú directamente en el cuadro de texto.'
+          );
+          return;
+        }
+
+        if (!data.text?.trim()) {
+          toast.error('No se encontró texto en el PDF. Intenta copiar el texto manualmente.');
+          return;
+        }
+
+        setMenuText(data.text.slice(0, 8000));
+        toast.success(`PDF procesado (${data.pages} página${data.pages !== 1 ? 's' : ''}) — revisa el texto y presiona Analizar`);
       } catch { toast.error('Error al procesar el PDF'); }
     } else {
       const text = await file.text();
