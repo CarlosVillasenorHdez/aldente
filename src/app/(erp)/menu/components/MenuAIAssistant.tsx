@@ -182,21 +182,21 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
       toast.info('Extrayendo texto del PDF...');
       try {
-        // Convertir PDF a base64 de forma segura para archivos grandes
-        const ab = await file.arrayBuffer();
-        const bytes = new Uint8Array(ab);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        // PDFs grandes (>5MB): advertir al usuario
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('El PDF es muy grande (>5MB). Intenta copiar el texto manualmente: abre el PDF → Ctrl+A → Ctrl+C → pégalo aquí.');
+          return;
         }
-        const base64 = btoa(binary);
 
         toast.info('Analizando PDF con IA...');
-        const res = await fetch('/api/menu-ai', {
+
+        // Enviar como FormData para evitar el límite de JSON
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        const res = await fetch('/api/menu-ai/extract-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'extract_pdf', pdfBase64: base64 }),
+          body: formData,
         });
         if (res.ok) {
           const data = await res.json();
