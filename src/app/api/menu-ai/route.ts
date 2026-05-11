@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 
   let body: {
-    mode: 'parse_menu' | 'gen_recipe' | 'gen_ingredients';
+    mode: 'parse_menu' | 'gen_recipe' | 'gen_ingredients' | 'detect_modifiers';
     menuText?: string;
     dishName?: string;
     dishCategory?: string;
@@ -107,6 +107,34 @@ Responde SOLO con JSON minificado (sin espacios, sin saltos de línea):
       }
       const parsed = JSON.parse(jsonText);
       return NextResponse.json(parsed);
+    }
+
+    if (mode === 'detect_modifiers') {
+      const { dishNames, menuText: mText, restaurantType: rt } = body as any;
+      const prompt = `Del siguiente texto de menú, detecta los modificadores/variantes para estos platillos: ${dishNames}
+
+Modificadores son: opciones de tamaño, ingredientes extras, sustituciones, combos.
+Ejemplos: "con/sin papas", "chico/mediano/grande", "extra queso +$15".
+
+Menú:
+${(mText ?? '').slice(0, 2000)}
+
+JSON minificado (solo los platillos que TIENEN modificadores):
+{"dishes":[{"name":"","modifier_groups":[{"name":"","min_select":0,"max_select":1,"options":[{"name":"","price_delta":0,"is_default":false}]}]}]}`;
+
+      const msg = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
+      try {
+        const parsed = JSON.parse(cleanJSON(rawText));
+        return NextResponse.json(parsed);
+      } catch {
+        return NextResponse.json({ dishes: [] });
+      }
     }
 
     if (mode === 'gen_recipe') {

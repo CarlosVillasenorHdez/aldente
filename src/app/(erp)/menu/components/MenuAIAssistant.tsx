@@ -274,9 +274,38 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         recipe: [], loading: false, done: false, open: false,
       }))
     );
+    // ── Llamada 2: detectar modificadores en lotes de 5 ──────────────────
+    const savedDishes = saved.filter(d => d.selected && d.savedId);
+    if (savedDishes.length > 0 && menuText.trim()) {
+      toast.info('Detectando modificadores...');
+      const BATCH = 5;
+      const updatedDishes = [...saved];
+      for (let b = 0; b < savedDishes.length; b += BATCH) {
+        const batch = savedDishes.slice(b, b + BATCH);
+        const dishNames = batch.map(d => d.name).join(', ');
+        try {
+          const modData = await callMenuAI({
+            mode: 'detect_modifiers',
+            dishNames,
+            menuText: menuText.slice(0, 3000),
+            restaurantType,
+          });
+          if (modData.dishes) {
+            for (const md of modData.dishes) {
+              const idx = updatedDishes.findIndex(d => d.name === md.name);
+              if (idx !== -1 && md.modifier_groups?.length) {
+                updatedDishes[idx] = { ...updatedDishes[idx], modifier_groups: md.modifier_groups };
+              }
+            }
+          }
+        } catch { /* si falla un lote, continuar */ }
+      }
+      setDishes(updatedDishes);
+    }
+
     setStep(3);
     setLoading(false);
-  }, [dishes, restaurantType, supabase]);
+  }, [dishes, restaurantType, menuText, supabase]);
 
   // ── PASO 3: generar receta individual ────────────────────────────────────────
 
