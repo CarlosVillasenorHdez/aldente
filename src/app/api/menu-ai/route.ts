@@ -151,35 +151,39 @@ JSON minificado (solo los platillos que TIENEN modificadores):
 
     if (mode === 'gen_recipe') {
       // ── Modo 2: generar receta para un platillo específico ────────────────
-      const prompt = `Genera la receta detallada para preparar: "${body.dishName}"
+
+      // Detectar bebidas comerciales embotelladas/enlatadas — receta = 1 ingrediente
+      const dishNameLower = (body.dishName ?? '').toLowerCase();
+      const isCommercialDrink =
+        body.dishCategory === 'Bebidas' && (
+          // Marcas comerciales conocidas
+          /coca.?cola|pepsi|sprite|fanta|7.?up|sidral|mundet|peñafiel|squirt|jarritos|red.?bull|monster|powerade|gatorade|del.?valle|jumex|boing|minute.?maid|fresca|lift/.test(dishNameLower) ||
+          // Tipos de bebida que se sirven de botella/lata
+          /cerveza|michelada base|agua mineral|agua tónica|refresco|soda|tónica|kombucha|té.?(listo|frio|helado)/.test(dishNameLower)
+        );
+
+      const prompt = isCommercialDrink
+        ? `La bebida "${body.dishName}" es un producto comercial embotellado o enlatado que se compra al distribuidor.
+La receta tiene exactamente 1 ingrediente: la botella, lata o caja del producto.
+Precio de venta: $${body.price ?? 30} MXN.
+
+JSON:
+{"recipe":[{"ingredientName":"${body.dishName}","category":"Bebidas","quantity":1,"unit":"pz","costPerUnit":${Math.round((body.price ?? 30) * 0.45)},"estimatedCostLine":${Math.round((body.price ?? 30) * 0.45)},"notes":"Precio al distribuidor"}],"prepTimeMin":0,"preparationArea":"barra","totalEstimatedCost":${Math.round((body.price ?? 30) * 0.45)},"foodCostPct":45,"suggestedPrice":${body.price ?? 30}}`
+        : `Genera la receta para preparar: "${body.dishName}"
 Categoría: ${body.dishCategory ?? 'Platos Fuertes'}
-Precio de venta estimado: $${body.price ?? 100} MXN
-Tipo de restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
+Precio de venta: $${body.price ?? 100} MXN
+Restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
 
-Genera ingredientes realistas con cantidades precisas para UNA PORCIÓN.
-Usa las unidades: kg, lt, pz, g, ml, caja, bolsa, sobre.
-Estima el costo por unidad en pesos mexicanos 2024 (mercado mayorista).
-El food cost debe ser entre 25% y 35% del precio de venta.
+REGLAS IMPORTANTES:
+- Ingredientes realistas para UNA PORCIÓN
+- Si es bebida preparada (licuado, agua fresca, jugo, café, cóctel): solo ingredientes para prepararla, NO marcas comerciales
+- Si es bebida embotellada comercial: solo 1 ingrediente (la botella)
+- Unidades: kg, lt, pz, g, ml, caja, bolsa, sobre
+- Costos mayoristas MXN 2024, food cost 25-35%
+- Carnes en kg ($150-400/kg), no en gramos
 
-Responde con este JSON exacto:
-{
-  "recipe": [
-    {
-      "ingredientName": "Nombre del ingrediente",
-      "category": "Carnes y Aves",
-      "quantity": 0.2,
-      "unit": "kg",
-      "costPerUnit": 120,
-      "estimatedCostLine": 24,
-      "notes": ""
-    }
-  ],
-  "prepTimeMin": 15,
-  "preparationArea": "cocina",
-  "totalEstimatedCost": 32,
-  "foodCostPct": 32,
-  "suggestedPrice": 100
-}`;
+JSON exacto:
+{"recipe":[{"ingredientName":"","category":"","quantity":0,"unit":"","costPerUnit":0,"estimatedCostLine":0,"notes":""}],"prepTimeMin":15,"preparationArea":"cocina","totalEstimatedCost":0,"foodCostPct":30,"suggestedPrice":${body.price ?? 100}}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
