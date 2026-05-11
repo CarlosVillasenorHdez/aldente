@@ -116,13 +116,20 @@ Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
       // Si el JSON está truncado, intentar repararlo cerrando el array y objeto
       let jsonText = cleanJSON(rawText);
-      if (!jsonText.endsWith('}')) {
-        // Truncado — cerrar el último platillo incompleto y el array
-        const lastComma = jsonText.lastIndexOf(',');
-        const lastBrace = jsonText.lastIndexOf('}');
-        if (lastComma > lastBrace) jsonText = jsonText.slice(0, lastComma);
-        if (!jsonText.endsWith(']')) jsonText += ']';
-        if (!jsonText.endsWith('}')) jsonText += '}';
+      // Reparar JSON truncado de forma robusta
+      try {
+        JSON.parse(jsonText); // intentar parsear directo
+      } catch {
+        // Truncado — encontrar el último objeto completo (último "}")
+        // y cerrar el array + objeto contenedor
+        const lastCompleteBrace = jsonText.lastIndexOf('}');
+        if (lastCompleteBrace > 0) {
+          jsonText = jsonText.slice(0, lastCompleteBrace + 1);
+          // Asegurar que cierra el array "dishes"
+          if (!jsonText.trimEnd().endsWith(']')) jsonText += ']';
+          // Asegurar que cierra el objeto raíz
+          if (!jsonText.trimEnd().endsWith('}')) jsonText += '}';
+        }
       }
       const parsed = JSON.parse(jsonText);
       return NextResponse.json(parsed);
