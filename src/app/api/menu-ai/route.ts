@@ -70,41 +70,15 @@ export async function POST(req: NextRequest) {
     if (mode === 'parse_menu') {
       // ── Modo 1: extraer platillos de texto libre ─────────────────────────
       const restaurantType = (body as any).restaurantType ?? 'restaurante';
-      const prompt = `Eres un experto en análisis de menús de restaurantes mexicanos.
-Analiza el siguiente texto de menú y extrae TODOS los platillos, bebidas y productos.
+      const prompt = `Extrae los platillos de este menú de ${restaurantType}.
+Reglas: precio=número sin símbolos (0 si no hay), descripción máx 60 chars, emoji específico.
+Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Extras
 
-INSTRUCCIONES IMPORTANTES:
-- Extrae TODOS los items que tengan nombre y precio
-- Si no hay precio explícito, usa 0
-- Normaliza los precios: elimina símbolos ($, MXN, pesos) y devuelve solo el número
-- Categorías permitidas ÚNICAMENTE: Entradas, Platos Fuertes, Postres, Bebidas, Desayunos, Pizzas, Hamburguesas, Tacos, Mariscos, Ensaladas, Extras
-- Elige la categoría más apropiada según el tipo de restaurante: ${restaurantType}
-- Si hay secciones en el menú (ej: "BURGERS", "SIDES"), úsalas como guía para la categoría
-- El emoji debe ser específico al platillo, no genérico
-- La descripción debe ser informativa, máx 80 caracteres
-
-Tipo de restaurante: ${restaurantType}
-
-Texto del menú:
+Menú:
 ${(body.menuText ?? '').slice(0, 3000)}
 
-MODIFICADORES: Si detectas opciones/variantes de un platillo (ej: "con papas o sin papas",
-"tamaño chico/grande", "extra queso +$15"), agrégalos como modifier_groups.
-
-Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
-{"dishes":[{
-  "name":"string",
-  "description":"string",
-  "price":number,
-  "category":"string",
-  "emoji":"string",
-  "modifier_groups":[{
-    "name":"string",
-    "min_select":0,
-    "max_select":1,
-    "options":[{"name":"string","price_delta":0,"is_default":false}]
-  }]
-}]}`;
+Responde SOLO con JSON minificado (sin espacios, sin saltos de línea):
+{"dishes":[{"name":"","description":"","price":0,"category":"","emoji":""}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
