@@ -86,14 +86,14 @@ INSTRUCCIONES IMPORTANTES:
 Tipo de restaurante: ${restaurantType}
 
 Texto del menú:
-${(body.menuText ?? '').slice(0, 6000)}
+${(body.menuText ?? '').slice(0, 3000)}
 
 Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
 {"dishes":[{"name":"string","description":"string","price":number,"category":"string","emoji":"string"}]}`;
 
       const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 8000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 3000,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       });
