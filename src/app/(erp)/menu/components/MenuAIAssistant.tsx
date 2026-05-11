@@ -10,7 +10,7 @@
  * Usa /api/menu-ai internamente (Claude Sonnet).
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
@@ -365,23 +365,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     setStep(3);
     setLoading(false);
 
-    // Auto-generar recetas en lotes de 3 paralelos para respetar rate limit
-    setTimeout(async () => {
-      const savedList = saved.filter(d => d.selected && d.savedId);
-      const indices = savedList.map(d => saved.indexOf(d)).filter(i => i >= 0);
-      const BATCH = 3;
-      let done = 0;
-      for (let b = 0; b < indices.length; b += BATCH) {
-        const batch = indices.slice(b, b + BATCH);
-        await Promise.all(batch.map(async idx => {
-          try { await generateRecipe(idx); } catch {}
-        }));
-        done += batch.length;
-        toast.info(`Generando recetas... ${done}/${indices.length}`);
-        if (b + BATCH < indices.length) await new Promise(r => setTimeout(r, 800));
-      }
-      toast.success(`${done} recetas generadas — revisa y ajusta las cantidades`);
-    }, 600);
+    // La auto-generación la dispara el useEffect que observa step===3
   }, [dishes, restaurantType, menuText, supabase]);
 
   // ── PASO 3: generar receta individual ────────────────────────────────────────
@@ -440,6 +424,33 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     setRecipes(prev => prev.map(x => ({ ...x, open: false })));
     toast.success(`${done} recetas generadas`);
   };
+
+  // ── Auto-generar recetas cuando el paso cambia a 3 ───────────────────────────
+  // useEffect correcto: observa step y recipes, con acceso a las funciones actualizadas
+  const autoGeneratingRef = useRef(false);
+  useEffect(() => {
+    if (step !== 3 || autoGeneratingRef.current) return;
+    const pending = recipes.filter(r => !r.recipe.length && !r.loading && !r.done);
+    if (!pending.length) return;
+    autoGeneratingRef.current = true;
+    const run = async () => {
+      const indices = recipes.map((r, i) => i).filter(i => !recipes[i].recipe.length && !recipes[i].loading && !recipes[i].done);
+      const BATCH = 3;
+      let done = 0;
+      for (let b = 0; b < indices.length; b += BATCH) {
+        const batch = indices.slice(b, b + BATCH);
+        await Promise.all(batch.map(async idx => {
+          try { await generateRecipe(idx); } catch {}
+        }));
+        done += batch.length;
+        if (b + BATCH < indices.length) await new Promise(r => setTimeout(r, 800));
+      }
+      toast.success(`${done} receta${done !== 1 ? 's' : ''} generada${done !== 1 ? 's' : ''} — revisa y ajusta las cantidades`);
+      autoGeneratingRef.current = false;
+    };
+    run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // ── PASO 3: guardar todo ─────────────────────────────────────────────────────
 
