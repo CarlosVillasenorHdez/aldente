@@ -195,18 +195,20 @@ Restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
 REGLAS IMPORTANTES:
 - Ingredientes realistas para UNA PORCIÓN
 - Si es bebida preparada (licuado, agua fresca, jugo, café, cóctel): ingredientes para prepararla, sin marcas comerciales
-- Unidades: kg, lt, pz, g, ml, caja, bolsa, sobre
+- REGLAS DE CANTIDADES Y UNIDADES (crítico):
+  * Sal, pimienta, especias: 1-5 g (NO kg) → quantity=2, unit="g"
+  * Cebolla, tomate, verduras: 20-80 g → quantity=0.05, unit="kg"  
+  * Carne, pollo: 100-200 g → quantity=0.15, unit="kg"
+  * Tortillas: 2-4 piezas → quantity=3, unit="pz"
+  * Aceite: 5-20 ml → quantity=0.015, unit="lt"
+  * NUNCA pongas más de 1 kg de sal, pimienta o especias en una receta
+  * NUNCA pongas más de 5 kg de ningún ingrediente en una porción
 - PRECIOS MAYORISTAS MXN 2024:
-  * Carnes (sirloin, pollo, res): $150-350/kg — SIEMPRE en kg, NUNCA en gramos
-  * Verduras: $15-60/kg
-  * Quesos: $80-200/kg
-  * Pan/tortilla: $2-8/pz
-  * Aceite: $30-60/lt
-  * Especias/sal: $0.05-0.20/g (muy pequeña cantidad, como 2-5g)
-- FOOD COST: el costo total DEBE ser entre 25-40% del precio de venta $${body.price}
-  * Si precio=$${body.price}, costo total máximo = $${Math.round((body.price ?? 100) * 0.40)}
-  * Si el costo calculado es mayor, reduce las cantidades
-- VERIFICAR: costo_total / precio_venta × 100 debe dar entre 25% y 40%
+  * Carnes: $150-350/kg | Verduras: $15-60/kg | Quesos: $80-200/kg
+  * Pan/tortilla: $2-8/pz | Aceite: $30-60/lt | Especias: $0.05-0.20/g
+- FOOD COST verificado: costo_total debe ser 25-40% de $${body.price ?? 100}
+  * Máximo permitido: $$${Math.round((body.price ?? 100) * 0.40)} MXN
+  * Si supera ese límite, REDUCE las cantidades de ingredientes costosos
 
 JSON exacto:
 {"recipe":[{"ingredientName":"","category":"","quantity":0,"unit":"","costPerUnit":0,"estimatedCostLine":0,"notes":""}],"prepTimeMin":15,"preparationArea":"cocina","totalEstimatedCost":0,"foodCostPct":30,"suggestedPrice":${body.price ?? 100}}`;
