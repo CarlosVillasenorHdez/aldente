@@ -68,56 +68,60 @@ export async function POST(req: NextRequest) {
 
   try {
     if (mode === 'parse_menu') {
-      // ── Modo 1: extraer platillos de texto libre ─────────────────────────
+      // ── Modo 1: extraer platillos — soporta chunk único o array de chunks ────
       const restaurantType = (body as any).restaurantType ?? 'restaurante';
-      const prompt = `Extrae los platillos de este menú de ${restaurantType}.
+      const menuChunks: string[] = (body as any).menuChunks ?? [(body.menuText ?? '').slice(0, 2500)];
 
-REGLAS IMPORTANTES:
-- AGRUPA variantes del mismo platillo en UN solo platillo. Ejemplo: "Enchiladas Rojas con pollo", "Enchiladas Rojas con sirloin" → UN platillo "Enchiladas Rojas", precio=el más bajo.
-- NO crees platillos separados para cada proteína/tamaño/variante — eso se maneja con modificadores después.
-- precio=número sin símbolos (0 si no hay precio explícito)
-- descripción máx 60 chars, describir el platillo base
-- emoji específico y relevante al platillo (no repitas el mismo emoji)
-- Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Extras
-
-Menú:
-${(body.menuText ?? '').slice(0, 4500)}
-
-- service_time: "desayuno" si es exclusivo de mañana (chilaquiles, hotcakes, omelets, etc.), "comida" si es exclusivo de mediodía/tarde, "cena" si es exclusivo de noche, "todo_el_dia" para el resto.
-
+      const buildPrompt = (chunk: string) =>
+        `Extrae los platillos de este fragmento de menú de ${restaurantType}.
+REGLAS:
+- AGRUPA variantes en UN platillo (proteínas/tamaños = modificadores, no platillos separados)
+- precio=número sin símbolos, 0 si no hay
+- descripción máx 60 chars del platillo base
+- emoji específico por platillo, no repetir
+- service_time: desayuno(chilaquiles,hotcakes,omelets), comida(guisados del día), cena(antojitos nocturnos), todo_el_dia(resto)
+- Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Sopas|Extras
+Fragmento:
+${chunk}
 JSON minificado:
 {"dishes":[{"name":"","description":"","price":0,"category":"","emoji":"","service_time":"todo_el_dia"}]}`;
 
-      const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 3000,
-        system: SYSTEM,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const repairJSON = (raw: string): string => {
+        let t = cleanJSON(raw);
+        try { JSON.parse(t); return t; } catch {}
+        const last = t.lastIndexOf('}');
+        if (last > 0) { t = t.slice(0, last + 1); if (!t.trimEnd().endsWith(']')) t += ']'; if (!t.trimEnd().endsWith('}')) t += '}'; }
+        return t;
+      };
 
-      const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
-      // Si el JSON está truncado, intentar repararlo cerrando el array y objeto
-      let jsonText = cleanJSON(rawText);
-      // Reparar JSON truncado de forma robusta
-      try {
-        JSON.parse(jsonText); // intentar parsear directo
-      } catch {
-        // Truncado — encontrar el último objeto completo (último "}")
-        // y cerrar el array + objeto contenedor
-        const lastCompleteBrace = jsonText.lastIndexOf('}');
-        if (lastCompleteBrace > 0) {
-          jsonText = jsonText.slice(0, lastCompleteBrace + 1);
-          // Asegurar que cierra el array "dishes"
-          if (!jsonText.trimEnd().endsWith(']')) jsonText += ']';
-          // Asegurar que cierra el objeto raíz
-          if (!jsonText.trimEnd().endsWith('}')) jsonText += '}';
-        }
+      // Procesar chunks en paralelo (máx 6 simultáneos para no saturar rate limit)
+      const PARALLEL = 6;
+      let allDishes: any[] = [];
+      for (let b = 0; b < menuChunks.length; b += PARALLEL) {
+        const batch = menuChunks.slice(b, b + PARALLEL);
+        const results = await Promise.all(batch.map(async chunk => {
+          if (!chunk.trim()) return [];
+          try {
+            const msg = await anthropic.messages.create({
+              model: 'claude-haiku-4-5-20251001', max_tokens: 2000, system: SYSTEM,
+              messages: [{ role: 'user', content: buildPrompt(chunk) }],
+            });
+            const raw = (msg.content[0] as { type: string; text: string }).text.trim();
+            return (JSON.parse(repairJSON(raw)).dishes ?? []) as any[];
+          } catch { return []; }
+        }));
+        allDishes = allDishes.concat(results.flat());
       }
-      const parsed = JSON.parse(jsonText);
-      return NextResponse.json(parsed);
+
+      // Deduplicar por nombre (normalizado: minúsculas + sin tildes)
+      const norm = (s: string) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const seen = new Set<string>();
+      const unique = allDishes.filter(d => { const k = norm(d.name); if (!k || seen.has(k)) return false; seen.add(k); return true; });
+
+      return NextResponse.json({ dishes: unique });
     }
 
-    if (mode === 'detect_modifiers') {
+        if (mode === 'detect_modifiers') {
       const { dishNames, menuText: mText, restaurantType: rt } = body as any;
       const prompt = `Del siguiente texto de menú, detecta los modificadores/variantes para estos platillos: ${dishNames}
 

@@ -166,30 +166,44 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
 
   // ── PASO 1: parse menú ───────────────────────────────────────────────────────
 
+  // Divide el menú en chunks — cafetería pequeña: 1 chunk, restaurante grande: N chunks en paralelo
+  function splitMenuIntoChunks(text: string, maxChunkSize = 2200): string[] {
+    if (text.length <= maxChunkSize) return [text];
+    const NL = String.fromCharCode(10);
+    const lines = text.split(NL);
+    const chunks: string[] = [];
+    let current = '';
+    for (const line of lines) {
+      const t = line.trim();
+      const isHeader = t.length > 2 && t.length < 40 &&
+        (t === t.toUpperCase() || /^[-=*#]{1,4}/.test(t)) &&
+        !/[$0-9]/.test(t.charAt(0));
+      if (current.length + line.length > maxChunkSize && isHeader && current.trim()) {
+        chunks.push(current.trim());
+        current = line + NL;
+      } else {
+        current += line + NL;
+        if (current.length > maxChunkSize * 1.4) { chunks.push(current.trim()); current = ''; }
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
+    return chunks.filter(ch => ch.length > 20);
+  }
   const handleParseMenu = useCallback(async () => {
     if (!menuText.trim()) { toast.error('Pega el texto de tu menú'); return; }
     setLoading(true);
     try {
-      // Pasada 1: primeros 5000 chars
-      const data1 = await callMenuAI({ mode: 'parse_menu', menuText: menuText.slice(0, 5000), restaurantType });
-      let allDishes = data1.dishes ?? [];
+      const chunks = splitMenuIntoChunks(menuText);
+      const isLong = chunks.length > 1;
+      if (isLong) toast.info(`Menú largo detectado — analizando ${chunks.length} secciones en paralelo...`);
 
-      // Pasada 2: si el menú es largo, analizar la segunda mitad
-      if (menuText.length > 4000) {
-        try {
-          toast.info('Analizando segunda parte del menú...');
-          const data2 = await callMenuAI({ mode: 'parse_menu', menuText: menuText.slice(4000, 9000), restaurantType });
-          const newDishes = (data2.dishes ?? []).filter((d2: any) =>
-            !allDishes.some((d1: any) => d1.name.toLowerCase() === d2.name.toLowerCase())
-          );
-          allDishes = [...allDishes, ...newDishes];
-        } catch { /* si falla la segunda pasada, continuar con la primera */ }
-      }
+      const data = await callMenuAI({ mode: 'parse_menu', menuChunks: chunks, restaurantType });
+      const allDishes = data.dishes ?? [];
 
       if (!allDishes.length) { toast.error('No se encontraron platillos. Intenta con más texto.'); return; }
       setDishes(allDishes.map((d: any) => ({ ...d, selected: true })));
       setStep(2);
-      toast.success(`${allDishes.length} platillos detectados`);
+      toast.success(`${allDishes.length} platillos detectados${isLong ? ` en ${chunks.length} secciones` : ''}`);
     } catch (e: any) {
       toast.error('Error del asistente: ' + e.message);
     } finally {
