@@ -81,7 +81,7 @@ REGLAS IMPORTANTES:
 - Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Extras
 
 Menú:
-${(body.menuText ?? '').slice(0, 3000)}
+${(body.menuText ?? '').slice(0, 4500)}
 
 - service_time: "desayuno" si es exclusivo de mañana (chilaquiles, hotcakes, omelets, etc.), "comida" si es exclusivo de mediodía/tarde, "cena" si es exclusivo de noche, "todo_el_dia" para el resto.
 
@@ -195,41 +195,30 @@ Responde con este JSON exacto:
         .map((d) => `- ${d.name} (${d.category}, $${d.price})`)
         .join('\n');
 
-      const prompt = `Para el siguiente menú de restaurante, genera la lista maestra de insumos/ingredientes necesarios.
-Consolida ingredientes que se repiten entre platillos.
-Tipo de restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
-
-Menú:
+      const prompt = `Lista maestra de insumos para restaurante de ${body.restaurantType ?? 'comida mexicana'}.
+Consolida ingredientes repetidos. Menú:
 ${dishList}
 
-Para cada insumo incluye: nombre, categoría del inventario, unidad de medida, costo estimado por unidad (MXN 2024 mayorista), stock mínimo sugerido, punto de reorden sugerido.
+Categorías: Carnes y Aves|Mariscos|Verduras|Frutas|Lácteos|Panadería|Pastas y Granos|Especias|Aceites y Salsas|Bebidas|Congelados|Empaques|Limpieza|Otros
+Unidades comunes: kg, g, l, ml, pz, caja, bolsa
 
-Categorías válidas: Carnes y Aves|Mariscos|Verduras|Frutas|Lácteos|Panadería|Pastas y Granos|Especias|Aceites y Salsas|Bebidas|Congelados|Empaques|Limpieza|Otros
-
-Responde con este JSON exacto:
-{
-  "ingredients": [
-    {
-      "name": "Nombre del insumo",
-      "category": "Verduras",
-      "unit": "kg",
-      "costPerUnit": 15,
-      "minStock": 2,
-      "reorderPoint": 4,
-      "notes": ""
-    }
-  ]
-}`;
+JSON minificado:
+{"ingredients":[{"name":"","category":"","unit":"","costPerUnit":0,"minStock":1,"reorderPoint":2,"notes":""}]}`;
 
       const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       });
 
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(cleanJSON(rawText));
+      let jsonText = cleanJSON(rawText);
+      try { JSON.parse(jsonText); } catch {
+        const last = jsonText.lastIndexOf('}');
+        if (last > 0) { jsonText = jsonText.slice(0, last + 1); if (!jsonText.endsWith(']')) jsonText += ']'; if (!jsonText.endsWith('}')) jsonText += '}'; }
+      }
+      const parsed = JSON.parse(jsonText);
       return NextResponse.json(parsed);
     }
 

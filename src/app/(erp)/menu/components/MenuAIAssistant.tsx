@@ -299,7 +299,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
           const modData = await callMenuAI({
             mode: 'detect_modifiers',
             dishNames,
-            menuText: menuText.slice(0, 3000),
+            menuText: menuText.slice(0, 5000),
             restaurantType,
           });
           if (modData.dishes) {
