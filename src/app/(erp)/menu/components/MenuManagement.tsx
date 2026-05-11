@@ -784,7 +784,9 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   };
 
   const handleRemove = async (recipeId: string) => {
-    await supabase.from('dish_recipes').delete().eq('id', recipeId);
+    if (!recipeId) { setRecipe(prev => prev.filter(r => r.id !== recipeId)); return; }
+    const { error } = await supabase.from('dish_recipes').delete().eq('id', recipeId);
+    if (error) { toast.error('Error al eliminar ingrediente: ' + error.message); return; }
     setRecipe(prev => prev.filter(r => r.id !== recipeId));
   };
 

@@ -248,6 +248,16 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     for (let i = 0; i < dishes.length; i++) {
       const d = dishes[i];
       if (!d.selected || !d.name.trim()) continue;
+      // Si ya fue guardado antes (savedId existe), saltar
+      if (d.savedId) { ok++; continue; }
+      // Verificar si ya existe en DB para evitar duplicados
+      const { data: existing } = await supabase.from('dishes')
+        .select('id').eq('tenant_id', tid).ilike('name', d.name.trim()).limit(1).single();
+      if (existing?.id) {
+        saved[i] = { ...d, savedId: existing.id };
+        ok++;
+        continue;
+      }
       const { data, error } = await supabase.from('dishes').insert({
         tenant_id: tid, name: d.name, description: d.description || `${d.name} — preparado al momento`,
         price: d.price || 0, category: d.category, emoji: d.emoji || '🍽️',
