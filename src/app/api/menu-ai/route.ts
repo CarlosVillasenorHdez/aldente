@@ -74,15 +74,22 @@ export async function POST(req: NextRequest) {
 
       const buildPrompt = (chunk: string) =>
         `Extrae los platillos de este fragmento de menú de ${restaurantType}.
-REGLAS:
-- AGRUPA variantes en UN platillo (proteínas/tamaños = modificadores, no platillos separados)
-- precio=número sin símbolos, 0 si no hay
-- descripción máx 60 chars del platillo base
-- emoji específico por platillo, no repetir
-- service_time: desayuno(chilaquiles,hotcakes,omelets), comida(guisados del día), cena(antojitos nocturnos), todo_el_dia(resto)
-- Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Sopas|Extras
+
+REGLAS CRÍTICAS:
+1. AGRUPA variantes del MISMO platillo base en UN SOLO platillo:
+   - "Hamburguesa de Pollo", "Hamburguesa Pollo" → UN platillo "Hamburguesa de Pollo"
+   - "Enchiladas Rojas con pollo", "Enchiladas Rojas con sirloin" → UN platillo "Enchiladas Rojas"
+   - Las variantes (proteína, tamaño, extras) se manejan como modificadores DESPUÉS
+2. Si ves dos nombres muy similares (>70% palabras iguales) → son el MISMO platillo, agrúpalos
+3. precio=número sin símbolos ($,MXN,pesos), 0 si no aparece precio explícito
+4. descripción máx 60 chars del platillo BASE (sin listar variantes)
+5. emoji específico y único por platillo
+6. service_time: desayuno(chilaquiles,hotcakes,omelets,jugos), todo_el_dia(resto)
+7. Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Sopas|Extras
+
 Fragmento:
 ${chunk}
+
 JSON minificado:
 {"dishes":[{"name":"","description":"","price":0,"category":"","emoji":"","service_time":"todo_el_dia"}]}`;
 
@@ -123,15 +130,26 @@ JSON minificado:
 
         if (mode === 'detect_modifiers') {
       const { dishNames, menuText: mText, restaurantType: rt } = body as any;
-      const prompt = `Del siguiente texto de menú, detecta los modificadores/variantes para estos platillos: ${dishNames}
+      const prompt = `Detecta modificadores para estos platillos de ${rt ?? 'restaurante'}: ${dishNames}
 
-Modificadores son: opciones de tamaño, ingredientes extras, sustituciones, combos.
-Ejemplos: "con/sin papas", "chico/mediano/grande", "extra queso +$15".
+REGLAS CRÍTICAS:
+1. NUNCA pongas como modificador el ingrediente principal del platillo:
+   - Hamburguesa de Pollo → NO "Con pollo / Sin pollo"
+   - Pizza de Jamón → NO "Con jamón / Sin jamón"
+   - Enchiladas → NO "Con tortilla / Sin tortilla"
+2. Modificadores válidos son:
+   - ACOMPAÑAMIENTOS: "Con papas / Sin papas", "Con ensalada / Sin ensalada"
+   - EXTRAS de pago: "Extra queso +$15", "Extra tocino +$20", "Doble carne +$30"
+   - NIVEL: "Sin picante / Poco / Medio / Extra picante"
+   - TAMAÑO: "Chico $45 / Grande $65"
+   - PRESENTACIÓN: "Para llevar / Para comer aquí"
+3. Para hamburguesas: el modificador MÁS COMÚN es "Acompañamiento" (Con papas / Sin papas)
+4. Si el texto del menú no muestra variantes claras, NO inventes modificadores
 
 Menú:
 ${(mText ?? '').slice(0, 2000)}
 
-JSON minificado (solo los platillos que TIENEN modificadores):
+JSON minificado (SOLO platillos con modificadores reales):
 {"dishes":[{"name":"","modifier_groups":[{"name":"","min_select":0,"max_select":1,"options":[{"name":"","price_delta":0,"is_default":false}]}]}]}`;
 
       const msg = await anthropic.messages.create({
@@ -176,11 +194,19 @@ Restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
 
 REGLAS IMPORTANTES:
 - Ingredientes realistas para UNA PORCIÓN
-- Si es bebida preparada (licuado, agua fresca, jugo, café, cóctel): solo ingredientes para prepararla, NO marcas comerciales
-- Si es bebida embotellada comercial: solo 1 ingrediente (la botella)
+- Si es bebida preparada (licuado, agua fresca, jugo, café, cóctel): ingredientes para prepararla, sin marcas comerciales
 - Unidades: kg, lt, pz, g, ml, caja, bolsa, sobre
-- Costos mayoristas MXN 2024, food cost 25-35%
-- Carnes en kg ($150-400/kg), no en gramos
+- PRECIOS MAYORISTAS MXN 2024:
+  * Carnes (sirloin, pollo, res): $150-350/kg — SIEMPRE en kg, NUNCA en gramos
+  * Verduras: $15-60/kg
+  * Quesos: $80-200/kg
+  * Pan/tortilla: $2-8/pz
+  * Aceite: $30-60/lt
+  * Especias/sal: $0.05-0.20/g (muy pequeña cantidad, como 2-5g)
+- FOOD COST: el costo total DEBE ser entre 25-40% del precio de venta $${body.price}
+  * Si precio=$${body.price}, costo total máximo = $${Math.round((body.price ?? 100) * 0.40)}
+  * Si el costo calculado es mayor, reduce las cantidades
+- VERIFICAR: costo_total / precio_venta × 100 debe dar entre 25% y 40%
 
 JSON exacto:
 {"recipe":[{"ingredientName":"","category":"","quantity":0,"unit":"","costPerUnit":0,"estimatedCostLine":0,"notes":""}],"prepTimeMin":15,"preparationArea":"cocina","totalEstimatedCost":0,"foodCostPct":30,"suggestedPrice":${body.price ?? 100}}`;
