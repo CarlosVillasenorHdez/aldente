@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(ab);
 
     // Extraer texto con pdf-parse (gratis, sin IA)
-    const pdfParse = (await import('pdf-parse')).default;
+    const pdfParseModule = await import('pdf-parse');
+    const pdfParse = (pdfParseModule.default ?? pdfParseModule) as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
     const result = await pdfParse(buffer);
 
     const text = result.text?.trim() || '';
