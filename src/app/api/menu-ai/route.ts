@@ -21,7 +21,25 @@ const anthropic = new Anthropic({
 
 const SYSTEM = `Eres un chef ejecutivo mexicano con 20 años de experiencia y conocimiento profundo de costos de restaurante.
 Tu trabajo es ayudar a dueños de restaurantes a estructurar su menú en un sistema ERP.
-Responde SIEMPRE en JSON válido y nada más. Sin markdown, sin backticks, sin explicaciones.`;
+Responde SIEMPRE con JSON puro y valido. NUNCA uses markdown ni bloques de codigo. Solo JSON, sin texto extra antes o despues.`;
+
+function cleanJSON(raw: string): string {
+  let text = raw.trim();
+  // Remover bloques markdown
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+  // Encontrar inicio del JSON
+  const s1 = text.indexOf('{'), s2 = text.indexOf('[');
+  let start = -1;
+  if (s1 !== -1 && s2 !== -1) start = Math.min(s1, s2);
+  else if (s1 !== -1) start = s1;
+  else if (s2 !== -1) start = s2;
+  if (start > 0) text = text.slice(start);
+  // Encontrar fin del JSON
+  const e1 = text.lastIndexOf('}'), e2 = text.lastIndexOf(']');
+  const end = Math.max(e1, e2);
+  if (end !== -1 && end < text.length - 1) text = text.slice(0, end + 1);
+  return text;
+}
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
@@ -51,25 +69,27 @@ export async function POST(req: NextRequest) {
   try {
     if (mode === 'parse_menu') {
       // ── Modo 1: extraer platillos de texto libre ─────────────────────────
-      const prompt = `Del siguiente texto de menú, extrae todos los platillos.
-Para cada uno devuelve: nombre, descripción breve (máx 80 chars), precio (número),
-categoría (solo: Entradas|Platos Fuertes|Postres|Bebidas|Extras), emoji relevante.
+      const restaurantType = (body as any).restaurantType ?? 'restaurante';
+      const prompt = `Eres un experto en análisis de menús de restaurantes mexicanos.
+Analiza el siguiente texto de menú y extrae TODOS los platillos, bebidas y productos.
+
+INSTRUCCIONES IMPORTANTES:
+- Extrae TODOS los items que tengan nombre y precio
+- Si no hay precio explícito, usa 0
+- Normaliza los precios: elimina símbolos ($, MXN, pesos) y devuelve solo el número
+- Categorías permitidas ÚNICAMENTE: Entradas, Platos Fuertes, Postres, Bebidas, Desayunos, Pizzas, Hamburguesas, Tacos, Mariscos, Ensaladas, Extras
+- Elige la categoría más apropiada según el tipo de restaurante: ${restaurantType}
+- Si hay secciones en el menú (ej: "BURGERS", "SIDES"), úsalas como guía para la categoría
+- El emoji debe ser específico al platillo, no genérico
+- La descripción debe ser informativa, máx 80 caracteres
+
+Tipo de restaurante: ${restaurantType}
 
 Texto del menú:
-${(body.menuText ?? '').slice(0, 6000)}
+${(body.menuText ?? '').slice(0, 8000)}
 
-Responde con este JSON exacto:
-{
-  "dishes": [
-    {
-      "name": "Nombre del platillo",
-      "description": "Descripción breve",
-      "price": 120,
-      "category": "Platos Fuertes",
-      "emoji": "🍔"
-    }
-  ]
-}`;
+Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
+{"dishes":[{"name":"string","description":"string","price":number,"category":"string","emoji":"string"}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-sonnet-4-5',
@@ -78,8 +98,8 @@ Responde con este JSON exacto:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const text = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(text);
+      const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
+      const parsed = JSON.parse(cleanJSON(rawText));
       return NextResponse.json(parsed);
     }
 
@@ -122,8 +142,8 @@ Responde con este JSON exacto:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const text = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(text);
+      const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
+      const parsed = JSON.parse(cleanJSON(rawText));
       return NextResponse.json(parsed);
     }
 
@@ -166,8 +186,8 @@ Responde con este JSON exacto:
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const text = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(text);
+      const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
+      const parsed = JSON.parse(cleanJSON(rawText));
       return NextResponse.json(parsed);
     }
 
