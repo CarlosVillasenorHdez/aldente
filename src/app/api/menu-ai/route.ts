@@ -86,20 +86,30 @@ INSTRUCCIONES IMPORTANTES:
 Tipo de restaurante: ${restaurantType}
 
 Texto del menú:
-${(body.menuText ?? '').slice(0, 8000)}
+${(body.menuText ?? '').slice(0, 6000)}
 
 Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
 {"dishes":[{"name":"string","description":"string","price":number,"category":"string","emoji":"string"}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
+        max_tokens: 8000,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       });
 
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(cleanJSON(rawText));
+      // Si el JSON está truncado, intentar repararlo cerrando el array y objeto
+      let jsonText = cleanJSON(rawText);
+      if (!jsonText.endsWith('}')) {
+        // Truncado — cerrar el último platillo incompleto y el array
+        const lastComma = jsonText.lastIndexOf(',');
+        const lastBrace = jsonText.lastIndexOf('}');
+        if (lastComma > lastBrace) jsonText = jsonText.slice(0, lastComma);
+        if (!jsonText.endsWith(']')) jsonText += ']';
+        if (!jsonText.endsWith('}')) jsonText += '}';
+      }
+      const parsed = JSON.parse(jsonText);
       return NextResponse.json(parsed);
     }
 
