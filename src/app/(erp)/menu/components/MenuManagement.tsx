@@ -32,6 +32,7 @@ export interface Dish {
   popular: boolean;
   preparationTimeMin?: number;
   preparationArea?: 'cocina' | 'barra';
+  serviceTime?: 'desayuno' | 'comida' | 'cena' | 'todo_el_dia';
 }
 
 export interface Ingredient {
@@ -67,7 +68,7 @@ const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
 
 const emptyForm = (): Omit<Dish, 'id'> => ({
   name: '', description: '', price: 0, category: 'Entradas',
-  available: true, image: null, imageAlt: '', emoji: '', popular: false, preparationTimeMin: 15, preparationArea: 'cocina' as const,
+  available: true, image: null, imageAlt: '', emoji: '', popular: false, preparationTimeMin: 15, preparationArea: 'cocina' as const, serviceTime: 'todo_el_dia' as const,
 });
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -526,6 +527,11 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                   <div>
                     <p className="text-sm font-semibold text-white">👨‍🍳 Mano de Obra</p>
                     <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{(dish as any).preparationArea === 'barra' ? 'Barra' : 'Cocina'} · {(dish as any).preparationTimeMin ?? 15} min</p>
+                    {(dish as any).serviceTime && (dish as any).serviceTime !== 'todo_el_dia' && (
+                      <span style={{ fontSize:10, padding:'1px 6px', borderRadius:8, background:'rgba(245,158,11,0.12)', color:'#f59e0b', border:'1px solid rgba(245,158,11,0.2)', fontWeight:600 }}>
+                        {(dish as any).serviceTime === 'desayuno' ? '🌅 Desayuno' : (dish as any).serviceTime === 'comida' ? '☀️ Comida' : '🌙 Cena'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-lg font-bold font-mono" style={{ color: '#fb923c' }}>
                     {costConfigLoaded ? `$${laborCost.toFixed(2)}` : '…'}
@@ -944,7 +950,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
   const [step, setStep] = useState<1|2>(1);
   const [savedDish, setSavedDish] = useState<Dish | null>(null);
   const [form, setForm] = useState<Omit<Dish, 'id'>>(
-    dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15, preparationArea: (dish as any).preparationArea ?? 'cocina' as const }
+    dish ? { name: dish.name, description: dish.description, price: dish.price, category: dish.category, available: dish.available, image: dish.image, imageAlt: dish.imageAlt, emoji: dish.emoji, popular: dish.popular, preparationTimeMin: (dish as any).preparationTimeMin ?? 15, preparationArea: (dish as any).preparationArea ?? 'cocina' as const, serviceTime: (dish as any).serviceTime ?? 'todo_el_dia' as const }
       : emptyForm()
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Omit<Dish, 'id'>, string>>>({});
@@ -998,6 +1004,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
         image_alt: form.imageAlt, emoji: form.emoji, popular: form.popular,
         preparation_time_min: (form as any).preparationTimeMin ?? 15,
         preparation_area: (form as any).preparationArea ?? 'cocina',
+        service_time: (form as any).serviceTime ?? 'todo_el_dia',
         tenant_id: getTenantId(),
       }).select().single();
       if (error) throw error;
@@ -1126,6 +1133,28 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Turno de servicio */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Disponible en</label>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {([
+                    { val:'todo_el_dia', label:'Todo el día', emoji:'🕐' },
+                    { val:'desayuno',    label:'Desayuno',    emoji:'🌅' },
+                    { val:'comida',      label:'Comida',      emoji:'☀️' },
+                    { val:'cena',        label:'Cena',        emoji:'🌙' },
+                  ] as const).map(t => (
+                    <button key={t.val} type="button"
+                      onClick={() => set('serviceTime' as any, t.val)}
+                      style={{ flex:1, minWidth:80, padding:'8px 6px', borderRadius:10, fontSize:11, fontWeight:600, cursor:'pointer', border:'1px solid',
+                        borderColor: (form as any).serviceTime === t.val ? '#f59e0b' : 'rgba(255,255,255,0.12)',
+                        background: (form as any).serviceTime === t.val ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: (form as any).serviceTime === t.val ? '#f59e0b' : 'rgba(255,255,255,0.5)' }}>
+                      {t.emoji} {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Available toggle */}
@@ -1269,6 +1298,7 @@ export default function MenuManagement() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category>('Todas');
+  const [activeTurno, setActiveTurno] = useState<'todos' | 'desayuno' | 'comida' | 'cena'>('todos');
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
@@ -1349,7 +1379,8 @@ export default function MenuManagement() {
   const filtered = dishes.filter((d) => {
     const matchCat = activeCategory === 'Todas' || d.category === activeCategory;
     const matchSearch = !search || d.name.toLowerCase().includes(search.toLowerCase()) || d.description.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    const matchTurno = activeTurno === 'todos' || (d as any).serviceTime === activeTurno || !(d as any).serviceTime || (d as any).serviceTime === 'todo_el_dia';
+    return matchCat && matchSearch && matchTurno;
   });
 
   const counts: Record<Category, number> = {
@@ -1544,6 +1575,26 @@ export default function MenuManagement() {
           </button>
         </div>
       </div>
+
+      {/* Filtro de turno */}
+      {dishes.some(d => (d as any).serviceTime && (d as any).serviceTime !== 'todo_el_dia') && (
+        <div style={{ display:'flex', gap:6, paddingLeft:16, paddingRight:16, marginBottom:8 }}>
+          {([
+            { val:'todos',    label:'Todos',    emoji:'🕐' },
+            { val:'desayuno', label:'Desayuno', emoji:'🌅' },
+            { val:'comida',   label:'Comida',   emoji:'☀️' },
+            { val:'cena',     label:'Cena',     emoji:'🌙' },
+          ] as const).map(t => (
+            <button key={t.val} onClick={() => setActiveTurno(t.val)}
+              style={{ padding:'5px 12px', borderRadius:20, fontSize:12, fontWeight:600, cursor:'pointer', border:'1px solid',
+                borderColor: activeTurno===t.val ? '#f59e0b' : 'rgba(255,255,255,0.12)',
+                background: activeTurno===t.val ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
+                color: activeTurno===t.val ? '#f59e0b' : 'rgba(255,255,255,0.5)' }}>
+              {t.emoji} {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Category tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">

@@ -34,6 +34,7 @@ interface AIDish {
   selected: boolean;
   savedId?: string;       // id en DB si ya fue guardado
   modifier_groups?: AIModGroup[];
+  service_time?: 'desayuno' | 'comida' | 'cena' | 'todo_el_dia';
 }
 
 interface AIIngredient {
@@ -251,6 +252,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         tenant_id: tid, name: d.name, description: d.description || `${d.name} — preparado al momento`,
         price: d.price || 0, category: d.category, emoji: d.emoji || '🍽️',
         available: true, popular: false, preparation_time_min: 15, preparation_area: 'cocina',
+        service_time: d.service_time ?? 'todo_el_dia',
       }).select('id').single();
       if (!error && data) { saved[i] = { ...d, savedId: data.id }; ok++; }
     }
@@ -604,6 +606,11 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <input style={{ ...S.input, fontWeight: 600 }} value={d.name} onChange={e => updateDish(i, 'name', e.target.value)} placeholder="Nombre del platillo" />
                   <input style={{ ...S.input, fontSize: 12 }} value={d.description} onChange={e => updateDish(i, 'description', e.target.value)} placeholder="Descripción" />
+                  {d.service_time && d.service_time !== 'todo_el_dia' && (
+                    <span style={{ fontSize:10, padding:'2px 8px', borderRadius:8, background:'rgba(245,158,11,0.12)', color:'#f59e0b', border:'1px solid rgba(245,158,11,0.2)', alignSelf:'flex-start' }}>
+                      {d.service_time === 'desayuno' ? '🌅 Desayuno' : d.service_time === 'comida' ? '☀️ Comida' : '🌙 Cena'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Category */}

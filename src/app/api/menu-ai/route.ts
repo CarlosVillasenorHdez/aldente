@@ -83,8 +83,10 @@ REGLAS IMPORTANTES:
 Menú:
 ${(body.menuText ?? '').slice(0, 3000)}
 
+- service_time: "desayuno" si es exclusivo de mañana (chilaquiles, hotcakes, omelets, etc.), "comida" si es exclusivo de mediodía/tarde, "cena" si es exclusivo de noche, "todo_el_dia" para el resto.
+
 JSON minificado:
-{"dishes":[{"name":"","description":"","price":0,"category":"","emoji":""}]}`;
+{"dishes":[{"name":"","description":"","price":0,"category":"","emoji":"","service_time":"todo_el_dia"}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
