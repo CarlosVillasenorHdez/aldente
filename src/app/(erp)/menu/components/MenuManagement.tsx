@@ -1380,12 +1380,12 @@ export default function MenuManagement() {
       }
     }
     setLoading(false);
-  }, [supabase, appUser?.tenantId]);
+  }, [supabase, appUser?.tenantId, activeBranchId]);
 
   // Re-fetch when tenant becomes available (page load, or switching restaurant)
   useEffect(() => { 
     if (getTenantId()) fetchDishes(); 
-  }, [fetchDishes, appUser?.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchDishes, appUser?.tenantId, activeBranchId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = dishes.filter((d) => {
     const matchCat = activeCategory === 'Todas' || d.category === activeCategory;
