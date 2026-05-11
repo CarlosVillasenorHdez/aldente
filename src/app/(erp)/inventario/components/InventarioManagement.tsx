@@ -264,8 +264,39 @@ export default function InventarioManagement() {
   const [equivEditId, setEquivEditId] = useState<string | null>(null);
   const [deleteEquivId, setDeleteEquivId] = useState<string | null>(null);
   const { appUser } = useAuth();
+  const isAdmin = appUser?.appRole === 'admin';
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const CLEAR_PHRASE = 'BORRAR INVENTARIO';
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  const handleClearInventory = async () => {
+    if (clearConfirmText !== CLEAR_PHRASE) return;
+    const tenantId = appUser?.tenantId ?? getTenantId();
+    if (!tenantId) return;
+
+    // Borrar dish_recipes primero (FK), luego ingredients
+    let q = supabase.from('ingredients').delete().eq('tenant_id', tenantId);
+    if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
+    const { error } = await q;
+
+    if (error) { toast.error('Error al limpiar inventario: ' + error.message); return; }
+
+    // Audit log
+    try {
+      await supabase.from('audit_logs').insert({
+        tenant_id: tenantId, action: 'CLEAR_INVENTORY',
+        user_id: appUser?.id, user_name: appUser?.fullName,
+        details: `Inventario limpiado por ${appUser?.fullName} (${appUser?.appRole}) — ${new Date().toISOString()}`,
+      });
+    } catch {} // no bloquear si audit falla
+
+    setIngredients([]);
+    setShowClearModal(false);
+    setClearConfirmText('');
+    toast.success('Inventario limpiado correctamente');
+  };
+
   const fetchIngredients = useCallback(async () => {
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) { setLoading(false); return; }
@@ -955,6 +986,7 @@ export default function InventarioManagement() {
     } catch { return iso; }
   };
   return (
+    <>
     <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1e38' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72', backgroundColor: '#0f1e38' }}>
@@ -974,6 +1006,14 @@ export default function InventarioManagement() {
             <Upload size={14} />CSV
             <input type="file" accept=".csv" className="hidden" onChange={handleImportIngredientsCSV} />
           </label>
+          {isAdmin && ingredients.length > 0 && (
+            <button onClick={() => { setShowClearModal(true); setClearConfirmText(''); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}
+              title="Solo administradores — acción irreversible">
+              <Trash2 size={14} /> Limpiar inventario
+            </button>
+          )}
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
             <Plus size={16} />
             Agregar Ingrediente
@@ -2303,5 +2343,46 @@ export default function InventarioManagement() {
         </div>
       )}
     </div>
+      {/* ── Modal: Limpiar Inventario (solo admin, confirmación doble) ── */}
+      {showClearModal && (
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
+          <div style={{ background:'#1a2535',borderRadius:16,padding:28,maxWidth:420,width:'100%',border:'2px solid rgba(239,68,68,0.4)' }}>
+            <div style={{ fontSize:48,textAlign:'center',marginBottom:12 }}>⚠️</div>
+            <h2 style={{ color:'#ef4444',fontSize:18,fontWeight:800,textAlign:'center',marginBottom:8 }}>
+              Acción irreversible
+            </h2>
+            <p style={{ color:'rgba(255,255,255,0.6)',fontSize:13,textAlign:'center',marginBottom:6 }}>
+              Esto eliminará <strong style={{color:'#f1f5f9'}}>todos los ingredientes</strong> del inventario
+              {activeBranchId ? ' de esta sucursal' : ''}.
+            </p>
+            <p style={{ color:'rgba(255,255,255,0.4)',fontSize:12,textAlign:'center',marginBottom:20 }}>
+              Esta acción solo puede realizarla el Administrador y no se puede deshacer.
+            </p>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.5)',display:'block',marginBottom:6 }}>
+                Escribe exactamente: <span style={{color:'#ef4444',fontFamily:'monospace'}}>{CLEAR_PHRASE}</span>
+              </label>
+              <input
+                value={clearConfirmText}
+                onChange={e => setClearConfirmText(e.target.value.toUpperCase())}
+                placeholder={CLEAR_PHRASE}
+                style={{ width:'100%',padding:'10px 12px',borderRadius:8,border:`1px solid ${clearConfirmText===CLEAR_PHRASE?'#ef4444':'rgba(255,255,255,0.15)'}`,background:'rgba(255,255,255,0.05)',color:'#f1f5f9',fontSize:13,fontFamily:'monospace',boxSizing:'border-box' as const }}
+              />
+            </div>
+            <div style={{ display:'flex',gap:10 }}>
+              <button onClick={() => { setShowClearModal(false); setClearConfirmText(''); }}
+                style={{ flex:1,padding:'11px',borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:13 }}>
+                Cancelar
+              </button>
+              <button onClick={handleClearInventory}
+                disabled={clearConfirmText !== CLEAR_PHRASE}
+                style={{ flex:1,padding:'11px',borderRadius:10,border:'none',background: clearConfirmText===CLEAR_PHRASE?'#ef4444':'rgba(239,68,68,0.2)',color: clearConfirmText===CLEAR_PHRASE?'#fff':'rgba(255,255,255,0.3)',cursor: clearConfirmText===CLEAR_PHRASE?'pointer':'not-allowed',fontSize:13,fontWeight:700,transition:'all 0.15s' }}>
+                Sí, borrar todo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
