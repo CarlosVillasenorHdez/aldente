@@ -199,11 +199,20 @@ Responde con este JSON exacto:
 Consolida ingredientes repetidos. Menú:
 ${dishList}
 
+REGLAS DE UNIDADES Y PRECIOS (México 2024, precios mayorista):
+- Carnes: unidad=kg, precio típico $150-400/kg
+- Verduras: unidad=kg, precio típico $15-60/kg
+- Lácteos (queso): unidad=kg, precio típico $80-200/kg
+- Especias/sal: unidad=g, precio típico $0.05-0.20/g
+- Aceite: unidad=l, precio típico $30-60/l
+- Tortillas: unidad=pz, precio típico $1-3/pz
+- Limón: unidad=pz, precio típico $1-3/pz
+- NUNCA pongas precio de kg en unidad g (ej: $180/g es incorrecto, debe ser $180/kg)
+
 Categorías: Carnes y Aves|Mariscos|Verduras|Frutas|Lácteos|Panadería|Pastas y Granos|Especias|Aceites y Salsas|Bebidas|Congelados|Empaques|Limpieza|Otros
-Unidades comunes: kg, g, l, ml, pz, caja, bolsa
 
 JSON minificado:
-{"ingredients":[{"name":"","category":"","unit":"","costPerUnit":0,"minStock":1,"reorderPoint":2,"notes":""}]}`;
+{"ingredients":[{"name":"","category":"","unit":"kg","costPerUnit":0,"minStock":1,"reorderPoint":2,"notes":""}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',

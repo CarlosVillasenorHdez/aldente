@@ -12,6 +12,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { toast } from 'sonner';
 import {
@@ -132,6 +133,7 @@ function Steps({ current }: { current: number }) {
 
 export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   const supabase = createClient();
+  const { activeBranchId } = useBranch();
 
   const [step, setStep] = useState(1);
   const [menuText, setMenuText] = useState('');
@@ -396,14 +398,15 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     for (const ing of ingredients) {
       if (ing.savedId) { ingredientIdMap[ing.name.toLowerCase()] = ing.savedId; continue; }
       // Verificar si ya existe
-      const { data: existing } = await supabase.from('ingredients')
-        .select('id').eq('tenant_id', tid).ilike('name', ing.name).limit(1).single();
-      if (existing?.id) { ingredientIdMap[ing.name.toLowerCase()] = existing.id; continue; }
+      const { data: existArr } = await supabase.from('ingredients')
+        .select('id').eq('tenant_id', tid).ilike('name', ing.name).limit(1);
+      if (existArr?.[0]?.id) { ingredientIdMap[ing.name.toLowerCase()] = existArr[0].id; continue; }
       const { data, error } = await supabase.from('ingredients').insert({
         tenant_id: tid, name: ing.name, category: ing.category,
         unit: ing.unit, cost: ing.costPerUnit, stock: 0,
         min_stock: ing.minStock, reorder_point: ing.reorderPoint,
         notes: ing.notes || null, lead_time_days: 2,
+        branch_id: activeBranchId ?? null,
       }).select('id').single();
       if (!error && data) {
         ingredientIdMap[ing.name.toLowerCase()] = data.id;
@@ -427,15 +430,16 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         // Buscar el ingrediente en el mapa o en la DB
         let ingId = ingredientIdMap[ri.ingredientName.toLowerCase()];
         if (!ingId) {
-          const { data: found } = await supabase.from('ingredients')
-            .select('id').eq('tenant_id', tid).ilike('name', ri.ingredientName).limit(1).single();
-          if (found?.id) { ingId = found.id; }
+          const { data: foundArr } = await supabase.from('ingredients')
+            .select('id').eq('tenant_id', tid).ilike('name', ri.ingredientName).limit(1);
+          if (foundArr?.[0]?.id) { ingId = foundArr[0].id; }
           else {
             // Crear el ingrediente si no existe
             const { data: created } = await supabase.from('ingredients').insert({
               tenant_id: tid, name: ri.ingredientName,
               category: ri.category || 'Otros', unit: ri.unit,
               cost: ri.costPerUnit, stock: 0, min_stock: 0, reorder_point: 0, lead_time_days: 2,
+              branch_id: activeBranchId ?? null,
             }).select('id').single();
             if (created?.id) { ingId = created.id; ingredientIdMap[ri.ingredientName.toLowerCase()] = ingId; }
           }
@@ -443,9 +447,9 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         if (!ingId) continue;
 
         // Evitar duplicados en dish_recipes
-        const { data: existing } = await supabase.from('dish_recipes')
-          .select('id').eq('dish_id', rec.dishId).eq('ingredient_id', ingId).limit(1).single();
-        if (existing?.id) continue;
+        const { data: existDR } = await supabase.from('dish_recipes')
+          .select('id').eq('dish_id', rec.dishId).eq('ingredient_id', ingId).limit(1);
+        if (existDR?.[0]?.id) continue;
 
         await supabase.from('dish_recipes').insert({
           tenant_id: tid, dish_id: rec.dishId, ingredient_id: ingId,
