@@ -22,6 +22,9 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+interface AIModOption { name: string; price_delta: number; is_default: boolean; }
+interface AIModGroup { name: string; min_select: number; max_select: number; options: AIModOption[]; }
+
 interface AIDish {
   name: string;
   description: string;
@@ -30,6 +33,7 @@ interface AIDish {
   emoji: string;
   selected: boolean;
   savedId?: string;       // id en DB si ya fue guardado
+  modifier_groups?: AIModGroup[];
 }
 
 interface AIIngredient {
@@ -397,10 +401,47 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
       recipesOk++;
     }
 
+    // 3. Guardar modificadores de los platillos que los tienen
+    let modifiersOk = 0;
+    for (const dish of dishes) {
+      if (!dish.savedId || !dish.modifier_groups?.length) continue;
+      for (let gi = 0; gi < dish.modifier_groups.length; gi++) {
+        const mg = dish.modifier_groups[gi];
+        // Crear el grupo de modificadores
+        const { data: grpData, error: grpErr } = await supabase.from('modifier_groups').insert({
+          tenant_id: tid,
+          dish_id: dish.savedId,
+          name: mg.name,
+          min_select: mg.min_select ?? 0,
+          max_select: mg.max_select ?? 1,
+          sort_order: gi,
+        }).select('id').single();
+        if (grpErr || !grpData) continue;
+        // Crear las opciones del grupo
+        for (let oi = 0; oi < mg.options.length; oi++) {
+          const opt = mg.options[oi];
+          await supabase.from('modifier_options').insert({
+            tenant_id: tid,
+            group_id: grpData.id,
+            name: opt.name,
+            price_delta: opt.price_delta ?? 0,
+            is_default: opt.is_default ?? false,
+            sort_order: oi,
+          });
+        }
+        modifiersOk++;
+      }
+      // Marcar el platillo como que tiene modificadores
+      if (dish.modifier_groups.length > 0) {
+        await supabase.from('dishes').update({ has_modifiers: true }).eq('id', dish.savedId);
+      }
+    }
+
     setSavingAll(false);
     setDone(true);
-    toast.success(`Menú listo: ${recipes.length} platillos, ${Object.keys(ingredientIdMap).length} insumos, ${recipesOk} recetas guardadas`);
-  }, [ingredients, recipes, supabase]);
+    const modMsg = modifiersOk > 0 ? `, ${modifiersOk} grupo${modifiersOk !== 1 ? 's' : ''} de modificadores` : '';
+    toast.success(`Menú listo: ${recipes.length} platillos, ${Object.keys(ingredientIdMap).length} insumos, ${recipesOk} recetas${modMsg}`);
+  }, [ingredients, recipes, dishes, supabase]);
 
   // ── Done screen ──────────────────────────────────────────────────────────────
 
@@ -506,7 +547,8 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
             {dishes.map((d, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: d.selected ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)', border: `1px solid ${d.selected ? 'rgba(212,146,42,0.2)' : 'rgba(255,255,255,0.06)'}`, opacity: d.selected ? 1 : 0.45 }}>
+              <div key={i}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: d.selected ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)', border: `1px solid ${d.selected ? 'rgba(212,146,42,0.2)' : 'rgba(255,255,255,0.06)'}`, opacity: d.selected ? 1 : 0.45 }}>
                 {/* Checkbox */}
                 <button onClick={() => toggleDish(i)} style={{ width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${d.selected ? '#d4922a' : 'rgba(255,255,255,0.2)'}`, background: d.selected ? '#d4922a' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
                   {d.selected && <Check size={11} color="#080b10" />}
@@ -537,7 +579,19 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
                   <Trash2 size={14} />
                 </button>
               </div>
-            ))}
+              {/* Mostrar modificadores detectados */}
+              {d.modifier_groups && d.modifier_groups.length > 0 && (
+                <div style={{ marginTop: 6, paddingLeft: 8, borderLeft: '2px solid rgba(167,139,250,0.3)' }}>
+                  {d.modifier_groups.map((mg, gi) => (
+                    <div key={gi} style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>
+                      <span style={{ color: '#a78bfa', fontWeight: 600 }}>🔧 {mg.name}:</span>{' '}
+                      {mg.options.map(o => `${o.name}${o.price_delta > 0 ? ` +$${o.price_delta}` : o.price_delta < 0 ? ` -$${Math.abs(o.price_delta)}` : ''}`).join(' · ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+              </div>
+          ))}
           </div>
 
           <button style={{ ...S.btn, ...S.btnPrimary, opacity: loading ? 0.6 : 1 }} onClick={handleSaveDishes} disabled={loading}>

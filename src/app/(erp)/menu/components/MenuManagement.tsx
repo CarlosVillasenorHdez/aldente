@@ -1273,6 +1273,7 @@ export default function MenuManagement() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [deletingDish, setDeletingDish] = useState<Dish | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [modifierDish, setModifierDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
@@ -1393,6 +1394,19 @@ export default function MenuManagement() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleClearMenu = async () => {
+    const tenantId = appUser?.tenantId ?? getTenantId();
+    if (!tenantId) return;
+    let q = supabase.from('dishes').delete().eq('tenant_id', tenantId);
+    if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
+    else q = q.is('branch_id', null);
+    const { error } = await q;
+    if (error) { toast.error('Error al limpiar el menú'); return; }
+    setDishes([]);
+    setShowClearConfirm(false);
+    toast.success('Menú limpiado — puedes volver a cargarlo con el Asistente IA');
   };
 
   const handleDelete = async () => {
@@ -1517,6 +1531,11 @@ export default function MenuManagement() {
             <Upload size={15} />CSV
             <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
           </label>
+          {dishes.length > 0 && (
+            <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Limpiar todo el menú">
+              🗑️ Limpiar menú
+            </button>
+          )}
           <button onClick={() => setShowAIAssistant(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }} title="Cargar menú con IA">
             ✨ Asistente IA
           </button>
@@ -1643,6 +1662,26 @@ export default function MenuManagement() {
       {/* Modals */}
       {formOpen && <DishFormModal dish={editingDish} onSave={handleSave} onClose={() => { setFormOpen(false); setEditingDish(null); }} />}
       {deletingDish && <DeleteConfirmModal dish={deletingDish} onConfirm={handleDelete} onCancel={() => setDeletingDish(null)} />}
+
+      {showClearConfirm && (
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
+          <div style={{ background:'#1a2535',borderRadius:16,padding:28,maxWidth:380,width:'100%',border:'1px solid rgba(239,68,68,0.3)' }}>
+            <div style={{ fontSize:40,textAlign:'center',marginBottom:16 }}>⚠️</div>
+            <h2 style={{ color:'#f1f5f9',fontSize:18,fontWeight:700,textAlign:'center',marginBottom:8 }}>¿Limpiar todo el menú?</h2>
+            <p style={{ color:'rgba(255,255,255,0.5)',fontSize:13,textAlign:'center',marginBottom:24 }}>
+              Se eliminarán todos los platillos{activeBranchId ? ' de esta sucursal' : ' globales'}. Las recetas e ingredientes no se verán afectados.
+            </p>
+            <div style={{ display:'flex',gap:10 }}>
+              <button onClick={() => setShowClearConfirm(false)} style={{ flex:1,padding:'10px',borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:13 }}>
+                Cancelar
+              </button>
+              <button onClick={handleClearMenu} style={{ flex:1,padding:'10px',borderRadius:10,border:'none',background:'#ef4444',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700 }}>
+                Sí, limpiar todo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {modifierDish && (
         <ModifierGroupsModal
           dish={modifierDish}

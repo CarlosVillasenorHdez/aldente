@@ -88,8 +88,23 @@ Tipo de restaurante: ${restaurantType}
 Texto del menú:
 ${(body.menuText ?? '').slice(0, 3000)}
 
+MODIFICADORES: Si detectas opciones/variantes de un platillo (ej: "con papas o sin papas",
+"tamaño chico/grande", "extra queso +$15"), agrégalos como modifier_groups.
+
 Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto extra):
-{"dishes":[{"name":"string","description":"string","price":number,"category":"string","emoji":"string"}]}`;
+{"dishes":[{
+  "name":"string",
+  "description":"string",
+  "price":number,
+  "category":"string",
+  "emoji":"string",
+  "modifier_groups":[{
+    "name":"string",
+    "min_select":0,
+    "max_select":1,
+    "options":[{"name":"string","price_delta":0,"is_default":false}]
+  }]
+}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
