@@ -1432,11 +1432,9 @@ export default function MenuManagement() {
   const handleClearMenu = async () => {
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) return;
-    let q = supabase.from('dishes').delete().eq('tenant_id', tenantId);
-    if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId);
-    else q = q.is('branch_id', null);
-    const { error } = await q;
-    if (error) { toast.error('Error al limpiar el menú'); return; }
+    // Borrar platillos globales (branch_id null) Y los de la sucursal activa
+    const { error } = await supabase.from('dishes').delete().eq('tenant_id', tenantId);
+    if (error) { toast.error('Error al limpiar el menú: ' + error.message); return; }
     setDishes([]);
     setShowClearConfirm(false);
     toast.success('Menú limpiado — puedes volver a cargarlo con el Asistente IA');
