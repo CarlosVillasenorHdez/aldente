@@ -17,7 +17,8 @@ import MenuAIAssistant from './MenuAIAssistant';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type Category =
-  | 'Todas' | 'Entradas' | 'Platos Fuertes' | 'Postres' | 'Bebidas' | 'Extras';
+  | 'Todas' | 'Entradas' | 'Platos Fuertes' | 'Postres' | 'Bebidas' | 'Extras'
+  | 'Desayunos' | 'Hamburguesas' | 'Tacos' | 'Pizzas' | 'Mariscos' | 'Ensaladas' | 'Sopas';
 
 export interface Dish {
   id: string;
@@ -55,7 +56,8 @@ export interface RecipeItem {
 }
 
 const CATEGORIES: Category[] = [
-  'Todas', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas', 'Extras',
+  'Todas', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas',
+  'Desayunos', 'Hamburguesas', 'Tacos', 'Pizzas', 'Mariscos', 'Ensaladas', 'Sopas', 'Extras',
 ];
 
 const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
@@ -64,6 +66,13 @@ const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
   Postres: 'bg-pink-900/40 text-pink-300 border border-pink-700/40',
   Bebidas: 'bg-blue-900/40 text-blue-300 border border-blue-700/40',
   Extras: 'bg-purple-900/40 text-purple-300 border border-purple-700/40',
+  Desayunos: 'bg-orange-900/40 text-orange-300 border border-orange-700/40',
+  Hamburguesas: 'bg-red-900/40 text-red-300 border border-red-700/40',
+  Tacos: 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/40',
+  Pizzas: 'bg-pink-900/40 text-pink-300 border border-pink-700/40',
+  Mariscos: 'bg-cyan-900/40 text-cyan-300 border border-cyan-700/40',
+  Ensaladas: 'bg-lime-900/40 text-lime-300 border border-lime-700/40',
+  Sopas: 'bg-teal-900/40 text-teal-300 border border-teal-700/40',
 };
 
 const emptyForm = (): Omit<Dish, 'id'> => ({
@@ -1392,6 +1401,13 @@ export default function MenuManagement() {
     Postres: dishes.filter((d) => d.category === 'Postres').length,
     Bebidas: dishes.filter((d) => d.category === 'Bebidas').length,
     Extras: dishes.filter((d) => d.category === 'Extras').length,
+    Desayunos: dishes.filter((d) => d.category === 'Desayunos').length,
+    Hamburguesas: dishes.filter((d) => d.category === 'Hamburguesas').length,
+    Tacos: dishes.filter((d) => d.category === 'Tacos').length,
+    Pizzas: dishes.filter((d) => d.category === 'Pizzas').length,
+    Mariscos: dishes.filter((d) => d.category === 'Mariscos').length,
+    Ensaladas: dishes.filter((d) => d.category === 'Ensaladas').length,
+    Sopas: dishes.filter((d) => d.category === 'Sopas').length,
   };
 
   const availableCount = dishes.filter((d) => d.available).length;
@@ -1598,7 +1614,7 @@ export default function MenuManagement() {
 
       {/* Category tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        {CATEGORIES.map((cat) => (
+        {CATEGORIES.filter(cat => cat === 'Todas' || counts[cat] > 0).map((cat) => (
           <button key={cat} onClick={() => setActiveCategory(cat)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0" style={{ backgroundColor: activeCategory === cat ? '#f59e0b' : 'rgba(255,255,255,0.06)', color: activeCategory === cat ? '#1B3A6B' : 'rgba(255,255,255,0.6)', border: activeCategory === cat ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
             {cat}
             <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: activeCategory === cat ? 'rgba(27,58,107,0.3)' : 'rgba(255,255,255,0.1)', color: activeCategory === cat ? '#1B3A6B' : 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: '10px' }}>
