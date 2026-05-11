@@ -170,11 +170,26 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     if (!menuText.trim()) { toast.error('Pega el texto de tu menú'); return; }
     setLoading(true);
     try {
-      const data = await callMenuAI({ mode: 'parse_menu', menuText, restaurantType });
-      if (!data.dishes?.length) { toast.error('No se encontraron platillos. Intenta con más texto.'); return; }
-      setDishes(data.dishes.map((d: any) => ({ ...d, selected: true })));
+      // Pasada 1: primeros 5000 chars
+      const data1 = await callMenuAI({ mode: 'parse_menu', menuText: menuText.slice(0, 5000), restaurantType });
+      let allDishes = data1.dishes ?? [];
+
+      // Pasada 2: si el menú es largo, analizar la segunda mitad
+      if (menuText.length > 4000) {
+        try {
+          toast.info('Analizando segunda parte del menú...');
+          const data2 = await callMenuAI({ mode: 'parse_menu', menuText: menuText.slice(4000, 9000), restaurantType });
+          const newDishes = (data2.dishes ?? []).filter((d2: any) =>
+            !allDishes.some((d1: any) => d1.name.toLowerCase() === d2.name.toLowerCase())
+          );
+          allDishes = [...allDishes, ...newDishes];
+        } catch { /* si falla la segunda pasada, continuar con la primera */ }
+      }
+
+      if (!allDishes.length) { toast.error('No se encontraron platillos. Intenta con más texto.'); return; }
+      setDishes(allDishes.map((d: any) => ({ ...d, selected: true })));
       setStep(2);
-      toast.success(`${data.dishes.length} platillos detectados`);
+      toast.success(`${allDishes.length} platillos detectados`);
     } catch (e: any) {
       toast.error('Error del asistente: ' + e.message);
     } finally {
@@ -246,28 +261,44 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     setLoading(true);
     const tid = getTenantId();
     const saved: AIDish[] = [...dishes];
-    let ok = 0;
-    for (let i = 0; i < dishes.length; i++) {
-      const d = dishes[i];
-      if (!d.selected || !d.name.trim()) continue;
-      // Si ya fue guardado antes (savedId existe), saltar
-      if (d.savedId) { ok++; continue; }
-      // Verificar si ya existe en DB para evitar duplicados
-      const { data: existing } = await supabase.from('dishes')
-        .select('id').eq('tenant_id', tid).ilike('name', d.name.trim()).limit(1).single();
-      if (existing?.id) {
-        saved[i] = { ...d, savedId: existing.id };
-        ok++;
-        continue;
-      }
-      const { data, error } = await supabase.from('dishes').insert({
-        tenant_id: tid, name: d.name, description: d.description || `${d.name} — preparado al momento`,
-        price: d.price || 0, category: d.category, emoji: d.emoji || '🍽️',
-        available: true, popular: false, preparation_time_min: 15, preparation_area: 'cocina',
-        service_time: d.service_time ?? 'todo_el_dia',
-      }).select('id').single();
-      if (!error && data) { saved[i] = { ...d, savedId: data.id }; ok++; }
+    const toInsert = dishes.filter(d => d.selected && d.name.trim() && !d.savedId);
+
+    // Verificar cuáles ya existen en DB (una sola consulta)
+    const names = toInsert.map(d => d.name.trim());
+    const { data: existingDishes } = names.length > 0
+      ? await supabase.from('dishes').select('id, name').eq('tenant_id', tid).in('name', names)
+      : { data: [] };
+    const existingMap: Record<string, string> = {};
+    (existingDishes ?? []).forEach((e: any) => { existingMap[e.name.toLowerCase()] = e.id; });
+
+    // Marcar los que ya existen
+    dishes.forEach((d, i) => {
+      if (!d.selected || !d.name.trim()) return;
+      if (d.savedId) return;
+      const existId = existingMap[d.name.trim().toLowerCase()];
+      if (existId) saved[i] = { ...d, savedId: existId };
+    });
+
+    // Insert masivo de los que no existen
+    const newDishes = toInsert.filter(d => !existingMap[d.name.trim().toLowerCase()]);
+    if (newDishes.length > 0) {
+      const { data: inserted, error } = await supabase.from('dishes').insert(
+        newDishes.map(d => ({
+          tenant_id: tid, name: d.name,
+          description: d.description || `${d.name} — preparado al momento`,
+          price: d.price || 0, category: d.category, emoji: d.emoji || '🍽️',
+          available: true, popular: false, preparation_time_min: 15, preparation_area: 'cocina',
+          service_time: d.service_time ?? 'todo_el_dia',
+        }))
+      ).select('id, name');
+      if (error) { toast.error('Error al guardar platillos: ' + error.message); setLoading(false); return; }
+      (inserted ?? []).forEach((ins: any) => {
+        const idx = dishes.findIndex(d => d.name.trim().toLowerCase() === ins.name.toLowerCase());
+        if (idx !== -1) saved[idx] = { ...saved[idx], savedId: ins.id };
+      });
     }
+
+    const ok = saved.filter(d => d.selected && d.savedId).length;
     setDishes(saved);
     if (ok > 0) toast.success(`${ok} platillo${ok > 1 ? 's' : ''} guardado${ok > 1 ? 's' : ''}`);
     else { toast.error('No se pudo guardar ningún platillo'); setLoading(false); return; }
