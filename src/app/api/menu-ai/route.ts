@@ -71,13 +71,19 @@ export async function POST(req: NextRequest) {
       // ── Modo 1: extraer platillos de texto libre ─────────────────────────
       const restaurantType = (body as any).restaurantType ?? 'restaurante';
       const prompt = `Extrae los platillos de este menú de ${restaurantType}.
-Reglas: precio=número sin símbolos (0 si no hay), descripción máx 60 chars, emoji específico.
-Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Extras
+
+REGLAS IMPORTANTES:
+- AGRUPA variantes del mismo platillo en UN solo platillo. Ejemplo: "Enchiladas Rojas con pollo", "Enchiladas Rojas con sirloin" → UN platillo "Enchiladas Rojas", precio=el más bajo.
+- NO crees platillos separados para cada proteína/tamaño/variante — eso se maneja con modificadores después.
+- precio=número sin símbolos (0 si no hay precio explícito)
+- descripción máx 60 chars, describir el platillo base
+- emoji específico y relevante al platillo (no repitas el mismo emoji)
+- Categorías: Entradas|Platos Fuertes|Postres|Bebidas|Desayunos|Hamburguesas|Tacos|Pizzas|Mariscos|Ensaladas|Extras
 
 Menú:
 ${(body.menuText ?? '').slice(0, 3000)}
 
-Responde SOLO con JSON minificado (sin espacios, sin saltos de línea):
+JSON minificado:
 {"dishes":[{"name":"","description":"","price":0,"category":"","emoji":""}]}`;
 
       const msg = await anthropic.messages.create({

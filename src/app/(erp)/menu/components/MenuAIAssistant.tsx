@@ -305,6 +305,20 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
 
     setStep(3);
     setLoading(false);
+
+    // Auto-generar todas las recetas al llegar al paso 3
+    // Pequeña pausa para que el estado se actualice
+    setTimeout(async () => {
+      const savedList = saved.filter(d => d.selected && d.savedId);
+      for (let i = 0; i < savedList.length; i++) {
+        const recipeIdx = saved.filter(d => d.selected && d.savedId).indexOf(savedList[i]);
+        if (recipeIdx >= 0) {
+          try { await generateRecipe(recipeIdx); } catch {}
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      toast.success('Recetas generadas — revisa y ajusta las cantidades');
+    }, 500);
   }, [dishes, restaurantType, menuText, supabase]);
 
   // ── PASO 3: generar receta individual ────────────────────────────────────────
