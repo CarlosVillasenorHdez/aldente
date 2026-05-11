@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(ab);
 
     // Extraer texto con pdf-parse (gratis, sin IA)
-    const pdfParseModule = await import('pdf-parse');
-    const pdfParse = (pdfParseModule.default ?? pdfParseModule) as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParseModule: any = await import('pdf-parse');
+    const pdfParse = pdfParseModule.default ?? pdfParseModule;
     const result = await pdfParse(buffer);
 
     const text = result.text?.trim() || '';
