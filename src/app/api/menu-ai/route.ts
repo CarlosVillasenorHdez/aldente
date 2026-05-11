@@ -182,14 +182,16 @@ Responde con este JSON exacto:
 }`;
 
       const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 2048,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       });
 
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
-      const parsed = JSON.parse(cleanJSON(rawText));
+      let jsonText = cleanJSON(rawText);
+      try { JSON.parse(jsonText); } catch { const l = jsonText.lastIndexOf('}'); if (l > 0) { jsonText = jsonText.slice(0, l+1); if (!jsonText.endsWith(']')) jsonText += ']'; if (!jsonText.endsWith('}')) jsonText += '}'; } }
+      const parsed = JSON.parse(jsonText);
       return NextResponse.json(parsed);
     }
 

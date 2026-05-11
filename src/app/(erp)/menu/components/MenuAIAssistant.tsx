@@ -365,19 +365,23 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     setStep(3);
     setLoading(false);
 
-    // Auto-generar todas las recetas al llegar al paso 3
-    // Pequeña pausa para que el estado se actualice
+    // Auto-generar recetas en lotes de 3 paralelos para respetar rate limit
     setTimeout(async () => {
       const savedList = saved.filter(d => d.selected && d.savedId);
-      for (let i = 0; i < savedList.length; i++) {
-        const recipeIdx = saved.filter(d => d.selected && d.savedId).indexOf(savedList[i]);
-        if (recipeIdx >= 0) {
-          try { await generateRecipe(recipeIdx); } catch {}
-          await new Promise(r => setTimeout(r, 300));
-        }
+      const indices = savedList.map(d => saved.indexOf(d)).filter(i => i >= 0);
+      const BATCH = 3;
+      let done = 0;
+      for (let b = 0; b < indices.length; b += BATCH) {
+        const batch = indices.slice(b, b + BATCH);
+        await Promise.all(batch.map(async idx => {
+          try { await generateRecipe(idx); } catch {}
+        }));
+        done += batch.length;
+        toast.info(`Generando recetas... ${done}/${indices.length}`);
+        if (b + BATCH < indices.length) await new Promise(r => setTimeout(r, 800));
       }
-      toast.success('Recetas generadas — revisa y ajusta las cantidades');
-    }, 500);
+      toast.success(`${done} recetas generadas — revisa y ajusta las cantidades`);
+    }, 600);
   }, [dishes, restaurantType, menuText, supabase]);
 
   // ── PASO 3: generar receta individual ────────────────────────────────────────
@@ -422,14 +426,19 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   };
 
   const generateAllRecipes = async () => {
-    for (let i = 0; i < recipes.length; i++) {
-      if (!recipes[i].recipe.length && !recipes[i].loading && !recipes[i].done) {
-        await generateRecipe(i);
-        await new Promise(r => setTimeout(r, 400)); // pequeña pausa entre llamadas
-      }
+    const pending = recipes.map((r, i) => i).filter(i => !recipes[i].recipe.length && !recipes[i].loading && !recipes[i].done);
+    const BATCH = 3;
+    let done = 0;
+    for (let b = 0; b < pending.length; b += BATCH) {
+      const batch = pending.slice(b, b + BATCH);
+      await Promise.all(batch.map(async i => {
+        try { await generateRecipe(i); } catch {}
+      }));
+      done += batch.length;
+      if (b + BATCH < pending.length) await new Promise(r => setTimeout(r, 800));
     }
     setRecipes(prev => prev.map(x => ({ ...x, open: false })));
-    toast.success('Todas las recetas generadas');
+    toast.success(`${done} recetas generadas`);
   };
 
   // ── PASO 3: guardar todo ─────────────────────────────────────────────────────
