@@ -469,7 +469,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
       const { data, error } = await supabase.from('ingredients').insert({
         tenant_id: tid, name: ing.name, category: ing.category,
         unit: ing.unit, cost: ing.costPerUnit, stock: 0,
-        min_stock: ing.minStock, reorder_point: ing.reorderPoint,
+        min_stock: 0, reorder_point: 0, // El dueño configura los mínimos en Inventario
         notes: ing.notes || null, lead_time_days: 2,
         branch_id: activeBranchId ?? null,
       }).select('id').single();
