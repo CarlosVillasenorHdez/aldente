@@ -235,6 +235,10 @@ export default function InventarioManagement() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('inventario');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [newSupName, setNewSupName] = useState('');
+  const [newSupPhone, setNewSupPhone] = useState('');
+  const [savingNewSup, setSavingNewSup] = useState(false);
   const [form, setForm] = useState<Omit<Ingredient, 'id'>>(emptyForm());
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof Omit<Ingredient, 'id'>, string>>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -272,6 +276,23 @@ export default function InventarioManagement() {
   const CLEAR_PHRASE = 'BORRAR INVENTARIO';
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  async function handleQuickNewSupplier() {
+    if (!newSupName.trim() || savingNewSup) return;
+    setSavingNewSup(true);
+    const tid = appUser?.tenantId ?? getTenantId();
+    const { data, error } = await supabase.from('suppliers').insert({
+      tenant_id: tid, name: newSupName.trim(),
+      phone: newSupPhone.trim() || null, payment_terms: 'contado', credit_limit: 0, active: true,
+    }).select('id, name').single();
+    if (error) { toast.error('Error al crear proveedor'); setSavingNewSup(false); return; }
+    setAllSuppliers(prev => [...prev, { id: data.id, name: data.name }].sort((a,b) => a.name.localeCompare(b.name)));
+    updateForm('supplier', data.id);
+    setShowNewSupplier(false);
+    setNewSupName(''); setNewSupPhone('');
+    setSavingNewSup(false);
+    toast.success(`Proveedor "${data.name}" creado`);
+  }
+
   const handleClearInventory = async () => {
     if (clearConfirmText !== CLEAR_PHRASE) return;
     const tenantId = appUser?.tenantId ?? getTenantId();
@@ -1877,17 +1898,39 @@ export default function InventarioManagement() {
                   <div className="grid grid-cols-2 gap-3" style={{ padding: '0 16px 16px' }}>
                     {/* Proveedor principal */}
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
-                      <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                        value={form.supplier || ''} onChange={e => updateForm('supplier', e.target.value)}>
-                        <option value="" style={{ backgroundColor: '#162d55' }}>— Sin proveedor —</option>
-                        {allSuppliers.map((s: any) => (
-                          <option key={s.id} value={s.id} style={{ backgroundColor: '#162d55' }}>{s.name}</option>
-                        ))}
-                      </select>
-                      {allSuppliers.length === 0 && (
-                        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Agrega proveedores en la sección de Proveedores primero</p>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                        <label className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
+                        <button onClick={() => setShowNewSupplier(s => !s)}
+                          style={{ fontSize:11, padding:'2px 10px', borderRadius:6, border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.08)', color:'#f59e0b', cursor:'pointer' }}>
+                          {showNewSupplier ? '✕ Cancelar' : '+ Nuevo proveedor'}
+                        </button>
+                      </div>
+                      {showNewSupplier ? (
+                        <div style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:10, padding:12, display:'flex', flexDirection:'column', gap:8 }}>
+                          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', margin:0 }}>Creación rápida — puedes completar el resto en Proveedores</p>
+                          <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                            style={{ backgroundColor:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)' }}
+                            placeholder="Nombre del proveedor *" value={newSupName} onChange={e => setNewSupName(e.target.value)} />
+                          <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                            style={{ backgroundColor:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)' }}
+                            placeholder="Teléfono (opcional)" value={newSupPhone} onChange={e => setNewSupPhone(e.target.value)} />
+                          <button onClick={handleQuickNewSupplier} disabled={!newSupName.trim() || savingNewSup}
+                            style={{ padding:'8px', borderRadius:8, border:'none', background: newSupName.trim() ? '#f59e0b' : 'rgba(245,158,11,0.3)', color: newSupName.trim() ? '#1B3A6B' : 'rgba(255,255,255,0.3)', fontWeight:700, fontSize:13, cursor: newSupName.trim() ? 'pointer' : 'not-allowed' }}>
+                            {savingNewSup ? 'Guardando...' : 'Crear y vincular'}
+                          </button>
+                        </div>
+                      ) : (
+                        <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                          value={form.supplier || ''} onChange={e => updateForm('supplier', e.target.value)}>
+                          <option value="" style={{ backgroundColor: '#162d55' }}>— Sin proveedor —</option>
+                          {allSuppliers.map((s: any) => (
+                            <option key={s.id} value={s.id} style={{ backgroundColor: '#162d55' }}>{s.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      {allSuppliers.length === 0 && !showNewSupplier && (
+                        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>No hay proveedores — usa "+ Nuevo proveedor" para crear uno</p>
                       )}
                     </div>
 

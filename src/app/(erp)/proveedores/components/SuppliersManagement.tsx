@@ -11,6 +11,7 @@ import { Plus, X, Edit2, Phone, Mail, CreditCard, AlertCircle,
 interface Supplier {
   id: string; name: string; rfc: string | null; contact_name: string | null;
   phone: string | null; email: string | null; address: string | null;
+  street?: string; colonia?: string; postal_code?: string; city?: string; state_region?: string;
   payment_terms: string; credit_limit: number; notes: string | null; active: boolean;
   balance_pendiente?: number; total_compras?: number; total_pagado?: number;
   total_credito?: number; ingredients_count?: number;
@@ -34,7 +35,8 @@ const PAYMENT_METHODS = [
 ];
 const EMPTY_SUP: Partial<Supplier> = {
   name: '', rfc: '', contact_name: '', phone: '', email: '',
-  address: '', payment_terms: 'contado', credit_limit: 0, notes: '',
+  address: '', street: '', colonia: '', postal_code: '', city: '', state_region: '',
+  payment_terms: 'contado', credit_limit: 0, notes: '',
 };
 
 const fmt = (n: number) => n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -46,7 +48,15 @@ function SupplierModal({ supplier, onClose, onSaved }: {
 }) {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
-  const [form, setForm] = useState<Partial<Supplier>>(supplier ?? EMPTY_SUP);
+  const [form, setForm] = useState<Partial<Supplier>>(() => {
+    if (!supplier) return EMPTY_SUP;
+    // Si no tiene campos estructurados pero sí address, intentar parsear
+    if (supplier.address && !supplier.street) {
+      const parts = supplier.address.split(',').map(s => s.trim());
+      return { ...supplier, street: parts[0] ?? '', colonia: parts[1] ?? '', city: parts[2] ?? '' };
+    }
+    return supplier;
+  });
   const [saving, setSaving] = useState(false);
   const set = (k: keyof Supplier, v: any) => setForm(p => ({ ...p, [k]: v }));
 
@@ -57,7 +67,11 @@ function SupplierModal({ supplier, onClose, onSaved }: {
       tenant_id: getTenantId(), name: form.name!.trim(),
       rfc: form.rfc?.trim() || null, contact_name: form.contact_name?.trim() || null,
       phone: form.phone?.trim() || null, email: form.email?.trim() || null,
-      address: form.address?.trim() || null, payment_terms: form.payment_terms ?? 'contado',
+      address: [form.street, form.colonia, form.postal_code, form.city, form.state_region].filter(Boolean).join(', ') || form.address?.trim() || null,
+      street: form.street?.trim() || null, colonia: form.colonia?.trim() || null,
+      postal_code: form.postal_code?.trim() || null, city: form.city?.trim() || null,
+      state_region: form.state_region?.trim() || null,
+      payment_terms: form.payment_terms ?? 'contado',
       credit_limit: Number(form.credit_limit) || 0,
       notes: form.notes?.trim() || null, active: true,
       updated_at: new Date().toISOString(),
@@ -94,7 +108,31 @@ function SupplierModal({ supplier, onClose, onSaved }: {
             <F label="Teléfono / WhatsApp" k="phone" type="tel" placeholder="+52 55 1234 5678" />
             <F label="Email" k="email" type="email" placeholder="proveedor@ejemplo.com" />
           </div>
-          <F label="Dirección" k="address" placeholder="Calle, colonia, ciudad" />
+          {/* Dirección estructurada */}
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Dirección</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input value={form.street ?? ''} onChange={e => set('street', e.target.value)}
+                placeholder="Calle y número — Ej: Av. Insurgentes Sur 1234"
+                style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', boxSizing: 'border-box' as const }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: 8 }}>
+                <input value={form.colonia ?? ''} onChange={e => set('colonia', e.target.value)}
+                  placeholder="Colonia / Barrio"
+                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+                <input value={form.postal_code ?? ''} onChange={e => set('postal_code', e.target.value.replace(/\D/g,''))} maxLength={5}
+                  placeholder="C.P."
+                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', fontFamily: 'monospace' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input value={form.city ?? ''} onChange={e => set('city', e.target.value)}
+                  placeholder="Ciudad / Municipio"
+                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+                <input value={form.state_region ?? ''} onChange={e => set('state_region', e.target.value)}
+                  placeholder="Estado"
+                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+              </div>
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Condiciones de pago</label>
