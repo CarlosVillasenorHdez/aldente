@@ -573,9 +573,13 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
       if (ing.savedId) { ingredientIdMap[ing.name.toLowerCase()] = ing.savedId; continue; }
       // Verificar si ya existe
       const normalizedName = normalizeIngredientName(ing.name);
+      // Buscar con tildes y sin tildes para máxima cobertura de duplicados
       const { data: existArr } = await supabase.from('ingredients')
-        .select('id').eq('tenant_id', tid).ilike('name', normalizedName).limit(1);
-      if (existArr?.[0]?.id) { ingredientIdMap[ing.name.toLowerCase()] = existArr[0].id; continue; }
+        .select('id,name').eq('tenant_id', tid).eq('branch_id', effectiveBranchId ?? '').ilike('name', normalizedName).limit(1);
+      // Si no encontró con branch, buscar también sin branch filter (por si fue creado sin branch)
+      const existing = existArr?.[0] ?? (await supabase.from('ingredients')
+        .select('id').eq('tenant_id', tid).ilike('name', normalizedName).limit(1).then(r => r.data?.[0]));
+      if (existing?.id) { ingredientIdMap[ing.name.toLowerCase()] = existing.id; continue; }
       const { data, error } = await supabase.from('ingredients').insert({
         tenant_id: tid, name: normalizedName, category: ing.category,
         unit: ing.unit, cost: ing.costPerUnit, stock: 0,
@@ -606,18 +610,23 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         let ingId = ingredientIdMap[ri.ingredientName.toLowerCase()];
         if (!ingId) {
           const normRecipeName = normalizeIngredientName(ri.ingredientName);
-          const { data: foundArr } = await supabase.from('ingredients')
-            .select('id').eq('tenant_id', tid).ilike('name', normRecipeName).limit(1);
-          if (foundArr?.[0]?.id) { ingId = foundArr[0].id; }
-          else {
-            // Crear el ingrediente si no existe
+          // 1. Buscar en el mapa por nombre normalizado
+          ingId = ingredientIdMap[normRecipeName.toLowerCase()] ?? null;
+          // 2. Buscar en DB si no está en el mapa
+          if (!ingId) {
+            const { data: foundArr } = await supabase.from('ingredients')
+              .select('id').eq('tenant_id', tid).ilike('name', normRecipeName).limit(1);
+            ingId = foundArr?.[0]?.id ?? null;
+          }
+          // 3. Crear si no existe
+          if (!ingId) {
             const { data: created } = await supabase.from('ingredients').insert({
               tenant_id: tid, name: normRecipeName,
               category: ri.category || 'Otros', unit: ri.unit,
               cost: ri.costPerUnit, stock: 0, min_stock: 0, reorder_point: 0, lead_time_days: 2,
               branch_id: effectiveBranchId,
             }).select('id').single();
-            if (created?.id) { ingId = created.id; ingredientIdMap[ri.ingredientName.toLowerCase()] = ingId; }
+            if (created?.id) { ingId = created.id; ingredientIdMap[normRecipeName.toLowerCase()] = ingId; }
           }
         }
         if (!ingId) continue;
