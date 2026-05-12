@@ -159,6 +159,8 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   const [addQty, setAddQty] = useState<number>(0);
   const [addNotes, setAddNotes] = useState('');
   const [ingSearch, setIngSearch] = useState('');
+  const [equivalences, setEquivalences] = useState<{ingredientId:string;subUnit:string;factor:number;description:string}[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState('');
   const [simulatorPrice, setSimulatorPrice] = useState<number>(dish.price);
   const [laborCost, setLaborCost]       = useState<number>(0);
   const [overheadCost, setOverheadCost]   = useState<number>(0);
@@ -167,23 +169,48 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 
   const fetchRecipe = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('dish_recipes')
-      .select('*, ingredients(name, unit, cost)')
-        .eq('tenant_id', getTenantId())
-      .eq('dish_id', dish.id)
-      .order('created_at');
+    const tid = getTenantId();
+    const [{ data }, { data: equivData }] = await Promise.all([
+      supabase.from('dish_recipes')
+        .select('*, ingredients(id, name, unit, cost)')
+        .eq('tenant_id', tid).eq('dish_id', dish.id).order('created_at'),
+      supabase.from('unit_equivalences')
+        .select('ingredient_id, bulk_unit, sub_unit, conversion_factor')
+        .eq('tenant_id', tid),
+    ]);
+    // Mapa de equivalencias: ingredientId_subUnit → factor
+    const equivMap: Record<string, number> = {};
+    (equivData ?? []).forEach((e: any) => {
+      equivMap[`${e.ingredient_id}_${e.sub_unit}`] = Number(e.conversion_factor);
+    });
     if (data) {
-      setRecipe(data.map((r: any) => ({
-        id: r.id,
-        ingredientId: r.ingredient_id,
-        ingredientName: r.ingredients?.name ?? '',
-        isRequired: Boolean(r.is_required),
-        quantity: Number(r.quantity),
-        unit: r.unit || r.ingredients?.unit || '',
-        notes: r.notes ?? '',
-        costPerUnit: Number(r.ingredients?.cost ?? 0),
-      })));
+      setRecipe(data.map((r: any) => {
+        const baseCost = Number(r.ingredients?.cost ?? 0);
+        const baseUnit = r.ingredients?.unit ?? '';
+        const recipeUnit = r.unit || baseUnit;
+        // Si la unidad de la receta difiere de la unidad base, aplicar equivalencia
+        let costPerUnit = baseCost;
+        if (recipeUnit !== baseUnit) {
+          const factor = equivMap[`${r.ingredient_id}_${recipeUnit}`];
+          if (factor && factor > 0) {
+            // base_unit → sub_unit: 1 base = factor sub
+            // costo por sub_unit = baseCost / factor
+            costPerUnit = baseCost / factor;
+          }
+        }
+        return {
+          id: r.id,
+          ingredientId: r.ingredient_id,
+          ingredientName: r.ingredients?.name ?? '',
+          isRequired: Boolean(r.is_required),
+          quantity: Number(r.quantity),
+          unit: recipeUnit,
+          notes: r.notes ?? '',
+          costPerUnit,
+          baseUnit,
+          baseCost,
+        };
+      }));
     }
     setLoading(false);
   }, [dish.id]);
@@ -213,6 +240,10 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
       q.order('name').then(({ data }) => {
         if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       });
+      supabase.from('unit_equivalences').select('ingredient_id, sub_unit, sub_unit_description, conversion_factor').eq('tenant_id', tid)
+        .then(({ data: eq }) => {
+          if (eq) setEquivalences(eq.map((e: any) => ({ ingredientId: e.ingredient_id, subUnit: e.sub_unit, factor: Number(e.conversion_factor), description: e.sub_unit_description ?? e.sub_unit })));
+        });
     }
   }, [fetchRecipe, appUser?.tenantId, activeBranchId]);
 
@@ -285,6 +316,13 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 
   const handleAddIngredient = async () => {
     if (!selectedIngId || addQty <= 0) return;
+    // Calcular costPerUnit según la unidad seleccionada
+    const ingBase = allIngredients.find(i => i.id === selectedIngId);
+    const unitToUse = selectedUnit || ingBase?.unit || '';
+    const equivForUnit = equivalences.find(e => e.ingredientId === selectedIngId && e.subUnit === unitToUse);
+    const computedCostPerUnit = equivForUnit
+      ? (ingBase?.cost ?? 0) / equivForUnit.factor  // ej: $25/kg ÷ 5pz/kg = $5/pz
+      : (ingBase?.cost ?? 0);
     const already = recipe.find((r) => r.ingredientId === selectedIngId);
     if (already) return;
     setSaving(true);
@@ -293,7 +331,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
         dish_id: dish.id,
         ingredient_id: selectedIngId,
         quantity: addQty,
-        unit: selectedIng?.unit ?? '',
+        unit: unitToUse,
         notes: addNotes,
       });
       if (error) throw error;
@@ -376,7 +414,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                 <div className="relative">
                   <select
                     value={selectedIngId}
-                    onChange={(e) => { setSelectedIngId(e.target.value); setAddQty(0); }}
+                    onChange={(e) => { setSelectedIngId(e.target.value); setAddQty(0); const ing = allIngredients.find(i => i.id === e.target.value); setSelectedUnit(ing?.unit ?? ''); }}
                     className="w-full px-3 py-2 rounded-lg text-sm outline-none appearance-none"
                     style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}
                   >
@@ -388,9 +426,26 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                   <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
                 </div>
               </div>
+              {/* Selector de unidad con equivalencias */}
+              {selectedIng && (() => {
+                const altUnits = equivalences.filter(e => e.ingredientId === selectedIng.id);
+                if (altUnits.length === 0) return null;
+                return (
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Unidad de la receta</label>
+                    <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}>
+                      <option value={selectedIng.unit}>{selectedIng.unit} (unidad base)</option>
+                      {altUnits.map(eu => (
+                        <option key={eu.subUnit} value={eu.subUnit}>{eu.description || eu.subUnit} (1 {eu.subUnit} = {(1/eu.factor).toFixed(4)} {selectedIng.unit})</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
               <div>
                 <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Cantidad {selectedIng ? `(${selectedIng.unit})` : ''}
+                  Cantidad {selectedUnit ? `(${selectedUnit})` : selectedIng ? `(${selectedIng.unit})` : ''}
                   {selectedIng && addQty > 0 && (
                     <span className="ml-2" style={{ color: '#f59e0b' }}>= ${(selectedIng.cost * addQty).toFixed(2)}</span>
                   )}
@@ -775,6 +830,8 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const [addQty, setAddQty] = useState(0);
   const [ingSearch, setIngSearch] = useState('');
   const [ingDropOpen, setIngDropOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState('');
+  const [equivalences, setEquivalences] = useState<{ingredientId:string;subUnit:string;factor:number;description:string}[]>([]);
   const [finalPrice, setFinalPrice] = useState(dish.price || 0);
   const [targetMargin, setTargetMargin] = useState(65); // % default target
 
@@ -787,6 +844,8 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       setLoading(false);
     });
+    supabase.from('unit_equivalences').select('ingredient_id, sub_unit, sub_unit_description, conversion_factor').eq('tenant_id', tid)
+      .then(({ data: eq }) => { if (eq) setEquivalences(eq.map((e: any) => ({ ingredientId: e.ingredient_id, subUnit: e.sub_unit, factor: Number(e.conversion_factor), description: e.sub_unit_description ?? e.sub_unit }))); });
   }, [appUser?.tenantId, activeBranchId]);
 
   const totalIngCost = recipe.reduce((s, r) => s + (r.costPerUnit ?? 0) * r.quantity, 0);
@@ -803,17 +862,20 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const handleAdd = async () => {
     if (!selectedIngId || addQty <= 0) return;
     setSaving(true);
+    const unitToUse = selectedUnit || selectedIng?.unit || '';
+    const equivForUnit = equivalences.find((e: any) => e.ingredientId === selectedIngId && e.subUnit === unitToUse);
+    const computedCost = equivForUnit ? (selectedIng?.cost ?? 0) / equivForUnit.factor : (selectedIng?.cost ?? 0);
     const { error } = await supabase.from('dish_recipes').insert({ tenant_id: getTenantId(),
-      dish_id: dish.id, ingredient_id: selectedIngId, quantity: addQty, unit: selectedIng?.unit ?? '', notes: '',
+      dish_id: dish.id, ingredient_id: selectedIngId, quantity: addQty, unit: unitToUse, notes: '',
     });
     if (!error) {
       setRecipe(prev => [...prev, {
         id: Date.now().toString(), ingredientId: selectedIngId,
         ingredientName: selectedIng?.name ?? '', isRequired: false,
-        quantity: addQty, unit: selectedIng?.unit ?? '',
-        notes: '', costPerUnit: selectedIng?.cost ?? 0,
+        quantity: addQty, unit: unitToUse,
+        notes: '', costPerUnit: computedCost,
       }]);
-      setSelectedIngId(''); setAddQty(0); setIngSearch(''); setIngDropOpen(false);
+      setSelectedIngId(''); setAddQty(0); setIngSearch(''); setIngDropOpen(false); setSelectedUnit('');
     }
     setSaving(false);
   };
