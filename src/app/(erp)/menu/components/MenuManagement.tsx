@@ -147,6 +147,8 @@ function DeleteConfirmModal({ dish, onConfirm, onCancel }: { dish: Dish; onConfi
 
 function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: () => void; onPriceUpdate: (dishId: string, newPrice: number) => void }) {
   const supabase = createClient();
+  const { appUser } = useAuth();
+  const { activeBranchId } = useBranch();
   const { log: auditLog } = useAudit();
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
@@ -202,10 +204,15 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   useEffect(() => {
     fetchRecipe();
     fetchCostBreakdown();
-    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
-      if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
-    });
-  }, [fetchRecipe]);
+    const tid = appUser?.tenantId ?? getTenantId();
+    if (tid) {
+      let q = supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', tid);
+      if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`);
+      q.order('name').then(({ data }) => {
+        if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
+      });
+    }
+  }, [fetchRecipe, appUser?.tenantId, activeBranchId]);
 
   const selectedIng = allIngredients.find((i) => i.id === selectedIngId);
 
@@ -745,6 +752,8 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
 // ─── Inline Recipe Editor (wizard step 2) ────────────────────────────────────
 function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPrice: number) => void }) {
   const supabase = createClient();
+  const { appUser } = useAuth();
+  const { activeBranchId } = useBranch();
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
   const [allIngredients, setAllIngredients] = useState<{ id: string; name: string; unit: string; category: string; cost: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -757,11 +766,15 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const [targetMargin, setTargetMargin] = useState(65); // % default target
 
   useEffect(() => {
-    supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', getTenantId()).order('name').then(({ data }) => {
+    const tid = appUser?.tenantId ?? getTenantId();
+    if (!tid) { setLoading(false); return; }
+    let q = supabase.from('ingredients').select('id, name, unit, category, cost').eq('tenant_id', tid);
+    if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`);
+    q.order('name').then(({ data }) => {
       if (data) setAllIngredients(data.map((i: any) => ({ id: i.id, name: i.name, unit: i.unit, category: i.category, cost: Number(i.cost ?? 0) })));
       setLoading(false);
     });
-  }, []);
+  }, [appUser?.tenantId, activeBranchId]);
 
   const totalIngCost = recipe.reduce((s, r) => s + (r.costPerUnit ?? 0) * r.quantity, 0);
   // Suggested price based on target margin: price = cost / (1 - margin%)
