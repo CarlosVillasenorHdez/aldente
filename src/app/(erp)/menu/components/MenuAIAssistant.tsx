@@ -452,6 +452,36 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  // ── Normalización de nombres de ingredientes ────────────────────────────────
+  // Evita duplicados como "Sal de mar" vs "Sal de cocina" → "Sal"
+  function normalizeIngredientName(name: string): string {
+    const n = name.toLowerCase().trim();
+    // Sal
+    if (/\bsal\b/.test(n)) return 'Sal';
+    // Pimienta
+    if (/\bpimienta\b/.test(n)) return 'Pimienta';
+    // Aceite
+    if (/\baceite\b/.test(n)) return 'Aceite';
+    // Lechuga
+    if (/\blechuga\b/.test(n)) return 'Lechuga';
+    // Cebolla
+    if (/\bcebolla\b/.test(n)) return 'Cebolla';
+    // Café
+    if (/\bcaf[eé]\b/.test(n)) return 'Café';
+    // Canela
+    if (/\bcanela\b/.test(n)) return 'Canela';
+    // Chile
+    if (/\bchile\b/.test(n) && !/\bchilaquil/.test(n)) return 'Chile';
+    // Tomate / jitomate
+    if (/\b(tomate|jitomate)\b/.test(n)) return 'Tomate';
+    // Pollo
+    if (/\bpollo\b/.test(n) && !/\bboneless|\balitas/.test(n)) return 'Pollo';
+    // Queso (no normalizar si es muy específico del platillo)
+    if (/\bqueso\b/.test(n) && !/\btakis|\bdedos/.test(n)) return 'Queso';
+    // Devolver capitalizado si no hay match
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  }
+
   // ── PASO 3: guardar todo ─────────────────────────────────────────────────────
 
   const handleSaveAll = useCallback(async () => {
@@ -463,11 +493,12 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     for (const ing of ingredients) {
       if (ing.savedId) { ingredientIdMap[ing.name.toLowerCase()] = ing.savedId; continue; }
       // Verificar si ya existe
+      const normalizedName = normalizeIngredientName(ing.name);
       const { data: existArr } = await supabase.from('ingredients')
-        .select('id').eq('tenant_id', tid).ilike('name', ing.name).limit(1);
+        .select('id').eq('tenant_id', tid).ilike('name', normalizedName).limit(1);
       if (existArr?.[0]?.id) { ingredientIdMap[ing.name.toLowerCase()] = existArr[0].id; continue; }
       const { data, error } = await supabase.from('ingredients').insert({
-        tenant_id: tid, name: ing.name, category: ing.category,
+        tenant_id: tid, name: normalizedName, category: ing.category,
         unit: ing.unit, cost: ing.costPerUnit, stock: 0,
         min_stock: 0, reorder_point: 0, // El dueño configura los mínimos en Inventario
         notes: ing.notes || null, lead_time_days: 2,
@@ -495,13 +526,14 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         // Buscar el ingrediente en el mapa o en la DB
         let ingId = ingredientIdMap[ri.ingredientName.toLowerCase()];
         if (!ingId) {
+          const normRecipeName = normalizeIngredientName(ri.ingredientName);
           const { data: foundArr } = await supabase.from('ingredients')
-            .select('id').eq('tenant_id', tid).ilike('name', ri.ingredientName).limit(1);
+            .select('id').eq('tenant_id', tid).ilike('name', normRecipeName).limit(1);
           if (foundArr?.[0]?.id) { ingId = foundArr[0].id; }
           else {
             // Crear el ingrediente si no existe
             const { data: created } = await supabase.from('ingredients').insert({
-              tenant_id: tid, name: ri.ingredientName,
+              tenant_id: tid, name: normRecipeName,
               category: ri.category || 'Otros', unit: ri.unit,
               cost: ri.costPerUnit, stock: 0, min_stock: 0, reorder_point: 0, lead_time_days: 2,
               branch_id: activeBranchId ?? null,

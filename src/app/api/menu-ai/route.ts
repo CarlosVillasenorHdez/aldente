@@ -195,14 +195,22 @@ Restaurante: ${body.restaurantType ?? 'restaurante casual mexicano'}
 REGLAS IMPORTANTES:
 - Ingredientes realistas para UNA PORCIÓN
 - Si es bebida preparada (licuado, agua fresca, jugo, café, cóctel): ingredientes para prepararla, sin marcas comerciales
-- REGLAS DE CANTIDADES Y UNIDADES (crítico):
-  * Sal, pimienta, especias: 1-5 g (NO kg) → quantity=2, unit="g"
-  * Cebolla, tomate, verduras: 20-80 g → quantity=0.05, unit="kg"  
+- NOMBRES DE INGREDIENTES — usa el nombre MÁS SIMPLE:
+  * "Sal de mar", "Sal de cocina" → "Sal"
+  * "Pimienta negra molida" → "Pimienta"
+  * "Lechuga romana" → "Lechuga"
+  * "Cebolla blanca" → "Cebolla"
+  * "Aceite vegetal" → "Aceite"
+  * "Pechuga de pollo" → "Pollo"
+  Usa nombres genéricos que coincidan con el inventario del restaurante.
+- CANTIDADES Y UNIDADES (crítico):
+  * Sal, pimienta, especias: 1-5 g → quantity=2, unit="g"
+  * Cebolla, tomate, verduras: 20-80 g → quantity=0.05, unit="kg"
   * Carne, pollo: 100-200 g → quantity=0.15, unit="kg"
   * Tortillas: 2-4 piezas → quantity=3, unit="pz"
   * Aceite: 5-20 ml → quantity=0.015, unit="lt"
-  * NUNCA pongas más de 1 kg de sal, pimienta o especias en una receta
-  * NUNCA pongas más de 5 kg de ningún ingrediente en una porción
+  * NUNCA más de 1 kg de sal/pimienta/especias en una receta
+  * NUNCA más de 5 kg de ningún ingrediente en una porción
 - PRECIOS MAYORISTAS MXN 2024:
   * Carnes: $150-350/kg | Verduras: $15-60/kg | Quesos: $80-200/kg
   * Pan/tortilla: $2-8/pz | Aceite: $30-60/lt | Especias: $0.05-0.20/g
@@ -234,23 +242,33 @@ JSON exacto:
         .join('\n');
 
       const prompt = `Lista maestra de insumos para restaurante de ${body.restaurantType ?? 'comida mexicana'}.
-Consolida ingredientes repetidos. Menú:
-${dishList}
+Menú: ${dishList}
 
-REGLAS DE UNIDADES Y PRECIOS (México 2024, precios mayorista):
-- Carnes: unidad=kg, precio típico $150-400/kg
-- Verduras: unidad=kg, precio típico $15-60/kg
-- Lácteos (queso): unidad=kg, precio típico $80-200/kg
-- Especias/sal: unidad=g, precio típico $0.05-0.20/g
-- Aceite: unidad=l, precio típico $30-60/l
-- Tortillas: unidad=pz, precio típico $1-3/pz
-- Limón: unidad=pz, precio típico $1-3/pz
-- NUNCA pongas precio de kg en unidad g (ej: $180/g es incorrecto, debe ser $180/kg)
+REGLA MÁS IMPORTANTE — SIMPLICIDAD:
+Usa el nombre MÁS GENÉRICO posible para cada ingrediente.
+EJEMPLOS DE SIMPLIFICACIÓN OBLIGATORIA:
+- "Sal de mar", "Sal de cocina", "Sal gruesa", "Sal fina" → "Sal"
+- "Café molido", "Café espresso", "Café grano", "Café filtro" → "Café"
+- "Canela molida", "Canela en polvo", "Canela entera" → "Canela"
+- "Lechuga romana", "Lechuga iceberg", "Lechuga orejona" → "Lechuga"
+- "Cebolla blanca", "Cebolla morada", "Cebolla de cambray" → "Cebolla"
+- "Aceite vegetal", "Aceite de oliva", "Aceite de girasol" → "Aceite"
+- "Pimienta negra", "Pimienta molida", "Pimienta blanca" → "Pimienta"
+- "Chile jalapeño", "Chile serrano", "Chile güero" → "Chile"
+- "Queso Oaxaca", "Queso manchego", "Queso amarillo" → "Queso" (salvo que sea distintivo del platillo)
+- "Pechuga de pollo", "Muslo de pollo", "Pollo entero" → "Pollo"
+Si el mismo ingrediente aparece con 2+ nombres distintos → USA SOLO UNO, el más simple.
+NO dupliques ingredientes con nombres parecidos.
+
+UNIDADES Y PRECIOS (México 2024 mayorista):
+- Carnes/pollo: kg, $150-350/kg | Verduras: kg, $15-60/kg
+- Lácteos/queso: kg, $80-200/kg | Especias: g, $0.05-0.20/g
+- Aceite: lt, $30-60/lt | Tortillas/pan: pz, $1-8/pz
 
 Categorías: Carnes y Aves|Mariscos|Verduras|Frutas|Lácteos|Panadería|Pastas y Granos|Especias|Aceites y Salsas|Bebidas|Congelados|Empaques|Limpieza|Otros
 
 JSON minificado:
-{"ingredients":[{"name":"","category":"","unit":"kg","costPerUnit":0,"minStock":1,"reorderPoint":2,"notes":""}]}`;
+{"ingredients":[{"name":"","category":"","unit":"kg","costPerUnit":0,"minStock":0,"reorderPoint":0,"notes":""}]}`;
 
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
