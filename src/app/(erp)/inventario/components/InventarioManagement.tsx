@@ -1989,6 +1989,53 @@ export default function InventarioManagement() {
                   value={form.notes} onChange={e => updateForm('notes', e.target.value)}
                   placeholder="Instrucciones de almacenamiento, observaciones..." />
               </div>
+
+              {/* ── Equivalencias de unidad — solo al editar ── */}
+              {editingId && (
+                <div className="col-span-2">
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16, marginTop: 4 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                      <div>
+                        <p style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Unidades alternativas</p>
+                        <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>Ej: 5 pz = 1 kg — para usar piezas en recetas</p>
+                      </div>
+                      <button onClick={() => {
+                        setEquivEditId(null);
+                        setEquivForm({ ...emptyEquivForm(), ingredientId: editingId });
+                        setEquivModalOpen(true);
+                      }} style={{ fontSize:11, padding:'4px 12px', borderRadius:8, border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.08)', color:'#f59e0b', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}>
+                        + Agregar
+                      </button>
+                    </div>
+                    {equivalences.filter(e => e.ingredientId === editingId).length === 0 ? (
+                      <p style={{ color:'rgba(255,255,255,0.25)', fontSize:12, fontStyle:'italic', padding:'6px 0' }}>
+                        Sin unidades alternativas configuradas.
+                      </p>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        {equivalences.filter(e => e.ingredientId === editingId).map(eq => (
+                          <div key={eq.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', background:'rgba(245,158,11,0.06)', borderRadius:10, border:'1px solid rgba(245,158,11,0.2)' }}>
+                            <div>
+                              <span style={{ fontSize:13, fontWeight:700, color:'#f59e0b' }}>
+                                1 {eq.bulkUnit} = {eq.conversionFactor.toFixed(eq.conversionFactor % 1 === 0 ? 0 : 3)} {eq.subUnit}
+                              </span>
+                              <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginLeft:8 }}>
+                                · 1 {eq.subUnit} = {(1/eq.conversionFactor).toFixed(4)} {eq.bulkUnit}
+                              </span>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                              <button onClick={() => { setEquivEditId(eq.id); setEquivForm({ ingredientId: eq.ingredientId ?? '', bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, qtyA: 1, notes: eq.notes }); setEquivModalOpen(true); }}
+                                style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', cursor:'pointer', fontSize:11 }}>✏️</button>
+                              <button onClick={() => setDeleteEquivId(eq.id)}
+                                style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(239,68,68,0.2)', color:'rgba(239,68,68,0.6)', cursor:'pointer', fontSize:11 }}>🗑️</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor: '#243f72' }}>
               <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>
