@@ -1567,6 +1567,49 @@ export default function InventarioManagement() {
                 )}
               </div>
 
+              {/* ── Equivalencias de este ingrediente ── */}
+              <div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <p style={{ fontSize:'11px', fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                    Unidades alternativas
+                  </p>
+                  <button onClick={() => {
+                    setEquivEditId(null);
+                    setEquivForm({ ...emptyEquivForm(), ingredientId: detailIngId ?? '' });
+                    setEquivModalOpen(true);
+                  }} style={{ fontSize:11, padding:'3px 10px', borderRadius:8, border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.08)', color:'#f59e0b', cursor:'pointer', fontWeight:600 }}>
+                    + Agregar
+                  </button>
+                </div>
+                {equivalences.filter(e => e.ingredientId === detailIngId).length === 0 ? (
+                  <p style={{ color:'rgba(255,255,255,0.25)', fontSize:12, fontStyle:'italic', padding:'8px 0' }}>
+                    Sin unidades alternativas. Ej: 5 pz = 1 kg, para usar piezas en recetas.
+                  </p>
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {equivalences.filter(e => e.ingredientId === detailIngId).map(eq => (
+                      <div key={eq.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', background:'rgba(245,158,11,0.06)', borderRadius:10, border:'1px solid rgba(245,158,11,0.2)' }}>
+                        <div>
+                          <span style={{ fontSize:13, fontWeight:700, color:'#f59e0b' }}>
+                            1 {eq.bulkUnit} = {eq.conversionFactor.toFixed(eq.conversionFactor % 1 === 0 ? 0 : 3)} {eq.subUnit}
+                          </span>
+                          <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginLeft:8 }}>
+                            · 1 {eq.subUnit} = {(1/eq.conversionFactor).toFixed(4)} {eq.bulkUnit}
+                          </span>
+                          {eq.bulkDescription && <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2 }}>{eq.bulkDescription}</p>}
+                        </div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => { setEquivEditId(eq.id); setEquivForm({ ingredientId: eq.ingredientId ?? '', bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, qtyA: 1, notes: eq.notes }); setEquivModalOpen(true); }}
+                            style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', cursor:'pointer', fontSize:11 }}>✏️</button>
+                          <button onClick={() => setDeleteEquivId(eq.id)}
+                            style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(239,68,68,0.2)', color:'rgba(239,68,68,0.6)', cursor:'pointer', fontSize:11 }}>🗑️</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Movement history */}
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Historial de movimientos</p>
@@ -2258,12 +2301,18 @@ export default function InventarioManagement() {
               {/* Ingrediente */}
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Ingrediente *</label>
-                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={equivForm.ingredientId} onChange={e => setEquivForm(p => ({ ...p, ingredientId: e.target.value }))}>
-                  <option value="" style={{ backgroundColor: '#162d55' }}>Seleccionar ingrediente...</option>
-                  {ingredients.map(i => <option key={i.id} value={i.id} style={{ backgroundColor: '#162d55' }}>{i.name} ({i.unit})</option>)}
-                </select>
+                {detailIngId && equivForm.ingredientId === detailIngId ? (
+                  <div style={{ padding:'8px 12px', borderRadius:8, background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.2)', fontSize:13, color:'#f59e0b', fontWeight:600 }}>
+                    {ingredients.find(i => i.id === detailIngId)?.name ?? 'Ingrediente'} ({ingredients.find(i => i.id === detailIngId)?.unit ?? ''})
+                  </div>
+                ) : (
+                  <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                    value={equivForm.ingredientId} onChange={e => setEquivForm(p => ({ ...p, ingredientId: e.target.value }))}>
+                    <option value="" style={{ backgroundColor: '#162d55' }}>Seleccionar ingrediente...</option>
+                    {ingredients.map(i => <option key={i.id} value={i.id} style={{ backgroundColor: '#162d55' }}>{i.name} ({i.unit})</option>)}
+                  </select>
+                )}
               </div>
               {/* Nueva UI: A unidades = B unidades */}
               <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '16px' }}>
