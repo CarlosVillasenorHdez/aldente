@@ -149,6 +149,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   const supabase = createClient();
   const { appUser } = useAuth();
   const { activeBranchId } = useBranch();
+  const isAdmin = appUser?.appRole === 'admin';
   const { log: auditLog } = useAudit();
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
@@ -765,6 +766,7 @@ function InlineRecipeEditor({ dish, onFinish }: { dish: Dish; onFinish: (finalPr
   const supabase = createClient();
   const { appUser } = useAuth();
   const { activeBranchId } = useBranch();
+  const isAdmin = appUser?.appRole === 'admin';
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
   const [allIngredients, setAllIngredients] = useState<{ id: string; name: string; unit: string; category: string; cost: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1339,6 +1341,8 @@ export default function MenuManagement() {
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [deletingDish, setDeletingDish] = useState<Dish | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearMenuText, setClearMenuText] = useState('');
+  const CLEAR_MENU_PHRASE = 'BORRAR MENÚ';
   const [recipeDish, setRecipeDish] = useState<Dish | null>(null);
   const [modifierDish, setModifierDish] = useState<Dish | null>(null);
   const [recipeCounts, setRecipeCounts] = useState<Record<string, number>>({});
@@ -1347,6 +1351,7 @@ export default function MenuManagement() {
 
   const { appUser } = useAuth();
   const { activeBranchId } = useBranch();
+  const isAdmin = appUser?.appRole === 'admin';
   const supabase = createClient();
   const [priceLists, setPriceLists] = useState<{
     id: string; name: string; multiplier: number; active: boolean;
@@ -1470,6 +1475,8 @@ export default function MenuManagement() {
   };
 
   const handleClearMenu = async () => {
+    if (!isAdmin) { toast.error('Solo el Administrador puede borrar el menú'); return; }
+    if (clearMenuText !== CLEAR_MENU_PHRASE) return;
     const tenantId = appUser?.tenantId ?? getTenantId();
     if (!tenantId) return;
     // Borrar platillos globales (branch_id null) Y los de la sucursal activa
@@ -1603,7 +1610,7 @@ export default function MenuManagement() {
             <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
           </label>
           {dishes.length > 0 && (
-            <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Limpiar todo el menú">
+            <button onClick={() => { setShowClearConfirm(true); setClearMenuText(''); }} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Limpiar todo el menú">
               🗑️ Limpiar menú
             </button>
           )}
@@ -1755,19 +1762,36 @@ export default function MenuManagement() {
       {deletingDish && <DeleteConfirmModal dish={deletingDish} onConfirm={handleDelete} onCancel={() => setDeletingDish(null)} />}
 
       {showClearConfirm && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
-          <div style={{ background:'#1a2535',borderRadius:16,padding:28,maxWidth:380,width:'100%',border:'1px solid rgba(239,68,68,0.3)' }}>
-            <div style={{ fontSize:40,textAlign:'center',marginBottom:16 }}>⚠️</div>
-            <h2 style={{ color:'#f1f5f9',fontSize:18,fontWeight:700,textAlign:'center',marginBottom:8 }}>¿Limpiar todo el menú?</h2>
-            <p style={{ color:'rgba(255,255,255,0.5)',fontSize:13,textAlign:'center',marginBottom:24 }}>
-              Se eliminarán todos los platillos{activeBranchId ? ' de esta sucursal' : ' globales'}. Las recetas e ingredientes no se verán afectados.
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:20 }}>
+          <div style={{ background:'#1a2535',borderRadius:16,padding:28,maxWidth:420,width:'100%',border:'2px solid rgba(239,68,68,0.4)' }}>
+            <div style={{ fontSize:48,textAlign:'center',marginBottom:12 }}>⚠️</div>
+            <h2 style={{ color:'#ef4444',fontSize:18,fontWeight:800,textAlign:'center',marginBottom:8 }}>Acción irreversible</h2>
+            <p style={{ color:'rgba(255,255,255,0.6)',fontSize:13,textAlign:'center',marginBottom:6 }}>
+              Se eliminarán <strong style={{color:'#f1f5f9'}}>todos los platillos</strong> del menú.
             </p>
+            <p style={{ color:'rgba(255,255,255,0.4)',fontSize:12,textAlign:'center',marginBottom:20 }}>
+              Solo el Administrador puede realizar esta acción. No se puede deshacer.
+            </p>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.5)',display:'block',marginBottom:6 }}>
+                Escribe exactamente: <span style={{color:'#ef4444',fontFamily:'monospace'}}>{CLEAR_MENU_PHRASE}</span>
+              </label>
+              <input
+                value={clearMenuText}
+                onChange={e => setClearMenuText(e.target.value.toUpperCase())}
+                placeholder={CLEAR_MENU_PHRASE}
+                style={{ width:'100%',padding:'10px 12px',borderRadius:8,border:`1px solid ${clearMenuText===CLEAR_MENU_PHRASE?'#ef4444':'rgba(255,255,255,0.15)'}`,background:'rgba(255,255,255,0.05)',color:'#f1f5f9',fontSize:13,fontFamily:'monospace',boxSizing:'border-box' as const }}
+              />
+            </div>
             <div style={{ display:'flex',gap:10 }}>
-              <button onClick={() => setShowClearConfirm(false)} style={{ flex:1,padding:'10px',borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:13 }}>
+              <button onClick={() => { setShowClearConfirm(false); setClearMenuText(''); }}
+                style={{ flex:1,padding:'11px',borderRadius:10,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontSize:13 }}>
                 Cancelar
               </button>
-              <button onClick={handleClearMenu} style={{ flex:1,padding:'10px',borderRadius:10,border:'none',background:'#ef4444',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700 }}>
-                Sí, limpiar todo
+              <button onClick={handleClearMenu}
+                disabled={clearMenuText !== CLEAR_MENU_PHRASE}
+                style={{ flex:1,padding:'11px',borderRadius:10,border:'none',background:clearMenuText===CLEAR_MENU_PHRASE?'#ef4444':'rgba(239,68,68,0.2)',color:clearMenuText===CLEAR_MENU_PHRASE?'#fff':'rgba(255,255,255,0.3)',cursor:clearMenuText===CLEAR_MENU_PHRASE?'pointer':'not-allowed',fontSize:13,fontWeight:700 }}>
+                Sí, borrar todo
               </button>
             </div>
           </div>
