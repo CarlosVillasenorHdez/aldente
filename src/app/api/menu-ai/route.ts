@@ -170,18 +170,28 @@ JSON minificado (SOLO platillos con modificadores reales):
     if (mode === 'gen_recipe') {
       // ── Modo 2: generar receta para un platillo específico ────────────────
 
-      // Detectar bebidas comerciales embotelladas/enlatadas — receta = 1 ingrediente
+      // Detectar productos comprados (no preparados) — receta = 1 ingrediente
       const dishNameLower = (body.dishName ?? '').toLowerCase();
+      const restaurantTypeLower = (body.restaurantType ?? '').toLowerCase();
+      const isPasteleria = /pastel|pastelería|panadería|bakery|repostería/.test(restaurantTypeLower);
+
       const isCommercialDrink =
         body.dishCategory === 'Bebidas' && (
-          // Marcas comerciales conocidas
           /coca.?cola|pepsi|sprite|fanta|7.?up|sidral|mundet|peñafiel|squirt|jarritos|red.?bull|monster|powerade|gatorade|del.?valle|jumex|boing|minute.?maid|fresca|lift/.test(dishNameLower) ||
-          // Tipos de bebida que se sirven de botella/lata
           /cerveza|michelada base|agua mineral|agua tónica|refresco|soda|tónica|kombucha|té.?(listo|frio|helado)/.test(dishNameLower)
         );
 
-      const prompt = isCommercialDrink
-        ? `La bebida "${body.dishName}" es un producto comercial embotellado o enlatado que se compra al distribuidor.
+      // Postres comprados: cheesecake, pastel, pay, galletas, brownie, pan dulce
+      // a menos que sea una pastelería
+      const isCommercialDessert = !isPasteleria &&
+        body.dishCategory === 'Postres' && (
+          /cheesecake|pay |pastel |rebanada|brownie|galleta|dona|éclair|muffin|cupcake|macaron|profiterol|triffle|tiramisú|pan dulce/.test(dishNameLower)
+        );
+
+      const isCommercialProduct = isCommercialDrink || isCommercialDessert;
+
+      const prompt = isCommercialProduct
+        ? `El producto "${body.dishName}" es un producto comercial embotellado o enlatado que se compra al distribuidor.
 La receta tiene exactamente 1 ingrediente: la botella, lata o caja del producto.
 Precio de venta: $${body.price ?? 30} MXN.
 
