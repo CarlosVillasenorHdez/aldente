@@ -157,6 +157,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
   const [selectedIngId, setSelectedIngId] = useState('');
   const [addQty, setAddQty] = useState<number>(0);
   const [addNotes, setAddNotes] = useState('');
+  const [ingSearch, setIngSearch] = useState('');
   const [simulatorPrice, setSimulatorPrice] = useState<number>(dish.price);
   const [laborCost, setLaborCost]       = useState<number>(0);
   const [overheadCost, setOverheadCost]   = useState<number>(0);
@@ -332,7 +333,9 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
     setRecipe((prev) => prev.filter((r) => r.id !== recipeId));
   };
 
-  const availableIngredients = allIngredients.filter((i) => !recipe.find((r) => r.ingredientId === i.id));
+  const availableIngredients = allIngredients
+    .filter((i) => !recipe.find((r) => r.ingredientId === i.id))
+    .filter((i) => !ingSearch || i.name.toLowerCase().includes(ingSearch.toLowerCase()) || i.category.toLowerCase().includes(ingSearch.toLowerCase()));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -361,6 +364,14 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Ingrediente</label>
+                <input
+                  type="text"
+                  placeholder="🔍 Buscar ingrediente..."
+                  value={ingSearch}
+                  onChange={e => { setIngSearch(e.target.value); setSelectedIngId(''); }}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none mb-1"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'white' }}
+                />
                 <div className="relative">
                   <select
                     value={selectedIngId}
