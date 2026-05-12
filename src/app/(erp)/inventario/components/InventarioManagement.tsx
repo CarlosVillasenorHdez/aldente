@@ -1825,16 +1825,15 @@ export default function InventarioManagement() {
                   </p>
                 )}
               </div>
-              {/* Presentación de compra + equivalencia + costo integrado */}
+              {/* Presentación de compra + costo */}
               <div className="col-span-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: '12px', padding: '16px' }}>
                 <div className="flex items-start gap-2 mb-3">
                   <span style={{ fontSize: '16px', flexShrink:0 }}>📦</span>
                   <div>
-                    <p className="text-xs font-bold" style={{ color: '#f59e0b' }}>Presentación de compra y costo</p>
+                    <p className="text-xs font-bold" style={{ color: '#f59e0b' }}>¿Cómo compras este ingrediente?</p>
                     <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      Si compras por bolsas, cajas u otra presentación, configúralo aquí. El sistema calculará el costo unitario
-                      y sabrá cuántas presentaciones quedan en stock.
-                      <strong style={{ color: 'rgba(255,255,255,0.6)' }}> La unidad de stock siempre es la mínima ({form.unit ? UNIT_LABELS[form.unit] || form.unit : '?'}).</strong>
+                      Si compras por costal, caja, bolsa, etc., configúralo aquí para calcular el costo por {form.unit ? UNIT_LABELS[form.unit] || form.unit : 'unidad'} automáticamente.
+                      Las equivalencias para recetas (ej: 5 pz = 1 kg) se configuran abajo en <strong style={{ color: '#f59e0b' }}>Unidades alternativas</strong>.
                     </p>
                   </div>
                 </div>
@@ -1996,8 +1995,8 @@ export default function InventarioManagement() {
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16, marginTop: 4 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                       <div>
-                        <p style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Unidades alternativas</p>
-                        <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>Ej: 5 pz = 1 kg — para usar piezas en recetas</p>
+                        <p style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Unidades para recetas</p>
+                        <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>Define equivalencias para usar en recetas. Ej: 5 pz = 1 kg → receta puede usar piezas o kg</p>
                       </div>
                       <button onClick={() => {
                         setEquivEditId(null);
