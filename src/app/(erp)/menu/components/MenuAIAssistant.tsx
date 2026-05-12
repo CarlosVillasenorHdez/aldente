@@ -453,33 +453,66 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   }, [step]);
 
   // ── Normalización de nombres de ingredientes ────────────────────────────────
-  // Evita duplicados como "Sal de mar" vs "Sal de cocina" → "Sal"
-  function normalizeIngredientName(name: string): string {
-    const n = name.toLowerCase().trim();
+  // Diccionario exhaustivo: variante → nombre canónico
+  const INGREDIENT_DICT: Record<string,string> = {
     // Sal
-    if (/\bsal\b/.test(n)) return 'Sal';
+    'sal de mar':'Sal','sal de cocina':'Sal','sal gruesa':'Sal','sal fina':'Sal',
+    'sal de grano':'Sal','sal refinada':'Sal','sal rosa':'Sal',
     // Pimienta
-    if (/\bpimienta\b/.test(n)) return 'Pimienta';
-    // Aceite
-    if (/\baceite\b/.test(n)) return 'Aceite';
-    // Lechuga
-    if (/\blechuga\b/.test(n)) return 'Lechuga';
-    // Cebolla
-    if (/\bcebolla\b/.test(n)) return 'Cebolla';
+    'pimienta negra molida':'Pimienta','pimienta negra':'Pimienta',
+    'pimienta blanca':'Pimienta','pimienta molida':'Pimienta',
+    // Aceite (oliva es distinto)
+    'aceite vegetal':'Aceite','aceite de girasol':'Aceite','aceite de maíz':'Aceite',
+    'aceite de canola':'Aceite',
     // Café
-    if (/\bcaf[eé]\b/.test(n)) return 'Café';
+    'café espresso':'Café','café molido':'Café','café filtro':'Café',
+    'café grano':'Café','café negro nescafé':'Café','café de olla':'Café',
+    'grano de café':'Café','café en grano':'Café','café soluble':'Café',
+    // Cebolla
+    'cebolla blanca':'Cebolla','cebolla morada':'Cebolla',
+    'cebolla amarilla':'Cebolla','cebolla de cambray':'Cebolla',
+    // Lechuga
+    'lechuga romana':'Lechuga','lechuga iceberg':'Lechuga',
+    'lechuga orejona':'Lechuga','lechuga mixta':'Lechuga','lechuga francesa':'Lechuga',
+    // Tomate
+    'tomate bola':'Tomate','tomate roma':'Tomate','jitomate':'Tomate',
+    'jitomate bola':'Tomate','jitomate roma':'Tomate',
+    // Chile (específicos se mantienen)
+    'jalapeño':'Chile jalapeño','jalapeños':'Chile jalapeño',
+    'chiles jalapeños':'Chile jalapeño','chile jalapeño fresco':'Chile jalapeño',
+    'chile chipotle':'Chile chipotle',
+    // Leche
+    'leche entera':'Leche','leche descremada':'Leche','leche semi':'Leche',
+    'espuma de leche':'Leche','leche fría':'Leche',
+    // Yogurt
+    'yogurt natural':'Yogurt','yogur natural':'Yogurt','yogur':'Yogurt',
     // Canela
-    if (/\bcanela\b/.test(n)) return 'Canela';
-    // Chile
-    if (/\bchile\b/.test(n) && !/\bchilaquil/.test(n)) return 'Chile';
-    // Tomate / jitomate
-    if (/\b(tomate|jitomate)\b/.test(n)) return 'Tomate';
-    // Pollo
-    if (/\bpollo\b/.test(n) && !/\bboneless|\balitas/.test(n)) return 'Pollo';
-    // Queso (no normalizar si es muy específico del platillo)
-    if (/\bqueso\b/.test(n) && !/\btakis|\bdedos/.test(n)) return 'Queso';
-    // Devolver capitalizado si no hay match
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    'canela molida':'Canela','canela en polvo':'Canela','canela entera':'Canela',
+    // Pollo (cortes → genérico)
+    'pechuga de pollo':'Pollo','muslo de pollo':'Pollo',
+    'pollo entero':'Pollo','pollo deshebrado':'Pollo','pollo molido':'Pollo',
+    'filete de pollo':'Pollo',
+    // Queso
+    'queso manchego':'Queso','queso chihuahua':'Queso',
+    'queso amarillo tipo americano':'Queso Americano','queso americano':'Queso Americano',
+    // Azúcar
+    'azúcar blanca':'Azúcar','azúcar refinada':'Azúcar','azúcar morena':'Azúcar',
+    'azúcar glass':'Azúcar','azúcar granulada':'Azúcar',
+    // Harina
+    'harina de trigo':'Harina','harina blanca':'Harina','harina todo uso':'Harina',
+  };
+
+  function normalizeIngredientName(name: string): string {
+    const key = name.toLowerCase().trim()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes para match
+      .replace(/\s+/g, ' ');
+    // Buscar match exacto en el diccionario (con tildes normalizadas)
+    for (const [variant, canonical] of Object.entries(INGREDIENT_DICT)) {
+      const variantNorm = variant.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (key === variantNorm) return canonical;
+    }
+    // Si no hay match, capitalizar la primera letra
+    return name.charAt(0).toUpperCase() + name.slice(1);
   }
 
   // ── PASO 3: guardar todo ─────────────────────────────────────────────────────

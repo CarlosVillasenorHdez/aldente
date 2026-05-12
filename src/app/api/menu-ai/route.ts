@@ -246,19 +246,22 @@ Menú: ${dishList}
 
 REGLA MÁS IMPORTANTE — SIMPLICIDAD:
 Usa el nombre MÁS GENÉRICO posible para cada ingrediente.
-EJEMPLOS DE SIMPLIFICACIÓN OBLIGATORIA:
-- "Sal de mar", "Sal de cocina", "Sal gruesa", "Sal fina" → "Sal"
-- "Café molido", "Café espresso", "Café grano", "Café filtro" → "Café"
-- "Canela molida", "Canela en polvo", "Canela entera" → "Canela"
-- "Lechuga romana", "Lechuga iceberg", "Lechuga orejona" → "Lechuga"
-- "Cebolla blanca", "Cebolla morada", "Cebolla de cambray" → "Cebolla"
-- "Aceite vegetal", "Aceite de oliva", "Aceite de girasol" → "Aceite"
-- "Pimienta negra", "Pimienta molida", "Pimienta blanca" → "Pimienta"
-- "Chile jalapeño", "Chile serrano", "Chile güero" → "Chile"
-- "Queso Oaxaca", "Queso manchego", "Queso amarillo" → "Queso" (salvo que sea distintivo del platillo)
-- "Pechuga de pollo", "Muslo de pollo", "Pollo entero" → "Pollo"
-Si el mismo ingrediente aparece con 2+ nombres distintos → USA SOLO UNO, el más simple.
-NO dupliques ingredientes con nombres parecidos.
+SIMPLIFICACIÓN OBLIGATORIA — USA SIEMPRE EL NOMBRE MÁS SIMPLE:
+- Sal de mar / Sal de cocina / Sal gruesa / Sal fina → "Sal"
+- Café molido / Café espresso / Café en grano / Café filtro → "Café"
+- Canela molida / Canela en polvo / Canela entera → "Canela"
+- Lechuga romana / Lechuga iceberg / Lechuga orejona → "Lechuga"
+- Cebolla blanca / Cebolla morada / Cebolla de cambray → "Cebolla"
+- Aceite vegetal / Aceite de girasol / Aceite de maíz → "Aceite"
+- Pimienta negra / Pimienta molida / Pimienta blanca → "Pimienta"
+- Jalapeño / Chiles jalapeños / Chile jalapeño fresco → "Chile jalapeño" (UN solo nombre)
+- Pechuga de pollo / Muslo de pollo / Pollo deshebrado → "Pollo"
+- Leche entera / Leche descremada / Espuma de leche → "Leche"
+- Yogurt natural / Yogur / Yogurt → "Yogurt"
+- Azúcar blanca / Azúcar refinada / Azúcar glass → "Azúcar"
+- Harina de trigo / Harina blanca / Harina todo uso → "Harina"
+REGLA: si dudas entre 2 nombres, usa el MÁS CORTO.
+NO generes 2 ingredientes que sean el mismo producto con nombre distinto.
 
 UNIDADES Y PRECIOS (México 2024 mayorista):
 - Carnes/pollo: kg, $150-350/kg | Verduras: kg, $15-60/kg
