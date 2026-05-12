@@ -1718,248 +1718,250 @@ export default function InventarioManagement() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative w-full max-w-2xl rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
+
+            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#243f72' }}>
               <h2 className="font-bold text-white text-base">{editingId ? 'Editar Ingrediente' : 'Nuevo Ingrediente'}</h2>
               <button onClick={closeModal} className="text-white/40 hover:text-white"><X size={18} /></button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              {/* Nombre */}
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Nombre *</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${formErrors.name ? '#ef4444' : 'rgba(255,255,255,0.15)'}` }}
-                  value={form.name} onChange={e => updateForm('name', e.target.value)}
-                  placeholder="Ej: Carne de res, Tomate..." />
-                {formErrors.name && <p className="text-xs text-red-400 mt-1">{formErrors.name}</p>}
-              </div>
-              {/* Categoría */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría *</label>
-                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.category} onChange={e => updateForm('category', e.target.value as any)}>
-                  {CATEGORIES.filter(c => c !== 'Todas').map(c => <option key={c} value={c} style={{ backgroundColor: '#162d55' }}>{c}</option>)}
-                </select>
-              </div>
-              {/* Unidad de almacenamiento — con nota explicativa */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Unidad de almacenamiento (stock) *
-                </label>
-                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.unit} onChange={e => updateForm('unit', e.target.value as any)}>
-                  <optgroup label="── Peso" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
-                    {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                  </optgroup>
-                  <optgroup label="── Volumen" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
-                    {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                  </optgroup>
-                  <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55', color: 'rgba(255,255,255,0.5)' }}>
-                    {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                  </optgroup>
-                </select>
-                <p className="text-xs mt-1.5 flex items-start gap-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  <span style={{ color: '#f59e0b', flexShrink: 0 }}>ℹ</span>
-                  Esta es la <strong style={{ color: 'rgba(255,255,255,0.5)' }}>unidad mínima</strong> en la que se guarda el stock internamente.
-                  Si compras por bolsas, elige <em>pz</em> como stock y configura la presentación abajo.
+
+            <div className="p-5 flex flex-col gap-4">
+
+              {/* ── SECCIÓN 1: Información básica — siempre visible ── */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Información básica
                 </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Nombre */}
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Nombre *</label>
+                    <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${formErrors.name ? '#ef4444' : 'rgba(255,255,255,0.15)'}` }}
+                      value={form.name} onChange={e => updateForm('name', e.target.value)}
+                      placeholder="Ej: Carne de res, Tomate, Harina" />
+                    {formErrors.name && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{formErrors.name}</p>}
+                  </div>
+
+                  {/* Categoría */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Categoría *</label>
+                    <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${formErrors.category ? '#ef4444' : 'rgba(255,255,255,0.15)'}` }}
+                      value={form.category} onChange={e => updateForm('category', e.target.value)}>
+                      <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
+                      {CATEGORIES.filter(cat => cat !== 'Todas').map(cat => (
+                        <option key={cat} value={cat} style={{ backgroundColor: '#162d55' }}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Unidad */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Unidad de stock *</label>
+                    <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${formErrors.unit ? '#ef4444' : 'rgba(255,255,255,0.15)'}` }}
+                      value={form.unit} onChange={e => updateForm('unit', e.target.value as UnitType)}>
+                      <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
+                      <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
+                        {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                      </optgroup>
+                      <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
+                        {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                      </optgroup>
+                      <optgroup label="── Conteo" style={{ backgroundColor: '#162d55' }}>
+                        {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
+                      </optgroup>
+                    </select>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>La unidad mínima en la que guardas el stock</p>
+                  </div>
+
+                  {/* Costo */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidad'} ($) *
+                    </label>
+                    <input type="number" min={0} step="0.01"
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'rgba(255,255,255,0.15)' }}
+                      value={form.cost} onChange={e => updateForm('cost', Number(e.target.value))}
+                      placeholder="Ej: 180" />
+                  </div>
+
+                  {/* Stock mínimo */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Stock mínimo</label>
+                    <input type="number" min={0} step="0.1"
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      value={form.minStock} onChange={e => updateForm('minStock', Number(e.target.value))}
+                      placeholder="Ej: 5" />
+                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Alerta cuando el stock baje de este nivel</p>
+                  </div>
+
+                  {/* Notas */}
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Notas</label>
+                    <textarea rows={2} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none resize-none"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      value={form.notes} onChange={e => updateForm('notes', e.target.value)}
+                      placeholder="Instrucciones de almacenamiento, observaciones..." />
+                  </div>
+                </div>
               </div>
 
-              {/* Stock mínimo */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Stock mínimo</label>
-                <input type="number" min={0} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.minStock} onChange={e => updateForm('minStock', Number(e.target.value))} />
-              </div>
-              {/* Punto de reorden — calculado automáticamente */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Lead time (días de entrega)
-                </label>
-                <input type="number" min={1} max={90} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.leadTimeDays ?? 1}
-                  onChange={async e => {
-                    const lt = Number(e.target.value);
-                    updateForm('leadTimeDays', lt);
-                    if (editingId && !ropOverride) {
-                      const rop = await calcAutoRoP(editingId, lt, form.minStock);
-                      setAutoRoP(rop);
-                      updateForm('reorderPoint', rop);
-                    }
-                  }} />
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>¿En cuántos días llega el pedido?</p>
-              </div>
-
-              {/* RoP — calculado o manual */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    Punto de reorden (RoP)
-                  </label>
-                  {autoRoP !== null && (
-                    <button
-                      type="button"
-                      onClick={() => { setRopOverride(false); updateForm('reorderPoint', autoRoP); }}
-                      className="text-xs"
-                      style={{ color: ropOverride ? '#f59e0b' : '#34d399', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      {ropOverride ? '↺ Usar calculado' : '✓ Auto'}
+              {/* ── SECCIÓN 2: Unidades para recetas — siempre visible, opcional ── */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unidades para recetas</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Si usas piezas, tazas u otra medida en tus recetas. Ej: 5 pz = 1 kg</p>
+                  </div>
+                  {editingId && (
+                    <button onClick={() => { setEquivEditId(null); setEquivForm({ ...emptyEquivForm(), ingredientId: editingId }); setEquivModalOpen(true); }}
+                      style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      + Agregar
                     </button>
                   )}
                 </div>
-                <input type="number" min={0} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: ropOverride ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${ropOverride ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}` }}
-                  value={form.reorderPoint}
-                  onChange={e => { setRopOverride(true); updateForm('reorderPoint', Number(e.target.value)); }} />
-                {autoRoP !== null && (
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    Calculado: <strong style={{ color: '#34d399' }}>{autoRoP} {form.unit}</strong>
-                    {' '}= ({form.minStock || 0} stock seg. + demanda × {form.leadTimeDays || 1}d)
-                  </p>
+                {!editingId ? (
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>Guarda el ingrediente primero para agregar equivalencias.</p>
+                ) : equivalences.filter(e => e.ingredientId === editingId).length === 0 ? (
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Sin unidades alternativas configuradas.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {equivalences.filter(e => e.ingredientId === editingId).map(eq => (
+                      <div key={eq.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(245,158,11,0.06)', borderRadius: 10, border: '1px solid rgba(245,158,11,0.2)' }}>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>
+                            1 {eq.bulkUnit} = {eq.conversionFactor.toFixed(eq.conversionFactor % 1 === 0 ? 0 : 3)} {eq.subUnit}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 8 }}>
+                            · 1 {eq.subUnit} = {(1/eq.conversionFactor).toFixed(4)} {eq.bulkUnit}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => { setEquivEditId(eq.id); setEquivForm({ ingredientId: eq.ingredientId ?? '', bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, qtyA: 1, notes: eq.notes }); setEquivModalOpen(true); }}
+                            style={{ padding: '3px 8px', borderRadius: 6, background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 11 }}>✏️</button>
+                          <button onClick={() => setDeleteEquivId(eq.id)}
+                            style={{ padding: '3px 8px', borderRadius: 6, background: 'none', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', fontSize: 11 }}>🗑️</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {autoRoP === null && (
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    Se calculará automáticamente con el historial de salidas
-                  </p>
-                )}
-              </div>
-              {/* Precio de compra — solo para calcular costo por unidad */}
-              <div className="col-span-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-                <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>💰</span>
-                <div style={{ flex:1, minWidth:200 }}>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Precio de compra al proveedor ($) — opcional
-                  </label>
-                  <input type="number" min={0} step="0.01" placeholder="Ej: 80.00"
-                    className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                    value={form.purchasePrice || ''}
-                    onChange={e => {
-                      const pp = Number(e.target.value);
-                      updateForm('purchasePrice', pp);
-                    }} />
-                </div>
-              </div>
-                            {/* Costo por unidad y Stock */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidad'} ($)
-                  {(form.purchasePrice || 0) > 0 && <span style={{ color:'#f59e0b', marginLeft:'6px', fontWeight:400 }}>— calculado</span>}
-                </label>
-                <input type="number" min={0} step="0.01"
-                  className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor:'rgba(255,255,255,0.07)', border:`1px solid ${(form.purchasePrice||0)>0 ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.15)'}` }}
-                  value={form.cost} onChange={e => updateForm('cost', Number(e.target.value))} />
-                <p className="text-xs mt-1" style={{ color:'rgba(255,255,255,0.3)' }}>Edítalo si necesitas ajustar</p>
-              </div>
-              {/* Marca */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Marca</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.brand ?? ''} onChange={e => updateForm('brand', e.target.value)}
-                  placeholder="ej. Bimbo, Lala, Herdez" />
-              </div>
-              {/* Presentación */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Presentación</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.presentation ?? ''} onChange={e => updateForm('presentation', e.target.value)}
-                  placeholder="ej. Madre Masa 600g, Caja 12 pz" />
-              </div>
-              {/* Proveedor */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
-                <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.supplier} onChange={e => updateForm('supplier', e.target.value)}>
-                  <option value="">— Sin proveedor —</option>
-                  {allSuppliers.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-                {allSuppliers.length === 0 && (
-                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    Agrega proveedores en la sección de Proveedores primero
-                  </p>
-                )}
-              </div>
-              {/* Tel proveedor */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Teléfono proveedor</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.supplierPhone} onChange={e => updateForm('supplierPhone', e.target.value)}
-                  placeholder="55 1234 5678" />
-              </div>
-              {/* URL proveedor */}
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>URL / Catálogo</label>
-                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.supplierUrl} onChange={e => updateForm('supplierUrl', e.target.value)}
-                  placeholder="https://proveedor.com" />
-              </div>
-              {/* Notas */}
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Notas</label>
-                <textarea rows={2} className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none resize-none"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                  value={form.notes} onChange={e => updateForm('notes', e.target.value)}
-                  placeholder="Instrucciones de almacenamiento, observaciones..." />
               </div>
 
-              {/* ── Equivalencias de unidad — solo al editar ── */}
-              {editingId && (
-                <div className="col-span-2">
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16, marginTop: 4 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                      <div>
-                        <p style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Unidades para recetas</p>
-                        <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginTop:2 }}>Define equivalencias para usar en recetas. Ej: 5 pz = 1 kg → receta puede usar piezas o kg</p>
-                      </div>
-                      <button onClick={() => {
-                        setEquivEditId(null);
-                        setEquivForm({ ...emptyEquivForm(), ingredientId: editingId });
-                        setEquivModalOpen(true);
-                      }} style={{ fontSize:11, padding:'4px 12px', borderRadius:8, border:'1px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.08)', color:'#f59e0b', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}>
-                        + Agregar
-                      </button>
-                    </div>
-                    {equivalences.filter(e => e.ingredientId === editingId).length === 0 ? (
-                      <p style={{ color:'rgba(255,255,255,0.25)', fontSize:12, fontStyle:'italic', padding:'6px 0' }}>
-                        Sin unidades alternativas configuradas.
-                      </p>
-                    ) : (
-                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                        {equivalences.filter(e => e.ingredientId === editingId).map(eq => (
-                          <div key={eq.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', background:'rgba(245,158,11,0.06)', borderRadius:10, border:'1px solid rgba(245,158,11,0.2)' }}>
-                            <div>
-                              <span style={{ fontSize:13, fontWeight:700, color:'#f59e0b' }}>
-                                1 {eq.bulkUnit} = {eq.conversionFactor.toFixed(eq.conversionFactor % 1 === 0 ? 0 : 3)} {eq.subUnit}
-                              </span>
-                              <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginLeft:8 }}>
-                                · 1 {eq.subUnit} = {(1/eq.conversionFactor).toFixed(4)} {eq.bulkUnit}
-                              </span>
-                            </div>
-                            <div style={{ display:'flex', gap:6 }}>
-                              <button onClick={() => { setEquivEditId(eq.id); setEquivForm({ ingredientId: eq.ingredientId ?? '', bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, qtyA: 1, notes: eq.notes }); setEquivModalOpen(true); }}
-                                style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', cursor:'pointer', fontSize:11 }}>✏️</button>
-                              <button onClick={() => setDeleteEquivId(eq.id)}
-                                style={{ padding:'3px 8px', borderRadius:6, background:'none', border:'1px solid rgba(239,68,68,0.2)', color:'rgba(239,68,68,0.6)', cursor:'pointer', fontSize:11 }}>🗑️</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {/* ── SECCIÓN 3: Proveedor — colapsable ── */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' }}>
+                <button
+                  onClick={() => updateForm('_provOpen' as any, !(form as any)._provOpen)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ fontSize: 16 }}>🚚</span>
+                  <div style={{ flex: 1 }}>
+                    <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Proveedor y compra</p>
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Vincula un proveedor, precio de lista y lead time</p>
                   </div>
-                </div>
-              )}
+                  <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)', transform: (form as any)._provOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
+                </button>
+                {(form as any)._provOpen && (
+                  <div className="grid grid-cols-2 gap-3" style={{ padding: '0 16px 16px' }}>
+                    {/* Proveedor principal */}
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Proveedor principal</label>
+                      <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.supplier || ''} onChange={e => updateForm('supplier', e.target.value)}>
+                        <option value="" style={{ backgroundColor: '#162d55' }}>— Sin proveedor —</option>
+                        {allSuppliers.map((s: any) => (
+                          <option key={s.id} value={s.id} style={{ backgroundColor: '#162d55' }}>{s.name}</option>
+                        ))}
+                      </select>
+                      {allSuppliers.length === 0 && (
+                        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Agrega proveedores en la sección de Proveedores primero</p>
+                      )}
+                    </div>
+
+                    {/* Lead time */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Lead time (días de entrega)</label>
+                      <input type="number" min={0} step={1}
+                        className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.leadTimeDays} onChange={e => updateForm('leadTimeDays', Number(e.target.value))}
+                        placeholder="Ej: 3" />
+                      <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>¿En cuántos días llega el pedido?</p>
+                    </div>
+
+                    {/* RoP calculado */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                        Punto de reorden (RoP)
+                        <span style={{ color: '#4ade80', marginLeft: 6, fontWeight: 400 }}>✓ Auto</span>
+                      </label>
+                      <input type="number" min={0} step="0.1"
+                        className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(245,158,11,0.3)' }}
+                        value={form.reorderPoint} onChange={e => updateForm('reorderPoint', Number(e.target.value))} />
+                      {(() => {
+                        const exits = detailMovements?.filter(m => m.movementType === 'salida') ?? [];
+                        const avg = exits.length > 0 ? exits.reduce((s, m) => s + m.quantity, 0) / exits.length : null;
+                        const suggested = avg && form.leadTimeDays ? Math.ceil(avg * form.leadTimeDays) : null;
+                        return suggested ? (
+                          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            Calculado: {suggested} {form.unit} = (demanda {avg!.toFixed(1)}/mov × {form.leadTimeDays}d)
+                          </p>
+                        ) : (
+                          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Se calcula con historial de movimientos</p>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Precio de compra */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Precio de compra ($)</label>
+                      <input type="number" min={0} step="0.01"
+                        className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.purchasePrice || ''}
+                        onChange={e => updateForm('purchasePrice', Number(e.target.value))}
+                        placeholder="Precio total al proveedor" />
+                    </div>
+
+                    {/* Marca */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Marca</label>
+                      <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.brand ?? ''} onChange={e => updateForm('brand', e.target.value)}
+                        placeholder="Ej: Bimbo, Lala, Herdez" />
+                    </div>
+
+                    {/* Tel proveedor */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Teléfono proveedor</label>
+                      <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.supplierPhone ?? ''} onChange={e => updateForm('supplierPhone', e.target.value)}
+                        placeholder="55 1234 5678" />
+                    </div>
+
+                    {/* URL proveedor */}
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>URL / Catálogo</label>
+                      <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        value={form.supplierUrl ?? ''} onChange={e => updateForm('supplierUrl', e.target.value)}
+                        placeholder="https://proveedor.com" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor: '#243f72' }}>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-5 py-4 border-t" style={{ borderColor: '#243f72' }}>
               <button onClick={closeModal} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>Cancelar</button>
               <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
                 {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Agregar ingrediente'}
@@ -1969,7 +1971,7 @@ export default function InventarioManagement() {
         </div>
       )}
 
-      {/* ── MODAL: Registrar Movimiento ── */}
+            {/* ── MODAL: Registrar Movimiento ── */}
       {movementModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMovementModalOpen(false)} />
