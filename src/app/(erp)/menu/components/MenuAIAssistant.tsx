@@ -522,6 +522,30 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     'azúcar glass':'Azúcar','azúcar granulada':'Azúcar',
     // Harina
     'harina de trigo':'Harina','harina blanca':'Harina','harina todo uso':'Harina',
+    // Pan
+    'pan para hamburguesa':'Pan hamburguesa','pan de hamburguesa':'Pan hamburguesa',
+    'pan hamburguesa':'Pan hamburguesa','bun hamburguesa':'Pan hamburguesa',
+    'pan para hot dog':'Pan hot dog','pan de hot dog':'Pan hot dog',
+    'pan para torta':'Pan torta','pan de torta':'Pan torta',
+    'pan blanco para torta':'Pan torta','pan blanco':'Pan torta',
+    // Crema
+    'crema mexicana':'Crema','crema acida':'Crema','crema agria':'Crema',
+    'crema para tacos':'Crema','crema fresca':'Crema','crema liquida':'Crema',
+    'crema espesa':'Crema',
+    // Huevo — siempre piezas
+    'huevo entero':'Huevo','huevos frescos':'Huevo','huevo fresco':'Huevo',
+    'huevos de granja':'Huevo','huevo de granja':'Huevo','huevos':'Huevo',
+    // Frijol
+    'frijoles negros':'Frijol','frijoles pintos':'Frijol','frijol negro':'Frijol',
+    'frijoles':'Frijol',
+    // Arroz
+    'arroz blanco':'Arroz','arroz de grano largo':'Arroz',
+    // Manteca
+    'manteca vegetal':'Manteca','manteca de cerdo':'Manteca',
+    // Jamón
+    'jamon de pavo':'Jamón','jamon cocido':'Jamón','jamon ahumado':'Jamón',
+    // Tocino
+    'tocino ahumado':'Tocino','tocino en tiras':'Tocino',
   };
 
   function normalizeIngredientName(name: string): string {

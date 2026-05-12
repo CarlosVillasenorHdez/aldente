@@ -231,7 +231,9 @@ REGLAS IMPORTANTES:
   * Cebolla, tomate, verduras: 20-80 g → quantity=0.05, unit="kg"
   * Carne, pollo: 100-200 g → quantity=0.15, unit="kg"
   * Tortillas: 2-4 piezas → quantity=3, unit="pz"
-  * Aceite: 5-20 ml → quantity=0.015, unit="lt"
+  * Huevo: 1-3 piezas → quantity=2, unit="pz", costo $5-8/pz (NUNCA en kg)
+  * Pan hamburguesa/torta/hot dog: 1 pieza → quantity=1, unit="pz"
+  * Aceite: 5-20 ml → quantity=0.015, unit="lt" 
   * NUNCA más de 1 kg de sal/pimienta/especias en una receta
   * NUNCA más de 5 kg de ningún ingrediente en una porción
 - PRECIOS MAYORISTAS MXN 2024:
@@ -278,6 +280,11 @@ SIMPLIFICACIÓN OBLIGATORIA — USA SIEMPRE EL NOMBRE MÁS SIMPLE:
 - Aceite vegetal / Aceite de girasol / Aceite de maíz → "Aceite"
 - Pimienta negra / Pimienta molida / Pimienta blanca → "Pimienta"
 - Jalapeño / Chiles jalapeños / Chile jalapeño fresco → "Chile jalapeño" (UN solo nombre)
+- Pan hamburguesa / Pan para hamburguesa / Bun → "Pan hamburguesa"
+- Pan hot dog / Pan para hot dog → "Pan hot dog"
+- Crema mexicana / Crema ácida / Crema agria / Crema fresca → "Crema"
+- Huevo / Huevos frescos / Huevo de granja → "Huevo" (SIEMPRE en piezas "pz", NUNCA en kg)
+  * Huevo: 1-3 pz por porción, costo $5-8/pz — NUNCA $90/pz ni kg
 - Pechuga de pollo / Muslo de pollo / Pollo deshebrado → "Pollo"
 - Leche entera / Leche descremada / Espuma de leche → "Leche"
 - Yogurt natural / Yogur / Yogurt → "Yogurt"
