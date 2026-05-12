@@ -81,6 +81,7 @@ type UnitEquivalence = {
   subUnit: string;
   subUnitDescription: string;
   conversionFactor: number;
+  qtyA: number;  // cuántas de bulkUnit
   notes: string;
 };
 const CATEGORIES: Category[] = [
@@ -164,6 +165,7 @@ const emptyEquivForm = () => ({
   subUnit: '',
   subUnitDescription: '',
   conversionFactor: 1,
+  qtyA: 1,
   notes: '',
 });
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -375,7 +377,7 @@ export default function InventarioManagement() {
         ingredientUnit: e.ingredients?.unit ?? '',
         bulkUnit: e.bulk_unit, bulkDescription: e.bulk_description,
         subUnit: e.sub_unit, subUnitDescription: e.sub_unit_description,
-        conversionFactor: Number(e.conversion_factor), notes: e.notes ?? '',
+        conversionFactor: Number(e.conversion_factor), qtyA: 1, notes: e.notes ?? '',
       })));
     }
     setLoadingEquiv(false);
@@ -938,7 +940,7 @@ export default function InventarioManagement() {
   function openAddEquiv() { setEquivEditId(null); setEquivForm(emptyEquivForm()); setEquivModalOpen(true); }
   function openEditEquiv(eq: UnitEquivalence) {
     setEquivEditId(eq.id);
-    setEquivForm({ ingredientId: eq.ingredientId, bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, notes: eq.notes });
+    setEquivForm({ ingredientId: eq.ingredientId, bulkUnit: eq.bulkUnit, bulkDescription: eq.bulkDescription, subUnit: eq.subUnit, subUnitDescription: eq.subUnitDescription, conversionFactor: eq.conversionFactor, qtyA: 1, notes: eq.notes });
     setEquivModalOpen(true);
   }
   async function handleEquivSave() {
@@ -2263,64 +2265,51 @@ export default function InventarioManagement() {
                   {ingredients.map(i => <option key={i.id} value={i.id} style={{ backgroundColor: '#162d55' }}>{i.name} ({i.unit})</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Unidad de compra */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Presentación de compra *</label>
-                  <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+              {/* Nueva UI: A unidades = B unidades */}
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '16px' }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>Define la equivalencia</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {/* Cantidad A */}
+                  <input type="number" min={0.001} step="0.001"
+                    className="rounded-lg text-sm text-white outline-none text-center font-bold"
+                    style={{ width: 64, padding: '8px 6px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                    value={equivForm.qtyA} onChange={e => setEquivForm(p => ({ ...p, qtyA: Number(e.target.value) }))} />
+                  {/* Unidad A */}
+                  <select className="rounded-lg text-sm text-white outline-none appearance-none"
+                    style={{ padding: '8px 10px', backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)' }}
                     value={equivForm.bulkUnit} onChange={e => setEquivForm(p => ({ ...p, bulkUnit: e.target.value }))}>
-                    <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
-                    <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
-                    <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
-                    <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
+                    <option value="" style={{ backgroundColor: '#162d55' }}>Unidad A</option>
+                    {[...UNITS_WEIGHT,...UNITS_VOLUME,...UNITS_COUNT].map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </select>
-                </div>
-                {/* Descripción */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Descripción</label>
-                  <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                    value={equivForm.bulkDescription} onChange={e => setEquivForm(p => ({ ...p, bulkDescription: e.target.value }))}
-                    placeholder="Ej: Caja de 24 unidades" />
-                </div>
-                {/* Unidad de uso */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Unidad de uso en cocina *</label>
-                  <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: 18 }}>=</span>
+                  {/* Cantidad B */}
+                  <input type="number" min={0.001} step="0.001"
+                    className="rounded-lg text-sm text-white outline-none text-center font-bold"
+                    style={{ width: 64, padding: '8px 6px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399' }}
+                    value={equivForm.conversionFactor} onChange={e => setEquivForm(p => ({ ...p, conversionFactor: Number(e.target.value) }))} />
+                  {/* Unidad B */}
+                  <select className="rounded-lg text-sm text-white outline-none appearance-none"
+                    style={{ padding: '8px 10px', backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.2)' }}
                     value={equivForm.subUnit} onChange={e => setEquivForm(p => ({ ...p, subUnit: e.target.value }))}>
-                    <option value="" style={{ backgroundColor: '#162d55' }}>— Seleccionar —</option>
-                    <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
-                    <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
-                    <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
-                      {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                    </optgroup>
+                    <option value="" style={{ backgroundColor: '#162d55' }}>Unidad B</option>
+                    {[...UNITS_WEIGHT,...UNITS_VOLUME,...UNITS_COUNT].map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
                   </select>
                 </div>
-                {/* Factor de conversión */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Factor de conversión *</label>
-                  <input type="number" min={0.001} step="0.001" className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
-                    value={equivForm.conversionFactor} onChange={e => setEquivForm(p => ({ ...p, conversionFactor: Number(e.target.value) }))}
-                    placeholder="Ej: 24" />
-                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    {equivForm.conversionFactor > 0 && equivForm.bulkUnit && equivForm.subUnit
-                      ? `1 ${equivForm.bulkUnit} = ${equivForm.conversionFactor} ${equivForm.subUnit}`
-                      : '1 [compra] = N [uso]'}
+                {/* Preview */}
+                {equivForm.qtyA > 0 && equivForm.conversionFactor > 0 && equivForm.bulkUnit && equivForm.subUnit && (
+                  <p className="text-xs mt-3" style={{ color: '#f59e0b' }}>
+                    ✓ {equivForm.qtyA} {equivForm.bulkUnit} = {equivForm.conversionFactor} {equivForm.subUnit}
+                    {' · '}1 {equivForm.bulkUnit} = {(equivForm.conversionFactor/equivForm.qtyA).toFixed(4)} {equivForm.subUnit}
                   </p>
-                </div>
+                )}
+              </div>
+              {/* Descripción opcional */}
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Descripción (opcional)</label>
+                <input className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  value={equivForm.bulkDescription} onChange={e => setEquivForm(p => ({ ...p, bulkDescription: e.target.value }))}
+                  placeholder="Ej: Naranja mediana" />
               </div>
               {/* Notas */}
               <div>
