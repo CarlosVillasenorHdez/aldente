@@ -133,7 +133,9 @@ function Steps({ current }: { current: number }) {
 
 export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
   const supabase = createClient();
-  const { activeBranchId } = useBranch();
+  const { activeBranchId, branches } = useBranch();
+  // Siempre guardar en un branch — nunca dejar null
+  const effectiveBranchId = activeBranchId ?? branches?.find(b => (b as any).is_main)?.id ?? branches?.[0]?.id ?? null;
 
   const [step, setStep] = useState(1);
   const [menuText, setMenuText] = useState('');
@@ -555,7 +557,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
         unit: ing.unit, cost: ing.costPerUnit, stock: 0,
         min_stock: 0, reorder_point: 0, // El dueño configura los mínimos en Inventario
         notes: ing.notes || null, lead_time_days: 2,
-        branch_id: activeBranchId ?? null,
+        branch_id: effectiveBranchId,
       }).select('id').single();
       if (!error && data) {
         ingredientIdMap[ing.name.toLowerCase()] = data.id;
@@ -589,7 +591,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
               tenant_id: tid, name: normRecipeName,
               category: ri.category || 'Otros', unit: ri.unit,
               cost: ri.costPerUnit, stock: 0, min_stock: 0, reorder_point: 0, lead_time_days: 2,
-              branch_id: activeBranchId ?? null,
+              branch_id: effectiveBranchId,
             }).select('id').single();
             if (created?.id) { ingId = created.id; ingredientIdMap[ri.ingredientName.toLowerCase()] = ingId; }
           }
