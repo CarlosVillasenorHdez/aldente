@@ -23,6 +23,19 @@ const SYSTEM = `Eres un chef ejecutivo mexicano con 20 años de experiencia y co
 Tu trabajo es ayudar a dueños de restaurantes a estructurar su menú en un sistema ERP.
 Responde SIEMPRE con JSON puro y valido. NUNCA uses markdown ni bloques de codigo. Solo JSON, sin texto extra antes o despues.`;
 
+async function callAnthropicWithRetry(fn: () => Promise<any>, maxRetries = 3): Promise<any> {
+  for (let i = 0; i < maxRetries; i++) {
+    try { return await fn(); }
+    catch (err: any) {
+      if ((err?.status === 429 || err?.message?.includes('rate')) && i < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, Math.pow(2, i + 1) * 3000)); // 6s, 12s, 24s
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 function cleanJSON(raw: string): string {
   let text = raw.trim();
   // Remover bloques markdown
@@ -109,10 +122,10 @@ JSON minificado:
         const results = await Promise.all(batch.map(async chunk => {
           if (!chunk.trim()) return [];
           try {
-            const msg = await anthropic.messages.create({
+            const msg = await callAnthropicWithRetry(() => anthropic.messages.create({
               model: 'claude-haiku-4-5-20251001', max_tokens: 2000, system: SYSTEM,
               messages: [{ role: 'user', content: buildPrompt(chunk) }],
-            });
+            }));
             const raw = (msg.content[0] as { type: string; text: string }).text.trim();
             return (JSON.parse(repairJSON(raw)).dishes ?? []) as any[];
           } catch { return []; }
@@ -231,12 +244,12 @@ REGLAS IMPORTANTES:
 JSON exacto:
 {"recipe":[{"ingredientName":"","category":"","quantity":0,"unit":"","costPerUnit":0,"estimatedCostLine":0,"notes":""}],"prepTimeMin":15,"preparationArea":"cocina","totalEstimatedCost":0,"foodCostPct":30,"suggestedPrice":${body.price ?? 100}}`;
 
-      const msg = await anthropic.messages.create({
+      const msg = await callAnthropicWithRetry(() => anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
-      });
+      }));
 
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
       let jsonText = cleanJSON(rawText);
@@ -283,12 +296,12 @@ Categorías: Carnes y Aves|Mariscos|Verduras|Frutas|Lácteos|Panadería|Pastas y
 JSON minificado:
 {"ingredients":[{"name":"","category":"","unit":"kg","costPerUnit":0,"minStock":0,"reorderPoint":0,"notes":""}]}`;
 
-      const msg = await anthropic.messages.create({
+      const msg = await callAnthropicWithRetry(() => anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
-      });
+      }));
 
       const rawText = (msg.content[0] as { type: string; text: string }).text.trim();
       let jsonText = cleanJSON(rawText);

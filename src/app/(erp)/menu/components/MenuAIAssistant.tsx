@@ -425,6 +425,26 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     toast.success(`${done} recetas generadas`);
   };
 
+  // ── Retry con backoff exponencial para rate limit ───────────────────────────
+  async function callMenuAIWithRetry(params: any, maxRetries = 3): Promise<any> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await callMenuAI(params);
+      } catch (err: any) {
+        const isRateLimit = err?.message?.toLowerCase().includes('rate') ||
+          err?.message?.toLowerCase().includes('demasiadas') ||
+          err?.message?.toLowerCase().includes('429') ||
+          err?.status === 429;
+        if (isRateLimit && attempt < maxRetries - 1) {
+          const wait = Math.pow(2, attempt + 1) * 2000; // 4s, 8s, 16s
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
   // ── Auto-generar recetas cuando el paso cambia a 3 ───────────────────────────
   // useEffect correcto: observa step y recipes, con acceso a las funciones actualizadas
   const autoGeneratingRef = useRef(false);
@@ -435,7 +455,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
     autoGeneratingRef.current = true;
     const run = async () => {
       const indices = recipes.map((r, i) => i).filter(i => !recipes[i].recipe.length && !recipes[i].loading && !recipes[i].done);
-      const BATCH = 3;
+      const BATCH = 2;
       let done = 0;
       for (let b = 0; b < indices.length; b += BATCH) {
         const batch = indices.slice(b, b + BATCH);
@@ -443,7 +463,7 @@ export default function MenuAIAssistant({ onDone }: { onDone?: () => void }) {
           try { await generateRecipe(idx); } catch {}
         }));
         done += batch.length;
-        if (b + BATCH < indices.length) await new Promise(r => setTimeout(r, 800));
+        if (b + BATCH < indices.length) await new Promise(r => setTimeout(r, 1500));
       }
       toast.success(`${done} receta${done !== 1 ? 's' : ''} generada${done !== 1 ? 's' : ''} — revisa y ajusta las cantidades`);
       autoGeneratingRef.current = false;
