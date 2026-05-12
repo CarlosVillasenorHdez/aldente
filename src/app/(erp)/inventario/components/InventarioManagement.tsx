@@ -1825,101 +1825,24 @@ export default function InventarioManagement() {
                   </p>
                 )}
               </div>
-              {/* Presentación de compra + costo */}
-              <div className="col-span-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: '12px', padding: '16px' }}>
-                <div className="flex items-start gap-2 mb-3">
-                  <span style={{ fontSize: '16px', flexShrink:0 }}>📦</span>
-                  <div>
-                    <p className="text-xs font-bold" style={{ color: '#f59e0b' }}>¿Cómo compras este ingrediente?</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      Si compras por costal, caja, bolsa, etc., configúralo aquí para calcular el costo por {form.unit ? UNIT_LABELS[form.unit] || form.unit : 'unidad'} automáticamente.
-                      Las equivalencias para recetas (ej: 5 pz = 1 kg) se configuran abajo en <strong style={{ color: '#f59e0b' }}>Unidades alternativas</strong>.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 mb-3">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Presentación de compra</label>
-                    <select className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none appearance-none"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                      value={form.purchaseUnit || ''}
-                      onChange={e => updateForm('purchaseUnit', e.target.value)}>
-                      <option value="" style={{ backgroundColor: '#162d55' }}>— Misma unidad —</option>
-                      <optgroup label="── Peso" style={{ backgroundColor: '#162d55' }}>
-                        {UNITS_WEIGHT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                      </optgroup>
-                      <optgroup label="── Volumen" style={{ backgroundColor: '#162d55' }}>
-                        {UNITS_VOLUME.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                      </optgroup>
-                      <optgroup label="── Conteo / Presentación" style={{ backgroundColor: '#162d55' }}>
-                        {UNITS_COUNT.map(u => <option key={u} value={u} style={{ backgroundColor: '#162d55' }}>{UNIT_LABELS[u]}</option>)}
-                      </optgroup>
-                    </select>
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Ej: bolsa, caja, costal</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                      {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'Unidades'} por presentación
-                    </label>
-                    <input type="number" min={1} step="1" placeholder="Ej: 8"
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                      value={form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : ''}
-                      onChange={e => {
-                        const pq = Number(e.target.value) || 1;
-                        const pp = form.purchasePrice || 0;
-                        updateForm('purchaseQty', pq);
-                        if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
-                      }} />
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>¿Cuántas {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidades'} trae?</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>Precio de compra ($)</label>
-                    <input type="number" min={0} step="0.01" placeholder="Ej: 80.00"
-                      className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                      value={form.purchasePrice || ''}
-                      onChange={e => {
-                        const pp = Number(e.target.value);
-                        const pq = form.purchaseQty || 1;
-                        updateForm('purchasePrice', pp);
-                        if (pp > 0 && pq > 0) updateForm('cost', Math.round((pp / pq) * 100) / 100);
-                      }} />
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Precio total por presentación</p>
-                  </div>
-                </div>
-                {/* Equivalencia visual + costo calculado */}
-                <div style={{ display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap', background:'rgba(0,0,0,0.25)', borderRadius:'8px', padding:'10px 14px' }}>
-                  <span style={{ fontSize:'18px' }}>📦</span>
-                  <span style={{ color:'white', fontWeight:600, fontSize:'13px' }}>
-                    1 {form.purchaseUnit ? (UNIT_LABELS[form.purchaseUnit as UnitType] || form.purchaseUnit) : (form.unit ? UNIT_LABELS[form.unit as UnitType] : '—')}
-                  </span>
-                  <span style={{ color:'rgba(255,255,255,0.4)' }}>→</span>
-                  <span style={{ color:'#f59e0b', fontWeight:700, fontSize:'13px' }}>
-                    {form.purchaseQty && form.purchaseQty > 1 ? form.purchaseQty : 1} {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : '?'}
-                  </span>
-                  {(form.purchasePrice || 0) > 0 && (
-                    <>
-                      <span style={{ color:'rgba(255,255,255,0.3)' }}>·</span>
-                      <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)' }}>
-                        Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'u'}:{' '}
-                        <strong style={{ color:'#4ade80' }}>
-                          ${((form.purchasePrice || 0) / Math.max(1, form.purchaseQty || 1)).toFixed(2)}
-                        </strong>
-                      </span>
-                    </>
-                  )}
-                  {form.stock > 0 && (form.purchaseQty || 1) > 1 && (
-                    <>
-                      <span style={{ color:'rgba(255,255,255,0.3)' }}>·</span>
-                      <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.45)' }}>
-                        Stock actual ({form.stock} {form.unit ? UNIT_LABELS[form.unit as UnitType] : ''}) ≈ {Math.floor(form.stock / (form.purchaseQty || 1))} {form.purchaseUnit || 'presentaciones'}
-                      </span>
-                    </>
-                  )}
+              {/* Precio de compra — solo para calcular costo por unidad */}
+              <div className="col-span-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>💰</span>
+                <div style={{ flex:1, minWidth:200 }}>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    Precio de compra al proveedor ($) — opcional
+                  </label>
+                  <input type="number" min={0} step="0.01" placeholder="Ej: 80.00"
+                    className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
+                    value={form.purchasePrice || ''}
+                    onChange={e => {
+                      const pp = Number(e.target.value);
+                      updateForm('purchasePrice', pp);
+                    }} />
                 </div>
               </div>
-              {/* Costo por unidad y Stock */}
+                            {/* Costo por unidad y Stock */}
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   Costo por {form.unit ? (UNIT_LABELS[form.unit as UnitType] || form.unit) : 'unidad'} ($)
