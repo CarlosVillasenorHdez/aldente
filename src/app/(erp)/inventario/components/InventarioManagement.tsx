@@ -944,26 +944,35 @@ export default function InventarioManagement() {
     setEquivModalOpen(true);
   }
   async function handleEquivSave() {
-    if (!equivForm.ingredientId || equivForm.conversionFactor <= 0) return;
+    if (!equivForm.ingredientId || equivForm.conversionFactor <= 0 || saving) return;
+    setSaving(true);
+    // Normalizar: qtyA bulkUnit = conversionFactor subUnit → 1 bulkUnit = (cf/qtyA) subUnit
+    const realFactor = equivForm.conversionFactor / (equivForm.qtyA || 1);
+    const payload = {
+      ingredient_id: equivForm.ingredientId, bulk_unit: equivForm.bulkUnit,
+      bulk_description: equivForm.bulkDescription, sub_unit: equivForm.subUnit,
+      sub_unit_description: equivForm.subUnitDescription, conversion_factor: realFactor,
+      notes: equivForm.notes,
+    };
     if (equivEditId) {
-      await supabase.from('unit_equivalences').update({
-        ingredient_id: equivForm.ingredientId, bulk_unit: equivForm.bulkUnit,
-        bulk_description: equivForm.bulkDescription, sub_unit: equivForm.subUnit,
-        sub_unit_description: equivForm.subUnitDescription, conversion_factor: equivForm.conversionFactor,
-        notes: equivForm.notes, updated_at: new Date().toISOString(),
-      }).eq('id', equivEditId);
+      await supabase.from('unit_equivalences').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', equivEditId);
     } else {
-      await supabase.from('unit_equivalences').insert({ tenant_id: getTenantId(),
-        ingredient_id: equivForm.ingredientId, bulk_unit: equivForm.bulkUnit,
-        bulk_description: equivForm.bulkDescription, sub_unit: equivForm.subUnit,
-        sub_unit_description: equivForm.subUnitDescription, conversion_factor: equivForm.conversionFactor,
-        notes: equivForm.notes,
-      });
+      // Verificar que no exista ya la misma combinación para evitar duplicados
+      const { data: existing } = await supabase.from('unit_equivalences')
+        .select('id').eq('ingredient_id', equivForm.ingredientId)
+        .eq('bulk_unit', equivForm.bulkUnit).eq('sub_unit', equivForm.subUnit).limit(1);
+      if (existing?.[0]) {
+        toast.error('Ya existe una equivalencia entre estas unidades para este ingrediente');
+        setSaving(false);
+        return;
+      }
+      await supabase.from('unit_equivalences').insert({ tenant_id: getTenantId(), ...payload });
     }
     setEquivModalOpen(false);
     setEquivEditId(null);
     setEquivForm(emptyEquivForm());
     await fetchEquivalences();
+    setSaving(false);
   }
   async function handleEquivDelete() {
     if (!deleteEquivId) return;
@@ -1690,7 +1699,7 @@ export default function InventarioManagement() {
       )}
       {/* ── MODAL: Delete Equivalence ── */}
       {deleteEquivId && deleteEquivTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteEquivId(null)} />
           <div className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
             <div className="flex items-center gap-3 mb-4">
