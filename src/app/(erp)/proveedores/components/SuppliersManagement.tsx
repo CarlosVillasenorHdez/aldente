@@ -529,7 +529,6 @@ export default function SuppliersManagement() {
     (balances ?? []).forEach((b: any) => { balMap[b.supplier_id] = b; });
     const enriched = (sups ?? []).map((s: any) => ({ ...s, ...(balMap[s.id] ?? {}) }));
     setSuppliers(enriched);
-    // Refresh selected if open
     if (selected) {
       const updated = enriched.find((s: Supplier) => s.id === selected.id);
       if (updated) setSelected(updated);
@@ -538,20 +537,6 @@ export default function SuppliersManagement() {
   }, [supabase, selected?.id]); // eslint-disable-line
 
   useEffect(() => { load(); }, []); // eslint-disable-line
-
-  const filtered = suppliers.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.contact_name ?? '').toLowerCase().includes(search.toLowerCase())
-  );
-  const totalDeuda = suppliers.reduce((s, p) => s + (p.balance_pendiente ?? 0), 0);
-
-  async function deactivate(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!confirm('¿Archivar este proveedor?')) return;
-    await supabase.from('suppliers').update({ active: false }).eq('id', id);
-    toast.success('Proveedor archivado');
-    load();
-  }
 
   if (selected) {
     return (
@@ -568,120 +553,127 @@ export default function SuppliersManagement() {
     );
   }
 
+  const totalDeuda = suppliers.reduce((s, p) => s + (p.balance_pendiente ?? 0), 0);
+  const conCredito = suppliers.filter(s => (s.balance_pendiente ?? 0) > 0).length;
+  const filtered = suppliers.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    (s.contact_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.city ?? '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  async function deactivate(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm('¿Archivar este proveedor?')) return;
+    await supabase.from('suppliers').update({ active: false }).eq('id', id);
+    toast.success('Proveedor archivado');
+    load();
+  }
+
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <div />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Proveedores</h1>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Gestión de proveedores, crédito y compras</p>
+        </div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: '#1B3A6B', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: '#f59e0b', border: 'none', color: '#1B3A6B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
           <Plus size={14} /> Nuevo proveedor
         </button>
       </div>
 
-      {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12, marginBottom: 20 }}>
+      {/* KPI cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Total de proveedores', val: suppliers.length.toString(), icon: '🏭', color: '#1B3A6B' },
-          { label: 'Con saldo pendiente', val: suppliers.filter(s => (s.balance_pendiente ?? 0) > 0).length.toString(),
-            icon: '⚠', color: suppliers.filter(s => (s.balance_pendiente ?? 0) > 0).length > 0 ? '#dc2626' : '#15803d' },
-          { label: 'Deuda total (crédito)', val: '$' + fmt(totalDeuda), icon: '💳', color: totalDeuda > 0 ? '#d97706' : '#15803d' },
-        ].map(c => (
-          <div key={c.label} style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
+          { label: 'Proveedores activos', val: loading ? '…' : suppliers.length.toString(), color: '#60a5fa', bg: 'rgba(96,165,250,0.1)', icon: '🏭' },
+          { label: 'Con saldo pendiente', val: loading ? '…' : conCredito.toString(), color: conCredito > 0 ? '#f87171' : '#4ade80', bg: conCredito > 0 ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)', icon: '⏳' },
+          { label: 'Deuda total', val: loading ? '…' : '$' + fmt(totalDeuda), color: totalDeuda > 0 ? '#fbbf24' : '#4ade80', bg: totalDeuda > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(74,222,128,0.1)', icon: '💳' },
+        ].map(card => (
+          <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.color}33`, borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 22 }}>{card.icon}</span>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: c.color, fontFamily: 'monospace' }}>{loading ? '…' : c.val}</div>
-              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{c.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: card.color, fontFamily: 'monospace' }}>{card.val}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{card.label}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Search */}
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar proveedor…"
-        style={{ width: '100%', maxWidth: 320, padding: '8px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: 'white', fontSize: 13, outline: 'none', color: '#1f2937', marginBottom: 14 }} />
+      {/* Search + filtros */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar proveedor…"
+          style={{ flex: 1, minWidth: 200, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', fontSize: 13, outline: 'none', color: 'white' }} />
+      </div>
 
-      {/* Table */}
+      {/* Lista */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>Cargando…</div>
+        <div style={{ textAlign: 'center', padding: 60, color: 'rgba(255,255,255,0.3)' }}>Cargando…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, background: 'white', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+        <div style={{ textAlign: 'center', padding: 60, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🏭</div>
-          <p style={{ color: '#6b7280', fontSize: 14 }}>{search ? 'Sin resultados.' : 'Sin proveedores. Agrega el primero.'}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>{search ? 'Sin resultados.' : 'Sin proveedores. Agrega el primero.'}</p>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#f9fafb' }}>
-                {['Proveedor','Contacto','Cond. pago','Insumos','Compras totales','Saldo pendiente',''].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: h === '' ? 'center' : 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', letterSpacing: '.06em', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(s => {
-                const hasPending = (s.balance_pendiente ?? 0) > 0;
-                const overLimit = s.credit_limit > 0 && (s.balance_pendiente ?? 0) > s.credit_limit;
-                return (
-                  <tr key={s.id} onClick={() => setSelected(s)}
-                    style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background .1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#f8faff')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 600, color: '#1f2937' }}>{s.name}</div>
-                      {s.rfc && <div style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'monospace', marginTop: 2 }}>{s.rfc}</div>}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {s.contact_name && <div style={{ color: '#374151' }}>{s.contact_name}</div>}
-                      {s.phone && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{s.phone}</div>}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 8, background: '#f3f4f6', color: '#374151', fontWeight: 500 }}>{termLabel(s.payment_terms)}</span>
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 12, color: (s.ingredients_count ?? 0) > 0 ? '#7c3aed' : '#9ca3af', fontWeight: (s.ingredients_count ?? 0) > 0 ? 600 : 400 }}>
-                        {s.ingredients_count ?? 0} insumo{(s.ingredients_count ?? 0) !== 1 ? 's' : ''}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#374151' }}>${fmt(s.total_compras ?? 0)}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {hasPending ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: overLimit ? '#dc2626' : '#d97706' }}>${fmt(s.balance_pendiente ?? 0)}</span>
-                          {overLimit && <span title="Sobre el límite de crédito"><AlertCircle size={12} color="#dc2626" /></span>}
-                        </div>
-                      ) : (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#15803d', fontSize: 12 }}>
-                          <CheckCircle size={12} /> Al día
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map(s => {
+            const balance = s.balance_pendiente ?? 0;
+            const limit = s.credit_limit ?? 0;
+            const pct = limit > 0 ? Math.min((balance / limit) * 100, 100) : 0;
+            const barColor = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#4ade80';
+            return (
+              <div key={s.id} onClick={() => setSelected(s)}
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  {/* Avatar */}
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                    🏭
+                  </div>
+                  {/* Info principal */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{s.name}</span>
+                      {balance > 0 && (
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', fontFamily: 'monospace' }}>
+                          ${fmt(balance)} pendiente
                         </span>
                       )}
-                    </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                        <span style={{ color: '#9ca3af', fontSize: 12 }}><ChevronRight size={16} /></span>
-                        <button onClick={e => deactivate(s.id, e)}
-                          style={{ background: 'none', border: '1px solid #fee2e2', borderRadius: 6, padding: '3px 7px', cursor: 'pointer', color: '#dc2626' }}
-                          title="Archivar">
-                          <X size={11} />
-                        </button>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
+                        {termLabel(s.payment_terms)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      {s.contact_name && <span>👤 {s.contact_name}</span>}
+                      {s.phone && <span>📞 {s.phone}</span>}
+                      {s.city && <span>📍 {s.city}{s.state_region ? `, ${s.state_region}` : ''}</span>}
+                      <span>📦 {s.ingredients_count ?? 0} insumos</span>
+                    </div>
+                    {/* Barra de crédito */}
+                    {limit > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
+                          <span>Crédito usado</span>
+                          <span style={{ color: barColor, fontFamily: 'monospace' }}>${fmt(balance)} / ${fmt(limit)}</span>
+                        </div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {(suppliers.reduce((s,p) => s+(p.total_compras??0), 0)) > 0 && (
-              <tfoot>
-                <tr style={{ background: '#f9fafb', borderTop: '2px solid #e5e7eb' }}>
-                  <td colSpan={4} style={{ padding: '10px 14px', fontSize: 12, fontWeight: 600, color: '#374151' }}>Total</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#1f2937' }}>${fmt(suppliers.reduce((s,p)=>s+(p.total_compras??0),0))}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: totalDeuda > 0 ? '#d97706' : '#15803d' }}>${fmt(totalDeuda)}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            )}
-          </table>
+                    )}
+                  </div>
+                  {/* Acciones */}
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => { setEditing(s); setModalOpen(true); }}
+                      style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13 }}>✏️</button>
+                    <button onClick={e => deactivate(s.id, e)}
+                      style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'none', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', fontSize: 13 }}>🗑️</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
