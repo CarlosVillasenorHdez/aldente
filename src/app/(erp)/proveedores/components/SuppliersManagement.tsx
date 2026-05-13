@@ -296,7 +296,7 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
   const S = { card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 } };
 
   return (
-    <div>
+    <div style={{ minHeight: '100vh', background: '#0f1e38', padding: 24, margin: -24 }}>
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '0 0 16px' }}>
         <ArrowLeft size={14} /> Todos los proveedores
       </button>
@@ -533,7 +533,7 @@ export default function SuppliersManagement() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, minHeight: '100vh', background: '#0f1e38' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Proveedores</h1>
