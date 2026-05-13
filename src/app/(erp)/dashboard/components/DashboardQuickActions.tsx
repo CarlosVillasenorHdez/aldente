@@ -62,7 +62,7 @@ export default function DashboardQuickActions() {
       icon:    ShoppingCart,
       primary: true,
       badge:   null,
-      color:   '#1B3A6B',
+      color:   '#f59e0b',
     },
     {
       href:    '/cocina',
