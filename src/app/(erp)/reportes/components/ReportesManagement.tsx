@@ -2,7 +2,8 @@
 import { toast } from 'sonner';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
-
+import { useDevice } from '@/hooks/useDevice';
+import ReportesMobile from './ReportesMobile';
 
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -151,6 +152,11 @@ const PeakTooltip = ({ active, payload, label }: any) => {
 
 export default function ReportesManagement() {
     const { activeBranchId } = useBranch();
+  const device = useDevice();
+
+  // Vista mobile — KPIs esenciales optimizados para teléfono
+  if (device.isMobile) return <ReportesMobile />;
+
   const [dateRange, setDateRange] = useState<DateRange>('semana');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
