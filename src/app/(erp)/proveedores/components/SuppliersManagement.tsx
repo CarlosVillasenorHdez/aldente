@@ -185,7 +185,7 @@ function PaymentModal({ supplier, onClose, onSaved }: {
     await supabase.from('supplier_payments').insert({
       tenant_id: getTenantId(), supplier_id: supplier.id,
       amount: parseFloat(amount), payment_date: date,
-      method, reference: reference.trim() || null, notes: notes.trim() || null,
+      method, type: 'pago', reference: reference.trim() || null, notes: notes.trim() || null,
     });
     toast.success(`Pago de $${fmt(parseFloat(amount))} registrado`);
     setSaving(false); onSaved();
@@ -443,15 +443,23 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
             <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', padding: 24 }}>Sin pagos registrados</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {payments.map(p => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'monospace' }}>${fmt(Number(p.amount))}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{p.payment_date} · {PAYMENT_METHODS.find(m=>m.key===p.method)?.label??p.method}{p.reference?` · ${p.reference}`:''}</div>
+              {payments.map(p => {
+                const isCargo = (p as any).type === 'cargo';
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: isCargo ? 'rgba(248,113,113,0.04)' : 'rgba(74,222,128,0.04)', border: `1px solid ${isCargo ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.1)'}`, borderRadius: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: isCargo ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.15)', color: isCargo ? '#f87171' : '#4ade80', fontWeight: 600 }}>
+                          {isCargo ? '↑ Compra' : '↓ Pago'}
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: isCargo ? '#f87171' : '#4ade80', fontFamily: 'monospace' }}>${fmt(Number(p.amount))}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{p.payment_date} · {PAYMENT_METHODS.find(m=>m.key===p.method)?.label??p.method}{(p as any).reference?` · ${(p as any).reference}`:''}</div>
+                      {p.notes && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{p.notes}</div>}
+                    </div>
                   </div>
-                  {p.notes && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', maxWidth: 180, textAlign: 'right' }}>{p.notes}</span>}
-                </div>
-              ))}
+                );
+              })}
               <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 4 }}>
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Total pagado: </span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'monospace', marginLeft: 8 }}>${fmt(totalPaid)}</span>

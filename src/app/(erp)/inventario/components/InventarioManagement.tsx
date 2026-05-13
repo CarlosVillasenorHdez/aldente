@@ -780,7 +780,7 @@ export default function InventarioManagement() {
     }
 
     // ── Insertar movimiento ─────────────────────────────────────────────────
-    await supabase.from('stock_movements').insert({
+    const moveResult = await supabase.from('stock_movements').insert({
       tenant_id: getTenantId(),
       ingredient_id: movementForm.ingredientId,
       movement_type: movementForm.movementType,
@@ -797,7 +797,7 @@ export default function InventarioManagement() {
       total_cost: totalCost,
       wacc_before: isEntrada ? waccBefore : null,
       wacc_after: isEntrada ? waccAfter : null,
-    });
+    }).select('id').single();
 
     // ── Actualizar stock e insumo ───────────────────────────────────────────
     const updatePayload: Record<string, unknown> = {
@@ -809,6 +809,22 @@ export default function InventarioManagement() {
       updatePayload.cost = waccAfter;
     }
     await supabase.from('ingredients').update(updatePayload).eq('id', movementForm.ingredientId);
+
+    // ── Cargo automático en cuenta corriente del proveedor ────────────────────
+    if (isEntrada && movementForm.supplierId && totalCost > 0) {
+      const movData = moveResult.data as any;
+      const movId = Array.isArray(movData) ? movData[0]?.id : movData?.id;
+      await supabase.from('supplier_payments').insert({
+        tenant_id: appUser?.tenantId ?? getTenantId(),
+        supplier_id: movementForm.supplierId,
+        amount: totalCost,
+        payment_date: new Date().toISOString().slice(0, 10),
+        method: 'compra',
+        type: 'cargo',
+        stock_movement_id: movId ?? null,
+        notes: `Compra ${ing.name} — ${movementForm.purchaseQtyPerUnit ?? stockQty} ${movementForm.purchaseUnitName ?? ing.unit}`,
+      });
+    }
 
     // Feedback
     if (isEntrada && movementForm.purchasePriceTotal > 0) {
