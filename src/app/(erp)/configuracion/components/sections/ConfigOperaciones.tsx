@@ -403,7 +403,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                     <span className="text-sm font-medium" style={{ color: '#f1f5f9' }}>{h.dayLabel}</span>
                     <div>
                       <button onClick={() => updateHour(h.day, 'open', !h.open)} className="relative w-11 h-6 rounded-full transition-all duration-200" style={{ backgroundColor: h.open ? '#f59e0b' : '#2a3f5f' }}>
-                        <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200" style={{ backgroundColor: '#fff', left: h.open ? '22px' : '2px' }} />
+                        <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200" style={{ backgroundColor: '#162d55', left: h.open ? '22px' : '2px' }} />
                       </button>
                     </div>
                     <input type="time" value={h.from} disabled={!h.open} onChange={(e) => updateHour(h.day, 'from', e.target.value)} className="px-3 py-1.5 rounded-lg text-sm outline-none" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: h.open ? '#f1f5f9' : 'rgba(255,255,255,0.3)', colorScheme: 'dark' }} />
@@ -698,7 +698,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                       <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Habilitar impresión automática de tickets</p>
                     </div>
                     <button onClick={() => setPrinterDraft((p) => ({ ...p, isActive: !p.isActive }))} className="relative w-12 h-6 rounded-full transition-all duration-200" style={{ backgroundColor: printerDraft.isActive ? '#f59e0b' : '#2a3f5f' }}>
-                      <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200" style={{ backgroundColor: '#fff', left: printerDraft.isActive ? '22px' : '2px' }} />
+                      <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200" style={{ backgroundColor: '#162d55', left: printerDraft.isActive ? '22px' : '2px' }} />
                     </button>
                   </div>
 
@@ -748,7 +748,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                             backgroundColor: printer.status === 'connected' ? 'rgba(34,197,94,0.1)' : printer.status === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
                             border: `1px solid ${printer.status === 'connected' ? 'rgba(34,197,94,0.3)' : printer.status === 'error' ? 'rgba(239,68,68,0.3)' : '#2a3f5f'}`,
                           }}>
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${printer.status === 'connected' ? 'bg-green-400' : printer.status === 'connecting' || printer.status === 'printing' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-500'}`} />
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${printer.status === 'connected' ? 'bg-green-400' : printer.status === 'connecting' || printer.status === 'printing' ? 'bg-yellow-400 animate-pulse' : 'bg-[#0f1e38]0'}`} />
                             <div className="flex-1 min-w-0">
                               {printer.status === 'connected' && printer.device ? (
                                 <>
@@ -882,7 +882,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{desc}</p>
                         </div>
                         <button onClick={() => setPrinterDraft((p) => ({ ...p, [key]: !p[key as keyof PrinterConfig] }))} className="relative w-11 h-6 rounded-full transition-all duration-200" style={{ backgroundColor: (printerDraft[key as keyof PrinterConfig] as boolean) ? '#f59e0b' : '#2a3f5f' }}>
-                          <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200" style={{ backgroundColor: '#fff', left: (printerDraft[key as keyof PrinterConfig] as boolean) ? '22px' : '2px' }} />
+                          <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200" style={{ backgroundColor: '#162d55', left: (printerDraft[key as keyof PrinterConfig] as boolean) ? '22px' : '2px' }} />
                         </button>
                       </div>
                     ))}
@@ -958,7 +958,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                             className="relative w-9 h-5 rounded-full transition-all duration-200"
                             style={{ backgroundColor: (printerDraft as any)[key] ? '#f59e0b' : '#2a3f5f' }}>
                             <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200"
-                              style={{ backgroundColor: '#fff', left: (printerDraft as any)[key] ? '17px' : '2px' }} />
+                              style={{ backgroundColor: '#162d55', left: (printerDraft as any)[key] ? '17px' : '2px' }} />
                           </button>
                         </div>
                       ))}

@@ -35,8 +35,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div
-        className="bg-white rounded-xl shadow-lg border p-3 text-sm"
-        style={{ borderColor: '#e5e7eb', minWidth: '140px' }}
+        className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm"
+        style={{ borderColor: '#243f72', minWidth: '140px' }}
       >
         <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
         <div className="flex items-center justify-between gap-4">
@@ -201,8 +201,8 @@ export default function SalesChart() {
 
   return (
     <div
-      className="bg-white rounded-xl border p-5"
-      style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+      className="bg-[#162d55] rounded-xl border p-5"
+      style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
     >
       <div className="flex items-center justify-between mb-5">
         <div>
@@ -216,12 +216,12 @@ export default function SalesChart() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchData}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
             title="Actualizar"
           >
             <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[#0f1e38] rounded-lg p-1">
             {(['hoy', 'semana'] as const).map((v) => (
               <button
                 key={v}
@@ -288,7 +288,7 @@ export default function SalesChart() {
       {/* Summary row */}
       <div
         className="flex items-center gap-6 mt-4 pt-4 border-t text-sm"
-        style={{ borderColor: '#f3f4f6' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div>
           <p className="text-xs text-gray-400 mb-0.5">Hora pico</p>

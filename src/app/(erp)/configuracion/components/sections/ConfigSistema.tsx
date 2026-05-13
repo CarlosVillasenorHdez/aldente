@@ -87,7 +87,7 @@ function WhatsAppReportToggle() {
           style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
             background: enabled ? '#25d366' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background .2s' }}>
           <div style={{ position: 'absolute', top: 3, left: enabled ? 23 : 3, width: 18, height: 18,
-            borderRadius: '50%', background: 'white', transition: 'left .2s' }} />
+            borderRadius: '50%', background: '#162d55', transition: 'left .2s' }} />
         </button>
       </div>
       {enabled && (
@@ -134,7 +134,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const [loyaltyWhatsapp, setLoyaltyWhatsapp] = useState(false);
   const [loyaltyLevels, setLoyaltyLevels] = useState<{ name: string; min: number; color: string; benefit: string }[]>([
     { name: 'Bronce', min: 0,    color: '#cd7f32', benefit: '' },
-    { name: 'Plata',  min: 500,  color: '#9ca3af', benefit: '' },
+    { name: 'Plata',  min: 500,  color: 'rgba(255,255,255,0.35)', benefit: '' },
     { name: 'Oro',    min: 1500, color: '#f59e0b', benefit: '' },
   ]);
   const [loyaltySaving, setLoyaltySaving] = useState(false);
@@ -279,7 +279,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
                     className="flex-shrink-0 w-12 h-6 rounded-full flex items-center px-1 transition-all duration-200"
                     style={{ backgroundColor: features[key] ? '#f59e0b' : '#d1d5db' }}
                   >
-                    <div className="w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                    <div className="w-4 h-4 rounded-full bg-[#162d55] shadow-sm transition-transform duration-200"
                       style={{ transform: features[key] ? 'translateX(24px)' : 'translateX(0)' }} />
                   </button>
                 </div>

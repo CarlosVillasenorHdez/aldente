@@ -103,7 +103,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
       <div style={{ marginBottom: 12, padding: '20px', borderRadius: '14px', backgroundColor: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
           {/* QR preview */}
-          <div style={{ flexShrink: 0, background: '#fff', borderRadius: 10, padding: 8, width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ flexShrink: 0, background: '#162d55', borderRadius: 10, padding: 8, width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             <div ref={canvasRef} style={{ width: 56, height: 56, display: qrReady ? 'block' : 'none', overflow:'hidden' }} />
             {!qrReady && <span style={{ fontSize: 28 }}>🍽️</span>}
           </div>
@@ -142,17 +142,17 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={() => setShowModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 24, padding: 36, maxWidth: 360, width: '100%', textAlign: 'center' }}
+          <div style={{ background: '#162d55', borderRadius: 24, padding: 36, maxWidth: 360, width: '100%', textAlign: 'center' }}
             onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111', marginBottom: 4 }}>Carta QR</h3>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 24 }}>Escanea para ver el menú</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24 }}>Escanea para ver el menú</p>
             <QRBigCanvas url={menuUrl ?? ''} />
-            <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 16, marginBottom: 24, wordBreak: 'break-all' }}>{menuUrl}</p>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 16, marginBottom: 24, wordBreak: 'break-all' }}>{menuUrl}</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleDownload} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#1d4ed8', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 ⬇ Descargar PNG
               </button>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#f3f4f6', border: 'none', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#f3f4f6', border: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 Cerrar
               </button>
             </div>
@@ -634,7 +634,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
             style={{ backgroundColor: takeoutPayBeforeKitchen ? '#f59e0b' : '#2a3f5f' }}
           >
             <span className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200"
-              style={{ backgroundColor: '#fff', left: takeoutPayBeforeKitchen ? '22px' : '2px' }} />
+              style={{ backgroundColor: '#162d55', left: takeoutPayBeforeKitchen ? '22px' : '2px' }} />
           </button>
         </div>
 

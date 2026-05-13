@@ -36,7 +36,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string; bg: string; 
 };
 
 function ActionBadge({ action }: { action: string }) {
-  const meta = ACTION_LABELS[action] ?? { label: action, color: '#9ca3af', bg: 'rgba(156,163,175,0.12)', emoji: '•' };
+  const meta = ACTION_LABELS[action] ?? { label: action, color: 'rgba(255,255,255,0.35)', bg: 'rgba(156,163,175,0.12)', emoji: '•' };
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
       style={{ color: meta.color, backgroundColor: meta.bg }}>

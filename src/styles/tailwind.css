@@ -12,13 +12,23 @@
     --sidebar-border: #243f72;
     --primary: 38 92% 50%;
     --primary-fg: 0 0% 100%;
-    --background: 210 20% 98%;
-    --card: 0 0% 100%;
-    --card-border: 214 32% 91%;
-    --muted: 210 15% 96%;
-    --muted-fg: 215 16% 47%;
-    --foreground: 222 47% 11%;
-    --border: 214 32% 91%;
+
+    /* ERP dark theme */
+    --erp-bg:        #0a1628;
+    --erp-surface:   #0f1e38;
+    --erp-card:      #162d55;
+    --erp-border:    #243f72;
+    --erp-text:      rgba(255,255,255,0.85);
+    --erp-muted:     rgba(255,255,255,0.45);
+    --erp-accent:    #f59e0b;
+
+    --background: 222 47% 8%;
+    --card: 220 43% 13%;
+    --card-border: 223 44% 21%;
+    --muted: 220 40% 16%;
+    --muted-fg: 215 20% 60%;
+    --foreground: 210 40% 95%;
+    --border: 223 44% 21%;
     --success: 160 84% 39%;
     --warning: 38 92% 50%;
     --danger: 0 84% 60%;
@@ -73,9 +83,10 @@
   }
 
   .kpi-card {
-    @apply bg-white rounded-xl border p-5 flex flex-col gap-2 transition-all duration-200;
-    border-color: hsl(var(--card-border));
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    @apply rounded-xl border p-5 flex flex-col gap-2 transition-all duration-200;
+    background-color: #162d55;
+    border-color: #243f72;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 
   .kpi-card:hover {

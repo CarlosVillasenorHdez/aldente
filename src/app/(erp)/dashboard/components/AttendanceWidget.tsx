@@ -98,17 +98,17 @@ export default function AttendanceWidget() {
 
   if (loading) {
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 animate-pulse">
-        <div className="h-4 bg-gray-100 rounded w-1/3 mb-4" />
+      <div className="bg-[#162d55] border border-gray-200 rounded-2xl p-5 animate-pulse">
+        <div className="h-4 bg-[#0f1e38] rounded w-1/3 mb-4" />
         <div className="flex gap-2">
-          {[1,2,3].map(i => <div key={i} className="w-12 h-12 bg-gray-100 rounded-full" />)}
+          {[1,2,3].map(i => <div key={i} className="w-12 h-12 bg-[#0f1e38] rounded-full" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+    <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function AttendanceWidget() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">⭕ Sin registrar</p>
             <div className="flex flex-wrap gap-2">
               {absent.map(e => (
-                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-gray-100">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 opacity-50"
                     style={{ backgroundColor: e.color, color: '#1B3A6B' }}>
                     {e.initials}
@@ -177,7 +177,7 @@ export default function AttendanceWidget() {
             <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">✓ Turno completado</p>
             <div className="flex flex-wrap gap-2">
               {left.map(e => (
-                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100 opacity-50">
+                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-gray-100 opacity-50">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                     style={{ backgroundColor: e.color, color: '#1B3A6B' }}>
                     {e.initials}

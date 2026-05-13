@@ -33,7 +33,7 @@ function RowSkeleton() {
     <tr className="border-b animate-pulse" style={{ borderColor: '#f9fafb' }}>
       {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-5 py-3.5">
-          <div className="h-4 rounded bg-gray-100" style={{ width: i === 0 ? '80px' : '60px' }} />
+          <div className="h-4 rounded bg-[#0f1e38]" style={{ width: i === 0 ? '80px' : '60px' }} />
         </td>
       ))}
     </tr>
@@ -107,12 +107,12 @@ export default function RecentOrders() {
 
   return (
     <div
-      className="bg-white rounded-xl border"
-      style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+      className="bg-[#162d55] rounded-xl border"
+      style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
     >
       <div
         className="flex items-center justify-between px-5 py-4 border-b"
-        style={{ borderColor: '#f3f4f6' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div>
           <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
@@ -122,7 +122,7 @@ export default function RecentOrders() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[#0f1e38] rounded-lg p-1">
             {(['todas', 'abierta', 'cerrada'] as const).map((f) => (
               <button
                 key={f}
@@ -141,7 +141,7 @@ export default function RecentOrders() {
           </div>
           <button
             onClick={fetchOrders}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
             title="Actualizar"
           >
             <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
@@ -163,7 +163,7 @@ export default function RecentOrders() {
                 <th
                   key={h}
                   className="text-left px-5 py-3 text-xs font-600 uppercase tracking-wide"
-                  style={{ color: '#9ca3af', fontWeight: 600, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
+                  style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -242,7 +242,7 @@ export default function RecentOrders() {
                     </td>
                     <td className="px-5 py-3.5">
                       <Link href="/orders-management">
-                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                        <button className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors">
                           <Eye size={14} className="text-gray-400" />
                         </button>
                       </Link>
@@ -256,7 +256,7 @@ export default function RecentOrders() {
       </div>
 
       {!loading && filtered.length > 0 && (
-        <div className="px-5 py-3 border-t flex items-center justify-between" style={{ borderColor: '#f3f4f6' }}>
+        <div className="px-5 py-3 border-t flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <p className="text-xs text-gray-400">
             Mostrando {filtered.length} de {orders.length} órdenes recientes
           </p>

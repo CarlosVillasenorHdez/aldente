@@ -254,7 +254,7 @@ export default function DeliveryManagement() {
           { label: 'Total Hoy', value: `$${orders.filter(o => o.status === 'entregado' && o.receivedAt?.startsWith(new Date().toISOString().split('T')[0])).reduce((s, o) => s + o.total, 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, color: '#1B3A6B' },
           { label: 'Cancelados', value: orders.filter(o => o.status === 'cancelado').length, color: '#ef4444' },
         ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div key={k.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">{k.label}</p>
             <p className="text-xl font-bold mt-1" style={{ color: k.color }}>{k.value}</p>
           </div>
@@ -284,7 +284,7 @@ export default function DeliveryManagement() {
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterStatus === s ? 'text-white' : 'text-gray-600 bg-white border border-gray-200'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterStatus === s ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200'}`}
               style={filterStatus === s ? { backgroundColor: s === 'all' ? '#1B3A6B' : STATUS_COLORS[s] } : {}}
             >
               {s === 'all' ? 'Todos' : STATUS_LABELS[s]}
@@ -292,7 +292,7 @@ export default function DeliveryManagement() {
           ))}
         </div>
         <div className="flex gap-2">
-          <button onClick={loadOrders} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 bg-white border border-gray-200 hover:bg-gray-50">
+          <button onClick={loadOrders} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 bg-[#162d55] border border-gray-200 hover:bg-[#0f1e38]">
             <RefreshCw size={14} /> Actualizar
           </button>
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#1B3A6B' }}>
@@ -304,10 +304,10 @@ export default function DeliveryManagement() {
       {/* Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800">Nuevo Pedido de Delivery</h3>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-gray-100"><XCircle size={18} /></button>
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-[#0f1e38]"><XCircle size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -317,7 +317,7 @@ export default function DeliveryManagement() {
                     <button
                       key={k}
                       onClick={() => setForm({ ...form, platform: k as any })}
-                      className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-colors ${form.platform === k ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 bg-white'}`}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium border-2 transition-colors ${form.platform === k ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 bg-[#162d55]'}`}
                       style={form.platform === k ? { backgroundColor: PLATFORM_COLORS[k], borderColor: PLATFORM_COLORS[k] } : {}}
                     >
                       {v}
@@ -367,7 +367,7 @@ export default function DeliveryManagement() {
               <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1B3A6B' }}>
                 {saving ? 'Guardando...' : 'Registrar Pedido'}
               </button>
-              <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100">Cancelar</button>
+              <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-[#0f1e38]">Cancelar</button>
             </div>
           </div>
         </div>
@@ -376,13 +376,13 @@ export default function DeliveryManagement() {
       {/* Orders */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100">
+          <div className="bg-[#162d55] rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100">
             <Truck size={40} className="mx-auto mb-3 opacity-30" />
             <p>Sin pedidos de delivery</p>
           </div>
         ) : (
           filtered.map(order => (
-            <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div key={order.id} className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-xs font-bold" style={{ backgroundColor: PLATFORM_COLORS[order.platform] }}>
                   {PLATFORM_LABELS[order.platform].split(' ')[0]}
@@ -401,7 +401,7 @@ export default function DeliveryManagement() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {order.items.map((item, i) => (
-                      <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      <span key={i} className="text-xs bg-[#0f1e38] text-gray-600 px-2 py-0.5 rounded-full">
                         {item.qty}x {item.name}
                       </span>
                     ))}

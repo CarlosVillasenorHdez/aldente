@@ -52,7 +52,7 @@ function Delta({ valor, positiveIsGood = true, suffix = '' }: {
 function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+    <div className="w-full h-2 bg-[#0f1e38] rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500"
         style={{ width: `${pct}%`, backgroundColor: color }} />
     </div>
@@ -69,7 +69,7 @@ function KPICard({ label, real, meta, delta, positiveIsGood = true, suffix = '$'
   const achieved = pct >= 95;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5">
+    <div className="bg-[#162d55] border border-gray-200 rounded-2xl p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
@@ -173,7 +173,7 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-base font-bold text-gray-900">
             {initial?.id ? 'Editar presupuesto' : isSugerencia ? '✨ Meta sugerida (+10% mes anterior)' : 'Nuevo presupuesto'}
@@ -249,7 +249,7 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
 
         <div className="flex gap-3 px-6 py-4 border-t border-gray-200">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-[#0f1e38]">
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.metaVentas}
@@ -338,9 +338,9 @@ export default function PresupuestoVsReal() {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-12 bg-gray-100 rounded-xl" />
+        <div className="h-12 bg-[#0f1e38] rounded-xl" />
         <div className="grid grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 rounded-2xl" />)}
+          {[1,2,3].map(i => <div key={i} className="h-32 bg-[#0f1e38] rounded-2xl" />)}
         </div>
       </div>
     );
@@ -358,7 +358,7 @@ export default function PresupuestoVsReal() {
               const found = meses.find(m => m.inicio === e.target.value);
               if (found) { setSelectedInicio(found.inicio); setSelectedFin(found.fin); }
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white focus:outline-none focus:border-blue-400"
+            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-[#162d55] focus:outline-none focus:border-blue-400"
           >
             {meses.map(m => (
               <option key={m.inicio} value={m.inicio}>{m.label}</option>
@@ -366,7 +366,7 @@ export default function PresupuestoVsReal() {
           </select>
           {presupuesto && (
             <button onClick={() => { setEditing(presupuesto); setShowModal(true); }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-[#0f1e38]">
               <Edit3 size={13} /> Editar presupuesto
             </button>
           )}
@@ -376,7 +376,7 @@ export default function PresupuestoVsReal() {
             onClick={async () => { await calcularSugerencia(); setEditing(undefined); setShowModal(true); }}
             disabled={loadingSug}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border"
-            style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+            style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: '#162d55' }}
           >
             {loadingSug ? '⏳ Calculando...' : '✨ Sugerir metas'}
           </button>
@@ -492,7 +492,7 @@ export default function PresupuestoVsReal() {
           </div>
 
           {/* Datos reales adicionales */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+          <div className="bg-[#0f1e38] border border-gray-200 rounded-2xl p-5">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Datos reales del período</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
@@ -526,7 +526,7 @@ export default function PresupuestoVsReal() {
                 <button key={p.id}
                   onClick={() => { setSelectedInicio(p.periodoInicio); setSelectedFin(p.periodoFin); }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
-                    isCurrent ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'
+                    isCurrent ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-[#162d55] hover:bg-[#0f1e38]'
                   }`}>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{p.nombre}</p>

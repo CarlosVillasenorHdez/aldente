@@ -78,7 +78,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
       <div className="mt-3">
         <p
           className="text-xs font-500 tracking-wide uppercase mb-1"
-          style={{ color: '#6b7280', fontWeight: 500, letterSpacing: '0.05em' }}
+          style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500, letterSpacing: '0.05em' }}
         >
           {title}
         </p>
@@ -87,18 +87,18 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
         ) : (
           <p
             className="text-3xl font-700 tabular-nums font-mono leading-none"
-            style={{ color: '#111827', fontWeight: 700 }}
+            style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}
           >
             {value}
           </p>
         )}
         {subValue && !loading && (
-          <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>
+          <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
             {subValue}
           </p>
         )}
         {trendLabel && !loading && (
-          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             {trendLabel}
           </p>
         )}
@@ -384,7 +384,7 @@ export default function DashboardKPIs() {
             <span className="text-2xl font-black text-gray-900">${kpis.ventasHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
             <span className="text-sm text-gray-400 mb-0.5">de ${kpis.puntoEquilibrioHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })} necesarios</span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-[#0f1e38] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{

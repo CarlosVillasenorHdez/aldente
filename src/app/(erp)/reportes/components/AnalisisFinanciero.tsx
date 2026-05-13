@@ -300,7 +300,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
   }, [loading, months]); // eslint-disable-line
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: 48, color: '#9ca3af', fontSize: 13 }}>
+    <div style={{ textAlign: 'center', padding: 48, color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
       Cargando comparativa de {numMonths} meses…
     </div>
   );
@@ -403,7 +403,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
           const sparkVals = months.map(m => getRowDerived(metric.key, m));
 
           return (
-            <div key={metric.key} style={{ background: 'white', border: `1px solid ${C.border}`,
+            <div key={metric.key} style={{ background: '#162d55', border: `1px solid ${C.border}`,
               borderRadius: 12, padding: '14px 16px' }}>
               <p style={{ fontSize: 11, color: C.muted, margin: '0 0 6px',
                 textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 }}>
@@ -439,7 +439,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
           color: C.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           marginBottom: showDetail ? 14 : 0, width: '100%', justifyContent: 'space-between' }}>
         <span>{showDetail ? '▲ Ocultar detalle completo' : '▼ Ver estado de resultados completo mes a mes'}</span>
-        <span style={{ fontSize: 10, color: '#9ca3af' }}>{months.length} meses · {rows.filter(r => r.tipo !== 'header').length} líneas</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{months.length} meses · {rows.filter(r => r.tipo !== 'header').length} líneas</span>
       </button>
 
       {showDetail && (
@@ -520,7 +520,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                           display = (
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ color: col, fontWeight: 500, fontSize: 11 }}>{s} {Math.abs(pct).toFixed(1)}%</div>
-                              <div style={{ color: '#9ca3af', fontSize: 10 }}>{fmtMXN(pyVal)}</div>
+                              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{fmtMXN(pyVal)}</div>
                             </div>
                           );
                         }
@@ -567,7 +567,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       )}
 
       {!showDetail && (
-        <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>
           Verde = mejor mes · Rojo = peor mes · Sparklines muestran tendencia del período
         </p>
       )}

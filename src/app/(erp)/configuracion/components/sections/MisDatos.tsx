@@ -355,7 +355,7 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
             const isLoading = exporting === section.key;
             return (
               <div key={section.key} className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #243f72' }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ background: section.color + '18' }}>
                   <Icon size={15} style={{ color: section.color }} />
@@ -406,8 +406,8 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
 
             return (
               <div key={fmt.key} className="rounded-xl overflow-hidden"
-                style={{ border: '1px solid #e5e7eb' }}>
-                <div className="flex items-center gap-3 p-3" style={{ background: '#f9fafb' }}>
+                style={{ border: '1px solid #243f72' }}>
+                <div className="flex items-center gap-3 p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: fmt.color + '18' }}>
                     <Icon size={15} style={{ color: fmt.color }} />
@@ -442,11 +442,11 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
                 </div>
 
                 {open && (
-                  <div className="px-4 py-3 border-t" style={{ background: '#fff', borderColor: '#e5e7eb' }}>
+                  <div className="px-4 py-3 border-t" style={{ background: '#162d55', borderColor: '#243f72' }}>
                     <p className="text-xs font-mono text-gray-500 mb-1">Formato (columnas en orden):</p>
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded block mb-2">{fmt.format}</code>
+                    <code className="text-xs bg-[#0f1e38] px-2 py-1 rounded block mb-2">{fmt.format}</code>
                     <p className="text-xs font-mono text-gray-400 mb-1">Ejemplo:</p>
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded block text-gray-600">{fmt.example}</code>
+                    <code className="text-xs bg-[#0f1e38] px-2 py-1 rounded block text-gray-600">{fmt.example}</code>
                     <p className="text-xs text-gray-400 mt-2">
                       • La primera fila puede ser encabezado (se detecta automáticamente)<br />
                       • Campos vacíos se dejan en blanco<br />

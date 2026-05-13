@@ -179,11 +179,11 @@ export default function HealthScore() {
 
   if (loading) {
     return (
-      <div style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 80 }}>
+      <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #243f72', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 80 }}>
         <div style={{ width: 48, height: 48, borderRadius: 12, background: '#e5e7eb', animation: 'pulse 1.5s infinite' }} />
         <div style={{ flex: 1 }}>
           <div style={{ height: 12, width: '40%', background: '#e5e7eb', borderRadius: 6, marginBottom: 8 }} />
-          <div style={{ height: 8, width: '60%', background: '#f3f4f6', borderRadius: 4 }} />
+          <div style={{ height: 8, width: '60%', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
         </div>
       </div>
     );
@@ -204,7 +204,7 @@ export default function HealthScore() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <Activity size={14} color={color} />
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: '#6b7280' }}>Salud del restaurante</span>
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'rgba(255,255,255,0.45)' }}>Salud del restaurante</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 22, fontWeight: 700, color, letterSpacing: '-0.5px' }}>
@@ -228,7 +228,7 @@ export default function HealthScore() {
           {details.map((d) => (
             <div key={d.label} style={{ backgroundColor: 'rgba(255,255,255,.5)', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>{d.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>{d.label}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: d.pts >= d.max * 0.7 ? '#16a34a' : d.pts >= d.max * 0.4 ? '#d97706' : '#dc2626' }}>
                   {d.pts}/{d.max}
                 </span>
@@ -236,7 +236,7 @@ export default function HealthScore() {
               <div style={{ height: 4, borderRadius: 2, backgroundColor: '#e5e7eb', overflow: 'hidden', marginBottom: 4 }}>
                 <div style={{ height: '100%', width: `${(d.pts / d.max) * 100}%`, backgroundColor: d.pts >= d.max * 0.7 ? '#16a34a' : d.pts >= d.max * 0.4 ? '#d97706' : '#dc2626', borderRadius: 2 }} />
               </div>
-              <p style={{ fontSize: 10, color: '#9ca3af', margin: 0, lineHeight: 1.4 }}>{d.note}</p>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.4 }}>{d.note}</p>
             </div>
           ))}
         </div>

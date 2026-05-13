@@ -62,8 +62,8 @@ export default function RecentActivity() {
   }, [appUser]);
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e5e7eb',
+    backgroundColor: '#162d55',
+    border: '1px solid #243f72',
     borderRadius: '16px',
     padding: '20px',
   };
@@ -72,11 +72,11 @@ export default function RecentActivity() {
     return (
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <Clock size={16} style={{ color: '#6b7280' }} />
-          <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>Actividad del turno</span>
+          <Clock size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <span style={{ fontWeight: 600, fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>Actividad del turno</span>
         </div>
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ height: '40px', backgroundColor: '#f3f4f6', borderRadius: '8px', marginBottom: '8px', animation: 'pulse 1.5s infinite' }} />
+          <div key={i} style={{ height: '40px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '8px', animation: 'pulse 1.5s infinite' }} />
         ))}
       </div>
     );
@@ -86,10 +86,10 @@ export default function RecentActivity() {
     return (
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <Clock size={16} style={{ color: '#6b7280' }} />
-          <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>Actividad del turno</span>
+          <Clock size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <span style={{ fontWeight: 600, fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>Actividad del turno</span>
         </div>
-        <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
           Sin actividad en las últimas 12 horas
         </div>
       </div>
@@ -100,14 +100,14 @@ export default function RecentActivity() {
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={16} style={{ color: '#6b7280' }} />
-          <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>Actividad del turno</span>
+          <Clock size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <span style={{ fontWeight: 600, fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>Actividad del turno</span>
         </div>
-        <span style={{ fontSize: '11px', color: '#9ca3af', backgroundColor: '#f3f4f6', padding: '2px 8px', borderRadius: '20px' }}>Últimas 12 h</span>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '20px' }}>Últimas 12 h</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {entries.map((e) => {
-          const meta = ACTION_META[e.action] ?? { label: e.action, icon: Clock, color: '#6b7280' };
+          const meta = ACTION_META[e.action] ?? { label: e.action, icon: Clock, color: 'rgba(255,255,255,0.45)' };
           const IconComp = meta.icon;
           return (
             <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
@@ -115,15 +115,15 @@ export default function RecentActivity() {
                 <IconComp size={13} style={{ color: meta.color }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13px', color: '#111827', lineHeight: '1.4' }}>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', lineHeight: '1.4' }}>
                   <span style={{ fontWeight: 500 }}>{meta.label}</span>
                   {e.entity_name && (
-                    <span style={{ color: '#6b7280', fontWeight: 400 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>
                       {' '}— {e.entity_name}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>
                   {e.user_name} · {timeAgo(e.created_at)}
                 </div>
               </div>

@@ -77,7 +77,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
 
   return (
     <BranchProvider>
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#0a1628' }}>
       <OfflineIndicator />
       {/* Mobile overlay */}
       {mobileSidebarOpen && (

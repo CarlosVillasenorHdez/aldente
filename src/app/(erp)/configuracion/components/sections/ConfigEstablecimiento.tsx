@@ -211,7 +211,7 @@ export default function ConfigEstablecimiento() {
           <button
             onClick={() => setBlockSaleNoStock(v => !v)}
             style={{ width: 44, height: 24, borderRadius: 12, background: blockSaleNoStock ? '#c9963a' : 'rgba(255,255,255,.15)', border: 'none', position: 'relative', transition: 'all .3s', cursor: 'pointer', flexShrink: 0, marginLeft: 16 }}>
-            <span style={{ position: 'absolute', top: 3, left: blockSaleNoStock ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: 'white', transition: 'left .25s' }} />
+            <span style={{ position: 'absolute', top: 3, left: blockSaleNoStock ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#162d55', transition: 'left .25s' }} />
           </button>
         </div>
       </div>

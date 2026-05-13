@@ -265,10 +265,10 @@ export default function LoyaltyHub() {
   const visitsLeft = customer ? Math.max(0, visitsGoal - customer.totalVisits) : visitsGoal;
 
   // ── Estilos ─────────────────────────────────────────────────────────────────
-  const card  = 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl';
-  const inp   = 'w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400';
+  const card  = 'bg-[#162d55] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl';
+  const inp   = 'w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm bg-[#162d55] dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400';
   const btnPrimary = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-[#1B3A6B] transition-colors disabled:opacity-50';
-  const btnGhost   = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors';
+  const btnGhost   = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-[#0f1e38] dark:hover:bg-gray-800 transition-colors';
 
   return (
     <div className="max-w-lg mx-auto space-y-4 p-4">
@@ -401,7 +401,7 @@ export default function LoyaltyHub() {
             {mem.enabled && active && (
               <div className="space-y-2">
                 {mem.freeProductEnabled && (
-                  <div className={`flex items-center gap-3 p-3 rounded-xl ${benefitOk ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                  <div className={`flex items-center gap-3 p-3 rounded-xl ${benefitOk ? 'bg-green-50 dark:bg-green-900/20' : 'bg-[#0f1e38] dark:bg-gray-800'}`}>
                     <span className="text-lg">{benefitOk ? '☕' : '⏱'}</span>
                     <div className="flex-1">
                       <p className={`text-sm font-semibold ${benefitOk ? 'text-green-700 dark:text-green-400' : 'text-gray-500'}`}>
@@ -462,7 +462,7 @@ export default function LoyaltyHub() {
               <p className="text-xs text-red-600 dark:text-red-400">Acción permanente. Queda registrado en la auditoría.</p>
               <div>
                 <label className="text-xs font-semibold text-red-700 dark:text-red-400 block mb-1">Razón *</label>
-                <input className="w-full border border-red-300 dark:border-red-700 rounded-lg px-3 py-2 text-xs bg-white dark:bg-red-900/10 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-400"
+                <input className="w-full border border-red-300 dark:border-red-700 rounded-lg px-3 py-2 text-xs bg-[#162d55] dark:bg-red-900/10 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-400"
                   placeholder="Ej: Registro duplicado, solicitud del cliente..."
                   value={deleteReason} onChange={e => setDeleteReason(e.target.value)} autoFocus />
               </div>

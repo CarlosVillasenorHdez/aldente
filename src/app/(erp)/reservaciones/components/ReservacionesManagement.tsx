@@ -281,10 +281,10 @@ export default function ReservacionesManagement() {
       {/* Header */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex gap-2">
-          <button onClick={() => setView('calendar')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'calendar' ? 'text-white' : 'text-gray-600 bg-white border border-gray-200'}`} style={view === 'calendar' ? { backgroundColor: '#1B3A6B' } : {}}>
+          <button onClick={() => setView('calendar')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'calendar' ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200'}`} style={view === 'calendar' ? { backgroundColor: '#1B3A6B' } : {}}>
             <CalendarDays size={16} /> Calendario
           </button>
-          <button onClick={() => setView('list')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'list' ? 'text-white' : 'text-gray-600 bg-white border border-gray-200'}`} style={view === 'list' ? { backgroundColor: '#1B3A6B' } : {}}>
+          <button onClick={() => setView('list')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'list' ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200'}`} style={view === 'list' ? { backgroundColor: '#1B3A6B' } : {}}>
             <List size={16} /> Lista
           </button>
         </div>
@@ -304,7 +304,7 @@ export default function ReservacionesManagement() {
           { label: 'Confirmadas', value: reservations.filter(r => r.status === 'confirmada').length, color: '#10b981', icon: Check },
           { label: 'Lista de Espera', value: waitlist.length, color: '#8b5cf6', icon: AlertCircle },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+          <div key={s.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.color + '15' }}>
               <s.icon size={20} style={{ color: s.color }} />
             </div>
@@ -319,10 +319,10 @@ export default function ReservacionesManagement() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800">{editingId ? 'Editar Reservación' : 'Nueva Reservación'}</h3>
-              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2 rounded-lg hover:bg-gray-100">
+              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2 rounded-lg hover:bg-[#0f1e38]">
                 <X size={18} />
               </button>
             </div>
@@ -384,7 +384,7 @@ export default function ReservacionesManagement() {
               <button onClick={handleSave} disabled={saving || sendingEmail} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1B3A6B' }}>
                 <Check size={16} /> {saving ? 'Guardando...' : sendingEmail ? 'Enviando correo...' : 'Guardar'}
               </button>
-              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200">
+              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-[#0f1e38] hover:bg-gray-200">
                 Cancelar
               </button>
             </div>
@@ -394,14 +394,14 @@ export default function ReservacionesManagement() {
 
       {/* Calendar View */}
       {view === 'calendar' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Month nav */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-lg hover:bg-gray-100">
+            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-lg hover:bg-[#0f1e38]">
               <ChevronLeft size={18} />
             </button>
             <h3 className="font-semibold text-gray-800">{MONTHS_ES[month]} {year}</h3>
-            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-lg hover:bg-gray-100">
+            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-lg hover:bg-[#0f1e38]">
               <ChevronRight size={18} />
             </button>
           </div>
@@ -423,7 +423,7 @@ export default function ReservacionesManagement() {
                 <div
                   key={dateStr}
                   onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                  className={`h-24 border-b border-r border-gray-50 p-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                  className={`h-24 border-b border-r border-gray-50 p-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-[#0f1e38]'}`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${isToday ? 'text-white' : 'text-gray-700'}`} style={isToday ? { backgroundColor: '#f59e0b' } : {}}>
                     {day}
@@ -466,7 +466,7 @@ export default function ReservacionesManagement() {
       {view === 'list' && (
         <div className="space-y-3">
           {reservations.length === 0 ? (
-            <div className="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100">
+            <div className="bg-[#162d55] rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100">
               <Calendar size={40} className="mx-auto mb-3 opacity-30" />
               <p>Sin reservaciones registradas</p>
             </div>
@@ -491,7 +491,7 @@ function ReservationCard({ reservation: r, tables, onEdit, onStatusChange, onSea
 }) {
   const table = tables.find(t => t.id === r.tableId);
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-start gap-4">
+    <div className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-start gap-4">
       <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: STATUS_COLORS[r.status] + '15' }}>
         <Clock size={14} style={{ color: STATUS_COLORS[r.status] }} />
         <span className="text-xs font-bold mt-0.5" style={{ color: STATUS_COLORS[r.status] }}>{r.reservationTime}</span>
@@ -530,7 +530,7 @@ function ReservationCard({ reservation: r, tables, onEdit, onStatusChange, onSea
         >
           {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button onClick={() => onEdit(r)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+        <button onClick={() => onEdit(r)} className="p-1.5 rounded-lg hover:bg-[#0f1e38] text-gray-400 hover:text-gray-600">
           <Edit2 size={14} />
         </button>
       </div>

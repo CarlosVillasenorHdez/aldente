@@ -110,7 +110,7 @@ export default function ReportesMejorados() {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200 hover:bg-[#0f1e38]'}`}
               style={period === p ? { backgroundColor: '#1B3A6B' } : {}}
           >
             {PERIOD_LABELS[p]}
@@ -121,7 +121,7 @@ export default function ReportesMejorados() {
           onClick={handleExport}
           disabled={exporting || loading}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
-          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: '#162d55' }}
         >
           <Download size={15} />
           {exporting ? 'Exportando...' : 'Excel / CSV'}
@@ -142,7 +142,7 @@ export default function ReportesMejorados() {
           { label: '⚠️ Merma', value: kpis.mermaTotal > 0 ? `$${kpis.mermaTotal.toFixed(2)}` : '$0.00', icon: TrendingUp, color: kpis.mermaTotal > 0 ? '#dc2626' : '#9ca3af' },
           { label: 'Alertas Inventario', value: lowStock.length, icon: AlertTriangle, color: lowStock.length > 0 ? '#ef4444' : '#6b7280' },
         ].map(k => (
-          <div key={k.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+          <div key={k.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.color + '15' }}>
               <k.icon size={20} style={{ color: k.color }} />
             </div>
@@ -155,7 +155,7 @@ export default function ReportesMejorados() {
       </div>
 
       {/* Sales Trend Chart */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <BarChart3 size={18} style={{ color: '#1B3A6B' }} />
           Tendencia de Ventas — {(PERIOD_LABELS as any)[period]}
@@ -185,7 +185,7 @@ export default function ReportesMejorados() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Waiter performance */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <Users size={18} style={{ color: '#f59e0b' }} />
             Ticket Promedio por Mesero
@@ -205,7 +205,7 @@ export default function ReportesMejorados() {
                       <span className="text-sm font-bold text-gray-800">${w.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                      <div className="flex-1 bg-[#0f1e38] rounded-full h-1.5">
                         <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, (w.total / (waiterStats[0]?.total || 1)) * 100)}%`, backgroundColor: '#1B3A6B' }} />
                       </div>
                       <span className="text-xs text-gray-400">{w.ordenes} órd.</span>
@@ -218,7 +218,7 @@ export default function ReportesMejorados() {
         </div>
 
         {/* Low stock alerts */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <AlertTriangle size={18} className="text-red-500" />
             Alertas de Inventario Bajo
@@ -252,7 +252,7 @@ export default function ReportesMejorados() {
 
       {/* Top & Bottom products */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <Award size={18} style={{ color: '#10b981' }} />
             Productos Más Vendidos
@@ -272,7 +272,7 @@ export default function ReportesMejorados() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ChevronDown size={18} className="text-red-500" />
             Productos Menos Vendidos
@@ -282,7 +282,7 @@ export default function ReportesMejorados() {
           ) : (
             <div className="space-y-2">
               {bottomProducts.map((p, i) => (
-                <div key={p.nombre} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                <div key={p.nombre} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#0f1e38]">
                   <span className="text-xs font-bold text-gray-400 w-5">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 truncate">{p.nombre}</p>

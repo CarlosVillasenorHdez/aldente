@@ -409,7 +409,7 @@ export default function UsuariosManagement() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchUsers} className="p-2 rounded-lg hover:bg-white/10 transition-all" title="Actualizar">
+          <button onClick={fetchUsers} className="p-2 rounded-lg hover:bg-[#162d55]/10 transition-all" title="Actualizar">
             <RefreshCw size={15} style={{ color: 'rgba(255,255,255,0.5)' }} />
           </button>
           {activeTab === 'usuarios' && (
@@ -480,7 +480,7 @@ export default function UsuariosManagement() {
                 <tr><td colSpan={4} className="py-12 text-center text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>No hay usuarios registrados</td></tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
+                  <tr key={u.id} className="border-b transition-colors hover:bg-[#162d55]/5" style={{ borderColor: '#1a2f52' }}>
                     {/* Empleado (full name from Personal) */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">

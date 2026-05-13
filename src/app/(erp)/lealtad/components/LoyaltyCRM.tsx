@@ -62,7 +62,7 @@ function estadoSocio(s: { isActive: boolean; membershipExpiresAt: string | null;
 function MetricCard({ icon: Icon, label, value, sub, color = '#1B3A6B', alert = false }:
   { icon: any; label: string; value: string | number; sub?: string; color?: string; alert?: boolean }) {
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-xl border p-5 ${alert ? 'border-amber-300 dark:border-amber-700' : 'border-gray-100 dark:border-gray-800'}`}>
+    <div className={`bg-[#162d55] dark:bg-gray-900 rounded-xl border p-5 ${alert ? 'border-amber-300 dark:border-amber-700' : 'border-gray-100 dark:border-gray-800'}`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{label}</p>
@@ -274,7 +274,7 @@ export default function LoyaltyCRM() {
       )}
 
       {/* Lista de socios */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-[#162d55] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Lista de socios</h3>
           <div className="flex gap-1">
@@ -282,8 +282,8 @@ export default function LoyaltyCRM() {
               <button key={f} onClick={() => setFiltro(f)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   filtro === f
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    ? 'bg-gray-900 dark:bg-[#162d55] text-white dark:text-gray-900'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-[#0f1e38] dark:hover:bg-gray-800'
                 }`}>
                 {f === 'todos' ? `Todos (${socios.length})`
                   : f === 'en_riesgo'  ? `En riesgo (${summary.sociosEnRiesgo})`
@@ -301,9 +301,9 @@ export default function LoyaltyCRM() {
         ) : (
           <div className="divide-y divide-gray-50 dark:divide-gray-800">
             {sociosFiltrados.slice(0, 50).map(s => (
-              <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-[#0f1e38] dark:hover:bg-gray-800/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  <div className="w-8 h-8 rounded-full bg-[#0f1e38] dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-400">
                     {s.name.charAt(0).toUpperCase()}
                   </div>
                   <div>

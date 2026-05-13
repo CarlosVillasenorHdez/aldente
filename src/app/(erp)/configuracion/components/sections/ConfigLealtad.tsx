@@ -19,7 +19,7 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
   return (
     <div className="flex items-start gap-3 cursor-pointer select-none" onClick={() => onChange(!on)}>
       <div className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 mt-0.5 ${on ? 'bg-amber-500' : 'bg-gray-700'}`}>
-        <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        <div className={`absolute top-0.5 w-5 h-5 bg-[#162d55] rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </div>
       <div>
         <span className="text-sm text-gray-200">{label}</span>

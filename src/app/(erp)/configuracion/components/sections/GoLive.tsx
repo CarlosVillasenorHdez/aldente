@@ -205,7 +205,7 @@ export default function GoLive() {
   if (loading) {
     return (
       <div className="max-w-2xl space-y-4 animate-pulse">
-        {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-2xl" />)}
+        {[1,2,3].map(i => <div key={i} className="h-24 bg-[#0f1e38] rounded-2xl" />)}
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function GoLive() {
               Ir al POS →
             </a>
             <button onClick={() => { setIsLive(false); setStep('diagnose'); diagnose(); }}
-              className="px-6 py-3 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50">
+              className="px-6 py-3 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-[#0f1e38]">
               Ver diagnóstico de nuevo
             </button>
           </div>
@@ -254,7 +254,7 @@ export default function GoLive() {
       </div>
 
       {/* Checklist de configuración */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Lista de verificación</h3>
@@ -290,7 +290,7 @@ export default function GoLive() {
       </div>
 
       {/* Datos de prueba a limpiar */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Datos de prueba detectados</h3>
@@ -300,7 +300,7 @@ export default function GoLive() {
                 : `${fmt(totalTestData)} registros serán eliminados permanentemente`}
             </p>
           </div>
-          <button onClick={diagnose} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+          <button onClick={diagnose} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-[#0f1e38]">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -319,7 +319,7 @@ export default function GoLive() {
           ))}
         </div>
 
-        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
+        <div className="px-5 py-3 bg-[#0f1e38] border-t border-gray-100">
           <p className="text-xs text-gray-500">
             <strong>Se conserva:</strong> menú, ingredientes, empleados, mesas, proveedores,
             configuración, gastos recurrentes y depreciaciones.
@@ -365,7 +365,7 @@ export default function GoLive() {
               value={confirmText}
               onChange={e => setConfirmText(e.target.value.toUpperCase())}
               onKeyDown={e => { if (e.key === 'Enter' && confirmText === 'LIMPIAR') executeCleanup(); }}
-              className="w-full border-2 border-red-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-red-500 bg-white"
+              className="w-full border-2 border-red-300 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-red-500 bg-[#162d55]"
               placeholder="Escribe LIMPIAR aquí..."
             />
           </div>
@@ -373,7 +373,7 @@ export default function GoLive() {
           <div className="flex gap-3">
             <button
               onClick={() => { setShowConfirm(false); setConfirmText(''); }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50">
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-gray-600 bg-[#162d55] border border-gray-200 hover:bg-[#0f1e38]">
               <X size={15} /> Cancelar
             </button>
             <button

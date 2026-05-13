@@ -133,12 +133,12 @@ export default function AlertsPanel() {
 
   return (
     <div
-      className="bg-white rounded-xl border h-full flex flex-col"
-      style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+      className="bg-[#162d55] rounded-xl border h-full flex flex-col"
+      style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
     >
       <div
         className="flex items-center justify-between px-5 py-4 border-b"
-        style={{ borderColor: '#f3f4f6' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2">
           <AlertTriangle size={16} className="text-amber-500" />
@@ -160,7 +160,7 @@ export default function AlertsPanel() {
         </div>
         <button
           onClick={fetchAlerts}
-          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
           title="Actualizar alertas"
         >
           <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
@@ -171,10 +171,10 @@ export default function AlertsPanel() {
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-start gap-3 px-5 py-3.5 animate-pulse">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex-shrink-0" />
+              <div className="w-8 h-8 rounded-lg bg-[#0f1e38] flex-shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-full" />
+                <div className="h-3 bg-[#0f1e38] rounded w-3/4" />
+                <div className="h-3 bg-[#0f1e38] rounded w-full" />
               </div>
             </div>
           ))
@@ -193,7 +193,7 @@ export default function AlertsPanel() {
             return (
               <div
                 key={alert.id}
-                className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex items-start gap-3 px-5 py-3.5 hover:bg-[#0f1e38] transition-colors cursor-pointer"
               >
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -223,7 +223,7 @@ export default function AlertsPanel() {
         )}
       </div>
 
-      <div className="px-5 py-3 border-t" style={{ borderColor: '#f3f4f6' }}>
+      <div className="px-5 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <Link href="/inventario">
           <button className="w-full text-xs font-600 py-2 rounded-lg transition-colors hover:bg-amber-50"
             style={{ color: '#d97706', fontWeight: 600 }}>

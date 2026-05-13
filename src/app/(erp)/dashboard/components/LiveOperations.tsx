@@ -136,7 +136,7 @@ export default function LiveOperations() {
         )}
         {orders.length > 0 && (
           <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold"
-            style={{ backgroundColor: 'rgba(107,114,128,0.08)', color: '#4b5563' }}>
+            style={{ backgroundColor: 'rgba(107,114,128,0.08)', color: 'rgba(255,255,255,0.6)' }}>
             <Clock size={11} /> prom. {avgMin} min
           </span>
         )}

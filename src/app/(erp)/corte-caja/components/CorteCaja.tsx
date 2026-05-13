@@ -428,7 +428,7 @@ export default function CorteCaja() {
     return (
       <div className="max-w-xl mx-auto space-y-6">
         {/* Status */}
-        <div className="bg-white rounded-2xl border p-6 text-center" style={{ borderColor: '#e5e7eb' }}>
+        <div className="bg-[#162d55] rounded-2xl border p-6 text-center" style={{ borderColor: '#243f72' }}>
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#fef3c7' }}>
             <Lock size={28} style={{ color: '#d97706' }} />
           </div>
@@ -437,7 +437,7 @@ export default function CorteCaja() {
         </div>
 
         {/* Apertura form */}
-        <div className="bg-white rounded-2xl border p-6" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-2xl border p-6" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
             <Unlock size={18} style={{ color: '#10b981' }} /> Apertura de Caja
           </h3>
@@ -446,7 +446,7 @@ export default function CorteCaja() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre del cajero *</label>
               <input type="text" value={aperturaPor} onChange={e => setAperturaPor(e.target.value)}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                style={{ borderColor: '#e5e7eb' }} placeholder="Ej: María García" autoFocus />
+                style={{ borderColor: '#243f72' }} placeholder="Ej: María García" autoFocus />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Fondo inicial (efectivo en caja)</label>
@@ -454,7 +454,7 @@ export default function CorteCaja() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                 <input type="number" min={0} value={fondoInicial} onChange={e => setFondoInicial(e.target.value)}
                   className="w-full pl-7 pr-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 font-mono"
-                  style={{ borderColor: '#e5e7eb' }} placeholder="0.00" />
+                  style={{ borderColor: '#243f72' }} placeholder="0.00" />
               </div>
               <p className="text-xs text-gray-400 mt-1">Dinero físico con el que arranca el turno (billetes de cambio).</p>
             </div>
@@ -469,7 +469,7 @@ export default function CorteCaja() {
 
         {/* Movimientos de caja */}
         {corteActivo && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="bg-[#162d55] border border-gray-100 rounded-2xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-gray-800">Movimientos de caja</h3>
               <button onClick={() => setShowMovModal(true)} className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: '#1B3A6B', color: '#fff' }}>
@@ -504,7 +504,7 @@ export default function CorteCaja() {
 
         {/* Historial */}
         {historial.length > 0 && (
-          <div className="bg-white rounded-2xl border" style={{ borderColor: '#e5e7eb' }}>
+          <div className="bg-[#162d55] rounded-2xl border" style={{ borderColor: '#243f72' }}>
             <button onClick={() => setShowHistorial(h => !h)}
               className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-gray-700">
               <span className="flex items-center gap-2"><Receipt size={16} /> Historial de cortes ({historial.length})</span>
@@ -549,7 +549,7 @@ export default function CorteCaja() {
     <div className="space-y-5 max-w-4xl mx-auto print:max-w-none">
 
       {/* ── Header status ── */}
-      <div className="bg-white rounded-2xl border p-5 flex items-center justify-between" style={{ borderColor: '#fde68a', backgroundColor: '#fffdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="bg-[#162d55] rounded-2xl border p-5 flex items-center justify-between" style={{ borderColor: '#fde68a', backgroundColor: '#fffdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
             <Unlock size={22} style={{ color: '#d97706' }} />
@@ -590,7 +590,7 @@ export default function CorteCaja() {
             { label: '⚠️ Merma',       value: summary.merma_total > 0 ? `$${fmt(summary.merma_total)}` : '$0.00', icon: AlertTriangle, color: summary.merma_total > 0 ? '#dc2626' : '#9ca3af', bg: summary.merma_total > 0 ? '#fef2f2' : '#f9fafb', sub: summary.merma_total > 0 ? `${summary.ordenes_canceladas.length} cancelaciones` : 'Sin mermas ✓' },
             { label: 'Órdenes',         value: String(summary.ordenes_count),      icon: ShoppingBag,  color: '#8b5cf6', bg: '#f5f3ff' },
           ].map(k => (
-            <div key={k.label} className="bg-white rounded-2xl border p-4" style={{ borderColor: '#e5e7eb' }}>
+            <div key={k.label} className="bg-[#162d55] rounded-2xl border p-4" style={{ borderColor: '#243f72' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-gray-500">{k.label}</span>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.bg }}>
@@ -598,7 +598,7 @@ export default function CorteCaja() {
                 </div>
               </div>
               <p className="text-xl font-bold font-mono text-gray-900" style={{ color: k.color }}>{k.value}</p>
-              {(k as any).sub && <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{(k as any).sub}</p>}
+              {(k as any).sub && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{(k as any).sub}</p>}
             </div>
           ))}
         </div>
@@ -608,7 +608,7 @@ export default function CorteCaja() {
 
         {/* ── Detalle por mesero ── */}
         {summary && summary.por_mesero.length > 0 && (
-          <div className="bg-white rounded-2xl border p-5" style={{ borderColor: '#e5e7eb' }}>
+          <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72' }}>
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Users size={16} style={{ color: '#8b5cf6' }} /> Ventas por Mesero
             </h3>
@@ -659,14 +659,14 @@ export default function CorteCaja() {
 
         {/* ── Detalle fiscal ── */}
         {summary && (
-          <div className="bg-white rounded-2xl border p-5" style={{ borderColor: '#e5e7eb' }}>
+          <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72' }}>
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Receipt size={16} style={{ color: '#10b981' }} /> Resumen Fiscal del Turno
             </h3>
             <div className="space-y-2.5">
               {[
-                { label: 'Subtotal (sin IVA)', value: summary.ventas_total - summary.iva_total, color: '#374151' },
-                { label: 'IVA (16%)',           value: summary.iva_total,                        color: '#6b7280' },
+                { label: 'Subtotal (sin IVA)', value: summary.ventas_total - summary.iva_total, color: 'rgba(255,255,255,0.75)' },
+                { label: 'IVA (16%)',           value: summary.iva_total,                        color: 'rgba(255,255,255,0.45)' },
                 { label: 'Descuentos aplicados', value: -summary.descuentos_total,               color: '#ef4444' },
                 { label: 'TOTAL VENTAS',         value: summary.ventas_total,                    color: '#1B3A6B', bold: true },
               ].map(row => (
@@ -684,7 +684,7 @@ export default function CorteCaja() {
       </div>
 
       {/* ── Cierre de caja ── */}
-      <div className="bg-white rounded-2xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
           <Lock size={18} style={{ color: '#ef4444' }} /> Cierre de Caja
         </h3>
@@ -704,7 +704,7 @@ export default function CorteCaja() {
               <div className="space-y-2">
                 {denominaciones_activas.map(d => (
                   <div key={d.valor} className="flex items-center gap-3">
-                    <span className="text-sm font-mono font-semibold w-16 text-right" style={{ color: '#374151' }}>{d.label}</span>
+                    <span className="text-sm font-mono font-semibold w-16 text-right" style={{ color: 'rgba(255,255,255,0.75)' }}>{d.label}</span>
                     <div className="flex items-center gap-2 flex-1">
                       <button onClick={() => setDenominaciones(prev => ({ ...prev, [d.valor]: Math.max(0, (prev[d.valor] || 0) - 1) }))}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
@@ -714,7 +714,7 @@ export default function CorteCaja() {
                       <input type="number" min={0} value={denominaciones[d.valor] || 0}
                         onChange={e => setDenominaciones(prev => ({ ...prev, [d.valor]: Math.max(0, parseInt(e.target.value) || 0) }))}
                         className="w-16 text-center px-2 py-1.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-1 focus:ring-amber-300"
-                        style={{ borderColor: '#e5e7eb' }} />
+                        style={{ borderColor: '#243f72' }} />
                       <button onClick={() => setDenominaciones(prev => ({ ...prev, [d.valor]: (prev[d.valor] || 0) + 1 }))}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
                         style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
@@ -763,20 +763,20 @@ export default function CorteCaja() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Cajero que cierra *</label>
               <input type="text" value={cierrePor} onChange={e => setCierrePor(e.target.value)}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                style={{ borderColor: '#e5e7eb' }} placeholder="Nombre del cajero o gerente" />
+                style={{ borderColor: '#243f72' }} placeholder="Nombre del cajero o gerente" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas del corte</label>
               <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={3}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
-                style={{ borderColor: '#e5e7eb' }}
+                style={{ borderColor: '#243f72' }}
                 placeholder="Ej: Hubo problema con terminal de tarjeta a las 2pm, se rechazaron 2 cobros..." />
             </div>
 
             <div className="flex gap-3 pt-2">
               <button onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all"
-                style={{ borderColor: '#e5e7eb', color: '#374151' }}>
+                style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}>
                 <Printer size={15} /> Imprimir
               </button>
               <button onClick={handleExportCSV}
