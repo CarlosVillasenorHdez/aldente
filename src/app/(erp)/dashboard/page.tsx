@@ -12,6 +12,8 @@ import AttendanceWidget from './components/AttendanceWidget';
 import UpgradeGate from '@/components/UpgradeGate';
 import AhaMomentTour from './components/AhaMomentTour';
 import HealthScore from './components/HealthScore';
+import DashboardMobile from './components/DashboardMobile';
+import MobileGate from '@/components/MobileGate';
 
 export default function DashboardPage() {
   return (
@@ -19,7 +21,10 @@ export default function DashboardPage() {
       title="Dashboard"
       subtitle="Tu restaurante en números reales — para que dirijas el negocio, no el caos."
     >
-      <div className="flex flex-col gap-5">
+      <MobileGate
+        mobile={<DashboardMobile />}
+        desktop={
+          <div className="flex flex-col gap-5">
 
         {/* 0. Aha Moment Tour — solo la primera vez, post-onboarding */}
         <AhaMomentTour />
@@ -71,6 +76,8 @@ export default function DashboardPage() {
         <RecentOrders />
 
       </div>
+        }
+      />
     </AppLayout>
   );
 }
