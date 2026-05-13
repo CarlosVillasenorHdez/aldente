@@ -604,6 +604,7 @@ export default function AnalisisFinanciero() {
   const [nominaPagadaReal, setNominaPagadaReal] = useState<number | null>(null);
   const nominaConfig = useNominaConfig();
   const [gastosOp,     setGastosOp]     = useState<{nombre:string;monto:number;cat:string;metodo:string;proveedor:string;dias_credito:number}[]>([]);
+  const [cxpProveedores, setCxpProveedores] = useState(0);  // saldo real de supplier_payments
   const [depTotal,     setDepTotal]     = useState(0);
   const [actFijos,     setActFijos]     = useState<{nombre:string;valor_original:number;valor_residual:number;vida_util_anios:number;fecha_adquisicion:string}[]>([]);
   const [inventario,   setInventario]   = useState(0);
@@ -663,6 +664,7 @@ export default function AnalisisFinanciero() {
       { data: extrasData },
       { data: loyaltyTxData },
       { data: pagosNominaData },
+      { data: supplierBalData },
     ] = await Promise.all([
       supabase.from('orders').select('total,cost_actual,pay_method,discount,iva,is_cortesia')
         .eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false)
@@ -686,6 +688,7 @@ export default function AnalisisFinanciero() {
       supabase.from('pagos_nomina').select('monto_pagado').eq('tenant_id', tid)
         .in('status', ['pagado','parcial'])
         .gte('periodo_inicio', start.split('T')[0]).lte('periodo_fin', end.split('T')[0]),
+      supabase.from('v_supplier_balance').select('balance_pendiente,total_compras,total_pagado').eq('tenant_id', tid),
     ]);
 
     // Ventas
@@ -771,6 +774,10 @@ export default function AnalisisFinanciero() {
     const invVal = (ingData ?? []).reduce((s, i) => s + Number(i.stock ?? 0) * Number(i.cost ?? 0), 0);
     setInventario(invVal);
 
+    // CxP Proveedores — saldo real de supplier_payments
+    const cxpReal = (supplierBalData ?? []).reduce((s: number, r: any) => s + Number(r.balance_pendiente ?? 0), 0);
+    setCxpProveedores(Math.max(0, cxpReal));
+
     setOrdAbiertas((abiertasData ?? []).length);
     setLoading(false);
   }, [supabase, dateRange, periodFactor, nominaConfig]);
@@ -853,7 +860,10 @@ export default function AnalisisFinanciero() {
   const totalActivos     = totalActCirc + valorLibros;
 
   // PASIVOS
-  const cxpCredito = gastosOp.filter(g => g.metodo === 'credito').reduce((s, g) => s + g.monto, 0);
+  // CxP real de proveedores (desde supplier_payments via v_supplier_balance)
+  // Fallback: gastos en crédito si aún no hay datos de proveedores integrados
+  const cxpGastos = gastosOp.filter(g => g.metodo === 'credito').reduce((s, g) => s + g.monto, 0);
+  const cxpCredito = cxpProveedores > 0 ? cxpProveedores : cxpGastos;
   const nominaPor  = nomina; // payroll accrual
   const ivaXPagar  = iva;    // IVA collected but not yet remitted
   const totalPasivoCirc = cxpCredito + nominaPor + ivaXPagar;
@@ -881,7 +891,7 @@ export default function AnalisisFinanciero() {
   const bsPasivos: BSRow[] = [
     { concepto: 'PASIVOS',                              monto: 0,             tipo: 'header' },
     { concepto: 'PASIVO CIRCULANTE',                    monto: 0,             tipo: 'header', indent:1 },
-    { concepto: 'Cuentas por pagar (CxP crédito)',      monto: cxpCredito,     tipo: 'item',  indent:2 },
+    { concepto: cxpProveedores > 0 ? 'Cuentas por pagar proveedores' : 'Cuentas por pagar (CxP crédito)', monto: cxpCredito, tipo: 'item', indent:2 },
     { concepto: 'Nómina por pagar (acumulada)',         monto: nominaPor,      tipo: 'item',  indent:2 },
     { concepto: 'IVA por entregar a SHCP',              monto: ivaXPagar,      tipo: 'item',  indent:2 },
     { concepto: 'TOTAL PASIVO CIRCULANTE',              monto: totalPasivoCirc, tipo: 'subtotal', indent:1 },
