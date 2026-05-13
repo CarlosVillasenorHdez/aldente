@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDevice } from '@/hooks/useDevice';
+import GastosMobile from './GastosMobile';
 import { createClient } from '@/lib/supabase/client';
 import { useBranch } from '@/hooks/useBranch';
 import { Plus, Edit2, Trash2, CheckCircle, Clock, AlertTriangle, X, Save, Zap, Home, Shield, Megaphone, Wrench, DollarSign, TrendingDown, RefreshCw, Calendar, Tag } from 'lucide-react';
@@ -557,6 +558,9 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function GastosManagement() {
+  const { isMobile } = useDevice();
+  if (isMobile) return <GastosMobile />;
+
   const supabase = createClient();
   const { activeBranchId } = useBranch();
   const [activeTab, setActiveTab] = useState<ActiveTab>('gastos');

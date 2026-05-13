@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDevice } from '@/hooks/useDevice';
+import CorteCajaMobile from './CorteCajaMobile';
 import { createClient } from '@/lib/supabase/client';
 import { useAudit } from '@/hooks/useAudit';
 import { useSysConfig } from '@/hooks/useSysConfig';
@@ -90,6 +91,9 @@ function fmt(n: number, locale = 'es-MX') {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CorteCaja() {
+  const { isMobile } = useDevice();
+  if (isMobile) return <CorteCajaMobile />;
+
   const supabase = createClient();
   const { log: auditLog } = useAudit();
   const { currencyCode, currencyLocale, currencySymbol } = useSysConfig();
