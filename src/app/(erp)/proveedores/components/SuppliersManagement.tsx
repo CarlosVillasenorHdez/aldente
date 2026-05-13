@@ -167,7 +167,7 @@ function SupplierModal({ supplier, onClose, onSaved }: {
   );
 }
 
-// ── PaymentModal ──────────────────────────────────────────────────────────────
+// ── PaymentModal — diseño dark ───────────────────────────────────────────────
 function PaymentModal({ supplier, onClose, onSaved }: {
   supplier: Supplier; onClose: () => void; onSaved: () => void;
 }) {
@@ -191,54 +191,55 @@ function PaymentModal({ supplier, onClose, onSaved }: {
     setSaving(false); onSaved();
   }
 
-  const inputStyle = { width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' };
+  const inp = { backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#f1f5f9', width: '100%', boxSizing: 'border-box' as const };
+  const balance = supplier.balance_pendiente ?? 0;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9001, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9001, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: '#162d55', border: '1px solid #243f72', borderRadius: 16, width: '100%', maxWidth: 420 }}>
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid #243f72', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1f2937', margin: 0 }}>Registrar pago</h3>
-            <p style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{supplier.name}</p>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0 }}>Registrar pago</h3>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{supplier.name}</p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="#9ca3af" /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)' }}><X size={18} /></button>
         </div>
         <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {(supplier.balance_pendiente ?? 0) > 0 && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-              <span style={{ color: '#92400e', fontWeight: 600 }}>Saldo pendiente: ${fmt(supplier.balance_pendiente ?? 0)}</span>
+          {balance > 0 && (
+            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+              <span style={{ color: '#fbbf24', fontWeight: 600 }}>Saldo pendiente: ${fmt(balance)}</span>
             </div>
           )}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Monto a pagar *</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Monto *</label>
             <input type="number" min={0} step={0.01} value={amount} onChange={e => setAmount(e.target.value)}
-              placeholder="0.00" style={{ ...inputStyle, fontFamily: 'monospace' }} />
+              placeholder="0.00" style={{ ...inp, fontFamily: 'monospace' }} autoFocus />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Fecha</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Fecha</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp} />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Método</label>
-              <select value={method} onChange={e => setMethod(e.target.value)} style={inputStyle}>
-                {PAYMENT_METHODS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Método</label>
+              <select value={method} onChange={e => setMethod(e.target.value)} style={{ ...inp, appearance: 'none' as const }}>
+                {PAYMENT_METHODS.map(m => <option key={m.key} value={m.key} style={{ backgroundColor: '#162d55' }}>{m.label}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Referencia / Folio (opcional)</label>
-            <input value={reference} onChange={e => setReference(e.target.value)} placeholder="Nº cheque, folio SPEI…" style={inputStyle} />
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Referencia / Folio</label>
+            <input value={reference} onChange={e => setReference(e.target.value)} placeholder="Nº cheque, folio SPEI…" style={inp} />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Notas</label>
-            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional" style={inputStyle} />
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Notas</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional" style={inp} />
           </div>
         </div>
-        <div style={{ padding: '14px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #243f72', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
           <button onClick={save} disabled={saving}
-            style={{ padding: '8px 22px', borderRadius: 8, border: 'none', background: saving ? '#86efac' : '#16a34a', color: 'white', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer' }}>
+            style={{ padding: '8px 22px', borderRadius: 8, border: 'none', background: saving ? '#15803d' : '#16a34a', color: 'white', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer' }}>
             {saving ? 'Guardando…' : 'Registrar pago'}
           </button>
         </div>
@@ -247,7 +248,8 @@ function PaymentModal({ supplier, onClose, onSaved }: {
   );
 }
 
-// ── SupplierDetail ────────────────────────────────────────────────────────────
+
+// ── SupplierDetail — diseño dark ─────────────────────────────────────────────
 function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
   supplier: Supplier; onBack: () => void;
   onEdit: (s: Supplier) => void; onReload: () => void;
@@ -259,6 +261,7 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [payModal, setPayModal] = useState(false);
+  const [ingSearch, setIngSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -283,226 +286,187 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
   }
 
   const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const overLimit = supplier.credit_limit > 0 && (supplier.balance_pendiente ?? 0) > supplier.credit_limit;
+  const balance = supplier.balance_pendiente ?? 0;
+  const limit = supplier.credit_limit ?? 0;
+  const overLimit = limit > 0 && balance > limit;
+  const creditPct = limit > 0 ? Math.min((balance / limit) * 100, 100) : 0;
+  const barColor = creditPct > 80 ? '#ef4444' : creditPct > 50 ? '#f59e0b' : '#4ade80';
+  const filteredUnlinked = allIngredients.filter(i => !i.supplier_id)
+    .filter(i => !ingSearch || i.name.toLowerCase().includes(ingSearch.toLowerCase()));
+  const S = { card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 } };
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, padding: 0, marginBottom: 16 }}>
+      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '0 0 16px' }}>
         <ArrowLeft size={14} /> Todos los proveedores
       </button>
 
-      {/* Header */}
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '18px 20px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1f2937', margin: 0 }}>{supplier.name}</h2>
-          <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-            {supplier.rfc && <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>{supplier.rfc}</span>}
-            {supplier.contact_name && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#6b7280' }}>
-                <Mail size={11} />{supplier.contact_name}
-              </span>
-            )}
-            {supplier.phone && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#6b7280' }}>
-                <Phone size={11} />{supplier.phone}
-              </span>
-            )}
+      <div style={{ ...S.card, marginBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>{supplier.name}</h2>
+            {overLimit && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 600 }}>⚠ Sobre límite</span>}
           </div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
+            {supplier.rfc && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>RFC: {supplier.rfc}</span>}
+            {supplier.contact_name && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>👤 {supplier.contact_name}</span>}
+            {supplier.phone && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>📞 {supplier.phone}</span>}
+            {supplier.email && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>✉ {supplier.email}</span>}
+            {(supplier.city || supplier.state_region) && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>📍 {[supplier.city, supplier.state_region].filter(Boolean).join(', ')}</span>}
+          </div>
+          {limit > 0 && (
+            <div style={{ marginTop: 10, maxWidth: 360 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+                <span>Crédito utilizado</span>
+                <span style={{ color: barColor, fontFamily: 'monospace' }}>${fmt(balance)} / ${fmt(limit)}</span>
+              </div>
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 6 }}>
+                <div style={{ width: `${creditPct}%`, height: '100%', background: barColor, borderRadius: 6 }} />
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setPayModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#16a34a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setPayModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#16a34a', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Receipt size={13} /> Registrar pago
           </button>
-          <button onClick={() => onEdit(supplier)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontSize: 13, cursor: 'pointer' }}>
+          <button onClick={() => onEdit(supplier)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 13, cursor: 'pointer' }}>
             <Edit2 size={13} /> Editar
           </button>
         </div>
       </div>
 
-      {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Saldo pendiente', val: '$' + fmt(supplier.balance_pendiente ?? 0),
-            color: (supplier.balance_pendiente ?? 0) > 0 ? (overLimit ? '#dc2626' : '#d97706') : '#15803d',
-            icon: <CreditCard size={15} />, alert: overLimit ? '⚠ Sobre límite' : null },
-          { label: 'Total compras', val: '$' + fmt(supplier.total_compras ?? 0), color: '#1B3A6B', icon: <Receipt size={15} /> },
-          { label: 'Total pagado', val: '$' + fmt(totalPaid), color: '#15803d', icon: <CheckCircle size={15} /> },
-          { label: 'Insumos vinculados', val: (supplier.ingredients_count ?? ingredients.length).toString(),
-            color: '#7c3aed', icon: <Package size={15} /> },
-        ].map(c => (
-          <div key={c.label} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: c.color, marginBottom: 6 }}>{c.icon}
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.05em' }}>{c.label}</span>
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: c.color, fontFamily: 'monospace' }}>{c.val}</div>
-            {c.alert && <div style={{ fontSize: 10, color: '#dc2626', marginTop: 3, fontWeight: 600 }}>{c.alert}</div>}
+          { label: 'Saldo pendiente', val: '$'+fmt(balance), color: balance>0?(overLimit?'#f87171':'#fbbf24'):'#4ade80', bg: balance>0?(overLimit?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.1)'):'rgba(74,222,128,0.1)' },
+          { label: 'Total compras', val: '$'+fmt(supplier.total_compras??0), color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
+          { label: 'Total pagado', val: '$'+fmt(totalPaid), color: '#4ade80', bg: 'rgba(74,222,128,0.1)' },
+          { label: 'Insumos vinculados', val: ingredients.length.toString(), color: '#c084fc', bg: 'rgba(192,132,252,0.1)' },
+        ].map(card => (
+          <div key={card.label} style={{ background: card.bg, border: `1px solid ${card.color}33`, borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{card.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: card.color, fontFamily: 'monospace' }}>{card.val}</div>
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: 16 }}>
-        {([['overview','Resumen'], ['ingredients','Insumos'], ['payments','Pagos']] as const).map(([t, l]) => (
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 16, gap: 4 }}>
+        {([['overview','Resumen'],['ingredients',`Insumos (${ingredients.length})`],['payments',`Pagos (${payments.length})`]] as const).map(([t,l]) => (
           <button key={t} onClick={() => setTab(t as any)}
-            style={{ padding: '10px 18px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer', background: 'none',
-              color: tab === t ? '#1B3A6B' : '#6b7280',
-              borderBottom: tab === t ? '2px solid #1B3A6B' : '2px solid transparent' }}>
+            style={{ padding: '10px 18px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer', background: 'none', color: tab===t?'#f59e0b':'rgba(255,255,255,0.4)', borderBottom: tab===t?'2px solid #f59e0b':'2px solid transparent' }}>
             {l}
           </button>
         ))}
       </div>
 
-      {/* Tab: Overview */}
       {tab === 'overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>Datos del proveedor</div>
+          <div style={S.card}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Datos del proveedor</p>
             {[
               ['Condiciones de pago', termLabel(supplier.payment_terms)],
-              ['Límite de crédito', supplier.credit_limit > 0 ? '$' + fmt(supplier.credit_limit) : 'Sin límite'],
-              ['Dirección', supplier.address || '—'],
+              ['Límite de crédito', limit > 0 ? '$'+fmt(limit) : 'Sin límite'],
+              ['Dirección', [supplier.street, supplier.colonia, supplier.city, supplier.state_region].filter(Boolean).join(', ') || supplier.address || '—'],
               ['Email', supplier.email || '—'],
               ['Notas', supplier.notes || '—'],
             ].map(([label, value]) => (
-              <div key={label as string} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>{label}</span>
-                <span style={{ color: '#1f2937', fontWeight: 500, textAlign: 'right', maxWidth: '55%' }}>{value}</span>
+              <div key={label as string} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 13, gap: 12 }}>
+                <span style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{label}</span>
+                <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 500, textAlign: 'right' }}>{value}</span>
               </div>
             ))}
           </div>
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimos pagos</div>
+          <div style={S.card}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Últimos pagos</p>
             {payments.length === 0 ? (
-              <p style={{ color: '#9ca3af', fontSize: 13 }}>Sin pagos registrados</p>
-            ) : payments.slice(0, 5).map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
+              <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, fontStyle: 'italic' }}>Sin pagos registrados</p>
+            ) : payments.slice(0,5).map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 13 }}>
                 <div>
-                  <div style={{ color: '#1f2937', fontWeight: 500 }}>${fmt(Number(p.amount))}</div>
-                  <div style={{ fontSize: 11, color: '#9ca3af' }}>{p.payment_date} · {PAYMENT_METHODS.find(m=>m.key===p.method)?.label ?? p.method}</div>
+                  <div style={{ color: '#4ade80', fontWeight: 700, fontFamily: 'monospace' }}>${fmt(Number(p.amount))}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{p.payment_date} · {PAYMENT_METHODS.find(m=>m.key===p.method)?.label??p.method}</div>
                 </div>
-                {p.reference && <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{p.reference}</span>}
+                {p.reference && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>{p.reference}</span>}
               </div>
             ))}
-            {payments.length > 5 && (
-              <button onClick={() => setTab('payments')} style={{ fontSize: 12, color: '#1B3A6B', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8, padding: 0 }}>
-                Ver todos ({payments.length}) →
-              </button>
+            {payments.length > 5 && <button onClick={() => setTab('payments')} style={{ fontSize: 12, color: '#f59e0b', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8, padding: 0 }}>Ver todos ({payments.length}) →</button>}
+          </div>
+        </div>
+      )}
+
+      {tab === 'ingredients' && (
+        <div style={S.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'white', margin: 0 }}>{ingredients.length} vinculados · {allIngredients.filter(i=>!i.supplier_id).length} sin asignar</p>
+            <input value={ingSearch} onChange={e => setIngSearch(e.target.value)} placeholder="Buscar insumo…"
+              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', fontSize: 12, outline: 'none', color: 'white', width: 200 }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {ingredients.map(ing => (
+              <div key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.15)', borderRadius: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{ing.name}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{ing.category}</span>
+                </div>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{ing.stock} {ing.unit}</span>
+                <span style={{ fontSize: 12, color: '#4ade80', fontFamily: 'monospace' }}>${fmt(Number(ing.cost))}</span>
+                <button onClick={() => linkIngredient(ing.id, false)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171', cursor: 'pointer', whiteSpace: 'nowrap' }}>Desvincular</button>
+              </div>
+            ))}
+            {filteredUnlinked.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '8px 0 4px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Sin asignar</div>
+                {filteredUnlinked.map(ing => (
+                  <div key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{ing.name}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>{ing.category}</span>
+                    </div>
+                    <button onClick={() => linkIngredient(ing.id, true)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(74,222,128,0.3)', background: 'rgba(74,222,128,0.08)', color: '#4ade80', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Vincular</button>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </div>
       )}
 
-      {/* Tab: Ingredients */}
-      {tab === 'ingredients' && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>Insumos de este proveedor</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>{ingredients.length} vinculados · {allIngredients.filter(i=>!i.supplier_id).length} sin asignar</div>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#f9fafb' }}>
-                {['Insumo','Categoría','Stock','Costo/unidad','Acción'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Acción' ? 'center' : 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', letterSpacing: '.06em', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Linked ingredients first */}
-              {ingredients.map(ing => (
-                <tr key={ing.id} style={{ borderBottom: '1px solid #f3f4f6', background: '#f0fdf4' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 500, color: '#1f2937' }}>{ing.name}</td>
-                  <td style={{ padding: '10px 14px', color: '#6b7280' }}>{ing.category}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>{ing.stock} {ing.unit}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>${fmt(Number(ing.cost))}</td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    <button onClick={() => linkIngredient(ing.id, false)}
-                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>
-                      Desvincular
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {/* Unlinked ingredients */}
-              {allIngredients.filter(i => !i.supplier_id).map(ing => (
-                <tr key={ing.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '10px 14px', color: '#6b7280' }}>{ing.name}</td>
-                  <td style={{ padding: '10px 14px', color: '#9ca3af', fontSize: 12 }}>{ing.category}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#9ca3af', fontSize: 12 }}>{ing.stock} {ing.unit}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#9ca3af', fontSize: 12 }}>${fmt(Number(ing.cost))}</td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    <button onClick={() => linkIngredient(ing.id, true)}
-                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', cursor: 'pointer' }}>
-                      + Vincular
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Tab: Payments */}
       {tab === 'payments' && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>Historial de pagos</div>
-            <button onClick={() => setPayModal(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, border: 'none', background: '#16a34a', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        <div style={S.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'white', margin: 0 }}>Historial de pagos</p>
+            <button onClick={() => setPayModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: 'none', background: '#16a34a', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               <Plus size={12} /> Nuevo pago
             </button>
           </div>
           {payments.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Sin pagos registrados</div>
+            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', padding: 24 }}>Sin pagos registrados</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: '#f9fafb' }}>
-                  {['Fecha','Monto','Método','Referencia','Notas'].map(h => (
-                    <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', letterSpacing: '.06em', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>{p.payment_date}</td>
-                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 600, color: '#15803d' }}>${fmt(Number(p.amount))}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: '#f3f4f6', color: '#374151' }}>
-                        {PAYMENT_METHODS.find(m=>m.key===p.method)?.label ?? p.method}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#6b7280', fontSize: 12 }}>{p.reference || '—'}</td>
-                    <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12 }}>{p.notes || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ background: '#f9fafb', borderTop: '2px solid #e5e7eb' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#374151', fontSize: 13 }}>Total pagado</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#15803d', fontSize: 14 }}>${fmt(totalPaid)}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
-            </table>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {payments.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'monospace' }}>${fmt(Number(p.amount))}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{p.payment_date} · {PAYMENT_METHODS.find(m=>m.key===p.method)?.label??p.method}{p.reference?` · ${p.reference}`:''}</div>
+                  </div>
+                  {p.notes && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', maxWidth: 180, textAlign: 'right' }}>{p.notes}</span>}
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 4 }}>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Total pagado: </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'monospace', marginLeft: 8 }}>${fmt(totalPaid)}</span>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {payModal && (
-        <PaymentModal supplier={supplier} onClose={() => setPayModal(false)}
-          onSaved={() => { setPayModal(false); load(); onReload(); }} />
-      )}
+      {payModal && <PaymentModal supplier={supplier} onClose={() => setPayModal(false)} onSaved={() => { setPayModal(false); load(); onReload(); }} />}
     </div>
   );
 }
 
-// ── Main: SuppliersManagement ─────────────────────────────────────────────────
+// ── Main: SuppliersManagement ──────────────────────────────────────────────────
 export default function SuppliersManagement() {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
@@ -519,7 +483,6 @@ export default function SuppliersManagement() {
     const [{ data: sups }, { data: balances }] = await Promise.all([
       (() => {
         let q = supabase.from('suppliers').select('*').eq('tenant_id', tid).eq('active', true).order('name');
-        // Mostrar globales (branch_id null) + los de esta sucursal
         if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`);
         return q;
       })(),
@@ -571,7 +534,6 @@ export default function SuppliersManagement() {
 
   return (
     <div style={{ padding: 24 }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Proveedores</h1>
@@ -583,7 +545,6 @@ export default function SuppliersManagement() {
         </button>
       </div>
 
-      {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Proveedores activos', val: loading ? '…' : suppliers.length.toString(), color: '#60a5fa', bg: 'rgba(96,165,250,0.1)', icon: '🏭' },
@@ -600,13 +561,9 @@ export default function SuppliersManagement() {
         ))}
       </div>
 
-      {/* Search + filtros */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar proveedor…"
-          style={{ flex: 1, minWidth: 200, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', fontSize: 13, outline: 'none', color: 'white' }} />
-      </div>
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar proveedor…"
+        style={{ width: '100%', maxWidth: 320, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', fontSize: 13, outline: 'none', color: 'white', marginBottom: 14 }} />
 
-      {/* Lista */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60, color: 'rgba(255,255,255,0.3)' }}>Cargando…</div>
       ) : filtered.length === 0 ? (
@@ -627,11 +584,7 @@ export default function SuppliersManagement() {
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  {/* Avatar */}
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    🏭
-                  </div>
-                  {/* Info principal */}
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏭</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{s.name}</span>
@@ -640,9 +593,7 @@ export default function SuppliersManagement() {
                           ${fmt(balance)} pendiente
                         </span>
                       )}
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
-                        {termLabel(s.payment_terms)}
-                      </span>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>{termLabel(s.payment_terms)}</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       {s.contact_name && <span>👤 {s.contact_name}</span>}
@@ -650,7 +601,6 @@ export default function SuppliersManagement() {
                       {s.city && <span>📍 {s.city}{s.state_region ? `, ${s.state_region}` : ''}</span>}
                       <span>📦 {s.ingredients_count ?? 0} insumos</span>
                     </div>
-                    {/* Barra de crédito */}
                     {limit > 0 && (
                       <div style={{ marginTop: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
@@ -658,12 +608,11 @@ export default function SuppliersManagement() {
                           <span style={{ color: barColor, fontFamily: 'monospace' }}>${fmt(balance)} / ${fmt(limit)}</span>
                         </div>
                         <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
+                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 4 }} />
                         </div>
                       </div>
                     )}
                   </div>
-                  {/* Acciones */}
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => { setEditing(s); setModalOpen(true); }}
                       style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 13 }}>✏️</button>
