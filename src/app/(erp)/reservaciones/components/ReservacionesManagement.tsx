@@ -6,6 +6,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDevice } from '@/hooks/useDevice';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {

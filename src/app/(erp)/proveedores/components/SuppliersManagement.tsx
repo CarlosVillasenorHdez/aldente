@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useDevice } from '@/hooks/useDevice';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { toast } from 'sonner';
@@ -476,6 +477,7 @@ function SupplierDetail({ supplier, onBack, onEdit, onReload }: {
 
 // ── Main: SuppliersManagement ──────────────────────────────────────────────────
 export default function SuppliersManagement() {
+  const { isMobile } = useDevice();
   const supabase = createClient();
   const { activeBranchId } = useBranch();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);

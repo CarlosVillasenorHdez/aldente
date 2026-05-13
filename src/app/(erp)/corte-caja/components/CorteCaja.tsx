@@ -5,6 +5,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useDevice } from '@/hooks/useDevice';
 import { createClient } from '@/lib/supabase/client';
 import { useAudit } from '@/hooks/useAudit';
 import { useSysConfig } from '@/hooks/useSysConfig';

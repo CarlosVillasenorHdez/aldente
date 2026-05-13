@@ -5,6 +5,7 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDevice } from '@/hooks/useDevice';
 import { createClient } from '@/lib/supabase/client';
 import { useBranch } from '@/hooks/useBranch';
 import { Plus, Edit2, Trash2, CheckCircle, Clock, AlertTriangle, X, Save, Zap, Home, Shield, Megaphone, Wrench, DollarSign, TrendingDown, RefreshCw, Calendar, Tag } from 'lucide-react';

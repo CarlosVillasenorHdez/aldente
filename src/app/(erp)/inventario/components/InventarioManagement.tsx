@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useBranch } from '@/hooks/useBranch';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useDevice } from '@/hooks/useDevice';
+import InventarioMobile from './InventarioMobile';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
 import MovimientosTab from '@/app/(erp)/inventario/components/MovimientosTab';
 import AlertasTab from '@/app/(erp)/inventario/components/AlertasTab';
@@ -222,6 +224,9 @@ function StockBar({ stock, minStock, reorderPoint }: { stock: number; minStock: 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InventarioManagement() {
+  const device = useDevice();
+  if (device.isMobile) return <InventarioMobile />;
+
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [equivalences, setEquivalences] = useState<UnitEquivalence[]>([]);
