@@ -265,10 +265,10 @@ export default function LoyaltyHub() {
   const visitsLeft = customer ? Math.max(0, visitsGoal - customer.totalVisits) : visitsGoal;
 
   // ── Estilos ─────────────────────────────────────────────────────────────────
-  const card  = 'bg-[#162d55] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl';
-  const inp   = 'w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm bg-[#162d55] dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400';
+  const card  = 'bg-[#162d55] dark:bg-gray-900 border border-[#243f72] dark:border-gray-800 rounded-2xl';
+  const inp   = 'w-full border border-[#243f72] dark:border-gray-700 rounded-xl px-4 py-3 text-sm bg-[#162d55] dark:bg-gray-800 text-white dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400';
   const btnPrimary = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-[#1B3A6B] transition-colors disabled:opacity-50';
-  const btnGhost   = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-[#0f1e38] dark:hover:bg-gray-800 transition-colors';
+  const btnGhost   = 'flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border border-[#243f72] dark:border-gray-700 text-white/60 dark:text-white/40 hover:bg-[#0f1e38] dark:hover:bg-gray-800 transition-colors';
 
   return (
     <div className="max-w-lg mx-auto space-y-4 p-4">
@@ -276,8 +276,8 @@ export default function LoyaltyHub() {
       {/* ── Buscador ── */}
       <div className={`${card} p-5`}>
         <div className="flex items-center gap-2 mb-1">
-          <Phone size={15} className="text-gray-400" />
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Buscar por teléfono</span>
+          <Phone size={15} className="text-white/40" />
+          <span className="text-xs font-semibold text-white/45 uppercase tracking-wide">Buscar por teléfono</span>
         </div>
         <div className="relative">
           <input
@@ -290,10 +290,10 @@ export default function LoyaltyHub() {
             autoFocus
           />
           {searching && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 animate-pulse">buscando...</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40 animate-pulse">buscando...</span>
           )}
           {(customer || notFound) && !searching && (
-            <button onClick={reset} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={reset} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60">
               <X size={16} />
             </button>
           )}
@@ -305,20 +305,20 @@ export default function LoyaltyHub() {
         <div className={`${card} p-5 space-y-4`}>
           <div className="flex items-center gap-2">
             <UserPlus size={16} className="text-amber-500" />
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Número nuevo — ¿registrar al cliente?</p>
+            <p className="text-sm font-semibold text-white dark:text-gray-100">Número nuevo — ¿registrar al cliente?</p>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Nombre completo *</label>
+              <label className="text-xs text-white/45 block mb-1">Nombre completo *</label>
               <input className={inp} placeholder="Ana García López" value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Email (opcional)</label>
+                <label className="text-xs text-white/45 block mb-1">Email (opcional)</label>
                 <input className={inp} type="email" placeholder="ana@correo.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">
+                <label className="text-xs text-white/45 block mb-1">
                   <Calendar size={10} className="inline mr-1" />
                   Cumpleaños (opcional)
                 </label>
@@ -342,16 +342,16 @@ export default function LoyaltyHub() {
         <div className={`${card} overflow-hidden`}>
 
           {/* Header */}
-          <div className={`px-5 py-4 flex items-center gap-4 border-b border-gray-100 dark:border-gray-800 ${isBday ? 'bg-pink-50 dark:bg-pink-900/20' : ''}`}>
+          <div className={`px-5 py-4 flex items-center gap-4 border-b border-[#243f72] dark:border-gray-800 ${isBday ? 'bg-pink-50 dark:bg-pink-900/20' : ''}`}>
             <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0 ${active ? 'bg-amber-500' : 'bg-gray-400'}`}>
               {customer.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold text-gray-900 dark:text-white text-sm">{customer.name}</p>
+                <p className="font-semibold text-white dark:text-white text-sm">{customer.name}</p>
                 {isBday && <span className="text-xs bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 px-2 py-0.5 rounded-full font-semibold">🎂 ¡Hoy es su cumpleaños!</span>}
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">{customer.phone}</p>
+              <p className="text-xs text-white/45 mt-0.5">{customer.phone}</p>
             </div>
             <div className="flex-shrink-0">
               {active
@@ -368,10 +368,10 @@ export default function LoyaltyHub() {
               <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
                 <Star size={16} className="text-amber-500 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  <p className="text-sm font-semibold text-white dark:text-gray-100">
                     {customer.points.toLocaleString()} puntos
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/45">
                     Vale ${(customer.points * (config.points?.pointValue ?? 0.5)).toFixed(2)} · {customer.totalVisits} visitas
                   </p>
                 </div>
@@ -382,12 +382,12 @@ export default function LoyaltyHub() {
             {(mode as string) === 'visitas' && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  <p className="text-sm font-semibold text-white dark:text-gray-100">
                     🎯 {customer.totalVisits} de {visitsGoal} visitas
                   </p>
                   {visitsLeft === 0
                     ? <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">¡Premio disponible!</span>
-                    : <span className="text-xs text-gray-500">Faltan {visitsLeft}</span>}
+                    : <span className="text-xs text-white/45">Faltan {visitsLeft}</span>}
                 </div>
                 {/* Barra de progreso */}
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -404,10 +404,10 @@ export default function LoyaltyHub() {
                   <div className={`flex items-center gap-3 p-3 rounded-xl ${benefitOk ? 'bg-green-50 dark:bg-green-900/20' : 'bg-[#0f1e38] dark:bg-gray-800'}`}>
                     <span className="text-lg">{benefitOk ? '☕' : '⏱'}</span>
                     <div className="flex-1">
-                      <p className={`text-sm font-semibold ${benefitOk ? 'text-green-700 dark:text-green-400' : 'text-gray-500'}`}>
+                      <p className={`text-sm font-semibold ${benefitOk ? 'text-green-700 dark:text-green-400' : 'text-white/45'}`}>
                         {mem.freeProductLabel || 'Beneficio del día'}
                       </p>
-                      <p className="text-xs text-gray-400">{benefitOk ? 'Disponible hoy' : 'Ya usado hoy'}</p>
+                      <p className="text-xs text-white/40">{benefitOk ? 'Disponible hoy' : 'Ya usado hoy'}</p>
                     </div>
                     {benefitOk && (
                       <button onClick={handleBenefit} disabled={saving}
@@ -434,7 +434,7 @@ export default function LoyaltyHub() {
 
             {/* Vencimiento */}
             {customer.membershipExpiresAt && (
-              <div className={`flex items-center gap-2 text-xs ${expDays <= 30 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}`}>
+              <div className={`flex items-center gap-2 text-xs ${expDays <= 30 ? 'text-amber-600 dark:text-amber-400' : 'text-white/45'}`}>
                 <Clock size={12} />
                 {isExpired(customer.membershipExpiresAt)
                   ? 'Membresía vencida'
@@ -462,7 +462,7 @@ export default function LoyaltyHub() {
               <p className="text-xs text-red-600 dark:text-red-400">Acción permanente. Queda registrado en la auditoría.</p>
               <div>
                 <label className="text-xs font-semibold text-red-700 dark:text-red-400 block mb-1">Razón *</label>
-                <input className="w-full border border-red-300 dark:border-red-700 rounded-lg px-3 py-2 text-xs bg-[#162d55] dark:bg-red-900/10 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-400"
+                <input className="w-full border border-red-300 dark:border-red-700 rounded-lg px-3 py-2 text-xs bg-[#162d55] dark:bg-red-900/10 text-white dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-400"
                   placeholder="Ej: Registro duplicado, solicitud del cliente..."
                   value={deleteReason} onChange={e => setDeleteReason(e.target.value)} autoFocus />
               </div>

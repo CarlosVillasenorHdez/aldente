@@ -1107,7 +1107,7 @@ ${horizontalHtml}
                 const pct = Math.round((hoy.getDate() / diasDelMes) * 100);
                 return (
                   <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d' }}>
+                    style={{ backgroundColor: '#fffbeb', color: '#fbbf24', border: '1px solid #fcd34d' }}>
                     Nómina y gastos al {pct}% del mes ({hoy.getDate()}/{diasDelMes} días)
                   </span>
                 );

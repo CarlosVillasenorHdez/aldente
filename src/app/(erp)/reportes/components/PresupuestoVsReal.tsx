@@ -32,7 +32,7 @@ function Delta({ valor, positiveIsGood = true, suffix = '' }: {
   valor: number; positiveIsGood?: boolean; suffix?: string;
 }) {
   if (Math.abs(valor) < 0.5 && !suffix.includes('%')) return (
-    <span className="flex items-center gap-1 text-xs font-semibold text-gray-400">
+    <span className="flex items-center gap-1 text-xs font-semibold text-white/40">
       <Minus size={11} /> En meta
     </span>
   );
@@ -69,11 +69,11 @@ function KPICard({ label, real, meta, delta, positiveIsGood = true, suffix = '$'
   const achieved = pct >= 95;
 
   return (
-    <div className="bg-[#162d55] border border-gray-200 rounded-2xl p-5">
+    <div className="bg-[#162d55] border border-[#243f72] rounded-2xl p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">
+          <p className="text-xs font-semibold text-white/45 uppercase tracking-wide">{label}</p>
+          <p className="text-2xl font-black text-white mt-1">
             {suffix === '$' ? fmt(real) : fmtP(real)}
           </p>
         </div>
@@ -87,7 +87,7 @@ function KPICard({ label, real, meta, delta, positiveIsGood = true, suffix = '$'
       <ProgressBar value={real} max={meta} color={color} />
 
       <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-white/40">
           Meta: {suffix === '$' ? fmt(meta) : fmtP(meta)}
         </span>
         <div className="flex items-center gap-2">
@@ -169,16 +169,16 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
     onClose();
   };
 
-  const inp = "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400";
+  const inp = "w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-base font-bold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#243f72]">
+          <h2 className="text-base font-bold text-white">
             {initial?.id ? 'Editar presupuesto' : isSugerencia ? '✨ Meta sugerida (+10% mes anterior)' : 'Nuevo presupuesto'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+          <button onClick={onClose} className="text-white/40 hover:text-white/80"><X size={20} /></button>
         </div>
         {isSugerencia && (
           <div className="mx-6 mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
@@ -189,21 +189,21 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nombre</label>
+              <label className="block text-xs font-semibold text-white/60 mb-1.5">Nombre</label>
               <input className={inp} value={form.nombre} onChange={e => upd('nombre', e.target.value)} placeholder="Ej: Octubre 2025" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Período inicio</label>
+              <label className="block text-xs font-semibold text-white/60 mb-1.5">Período inicio</label>
               <input type="date" className={inp} value={form.periodoInicio} onChange={e => upd('periodoInicio', e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Período fin</label>
+              <label className="block text-xs font-semibold text-white/60 mb-1.5">Período fin</label>
               <input type="date" className={inp} value={form.periodoFin} onChange={e => upd('periodoFin', e.target.value)} />
             </div>
           </div>
 
           <div className="pt-2 pb-1">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Metas de ventas</p>
+            <p className="text-xs font-bold text-white/45 uppercase tracking-wide">Metas de ventas</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -212,7 +212,7 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
               { label: 'Núm. de órdenes', key: 'metaOrdenes', placeholder: '250' },
             ].map(f => (
               <div key={f.key}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">{f.label}</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">{f.label}</label>
                 <input type="number" className={inp} placeholder={f.placeholder}
                   value={(form as any)[f.key]} onChange={e => upd(f.key, e.target.value)} />
               </div>
@@ -220,7 +220,7 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
           </div>
 
           <div className="pt-2 pb-1">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Metas de costos (opcional)</p>
+            <p className="text-xs font-bold text-white/45 uppercase tracking-wide">Metas de costos (opcional)</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -230,9 +230,9 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
               { label: 'Gastos op. presupuestados', key: 'metaGastosOp', placeholder: '12,000', suffix: '$' },
             ].map(f => (
               <div key={f.key}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">
                   {f.label}
-                  <span className="text-gray-400 font-normal ml-1">{f.suffix}</span>
+                  <span className="text-white/40 font-normal ml-1">{f.suffix}</span>
                 </label>
                 <input type="number" className={inp} placeholder={f.placeholder}
                   value={(form as any)[f.key]} onChange={e => upd(f.key, e.target.value)} />
@@ -241,15 +241,15 @@ function PresupuestoModal({ initial, onSave, onClose, isSugerencia = false }: {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Notas</label>
+            <label className="block text-xs font-semibold text-white/60 mb-1.5">Notas</label>
             <input className={inp} value={form.notas} onChange={e => upd('notas', e.target.value)}
               placeholder="Contexto del presupuesto..." />
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-gray-200">
+        <div className="flex gap-3 px-6 py-4 border-t border-[#243f72]">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-[#0f1e38]">
+            className="flex-1 py-2.5 rounded-xl border border-[#243f72] text-sm font-semibold text-white/60 hover:bg-[#0f1e38]">
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.metaVentas}
@@ -358,7 +358,7 @@ export default function PresupuestoVsReal() {
               const found = meses.find(m => m.inicio === e.target.value);
               if (found) { setSelectedInicio(found.inicio); setSelectedFin(found.fin); }
             }}
-            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-[#162d55] focus:outline-none focus:border-blue-400"
+            className="px-4 py-2 rounded-xl border border-[#243f72] text-sm font-medium bg-[#162d55] focus:outline-none focus:border-blue-400"
           >
             {meses.map(m => (
               <option key={m.inicio} value={m.inicio}>{m.label}</option>
@@ -366,7 +366,7 @@ export default function PresupuestoVsReal() {
           </select>
           {presupuesto && (
             <button onClick={() => { setEditing(presupuesto); setShowModal(true); }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-[#0f1e38]">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#243f72] text-sm text-white/60 hover:bg-[#0f1e38]">
               <Edit3 size={13} /> Editar presupuesto
             </button>
           )}
@@ -435,7 +435,7 @@ export default function PresupuestoVsReal() {
                  desv.ventasPct >= 75  ? '⚠️ Ligeramente por debajo' :
                  '🚨 Lejos de la meta'}
               </p>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-xs text-white/60 mt-0.5">
                 {fmt(real.ventas)} de {fmt(presupuesto.metaVentas)} — {desv.ventasDelta >= 0 ? '+' : ''}{fmt(desv.ventasDelta)} vs meta
               </p>
             </div>
@@ -492,8 +492,8 @@ export default function PresupuestoVsReal() {
           </div>
 
           {/* Datos reales adicionales */}
-          <div className="bg-[#0f1e38] border border-gray-200 rounded-2xl p-5">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Datos reales del período</p>
+          <div className="bg-[#0f1e38] border border-[#243f72] rounded-2xl p-5">
+            <p className="text-xs font-bold text-white/45 uppercase tracking-wide mb-3">Datos reales del período</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Ventas reales', value: fmt(real.ventas) },
@@ -506,8 +506,8 @@ export default function PresupuestoVsReal() {
                 { label: 'Gastos op.', value: fmt(real.gastosOp) },
               ].map(item => (
                 <div key={item.label}>
-                  <p className="text-xs text-gray-500">{item.label}</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{item.value}</p>
+                  <p className="text-xs text-white/45">{item.label}</p>
+                  <p className="text-sm font-bold text-white mt-0.5">{item.value}</p>
                 </div>
               ))}
             </div>
@@ -518,7 +518,7 @@ export default function PresupuestoVsReal() {
       {/* Lista de presupuestos anteriores */}
       {lista.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Historial de presupuestos</p>
+          <p className="text-xs font-bold text-white/45 uppercase tracking-wide mb-3">Historial de presupuestos</p>
           <div className="space-y-2">
             {lista.map(p => {
               const isCurrent = p.periodoInicio === selectedInicio;
@@ -526,13 +526,13 @@ export default function PresupuestoVsReal() {
                 <button key={p.id}
                   onClick={() => { setSelectedInicio(p.periodoInicio); setSelectedFin(p.periodoFin); }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
-                    isCurrent ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-[#162d55] hover:bg-[#0f1e38]'
+                    isCurrent ? 'border-blue-300 bg-blue-50' : 'border-[#243f72] bg-[#162d55] hover:bg-[#0f1e38]'
                   }`}>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{p.nombre}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{p.periodoInicio} — {p.periodoFin}</p>
+                    <p className="text-sm font-semibold text-white">{p.nombre}</p>
+                    <p className="text-xs text-white/40 mt-0.5">{p.periodoInicio} — {p.periodoFin}</p>
                   </div>
-                  <p className="text-sm font-bold text-gray-700">{fmt(p.metaVentas)}</p>
+                  <p className="text-sm font-bold text-white/80">{fmt(p.metaVentas)}</p>
                 </button>
               );
             })}

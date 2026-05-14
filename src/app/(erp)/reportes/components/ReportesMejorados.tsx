@@ -110,7 +110,7 @@ export default function ReportesMejorados() {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200 hover:bg-[#0f1e38]'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-white/60 bg-[#162d55] border border-[#243f72] hover:bg-[#0f1e38]'}`}
               style={period === p ? { backgroundColor: '#1B3A6B' } : {}}
           >
             {PERIOD_LABELS[p]}
@@ -142,27 +142,27 @@ export default function ReportesMejorados() {
           { label: '⚠️ Merma', value: kpis.mermaTotal > 0 ? `$${kpis.mermaTotal.toFixed(2)}` : '$0.00', icon: TrendingUp, color: kpis.mermaTotal > 0 ? '#dc2626' : '#9ca3af' },
           { label: 'Alertas Inventario', value: lowStock.length, icon: AlertTriangle, color: lowStock.length > 0 ? '#ef4444' : '#6b7280' },
         ].map(k => (
-          <div key={k.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+          <div key={k.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-[#243f72] flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.color + '15' }}>
               <k.icon size={20} style={{ color: k.color }} />
             </div>
             <div>
-              <p className="text-xs text-gray-500">{k.label}</p>
-              <p className="text-lg font-bold text-gray-800">{k.value}</p>
+              <p className="text-xs text-white/45">{k.label}</p>
+              <p className="text-lg font-bold text-white">{k.value}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Sales Trend Chart */}
-      <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
+        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
           <BarChart3 size={18} style={{ color: '#1B3A6B' }} />
           Tendencia de Ventas — {(PERIOD_LABELS as any)[period]}
         </h3>
         {breakeven > 0 && <p className="text-xs mb-3" style={{color:'#9ca3af'}}>Meta de equilibrio: <strong style={{color:'#6b7280'}}>${breakeven.toLocaleString('es-MX')}</strong> — debes superar esto para ser rentable</p>}
         {salesTrend.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm">Sin datos para el período seleccionado</div>
+          <div className="h-48 flex items-center justify-center text-white/40 text-sm">Sin datos para el período seleccionado</div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={salesTrend}>
@@ -185,13 +185,13 @@ export default function ReportesMejorados() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Waiter performance */}
-        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
             <Users size={18} style={{ color: '#f59e0b' }} />
             Ticket Promedio por Mesero
           </h3>
           {waiterStats.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
+            <p className="text-sm text-white/40 text-center py-8">Sin datos</p>
           ) : (
             <div className="space-y-3">
               {waiterStats.map((w, i) => (
@@ -201,14 +201,14 @@ export default function ReportesMejorados() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-800 truncate">{w.mesero}</span>
-                      <span className="text-sm font-bold text-gray-800">${w.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-medium text-white truncate">{w.mesero}</span>
+                      <span className="text-sm font-bold text-white">${w.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex-1 bg-[#0f1e38] rounded-full h-1.5">
                         <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, (w.total / (waiterStats[0]?.total || 1)) * 100)}%`, backgroundColor: '#1B3A6B' }} />
                       </div>
-                      <span className="text-xs text-gray-400">{w.ordenes} órd.</span>
+                      <span className="text-xs text-white/40">{w.ordenes} órd.</span>
                     </div>
                   </div>
                 </div>
@@ -218,8 +218,8 @@ export default function ReportesMejorados() {
         </div>
 
         {/* Low stock alerts */}
-        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
             <AlertTriangle size={18} className="text-red-500" />
             Alertas de Inventario Bajo
             {lowStock.length > 0 && (
@@ -237,7 +237,7 @@ export default function ReportesMejorados() {
                 <div key={item.nombre} className="flex items-center gap-3 p-2 rounded-lg bg-red-50">
                   <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{item.nombre}</p>
+                    <p className="text-sm font-medium text-white truncate">{item.nombre}</p>
                     <p className="text-xs text-red-600">Stock: {item.stock} {item.unit} / Mín: {item.minStock} {item.unit}</p>
                   </div>
                   <div className="w-16 bg-gray-200 rounded-full h-1.5 flex-shrink-0">
@@ -252,13 +252,13 @@ export default function ReportesMejorados() {
 
       {/* Top & Bottom products */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
             <Award size={18} style={{ color: '#10b981' }} />
             Productos Más Vendidos
           </h3>
           {topProducts.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos de ventas</p>
+            <p className="text-sm text-white/40 text-center py-8">Sin datos de ventas</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={topProducts.slice(0, 6)} layout="vertical">
@@ -272,21 +272,21 @@ export default function ReportesMejorados() {
           )}
         </div>
 
-        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
             <ChevronDown size={18} className="text-red-500" />
             Productos Menos Vendidos
           </h3>
           {bottomProducts.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos de ventas</p>
+            <p className="text-sm text-white/40 text-center py-8">Sin datos de ventas</p>
           ) : (
             <div className="space-y-2">
               {bottomProducts.map((p, i) => (
                 <div key={p.nombre} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#0f1e38]">
-                  <span className="text-xs font-bold text-gray-400 w-5">{i + 1}</span>
+                  <span className="text-xs font-bold text-white/40 w-5">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 truncate">{p.nombre}</p>
-                    <p className="text-xs text-gray-400">${p.ingresos.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-sm text-white truncate">{p.nombre}</p>
+                    <p className="text-xs text-white/40">${p.ingresos.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <span className="text-sm font-medium text-red-500">{p.cantidad} uds.</span>
                 </div>

@@ -217,8 +217,8 @@ export default function GoLive() {
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
             <Rocket size={36} className="text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">¡Restaurante en producción!</h2>
-          <p className="text-gray-500 max-w-md">
+          <h2 className="text-2xl font-bold text-white">¡Restaurante en producción!</h2>
+          <p className="text-white/45 max-w-md">
             Los datos de prueba fueron eliminados. A partir de ahora, todas las ventas, órdenes
             y reportes serán datos reales de tu negocio.
           </p>
@@ -229,7 +229,7 @@ export default function GoLive() {
               Ir al POS →
             </a>
             <button onClick={() => { setIsLive(false); setStep('diagnose'); diagnose(); }}
-              className="px-6 py-3 rounded-xl text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-[#0f1e38]">
+              className="px-6 py-3 rounded-xl text-sm font-semibold text-white/60 border border-[#243f72] hover:bg-[#0f1e38]">
               Ver diagnóstico de nuevo
             </button>
           </div>
@@ -243,24 +243,24 @@ export default function GoLive() {
 
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Rocket size={22} className="text-amber-500" />
           Preparar lanzamiento
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-white/45 mt-1">
           Antes de abrir tu restaurante con clientes reales, verifica que todo esté configurado
           y limpia los datos de prueba. Este proceso es irreversible.
         </p>
       </div>
 
       {/* Checklist de configuración */}
-      <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-[#243f72] flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Lista de verificación</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{checksOk} de {checks.length} completados</p>
+            <h3 className="text-sm font-bold text-white">Lista de verificación</h3>
+            <p className="text-xs text-white/45 mt-0.5">{checksOk} de {checks.length} completados</p>
           </div>
-          <div className={`px-3 py-1 rounded-full text-xs font-bold ${allChecksOk ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+          <div className={`px-3 py-1 rounded-full text-xs font-bold ${allChecksOk ? 'bg-green-900/40 text-green-300' : 'bg-amber-900/40 text-amber-300'}`}>
             {allChecksOk ? '✓ Listo' : `${checks.length - checksOk} pendientes`}
           </div>
         </div>
@@ -273,10 +273,10 @@ export default function GoLive() {
                   : <AlertTriangle size={13} className="text-amber-600" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${check.done ? 'text-gray-700' : 'text-gray-900'}`}>
+                <p className={`text-sm font-medium ${check.done ? 'text-white/80' : 'text-white'}`}>
                   {check.label}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">{check.description}</p>
+                <p className="text-xs text-white/40 mt-0.5">{check.description}</p>
               </div>
               {!check.done && check.href && (
                 <a href={check.href}
@@ -290,17 +290,17 @@ export default function GoLive() {
       </div>
 
       {/* Datos de prueba a limpiar */}
-      <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-[#243f72] flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Datos de prueba detectados</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h3 className="text-sm font-bold text-white">Datos de prueba detectados</h3>
+            <p className="text-xs text-white/45 mt-0.5">
               {totalTestData === 0
                 ? 'No hay datos de prueba — el sistema está limpio'
                 : `${fmt(totalTestData)} registros serán eliminados permanentemente`}
             </p>
           </div>
-          <button onClick={diagnose} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-[#0f1e38]">
+          <button onClick={diagnose} className="p-2 rounded-lg text-white/40 hover:text-white/60 hover:bg-[#0f1e38]">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -310,7 +310,7 @@ export default function GoLive() {
             <div key={item.table} className={`flex items-center justify-between px-5 py-3 ${item.count > 0 ? 'bg-red-50/40' : ''}`}>
               <div className="flex items-center gap-3">
                 <Database size={14} className={item.count > 0 ? 'text-red-400' : 'text-gray-300'} />
-                <span className="text-sm text-gray-700">{item.label}</span>
+                <span className="text-sm text-white/80">{item.label}</span>
               </div>
               <span className={`text-sm font-mono font-semibold ${item.count > 0 ? 'text-red-600' : 'text-gray-300'}`}>
                 {item.count > 0 ? `${fmt(item.count)} registros` : 'Sin datos'}
@@ -319,8 +319,8 @@ export default function GoLive() {
           ))}
         </div>
 
-        <div className="px-5 py-3 bg-[#0f1e38] border-t border-gray-100">
-          <p className="text-xs text-gray-500">
+        <div className="px-5 py-3 bg-[#0f1e38] border-t border-[#243f72]">
+          <p className="text-xs text-white/45">
             <strong>Se conserva:</strong> menú, ingredientes, empleados, mesas, proveedores,
             configuración, gastos recurrentes y depreciaciones.
           </p>
@@ -373,7 +373,7 @@ export default function GoLive() {
           <div className="flex gap-3">
             <button
               onClick={() => { setShowConfirm(false); setConfirmText(''); }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-gray-600 bg-[#162d55] border border-gray-200 hover:bg-[#0f1e38]">
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white/60 bg-[#162d55] border border-[#243f72] hover:bg-[#0f1e38]">
               <X size={15} /> Cancelar
             </button>
             <button

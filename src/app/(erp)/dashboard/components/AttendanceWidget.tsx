@@ -98,7 +98,7 @@ export default function AttendanceWidget() {
 
   if (loading) {
     return (
-      <div className="bg-[#162d55] border border-gray-200 rounded-2xl p-5 animate-pulse">
+      <div className="bg-[#162d55] border border-[#243f72] rounded-2xl p-5 animate-pulse">
         <div className="h-4 bg-[#0f1e38] rounded w-1/3 mb-4" />
         <div className="flex gap-2">
           {[1,2,3].map(i => <div key={i} className="w-12 h-12 bg-[#0f1e38] rounded-full" />)}
@@ -108,12 +108,12 @@ export default function AttendanceWidget() {
   }
 
   return (
-    <div className="bg-[#162d55] border border-gray-200 rounded-2xl overflow-hidden">
+    <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-[#243f72] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users size={16} className="text-gray-500" />
-          <span className="text-sm font-bold text-gray-900">Asistencia hoy</span>
+          <Users size={16} className="text-white/45" />
+          <span className="text-sm font-bold text-white">Asistencia hoy</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
             style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#15803d' }}>
             {present.length}/{employees.length} presentes
@@ -140,12 +140,12 @@ export default function AttendanceWidget() {
                     {e.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{e.name}</p>
-                    <p className="text-xs text-gray-400">{roleLabel(e.role)}</p>
+                    <p className="text-sm font-semibold text-white truncate">{e.name}</p>
+                    <p className="text-xs text-white/40">{roleLabel(e.role)}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-mono text-green-600 font-semibold">{e.checkInTime}</p>
-                    <p className="text-xs text-gray-400">entrada</p>
+                    <p className="text-xs text-white/40">entrada</p>
                   </div>
                 </div>
               ))}
@@ -156,15 +156,15 @@ export default function AttendanceWidget() {
         {/* Ausentes */}
         {absent.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">⭕ Sin registrar</p>
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-2">⭕ Sin registrar</p>
             <div className="flex flex-wrap gap-2">
               {absent.map(e => (
-                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-gray-100">
+                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-[#243f72]">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 opacity-50"
                     style={{ backgroundColor: e.color, color: '#1B3A6B' }}>
                     {e.initials}
                   </div>
-                  <span className="text-xs text-gray-500 font-medium">{e.name.split(' ')[0]}</span>
+                  <span className="text-xs text-white/45 font-medium">{e.name.split(' ')[0]}</span>
                 </div>
               ))}
             </div>
@@ -174,16 +174,16 @@ export default function AttendanceWidget() {
         {/* Que ya salieron */}
         {left.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">✓ Turno completado</p>
+            <p className="text-xs font-semibold text-white/35 uppercase tracking-wide mb-2">✓ Turno completado</p>
             <div className="flex flex-wrap gap-2">
               {left.map(e => (
-                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-gray-100 opacity-50">
+                <div key={e.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f1e38] border border-[#243f72] opacity-50">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                     style={{ backgroundColor: e.color, color: '#1B3A6B' }}>
                     {e.initials}
                   </div>
-                  <span className="text-xs text-gray-400 font-medium">{e.name.split(' ')[0]}</span>
-                  <span className="text-xs text-gray-300 font-mono">{e.checkOutTime}</span>
+                  <span className="text-xs text-white/40 font-medium">{e.name.split(' ')[0]}</span>
+                  <span className="text-xs text-white/35 font-mono">{e.checkOutTime}</span>
                 </div>
               ))}
             </div>
@@ -191,7 +191,7 @@ export default function AttendanceWidget() {
         )}
 
         {employees.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">
+          <p className="text-sm text-white/40 text-center py-4">
             No hay empleados registrados.<br />
             <a href="/personal" className="text-blue-600 underline text-xs">Agregar en Personal →</a>
           </p>
@@ -199,13 +199,13 @@ export default function AttendanceWidget() {
 
         {/* Alertas de tardanza */}
         {alerts.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+          <div className="mt-3 pt-3 border-t border-[#243f72] space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-red-600 uppercase tracking-wide flex items-center gap-1">
                 <AlertTriangle size={11} /> Sin registrar entrada
               </p>
               <button onClick={requestPermission}
-                className="text-xs text-gray-400 hover:text-gray-600">
+                className="text-xs text-white/40 hover:text-white/60">
                 Activar notificaciones
               </button>
             </div>
@@ -220,7 +220,7 @@ export default function AttendanceWidget() {
                   <p className="text-xs font-semibold truncate" style={{ color: a.severity === 'falta' ? '#dc2626' : '#d97706' }}>
                     {a.name}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-white/40">
                     Debió llegar a las {a.horaEntrada}
                   </p>
                 </div>

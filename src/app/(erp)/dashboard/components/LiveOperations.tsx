@@ -89,9 +89,9 @@ export default function LiveOperations() {
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
         <UtensilsCrossed size={16} style={{ color: '#1B3A6B' }} />
-        <span className="text-sm font-semibold text-gray-700">En curso ahora</span>
+        <span className="text-sm font-semibold text-white/80">En curso ahora</span>
       </div>
-      <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-8 gap-2 text-white/40">
         <CheckCircle size={28} />
         <p className="text-sm">Sin órdenes activas — todo tranquilo</p>
       </div>
@@ -103,7 +103,7 @@ export default function LiveOperations() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <UtensilsCrossed size={16} style={{ color: '#1B3A6B' }} />
-          <span className="text-sm font-semibold text-gray-700">En curso ahora</span>
+          <span className="text-sm font-semibold text-white/80">En curso ahora</span>
         </div>
         <Link href="/cocina">
           <span className="text-xs text-blue-500 hover:underline cursor-pointer">Ver cocina →</span>
@@ -118,7 +118,7 @@ export default function LiveOperations() {
         </span>
         {inPrep > 0 && (
           <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold"
-            style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#1d4ed8' }}>
+            style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#60a5fa' }}>
             <Flame size={11} /> {inPrep} preparando
           </span>
         )}
@@ -130,7 +130,7 @@ export default function LiveOperations() {
         )}
         {urgent > 0 && (
           <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold"
-            style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+            style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
             <AlertTriangle size={11} /> {urgent} urgente{urgent > 1 ? 's' : ''}
           </span>
         )}
@@ -154,8 +154,8 @@ export default function LiveOperations() {
                 backgroundColor: isUrgent ? 'rgba(239,68,68,0.05)' : '#f9fafb',
                 border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : '#f3f4f6'}`,
               }}>
-              <span className="text-sm font-bold text-gray-800 w-16 truncate">{order.mesa}</span>
-              <span className="flex-1 text-xs text-gray-500 truncate">{order.mesero}</span>
+              <span className="text-sm font-bold text-white w-16 truncate">{order.mesa}</span>
+              <span className="flex-1 text-xs text-white/45 truncate">{order.mesero}</span>
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                 style={{ backgroundColor: cfg.bg, color: cfg.color }}>
                 {cfg.label}

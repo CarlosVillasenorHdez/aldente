@@ -125,7 +125,7 @@ const SHIFT_CONFIG: Record<ShiftType, { label: string; color: string; bg: string
   matutino: { label: 'Matutino', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
   vespertino: { label: 'Vespertino', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
   nocturno: { label: 'Nocturno', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
-  descanso: { label: 'Descanso', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+  descanso: { label: 'Descanso', color: 'rgba(255,255,255,0.45)', bg: 'rgba(107,114,128,0.1)' },
 };
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -734,7 +734,7 @@ export default function PersonalManagement() {
                   </tr>
                 ) : (
                   filtered.map((emp) => (
-                    <tr key={emp.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
+                    <tr key={emp.id} className="border-b transition-colors hover:bg-[#162d55]/5" style={{ borderColor: '#1a2f52' }}>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 text-center">
@@ -790,7 +790,7 @@ export default function PersonalManagement() {
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(emp)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar"><Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
+                          <button onClick={() => openEdit(emp)} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors" title="Editar"><Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
                           <button onClick={() => setDeleteId(emp.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar"><Trash2 size={13} className="text-red-400" /></button>
                         </div>
                       </td>
@@ -1044,7 +1044,7 @@ export default function PersonalManagement() {
           <div className="relative w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
               <h2 className="font-bold text-white text-lg">{editingId ? 'Editar empleado' : 'Agregar empleado'}</h2>
-              <button onClick={closeModal} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}><X size={16} /></button>
+              <button onClick={closeModal} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#162d55]/10" style={{ color: 'rgba(255,255,255,0.5)' }}><X size={16} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               <div>

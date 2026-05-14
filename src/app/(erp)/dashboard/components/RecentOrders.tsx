@@ -115,10 +115,10 @@ export default function RecentOrders() {
         style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div>
-          <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
+          <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             Órdenes Recientes
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Últimas 10 transacciones</p>
+          <p className="text-xs text-white/45 mt-0.5">Últimas 10 transacciones</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export default function RecentOrders() {
             className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
             title="Actualizar"
           >
-            <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw size={13} className={`text-white/40 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <Link href="/orders-management">
             <button className="btn-secondary text-xs py-1.5 flex items-center gap-1.5">
@@ -176,8 +176,8 @@ export default function RecentOrders() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={10} className="py-12 text-center">
-                  <p className="text-sm text-gray-400">No hay órdenes registradas aún.</p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-sm text-white/40">No hay órdenes registradas aún.</p>
+                  <p className="text-xs text-white/35 mt-1">
                     Las órdenes aparecerán aquí cuando se creen desde el Punto de Venta.
                   </p>
                 </td>
@@ -192,34 +192,34 @@ export default function RecentOrders() {
                     style={{ borderColor: '#f9fafb' }}
                   >
                     <td className="px-5 py-3.5">
-                      <span className="font-mono text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>
+                      <span className="font-mono text-sm font-600 text-white" style={{ fontWeight: 600 }}>
                         {order.id}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-sm font-500 text-gray-700" style={{ fontWeight: 500 }}>
+                      <span className="text-sm font-500 text-white/80" style={{ fontWeight: 500 }}>
                         {order.mesa}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-sm text-gray-600">{order.mesero}</span>
+                      <span className="text-sm text-white/60">{order.mesero}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-sm text-gray-600 font-mono">{order.items}</span>
+                      <span className="text-sm text-white/60 font-mono">{order.items}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="font-mono font-700 text-sm text-gray-900" style={{ fontWeight: 700 }}>
+                      <span className="font-mono font-700 text-sm text-white" style={{ fontWeight: 700 }}>
                         ${order.total.toFixed(2)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <div className="flex items-center gap-1 text-sm text-white/45">
                         <Clock size={12} />
                         {order.opened}
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-sm text-gray-500 font-mono">{order.duration}</span>
+                      <span className="text-sm text-white/45 font-mono">{order.duration}</span>
                     </td>
                     <td className="px-5 py-3.5">
                       {order.payMethod ? (
@@ -234,7 +234,7 @@ export default function RecentOrders() {
                           {order.payMethod}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-300">—</span>
+                        <span className="text-xs text-white/35">—</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
@@ -243,7 +243,7 @@ export default function RecentOrders() {
                     <td className="px-5 py-3.5">
                       <Link href="/orders-management">
                         <button className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors">
-                          <Eye size={14} className="text-gray-400" />
+                          <Eye size={14} className="text-white/40" />
                         </button>
                       </Link>
                     </td>
@@ -257,11 +257,11 @@ export default function RecentOrders() {
 
       {!loading && filtered.length > 0 && (
         <div className="px-5 py-3 border-t flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-white/40">
             Mostrando {filtered.length} de {orders.length} órdenes recientes
           </p>
           <Link href="/orders-management">
-            <button className="text-xs font-600 py-1.5 px-3 rounded-lg hover:bg-blue-50 transition-colors"
+            <button className="text-xs font-600 py-1.5 px-3 rounded-lg hover:bg-blue-900/20 transition-colors"
               style={{ color: '#1B3A6B', fontWeight: 600 }}>
               Ver gestión completa →
             </button>

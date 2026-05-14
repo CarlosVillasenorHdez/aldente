@@ -142,7 +142,7 @@ export default function AlertsPanel() {
       >
         <div className="flex items-center gap-2">
           <AlertTriangle size={16} className="text-amber-500" />
-          <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
+          <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             Alertas Activas
           </h2>
           {!loading && (
@@ -163,7 +163,7 @@ export default function AlertsPanel() {
           className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
           title="Actualizar alertas"
         >
-          <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw size={13} className={`text-white/40 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
@@ -183,8 +183,8 @@ export default function AlertsPanel() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: '#f0fdf4' }}>
               <AlertTriangle size={18} className="text-green-500" />
             </div>
-            <p className="text-sm font-semibold text-gray-700">Sin alertas activas</p>
-            <p className="text-xs text-gray-400 mt-1">Todo está funcionando correctamente</p>
+            <p className="text-sm font-semibold text-white/80">Sin alertas activas</p>
+            <p className="text-xs text-white/40 mt-1">Todo está funcionando correctamente</p>
           </div>
         ) : (
           alerts.map((alert) => {
@@ -203,7 +203,7 @@ export default function AlertsPanel() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-600 text-gray-800 truncate" style={{ fontWeight: 600 }}>
+                    <p className="text-sm font-600 text-white truncate" style={{ fontWeight: 600 }}>
                       {alert.title}
                     </p>
                     <span
@@ -213,10 +213,10 @@ export default function AlertsPanel() {
                       {cfg.label}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">{alert.detail}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{alert.time}</p>
+                  <p className="text-xs text-white/45">{alert.detail}</p>
+                  <p className="text-xs text-white/40 mt-0.5">{alert.time}</p>
                 </div>
-                <ChevronRight size={14} className="text-gray-300 flex-shrink-0 mt-1" />
+                <ChevronRight size={14} className="text-white/35 flex-shrink-0 mt-1" />
               </div>
             );
           })
@@ -225,7 +225,7 @@ export default function AlertsPanel() {
 
       <div className="px-5 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <Link href="/inventario">
-          <button className="w-full text-xs font-600 py-2 rounded-lg transition-colors hover:bg-amber-50"
+          <button className="w-full text-xs font-600 py-2 rounded-lg transition-colors hover:bg-amber-900/20"
             style={{ color: '#d97706', fontWeight: 600 }}>
             Ver inventario completo →
           </button>

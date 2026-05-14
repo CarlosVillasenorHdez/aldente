@@ -83,7 +83,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
           {title}
         </p>
         {loading ? (
-          <div className="h-8 w-20 rounded-lg animate-pulse bg-gray-200 mt-1" />
+          <div className="h-8 w-20 rounded-lg animate-pulse bg-[#243f72] mt-1" />
         ) : (
           <p
             className="text-3xl font-700 tabular-nums font-mono leading-none"
@@ -358,13 +358,13 @@ export default function DashboardKPIs() {
       {proximaNomina !== null && (
         <div className="kpi-card">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Nómina</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proximaNomina.diasPara <= 3 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/45">Nómina</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${proximaNomina.diasPara <= 3 ? 'bg-red-900/40 text-red-300' : 'bg-blue-900/40 text-blue-300'}`}>
               {proximaNomina.diasPara === 0 ? '¡Hoy!' : `${proximaNomina.diasPara}d`}
             </span>
           </div>
-          <p className="text-xl font-black text-gray-900">${Math.round(proximaNomina.monto).toLocaleString('es-MX')}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xl font-black text-white">${Math.round(proximaNomina.monto).toLocaleString('es-MX')}</p>
+          <p className="text-xs text-white/40 mt-0.5">
             {proximaNomina.diasPara === 0 ? 'Vence hoy — ' : `En ${proximaNomina.diasPara} días — `}
             <a href="/recursos-humanos" className="text-blue-600 underline">Registrar pago</a>
           </p>
@@ -375,14 +375,14 @@ export default function DashboardKPIs() {
       {kpis.puntoEquilibrioHoy > 0 && (
         <div className="kpi-card col-span-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Punto de equilibrio hoy</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/45">Punto de equilibrio hoy</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? 'bg-green-900/40 text-green-300' : 'bg-amber-900/40 text-amber-300'}`}>
               {kpis.ventasHoy >= kpis.puntoEquilibrioHoy ? '✓ Cubierto' : `Faltan $${(kpis.puntoEquilibrioHoy - kpis.ventasHoy).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`}
             </span>
           </div>
           <div className="flex items-end gap-3 mb-3">
-            <span className="text-2xl font-black text-gray-900">${kpis.ventasHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
-            <span className="text-sm text-gray-400 mb-0.5">de ${kpis.puntoEquilibrioHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })} necesarios</span>
+            <span className="text-2xl font-black text-white">${kpis.ventasHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
+            <span className="text-sm text-white/40 mb-0.5">de ${kpis.puntoEquilibrioHoy.toLocaleString('es-MX', { maximumFractionDigits: 0 })} necesarios</span>
           </div>
           <div className="w-full h-2 bg-[#0f1e38] rounded-full overflow-hidden">
             <div
@@ -393,7 +393,7 @@ export default function DashboardKPIs() {
               }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1.5">
+          <p className="text-xs text-white/40 mt-1.5">
             {Math.round((kpis.ventasHoy / kpis.puntoEquilibrioHoy) * 100)}% del punto de equilibrio diario
             {kpis.proyeccionCierre > 0 && ` · Proyección cierre: $${kpis.proyeccionCierre.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`}
           </p>
@@ -412,10 +412,10 @@ export default function DashboardKPIs() {
               <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                 <span style={{ fontSize:'18px' }}>💳</span>
                 <div>
-                  <p style={{ fontSize:'11px', fontWeight:600, color: '#92400e', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                  <p style={{ fontSize:'11px', fontWeight:600, color: '#fbbf24', textTransform:'uppercase', letterSpacing:'0.05em' }}>
                     {kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '⚠️ Pagos vencidos' : 'Pagos próximos'}
                   </p>
-                  <p style={{ fontSize:'18px', fontWeight:700, color: '#92400e' }}>
+                  <p style={{ fontSize:'18px', fontWeight:700, color: '#fbbf24' }}>
                     ${kpis.totalGastosPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -450,9 +450,9 @@ export default function DashboardKPIs() {
       {/* Gate: basico has no alarmas/inventario features */}
       {(!features.inventario && !features.alarmas) ? (
         <div className="col-span-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'rgba(251,191,36,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Alertas de inventario</div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Alertas de inventario</div>
             <div style={{ fontSize: '13px', color: '#b45309' }}>Disponible en el plan Estándar — activa el inventario para recibir alertas de stock bajo antes de que afecten tu servicio.</div>
           </div>
           <a href="/configuracion" style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#d97706', color: '#fff', fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Ver plan →</a>

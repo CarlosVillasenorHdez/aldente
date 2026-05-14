@@ -38,16 +38,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm"
         style={{ borderColor: '#243f72', minWidth: '140px' }}
       >
-        <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
+        <p className="font-600 text-white/80 mb-2" style={{ fontWeight: 600 }}>{label}</p>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-gray-500 text-xs">Ventas</span>
+          <span className="text-white/45 text-xs">Ventas</span>
           <span className="font-mono font-600 text-amber-600" style={{ fontWeight: 600 }}>
             ${payload[0].value.toLocaleString('es-MX')}
           </span>
         </div>
         {payload[1] && (
           <div className="flex items-center justify-between gap-4 mt-1">
-            <span className="text-gray-500 text-xs">Órdenes</span>
+            <span className="text-white/45 text-xs">Órdenes</span>
             <span className="font-mono font-600 text-blue-600" style={{ fontWeight: 600 }}>
               {payload[1].value}
             </span>
@@ -206,10 +206,10 @@ export default function SalesChart() {
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
+          <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             Ventas por {view === 'hoy' ? 'Hora' : 'Día'}
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-white/45 mt-0.5">
             {view === 'hoy' ? today : 'Últimos 7 días'}
           </p>
         </div>
@@ -219,7 +219,7 @@ export default function SalesChart() {
             className="p-1.5 rounded-lg hover:bg-[#0f1e38] transition-colors"
             title="Actualizar"
           >
-            <RefreshCw size={13} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw size={13} className={`text-white/40 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <div className="flex items-center gap-1 bg-[#0f1e38] rounded-lg p-1">
             {(['hoy', 'semana'] as const).map((v) => (
@@ -244,8 +244,8 @@ export default function SalesChart() {
       {loading ? (
         <div className="h-[260px] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <RefreshCw size={20} className="text-gray-300 animate-spin" />
-            <p className="text-xs text-gray-400">Cargando datos de ventas…</p>
+            <RefreshCw size={20} className="text-white/35 animate-spin" />
+            <p className="text-xs text-white/40">Cargando datos de ventas…</p>
           </div>
         </div>
       ) : (
@@ -291,19 +291,19 @@ export default function SalesChart() {
         style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div>
-          <p className="text-xs text-gray-400 mb-0.5">Hora pico</p>
-          <p className="font-600 text-gray-800 font-mono text-base" style={{ fontWeight: 600 }}>
+          <p className="text-xs text-white/40 mb-0.5">Hora pico</p>
+          <p className="font-600 text-white font-mono text-base" style={{ fontWeight: 600 }}>
             {peakHour && peakHour.ventas > 0 ? `${peakHour.hora} · $${peakHour.ventas.toLocaleString('es-MX')}` : '—'}
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-400 mb-0.5">Total acumulado</p>
-          <p className="font-600 text-gray-800 font-mono" style={{ fontWeight: 600 }}>
+          <p className="text-xs text-white/40 mb-0.5">Total acumulado</p>
+          <p className="font-600 text-white font-mono" style={{ fontWeight: 600 }}>
             ${totalAccum.toLocaleString('es-MX')}
           </p>
         </div>
         <div className="ml-auto">
-          <p className="text-xs text-gray-400 mb-0.5">{view === 'hoy' ? 'Hoy' : 'Esta semana'}</p>
+          <p className="text-xs text-white/40 mb-0.5">{view === 'hoy' ? 'Hoy' : 'Esta semana'}</p>
           <p className="font-700 text-amber-600 font-mono text-base" style={{ fontWeight: 700 }}>
             ${totalAccum.toLocaleString('es-MX')}
           </p>
