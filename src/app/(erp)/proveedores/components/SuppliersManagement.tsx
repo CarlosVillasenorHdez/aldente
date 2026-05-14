@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useDevice } from '@/hooks/useDevice';
+import HelpDrawer from '@/components/HelpDrawer';
+import { HELP_PROVEEDORES } from '@/lib/helpContent';
 import { useBranch } from '@/hooks/useBranch';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { toast } from 'sonner';
@@ -549,10 +551,13 @@ export default function SuppliersManagement() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>Proveedores</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Gestión de proveedores, crédito y compras</p>
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: '#f59e0b', border: 'none', color: '#1B3A6B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          <Plus size={14} /> Nuevo proveedor
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <HelpDrawer config={HELP_PROVEEDORES} />
+          <button onClick={() => { setEditing(null); setModalOpen(true); }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 10, background: '#f59e0b', border: 'none', color: '#1B3A6B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <Plus size={14} /> Nuevo proveedor
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12, marginBottom: 20 }}>

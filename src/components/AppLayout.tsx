@@ -15,9 +15,10 @@ interface AppLayoutProps {
   children?: React.ReactNode;
   title: string;
   subtitle?: string;
+  headerExtra?: React.ReactNode;
 }
 
-export default function AppLayout({ children, title, subtitle }: AppLayoutProps) {
+export default function AppLayout({ children, title, subtitle, headerExtra }: AppLayoutProps) {
   const { appUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const device = useDevice();
@@ -106,6 +107,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         <Topbar
           title={title}
           subtitle={subtitle}
+          headerExtra={headerExtra}
           onMenuToggle={() => setMobileSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto scrollbar-thin">

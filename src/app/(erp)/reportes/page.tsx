@@ -8,6 +8,8 @@ import PresupuestoVsReal from './components/PresupuestoVsReal';
 import UpgradeGate from '@/components/UpgradeGate';
 import { useState, useEffect } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
+import HelpDrawer from '@/components/HelpDrawer';
+import { HELP_REPORTES } from '@/lib/helpContent';
 
 type View = 'ventas' | 'financiero' | 'presupuesto' | 'consolidado';
 
@@ -31,7 +33,8 @@ export default function ReportesPage() {
       <div className="space-y-4" style={{ minHeight: '100vh' }}>
 
         {/* Tab bar — dark theme */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #243f72', paddingBottom: 0, overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #243f72', paddingBottom: 0, overflowX: 'auto', alignItems: 'center' }}>
+          <div style={{ marginLeft: 'auto', paddingRight: 8 }}><HelpDrawer config={HELP_REPORTES} /></div>
           {tabs.map(tab => (
             <button
               key={tab.id}

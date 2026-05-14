@@ -28,10 +28,11 @@ interface TopbarProps {
   title: string;
   subtitle?: string;
   onMenuToggle?: () => void;
+  headerExtra?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-export default function Topbar({ title, subtitle, onMenuToggle, children }: TopbarProps) {
+export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, children }: TopbarProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -207,6 +208,9 @@ export default function Topbar({ title, subtitle, onMenuToggle, children }: Topb
         </div>
 
         <div className="flex items-center gap-2">
+          {/* headerExtra — HelpDrawer u otros controles del módulo */}
+          {headerExtra}
+
           {/* Children — contenido extra inyectado por cada módulo (ej. botón de carta QR) */}
           {children}
 

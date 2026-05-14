@@ -12,6 +12,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useDevice } from '@/hooks/useDevice';
 import InventarioMobile from './InventarioMobile';
+import HelpDrawer from '@/components/HelpDrawer';
+import HelpTip from '@/components/HelpTip';
+import { HELP_INVENTARIO } from '@/lib/helpContent';
 import AnalisisDesperdicioTab from '@/app/(erp)/inventario/components/AnalisisDesperdicioTab';
 import MovimientosTab from '@/app/(erp)/inventario/components/MovimientosTab';
 import AlertasTab from '@/app/(erp)/inventario/components/AlertasTab';
@@ -1048,6 +1051,7 @@ export default function InventarioManagement() {
           <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Gestión de ingredientes, stock y proveedores</p>
         </div>
         <div className="flex items-center gap-2">
+          <HelpDrawer config={HELP_INVENTARIO} />
           <button onClick={() => setMovementModalOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)' }}>
             <RefreshCw size={15} />
             Registrar Movimiento
@@ -1173,7 +1177,14 @@ export default function InventarioManagement() {
               <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
                 <tr className="border-b" style={{ borderColor: '#243f72' }}>
                   {['Ingrediente', 'Categoría', 'Stock', 'Nivel', 'Mínimo', 'Costo/u', 'Acciones'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {h}
+                        {h === 'Mínimo' && <HelpTip title="Stock mínimo" text="Cantidad más baja que puedes tener. El sistema te alerta cuando llegas aquí." side="bottom" />}
+                        {h === 'Nivel' && <HelpTip title="Nivel de stock" text="Barra visual: verde=ok, amarillo=cerca del mínimo, rojo=crítico." side="bottom" />}
+                        {h === 'Costo/u' && <HelpTip title="Costo por unidad (WACC)" text="Promedio ponderado de tus compras. Si compraste a diferentes precios, este es el costo real de lo que tienes en bodega." side="bottom" />}
+                      </span>
+                    </th>
                   ))}
                 </tr>
               </thead>

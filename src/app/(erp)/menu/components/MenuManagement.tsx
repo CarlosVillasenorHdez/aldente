@@ -13,6 +13,8 @@ import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import CombosManagement from './CombosManagement';
 import ModifierGroupsModal from './ModifierGroupsModal';
 import MenuAIAssistant from './MenuAIAssistant';
+import HelpDrawer from '@/components/HelpDrawer';
+import { HELP_MENU } from '@/lib/helpContent';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1676,6 +1678,7 @@ export default function MenuManagement() {
               🗑️ Limpiar menú
             </button>
           )}
+          <HelpDrawer config={HELP_MENU} />
           <button onClick={() => setShowAIAssistant(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }} title="Cargar menú con IA">
             ✨ Asistente IA
           </button>
