@@ -37,6 +37,7 @@ const colorMap = {
   blue: { bg: 'rgba(96,165,250,0.07)', iconBg: 'rgba(96,165,250,0.15)', iconColor: '#60a5fa', border: 'rgba(96,165,250,0.25)' },
   purple: { bg: '#faf5ff', iconBg: '#ede9fe', iconColor: '#7c3aed', border: '#c4b5fd' },
   orange: { bg: 'rgba(251,146,60,0.07)', iconBg: 'rgba(251,146,60,0.15)', iconColor: '#fb923c', border: 'rgba(251,146,60,0.25)' },
+  purple: { bg: 'rgba(192,132,252,0.07)', iconBg: 'rgba(192,132,252,0.15)', iconColor: '#c084fc', border: 'rgba(192,132,252,0.25)' },
 };
 
 function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color, alert, span, loading }: KPICardProps) {
