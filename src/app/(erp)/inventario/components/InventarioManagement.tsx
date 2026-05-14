@@ -1095,22 +1095,35 @@ export default function InventarioManagement() {
           </div>
         )}
       </div>
-      {/* Tabs */}
-      <div className="flex items-center gap-1 px-6 pt-3 pb-0 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
-        {([
-          { key: 'inventario', label: 'Ingredientes', icon: <Package size={14} /> },
-          { key: 'movimientos', label: 'Movimientos', icon: <History size={14} /> },
-          { key: 'alertas', label: `Alertas${(lowStockItems.length + reorderItems.length) > 0 ? ` (${lowStockItems.length + reorderItems.length})` : ''}`, icon: <Bell size={14} /> },
-          { key: 'conteo', label: 'Conteo físico', icon: <Package size={14} /> },
-          { key: 'analitica', label: 'Analítica', icon: <BarChart2 size={14} /> },
-          { key: 'pronostico', label: 'Pronóstico', icon: <TrendingUp size={14} /> },
-        ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-150"
-            style={{ borderColor: activeTab === tab.key ? '#f59e0b' : 'transparent', color: activeTab === tab.key ? '#f59e0b' : 'rgba(255,255,255,0.45)', border: activeTab === tab.key ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
-            {tab.icon}{tab.label}
-          </button>
-        ))}
+      {/* Tabs — dos grupos: Gestión (dueño) y Operaciones (personal) */}
+      <div className="flex flex-col px-6 pt-2 pb-0 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
+        <div className="flex items-center gap-1">
+          {/* Grupo principal — lo que el dueño revisa */}
+          {([
+            { key: 'alertas', label: `Alertas${(lowStockItems.length + reorderItems.length) > 0 ? ` (${lowStockItems.length + reorderItems.length})` : ''}`, icon: <Bell size={13} />, urgent: (lowStockItems.length + reorderItems.length) > 0 },
+            { key: 'analitica', label: 'Analítica', icon: <BarChart2 size={13} /> },
+            { key: 'pronostico', label: 'Pronóstico', icon: <TrendingUp size={13} /> },
+          ] as { key: ActiveTab; label: string; icon: React.ReactNode; urgent?: boolean }[]).map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-semibold transition-all duration-150"
+              style={{ borderBottom: `2px solid ${activeTab === tab.key ? '#f59e0b' : 'transparent'}`, color: activeTab === tab.key ? '#f59e0b' : tab.urgent ? '#f87171' : 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 10 }}>
+              {tab.icon}<span style={{ marginLeft: 4 }}>{tab.label}</span>
+            </button>
+          ))}
+          {/* Separador */}
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 6px' }} />
+          {/* Grupo operacional — para el personal */}
+          {([
+            { key: 'inventario', label: 'Ingredientes', icon: <Package size={13} /> },
+            { key: 'movimientos', label: 'Movimientos', icon: <History size={13} /> },
+            { key: 'conteo', label: 'Conteo', icon: <Scale size={13} /> },
+          ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px 10px', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', borderBottom: `2px solid ${activeTab === tab.key ? '#60a5fa' : 'transparent'}`, color: activeTab === tab.key ? '#60a5fa' : 'rgba(255,255,255,0.38)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {tab.icon}<span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
       {/* ── TAB: INVENTARIO ── */}
       {activeTab === 'inventario' && (
@@ -1159,14 +1172,14 @@ export default function InventarioManagement() {
             <table className="w-full">
               <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
                 <tr className="border-b" style={{ borderColor: '#243f72' }}>
-                  {['Ingrediente', 'Categoría', 'Stock', 'Nivel', 'Mínimo', 'Reorden', 'Costo/u', 'Proveedor', 'Acciones'].map((h) => (
+                  {['Ingrediente', 'Categoría', 'Stock', 'Nivel', 'Mínimo', 'Costo/u', 'Acciones'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => <tr key={i}><RowSkeleton cols={9} /></tr>)
+                  Array.from({ length: 8 }).map((_, i) => <tr key={i}><RowSkeleton cols={7} /></tr>)
                 ) : ingredients.length === 0 ? (
                   <EmptyState onAdd={openAdd} />
                 ) : filtered.length === 0 ? (
@@ -1204,27 +1217,7 @@ export default function InventarioManagement() {
                           <span className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{ing.minStock} {ing.unit}</span>
                         </td>
                         <td className="px-4 py-3.5">
-                          <span className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{ing.reorderPoint} {ing.unit}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
                           <span className="text-sm font-mono" style={{ color: '#f59e0b' }}>${ing.cost.toFixed(2)}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{ing.supplier || '—'}</span>
-                            <div className="flex items-center gap-2">
-                              {ing.supplierPhone && (
-                                <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                                  <Phone size={10} />{ing.supplierPhone}
-                                </span>
-                              )}
-                              {ing.supplierUrl && (
-                                <a href={ing.supplierUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs hover:text-blue-300 transition-colors" style={{ color: '#60a5fa' }}>
-                                  <ExternalLink size={10} />Web
-                                </a>
-                              )}
-                            </div>
-                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1">
