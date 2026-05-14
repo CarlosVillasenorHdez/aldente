@@ -180,7 +180,7 @@ export default function AlertsPanel() {
           ))
         ) : alerts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: '#f0fdf4' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: 'rgba(74,222,128,0.08)' }}>
               <AlertTriangle size={18} className="text-green-500" />
             </div>
             <p className="text-sm font-semibold text-white/80">Sin alertas activas</p>

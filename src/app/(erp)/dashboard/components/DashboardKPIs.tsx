@@ -31,12 +31,12 @@ interface KPICardProps {
 }
 
 const colorMap = {
-  amber: { bg: '#fffbeb', iconBg: '#fef3c7', iconColor: '#d97706', border: '#fde68a' },
-  green: { bg: '#f0fdf4', iconBg: '#dcfce7', iconColor: '#16a34a', border: '#86efac' },
-  red: { bg: '#fef2f2', iconBg: '#fee2e2', iconColor: '#dc2626', border: '#fca5a5' },
-  blue: { bg: '#eff6ff', iconBg: '#dbeafe', iconColor: '#2563eb', border: '#93c5fd' },
+  amber: { bg: 'rgba(245,158,11,0.08)', iconBg: 'rgba(245,158,11,0.15)', iconColor: '#f59e0b', border: 'rgba(245,158,11,0.25)' },
+  green: { bg: 'rgba(74,222,128,0.07)', iconBg: 'rgba(74,222,128,0.15)', iconColor: '#4ade80', border: 'rgba(74,222,128,0.25)' },
+  red: { bg: 'rgba(248,113,113,0.07)', iconBg: 'rgba(248,113,113,0.15)', iconColor: '#f87171', border: 'rgba(248,113,113,0.25)' },
+  blue: { bg: 'rgba(96,165,250,0.07)', iconBg: 'rgba(96,165,250,0.15)', iconColor: '#60a5fa', border: 'rgba(96,165,250,0.25)' },
   purple: { bg: '#faf5ff', iconBg: '#ede9fe', iconColor: '#7c3aed', border: '#c4b5fd' },
-  orange: { bg: '#fff7ed', iconBg: '#ffedd5', iconColor: '#ea580c', border: '#fdba74' },
+  orange: { bg: 'rgba(251,146,60,0.07)', iconBg: 'rgba(251,146,60,0.15)', iconColor: '#fb923c', border: 'rgba(251,146,60,0.25)' },
 };
 
 function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color, alert, span, loading }: KPICardProps) {
@@ -46,7 +46,7 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
   return (
     <div
       className={`kpi-card relative ${alert ? 'ring-2 ring-red-300' : ''} ${span === 'wide' ? 'col-span-2' : ''}`}
-      style={{ backgroundColor: alert ? '#fef2f2' : colors.bg, borderColor: alert ? '#fca5a5' : colors.border }}
+      style={{ backgroundColor: alert ? 'rgba(248,113,113,0.08)' : colors.bg, borderColor: alert ? 'rgba(248,113,113,0.3)' : colors.border }}
     >
       {alert && (
         <div className="absolute top-3 right-3">
@@ -64,8 +64,8 @@ function KPICard({ title, value, subValue, trend, trendLabel, icon: Icon, color,
           <div
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
             style={{
-              backgroundColor: isPositive ? '#dcfce7' : '#fee2e2',
-              color: isPositive ? '#166534' : '#991b1b',
+              backgroundColor: isPositive ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)',
+              color: isPositive ? '#4ade80' : '#f87171',
               fontWeight: 600,
             }}
           >
@@ -405,7 +405,7 @@ export default function DashboardKPIs() {
       {kpis.gastosPorPagar.length > 0 && (
         <div className="col-span-2 md:col-span-4">
           <div className="kpi-card" style={{
-            backgroundColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fef2f2' : '#fffbeb',
+            backgroundColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? 'rgba(248,113,113,0.08)' : 'rgba(245,158,11,0.08)',
             borderColor: kpis.gastosPorPagar.some(g => new Date(g.proximo_pago) < new Date()) ? '#fca5a5' : '#fde68a',
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
@@ -449,13 +449,13 @@ export default function DashboardKPIs() {
       {/* Inventory alert — gated for Estándar plan */}
       {/* Gate: basico has no alarmas/inventario features */}
       {(!features.inventario && !features.alarmas) ? (
-        <div className="col-span-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="col-span-2" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'rgba(251,191,36,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '18px' }}>🔒</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Alertas de inventario</div>
             <div style={{ fontSize: '13px', color: '#b45309' }}>Disponible en el plan Estándar — activa el inventario para recibir alertas de stock bajo antes de que afecten tu servicio.</div>
           </div>
-          <a href="/configuracion" style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#d97706', color: '#fff', fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Ver plan →</a>
+          <a href="/configuracion" style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#f59e0b', color: '#1B3A6B', fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Ver plan →</a>
         </div>
       ) : kpis.alertasInventario.length > 0 && (
         <div className="col-span-2">
