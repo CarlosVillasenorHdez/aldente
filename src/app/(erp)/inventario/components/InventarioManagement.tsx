@@ -228,7 +228,6 @@ function StockBar({ stock, minStock, reorderPoint }: { stock: number; minStock: 
 
 export default function InventarioManagement() {
   const device = useDevice();
-  if (device.isMobile) return <InventarioMobile />;
 
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -1047,6 +1046,8 @@ export default function InventarioManagement() {
       return new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     } catch { return iso; }
   };
+  // Mobile gate — siempre después de todos los hooks
+  if (device.isMobile) return <InventarioMobile />;
   return (
     <>
     <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1e38' }}>

@@ -559,7 +559,6 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
 
 export default function GastosManagement() {
   const { isMobile } = useDevice();
-  if (isMobile) return <GastosMobile />;
 
   const supabase = createClient();
   const { activeBranchId } = useBranch();
@@ -752,6 +751,7 @@ export default function GastosManagement() {
 
   // ─────────────────────────────────────────────────────────────────────────
 
+  if (isMobile) return <GastosMobile />;
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
       {/* Header */}

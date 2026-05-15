@@ -92,7 +92,6 @@ function fmt(n: number, locale = 'es-MX') {
 
 export default function CorteCaja() {
   const { isMobile } = useDevice();
-  if (isMobile) return <CorteCajaMobile />;
 
   const supabase = createClient();
   const { log: auditLog } = useAudit();
@@ -550,6 +549,7 @@ export default function CorteCaja() {
   const aperturaDate = new Date(corteActivo.aperturaAt);
   const horasActivo = Math.round((Date.now() - aperturaDate.getTime()) / 3600000 * 10) / 10;
 
+  if (isMobile) return <CorteCajaMobile />;
   return (
     <div className="space-y-5 max-w-4xl mx-auto print:max-w-none">
 

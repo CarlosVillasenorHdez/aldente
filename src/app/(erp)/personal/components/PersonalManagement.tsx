@@ -711,94 +711,83 @@ export default function PersonalManagement() {
 
           {/* Table */}
           <div className="flex-1 overflow-auto">
-            <table className="w-full">
-              <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
-                <tr className="border-b" style={{ borderColor: '#243f72' }}>
-                  {['Empleado', 'Rol', 'Teléfono', 'Contratación', 'Salario', 'Estado', 'Acciones'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{h}</th>
+            {/* Grid de cards de empleados */}
+            <div style={{ padding: '16px 20px' }}>
+              {loading ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} style={{ height: 140, borderRadius: 14, background: 'rgba(255,255,255,0.04)', animation: 'pulse 1.5s infinite' }} />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => <RowSkeleton key={i} />)
-                ) : employees.length === 0 ? (
-                  <EmptyState onAdd={openAdd} />
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center">
-                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {search ? `Sin resultados para "${search}"` : 'No hay empleados con este filtro'}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((emp) => (
-                    <tr key={emp.id} className="border-b transition-colors hover:bg-[#162d55]/5" style={{ borderColor: '#1a2f52' }}>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0 text-center">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: avatarColor(emp.id), color: '#1B3A6B' }}>
-                              {getInitials(emp.name)}
-                            </div>
-                            {emp.numeroEmpleado && (
-                              <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '9px' }}>
-                                #{emp.numeroEmpleado}
-                              </span>
-                            )}
+                </div>
+              ) : employees.length === 0 ? (
+                <EmptyState onAdd={openAdd} />
+              ) : filtered.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 60, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+                  {search ? `Sin resultados para "${search}"` : 'No hay empleados con este filtro'}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                  {filtered.map((emp) => (
+                    <div key={emp.id} style={{ background: '#162d55', border: `1px solid ${emp.status === 'activo' ? '#243f72' : 'rgba(239,68,68,0.2)'}`, borderRadius: 14, padding: '14px 16px', opacity: emp.status === 'activo' ? 1 : 0.7, transition: 'all 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.border = `1px solid ${emp.status === 'activo' ? '#2d4f8a' : 'rgba(239,68,68,0.4)'}`)}
+                      onMouseLeave={e => (e.currentTarget.style.border = `1px solid ${emp.status === 'activo' ? '#243f72' : 'rgba(239,68,68,0.2)'}`)}>
+                      {/* Header de la card */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: avatarColor(emp.id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#1B3A6B', flexShrink: 0 }}>
+                          {getInitials(emp.name)}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</span>
+                            {emp.numeroEmpleado && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>#{emp.numeroEmpleado}</span>}
                           </div>
-                          <div>
-                            <span className="text-sm font-semibold text-white">{emp.name}</span>
-                            {emp.departamento && (
-                              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{emp.departamento}</p>
-                            )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[emp.role]}`}>{emp.role}</span>
+                            {emp.departamento && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{emp.departamento}</span>}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[emp.role]}`}>{emp.role}</span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Phone size={12} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{emp.phone}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={12} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{formatDate(emp.hireDate)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {emp.salary > 0 ? (
-                          <div>
-                            <p className="text-sm font-mono font-semibold" style={{ color: '#34d399' }}>
-                              ${emp.salary.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
-                            </p>
-                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{emp.salaryFrequency}</p>
-                          </div>
-                        ) : (
-                          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <button onClick={() => toggleStatus(emp.id)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all" style={{ backgroundColor: emp.status === 'activo' ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)', color: emp.status === 'activo' ? '#34d399' : '#f87171', border: emp.status === 'activo' ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(239,68,68,0.3)' }}>
+                        {/* Status toggle */}
+                        <button onClick={() => toggleStatus(emp.id)}
+                          style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, border: emp.status === 'activo' ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(239,68,68,0.3)', background: emp.status === 'activo' ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: emp.status === 'activo' ? '#34d399' : '#f87171', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
                           {emp.status === 'activo' ? <UserCheck size={11} /> : <UserX size={11} />}
                           {emp.status === 'activo' ? 'Activo' : 'Inactivo'}
                         </button>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(emp)} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors" title="Editar"><Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
-                          <button onClick={() => setDeleteId(emp.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar"><Trash2 size={13} className="text-red-400" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                      {/* Datos secundarios */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
+                        {emp.phone && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                            <Phone size={11} style={{ flexShrink: 0 }} /> {emp.phone}
+                          </div>
+                        )}
+                        {emp.hireDate && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                            <Calendar size={11} style={{ flexShrink: 0 }} /> Desde {formatDate(emp.hireDate)}
+                          </div>
+                        )}
+                        {emp.salary > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <span style={{ color: '#34d399', fontWeight: 700, fontFamily: 'monospace' }}>${emp.salary.toLocaleString('es-MX')}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.35)' }}>{emp.salaryFrequency}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Acciones */}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <button onClick={() => openEdit(emp)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12 }}>
+                          <Pencil size={12} /> Editar
+                        </button>
+                        <button onClick={() => setDeleteId(emp.id)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', background: 'none', color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
+                          <Trash2 size={12} /> Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Payroll summary footer */}
