@@ -244,6 +244,12 @@ export default function InventarioManagement() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
+  const toggleCat = (cat: string) => setCollapsedCats(prev => {
+    const next = new Set(prev);
+    next.has(cat) ? next.delete(cat) : next.add(cat);
+    return next;
+  });
   const [newSupName, setNewSupName] = useState('');
   const [newSupPhone, setNewSupPhone] = useState('');
   const [savingNewSup, setSavingNewSup] = useState(false);
@@ -1171,84 +1177,124 @@ export default function InventarioManagement() {
               ))}
             </div>
           </div>
-          {/* Table */}
-          <div className="flex-1 overflow-auto">
-            <table className="w-full">
-              <thead className="sticky top-0 z-10" style={{ backgroundColor: '#132240' }}>
-                <tr className="border-b" style={{ borderColor: '#243f72' }}>
-                  {['Ingrediente', 'Categoría', 'Stock', 'Nivel', 'Mínimo', 'Costo/u', 'Acciones'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {h}
-                        {h === 'Mínimo' && <HelpTip title="Stock mínimo" text="Cantidad más baja que puedes tener. El sistema te alerta cuando llegas aquí." side="bottom" />}
-                        {h === 'Nivel' && <HelpTip title="Nivel de stock" text="Barra visual: verde=ok, amarillo=cerca del mínimo, rojo=crítico." side="bottom" />}
-                        {h === 'Costo/u' && <HelpTip title="Costo por unidad (WACC)" text="Promedio ponderado de tus compras. Si compraste a diferentes precios, este es el costo real de lo que tienes en bodega." side="bottom" />}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => <tr key={i}><RowSkeleton cols={7} /></tr>)
-                ) : ingredients.length === 0 ? (
-                  <EmptyState onAdd={openAdd} />
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-12 text-center">
-                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {search ? `Sin resultados para "${search}"` : 'No hay ingredientes en esta categoría'}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((ing) => {
-                    const isLow = ing.stock < ing.minStock;
-                    const isNearReorder = ing.stock < ing.reorderPoint && !isLow;
+          {/* Vista agrupada por categoría */}
+          <div className="flex-1 overflow-auto px-4 py-3">
+            {loading ? (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                ))}
+              </div>
+            ) : ingredients.length === 0 ? (
+              <EmptyState onAdd={openAdd} />
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {search ? `Sin resultados para "${search}"` : 'No hay ingredientes en esta categoría'}
+                </p>
+              </div>
+            ) : (() => {
+              // Agrupar por categoría
+              const groups = filtered.reduce<Record<string, typeof filtered>>((acc, ing) => {
+                const cat = ing.category || 'Otros';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(ing);
+                return acc;
+              }, {});
+              return (
+                <div className="flex flex-col gap-1">
+                  {Object.entries(groups).map(([cat, items]) => {
+                    const collapsed = collapsedCats.has(cat);
+                    const critCount = items.filter(i => i.stock < i.minStock && i.minStock > 0).length;
                     return (
-                      <tr key={ing.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            {isLow && <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />}
-                            {!isLow && isNearReorder && <TrendingDown size={13} className="text-amber-400 flex-shrink-0" />}
-                            <span className="text-sm font-semibold text-white">{ing.name}</span>
+                      <div key={cat} style={{ marginBottom: 8 }}>
+                        {/* Encabezado de categoría */}
+                        <button onClick={() => toggleCat(cat)}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', marginBottom: collapsed ? 0 : 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', flex: 1, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {cat}
+                          </span>
+                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{items.length} ingredientes</span>
+                          {critCount > 0 && (
+                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', fontWeight: 600 }}>
+                              ⚠ {critCount} crítico{critCount > 1 ? 's' : ''}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.3)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>⌄</span>
+                        </button>
+                        {/* Filas de ingredientes */}
+                        {!collapsed && (
+                          <div className="flex flex-col gap-1 ml-2">
+                            {/* Encabezado de columnas */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 160px 80px 90px 80px', gap: 8, padding: '4px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              {[
+                                { label: 'Ingrediente', tip: null },
+                                { label: 'Stock', tip: null },
+                                { label: 'Nivel', tip: <HelpTip title="Nivel de stock" text="Barra visual: verde=ok, amarillo=cerca del mínimo, rojo=crítico." side="bottom" /> },
+                                { label: 'Mínimo', tip: <HelpTip title="Stock mínimo" text="El nivel más bajo aceptable. Debajo de esto el sistema genera una alerta." side="bottom" /> },
+                                { label: 'Costo/u', tip: <HelpTip title="WACC" text="Costo promedio ponderado. Refleja el costo real de lo que tienes en bodega según tus compras." side="bottom" /> },
+                                { label: 'Acciones', tip: null },
+                              ].map(col => (
+                                <span key={col.label} style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  {col.label}{col.tip}
+                                </span>
+                              ))}
+                            </div>
+                            {items.map((ing) => {
+                              const isLow = ing.stock < ing.minStock && ing.minStock > 0;
+                              const isNear = ing.stock < ing.reorderPoint && !isLow;
+                              return (
+                                <div key={ing.id}
+                                  onClick={() => { setDetailIngId(ing.id === detailIngId ? null : ing.id); }}
+                                  style={{ display: 'grid', gridTemplateColumns: '1fr 100px 160px 80px 90px 80px', gap: 8, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', background: detailIngId === ing.id ? 'rgba(245,158,11,0.06)' : isLow ? 'rgba(248,113,113,0.04)' : 'transparent', border: `1px solid ${detailIngId === ing.id ? 'rgba(245,158,11,0.2)' : isLow ? 'rgba(248,113,113,0.15)' : 'transparent'}`, transition: 'all 0.1s' }}
+                                  onMouseEnter={e => { if (detailIngId !== ing.id) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                                  onMouseLeave={e => { if (detailIngId !== ing.id) (e.currentTarget as HTMLDivElement).style.background = isLow ? 'rgba(248,113,113,0.04)' : 'transparent'; }}>
+                                  {/* Nombre */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                                    {isLow && <AlertTriangle size={13} style={{ color: '#f87171', flexShrink: 0 }} />}
+                                    {!isLow && isNear && <TrendingDown size={13} style={{ color: '#fbbf24', flexShrink: 0 }} />}
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ing.name}</span>
+                                    {ing.notes && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ing.notes}</span>}
+                                  </div>
+                                  {/* Stock */}
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: isLow ? '#f87171' : isNear ? '#fbbf24' : 'white', fontFamily: 'monospace', alignSelf: 'center' }}>
+                                    {ing.stock} <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.6 }}>{ing.unit}</span>
+                                  </span>
+                                  {/* Barra */}
+                                  <div style={{ alignSelf: 'center' }}>
+                                    <StockBar stock={ing.stock} minStock={ing.minStock} reorderPoint={ing.reorderPoint} />
+                                  </div>
+                                  {/* Mínimo */}
+                                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace', alignSelf: 'center' }}>
+                                    {ing.minStock} {ing.unit}
+                                  </span>
+                                  {/* Costo */}
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', fontFamily: 'monospace', alignSelf: 'center' }}>
+                                    ${ing.cost.toFixed(2)}
+                                  </span>
+                                  {/* Acciones */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} onClick={e => e.stopPropagation()}>
+                                    <button onClick={() => openHistoryFor(ing.id)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Ver historial">
+                                      <History size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                                    </button>
+                                    <button onClick={() => openEdit(ing)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar">
+                                      <Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                                    </button>
+                                    <button onClick={() => setDeleteId(ing.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar">
+                                      <Trash2 size={13} className="text-red-400" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                          {ing.notes && <p className="text-xs mt-0.5 truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{ing.notes}</p>}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${CATEGORY_COLORS[ing.category]}`}>{ing.category}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`text-sm font-mono font-semibold ${isLow ? 'text-red-400' : isNearReorder ? 'text-amber-400' : 'text-white'}`}>{ing.stock} {ing.unit}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <StockBar stock={ing.stock} minStock={ing.minStock} reorderPoint={ing.reorderPoint} />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{ing.minStock} {ing.unit}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="text-sm font-mono" style={{ color: '#f59e0b' }}>${ing.cost.toFixed(2)}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => openHistoryFor(ing.id)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Ver historial">
-                              <History size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                            </button>
-                            <button onClick={() => openEdit(ing)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar">
-                              <Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
-                            </button>
-                            <button onClick={() => setDeleteId(ing.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar">
-                              <Trash2 size={13} className="text-red-400" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                        )}
+                      </div>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </>
       )}
