@@ -198,7 +198,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
             <Menu size={20} />
           </button>
           <div>
-            <h1 className="text-lg font-700 text-gray-900" style={{ fontWeight: 700 }}>
+            <h1 className="text-lg text-white" style={{ fontWeight: 700 }}>
               {title}
             </h1>
             {subtitle && (

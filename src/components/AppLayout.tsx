@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import TrialBanner from '@/components/TrialBanner';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useDevice } from '@/hooks/useDevice';
@@ -10,6 +10,19 @@ import Sidebar from './Sidebar';
 import { BranchProvider } from '@/contexts/BranchContext';
 import Topbar from './Topbar';
 import OfflineIndicator from './OfflineIndicator';
+import HelpDrawer from './HelpDrawer';
+import {
+  HELP_INVENTARIO, HELP_REPORTES, HELP_PROVEEDORES,
+  HELP_MENU, HELP_CONFIGURACION,
+} from '@/lib/helpContent';
+
+const ROUTE_HELP: Record<string, any> = {
+  '/inventario':    HELP_INVENTARIO,
+  '/reportes':      HELP_REPORTES,
+  '/proveedores':   HELP_PROVEEDORES,
+  '/menu':          HELP_MENU,
+  '/configuracion': HELP_CONFIGURACION,
+};
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -19,6 +32,10 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children, title, subtitle, headerExtra }: AppLayoutProps) {
+  const pathname = usePathname();
+  // Detectar el módulo por la ruta y mostrar el HelpDrawer correspondiente
+  const routeKey = Object.keys(ROUTE_HELP).find(k => pathname?.includes(k));
+  const autoHelp = routeKey ? ROUTE_HELP[routeKey] : null;
   const { appUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const device = useDevice();
@@ -107,7 +124,7 @@ export default function AppLayout({ children, title, subtitle, headerExtra }: Ap
         <Topbar
           title={title}
           subtitle={subtitle}
-          headerExtra={headerExtra}
+          headerExtra={headerExtra ?? (autoHelp ? <HelpDrawer config={autoHelp} /> : undefined)}
           onMenuToggle={() => setMobileSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto scrollbar-thin">

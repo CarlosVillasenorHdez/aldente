@@ -1634,56 +1634,60 @@ export default function MenuManagement() {
       {/* Platillos view */}
       {menuView === 'platillos' && <>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Stats bar — compacta en una línea */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '2px 0 4px' }}>
         {[
-          { label: 'Total platillos', value: loading ? '—' : String(dishes.length), color: '#f59e0b' },
+          { label: 'Total', value: loading ? '—' : String(dishes.length), color: '#f59e0b' },
           { label: 'Disponibles', value: loading ? '—' : String(availableCount), color: '#34d399' },
           { label: 'Con receta', value: loading ? '—' : String(dishesWithRecipe), color: '#818cf8' },
-          { label: 'Sin receta', value: loading ? '—' : String(dishes.length - dishesWithRecipe), color: '#f87171' },
+          { label: 'Sin receta', value: loading ? '—' : String(dishes.length - dishesWithRecipe), color: dishes.length - dishesWithRecipe > 0 ? '#f87171' : '#34d399' },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-2xl px-5 py-4" style={{ backgroundColor: '#162d55', border: '1px solid #243f72' }}>
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{stat.label}</p>
+          <div key={stat.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: stat.color, fontFamily: 'monospace' }}>{stat.value}</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{stat.label}</span>
           </div>
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.35)' }} />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar platillo..." className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none" style={{ backgroundColor: '#162d55', border: '1px solid #243f72', color: 'white' }} />
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+      {/* Toolbar — 2 filas: búsqueda/filtros arriba, acciones abajo */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Fila 1: Búsqueda + filtro de lista de precios */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)' }} />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar platillo..."
+              style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 12, fontSize: 13, outline: 'none', backgroundColor: '#162d55', border: '1px solid #243f72', color: 'white', boxSizing: 'border-box' as const }} />
+          </div>
           <select value={activePriceList} onChange={e => setActivePriceList(e.target.value)}
-            className="px-3 py-2.5 rounded-xl text-sm font-semibold outline-none"
-            style={{ backgroundColor: '#162d55', border: '1px solid #243f72', color: 'rgba(255,255,255,0.8)' }}>
+            style={{ padding: '9px 12px', borderRadius: 12, fontSize: 13, fontWeight: 500, outline: 'none', backgroundColor: '#162d55', border: '1px solid #243f72', color: 'rgba(255,255,255,0.8)' }}>
             {priceLists.map(pl => (
               <option key={pl.id} value={pl.id}>{pl.name}{pl.multiplier !== 1 ? ` (×${pl.multiplier})` : ''}</option>
             ))}
           </select>
-          <button onClick={() => setShowPriceListModal(true)}
-            className="px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            style={{ backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}
-            title="Gestionar listas de precios">
-            🏷 Listas
-          </button>
-          <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }} title="Importar platillos desde CSV">
-            <Upload size={15} />CSV
-            <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
-          </label>
-          {dishes.length > 0 && (
-            <button onClick={() => { setShowClearConfirm(true); setClearMenuText(''); }} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Limpiar todo el menú">
-              🗑️ Limpiar menú
-            </button>
-          )}
-          <HelpDrawer config={HELP_MENU} />
-          <button onClick={() => setShowAIAssistant(true)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-110" style={{ backgroundColor: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)' }} title="Cargar menú con IA">
+          {/* Acciones secundarias agrupadas */}
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+            <button onClick={() => setShowPriceListModal(true)}
+              style={{ padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, backgroundColor: 'rgba(96,165,250,0.08)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+              title="Gestionar listas de precios">🏷 Listas</button>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, backgroundColor: 'rgba(245,158,11,0.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+              title="Importar desde CSV">
+              <Upload size={13} />CSV
+              <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
+            </label>
+            {dishes.length > 0 && (
+              <button onClick={() => { setShowClearConfirm(true); setClearMenuText(''); }}
+                style={{ padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, backgroundColor: 'rgba(239,68,68,0.06)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+                title="Limpiar todo el menú">🗑️ Limpiar</button>
+            )}
+          </div>
+          {/* Acciones primarias */}
+          <button onClick={() => setShowAIAssistant(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600, backgroundColor: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.3)', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
             ✨ Asistente IA
           </button>
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:brightness-110" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
-            <Plus size={16} />Agregar platillo
+          <button onClick={openAdd}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, backgroundColor: '#f59e0b', color: '#1B3A6B', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+            <Plus size={15} /> Agregar platillo
           </button>
         </div>
       </div>
