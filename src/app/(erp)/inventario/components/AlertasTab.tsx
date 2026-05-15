@@ -16,8 +16,9 @@ interface Props {
 }
 
 export default function AlertasTab({ ingredients, onOpenEdit, onShowShoppingList }: Props) {
-  const lowStockItems  = ingredients.filter(i => i.stock <= i.minStock);
-  const reorderItems   = ingredients.filter(i => i.stock > i.minStock && i.stock <= i.reorderPoint);
+  const list = ingredients ?? [];
+  const lowStockItems  = list.filter(i => i.stock <= i.minStock && i.minStock > 0);
+  const reorderItems   = list.filter(i => i.stock > i.minStock && i.reorderPoint > 0 && i.stock <= i.reorderPoint);
 
   return (
     <div className="flex-1 overflow-auto px-6 py-5 space-y-6">

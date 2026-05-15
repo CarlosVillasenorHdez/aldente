@@ -420,7 +420,8 @@ export default function InventarioManagement() {
   useEffect(() => {
     if (activeTab === 'movimientos') fetchMovements(historyIngredientId ?? undefined);
   }, [activeTab, historyIngredientId, fetchMovements]);
-  const lowStockItems = useMemo(() => ingredients.filter((i) => i.stock < i.minStock), [ingredients]);
+  const lowStockItems = useMemo(() => ingredients.filter((i) => i.stock < i.minStock && i.minStock > 0), [ingredients]);
+  const reorderItems = useMemo(() => ingredients.filter((i) => i.stock < i.reorderPoint && i.stock >= i.minStock && i.reorderPoint > 0), [ingredients]);
 
   // ── Export purchase order CSV ─────────────────────────────────────────────
   // ── Smart purchase list with 7-day prediction ────────────────────────────
@@ -542,7 +543,6 @@ export default function InventarioManagement() {
     URL.revokeObjectURL(url);
     toast.success(`Lista de compras exportada (${items.length} ingredientes)`);
   };
-  const reorderItems = useMemo(() => ingredients.filter((i) => i.stock < i.reorderPoint && i.stock >= i.minStock), [ingredients]);
   const filtered = useMemo(() => {
     return ingredients.filter((ing) => {
       const matchesSearch = ing.name.toLowerCase().includes(search.toLowerCase()) || ing.supplier.toLowerCase().includes(search.toLowerCase());
