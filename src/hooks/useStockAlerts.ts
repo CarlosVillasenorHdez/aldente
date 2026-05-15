@@ -1,15 +1,10 @@
 'use client';
 /**
  * useStockAlerts — notificaciones proactivas de stock bajo
- *
- * Se suscribe a cambios en 'ingredients' y 'extras_catalog' vía Supabase Realtime.
- * Cuando cualquier insumo cae por debajo de su mínimo, el conteo sube
- * y aparece el badge rojo en el sidebar.
- *
- * También expone la lista de alertas para el panel de notificaciones.
+ * Fix: canal Realtime se crea UNA sola vez con useRef, sin dependencia en load
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { toast } from 'sonner';
@@ -21,13 +16,15 @@ export interface StockAlert {
   stock: number;
   minStock: number;
   unit: string;
-  severity: 'critico' | 'bajo';  // critico = stock ≤ 0, bajo = stock ≤ minStock
+  severity: 'critico' | 'bajo';
 }
 
 export function useStockAlerts() {
   const supabase = createClient();
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const loadRef = useRef<(() => Promise<void>) | null>(null);
 
   const load = useCallback(async () => {
     const tid = getTenantId();
@@ -72,21 +69,19 @@ export function useStockAlerts() {
       }
     });
 
-    // Ordenar: críticos primero
     next.sort((a, b) => (a.severity === 'critico' ? -1 : 1) - (b.severity === 'critico' ? -1 : 1));
     setAlerts(next);
     setLoading(false);
-  }, [supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Carga inicial
+  useEffect(() => { loadRef.current = load; }, [load]);
   useEffect(() => { load(); }, [load]);
 
-  // Realtime — escucha cambios de stock en ambas tablas
+  // Canal Realtime — se crea UNA sola vez
   useEffect(() => {
     const tid = getTenantId();
-    if (!tid) return;
-
-    let prevCount = -1; // para detectar nuevas alertas
+    if (!tid || channelRef.current) return;
 
     const channel = supabase.channel(`stock-alerts-${tid}`)
       .on('postgres_changes', {
@@ -96,11 +91,11 @@ export function useStockAlerts() {
         const { stock, min_stock, name } = payload.new;
         if (Number(stock) <= Number(min_stock) && Number(min_stock) > 0) {
           toast.warning(`⚠️ Stock bajo: ${name}`, {
-            description: `${Number(stock).toFixed(1)} unidades — mínimo: ${Number(min_stock).toFixed(1)}`,
+            description: `${Number(stock).toFixed(1)} — mínimo: ${Number(min_stock).toFixed(1)}`,
             duration: 6000,
           });
         }
-        await load();
+        await loadRef.current?.();
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'extras_catalog',
@@ -113,12 +108,19 @@ export function useStockAlerts() {
             duration: 6000,
           });
         }
-        await load();
+        await loadRef.current?.();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase, load]);
+    channelRef.current = channel;
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     alerts,
