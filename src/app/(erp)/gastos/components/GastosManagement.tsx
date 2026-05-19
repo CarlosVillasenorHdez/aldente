@@ -165,23 +165,23 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#e5e7eb' }}>
-          <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#243f72' }}>
+          <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             {gasto ? 'Editar Gasto' : 'Nuevo Gasto Recurrente'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} className="text-gray-500" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+            <X size={18} className="text-white/45" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Nombre del Gasto *</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Nombre del Gasto *</label>
             <input
               type="text"
               value={form.nombre}
               onChange={e => handleChange('nombre', e.target.value)}
               placeholder="Ej: Luz (CFE), Agua, Gas LP..."
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
@@ -194,11 +194,11 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Categoría</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Categoría</label>
               <select
                 value={form.categoria}
                 onChange={e => handleChange('categoria', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 {(Object.keys(CATEGORIA_LABELS) as GastoCategoria[]).map(k => (
@@ -207,11 +207,11 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               </select>
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Frecuencia</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Frecuencia</label>
               <select
                 value={form.frecuencia}
                 onChange={e => handleChange('frecuencia', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 {(Object.keys(FRECUENCIA_LABELS) as GastoFrecuencia[]).map(k => (
@@ -222,19 +222,19 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Monto (MXN) *</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Monto (MXN) *</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.monto}
                 onChange={e => handleChange('monto', parseFloat(e.target.value) || 0)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
             {!isUnico && <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Día del mes para pagar</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Día del mes para pagar</label>
               <input
                 type="number"
                 min="1"
@@ -249,42 +249,42 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                   if (d <= now) d.setMonth(d.getMonth() + 1);
                   handleChange('proximo_pago', d.toISOString().split('T')[0]);
                 }}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Ej: 1 = cada primero · 15 = quincena · 31 = fin de mes</p>
             </div>}
           </div>
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>{isUnico ? 'Fecha del gasto' : 'Fecha del próximo pago'}</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>{isUnico ? 'Fecha del gasto' : 'Fecha del próximo pago'}</label>
             <input
               type="date"
               value={form.proximo_pago ?? ''}
               onChange={e => handleChange('proximo_pago', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
             <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Se actualiza automáticamente al cambiar el día de pago</p>
           </div>
           {/* Proveedor y método de pago */}
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
             <input
               type="text"
               value={form.proveedor ?? ''}
               onChange={e => handleChange('proveedor', e.target.value)}
               placeholder="Ej: Bimbo, CFE, Arrendador García"
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
               <select
                 value={form.metodo_pago ?? 'efectivo'}
                 onChange={e => handleChange('metodo_pago', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 <option value="efectivo">💵 Efectivo</option>
@@ -298,26 +298,26 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               </p>
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
               <input
                 type="number" min={0} max={180}
                 value={form.dias_credito ?? 0}
                 onChange={e => handleChange('dias_credito', parseInt(e.target.value)||0)}
                 disabled={form.metodo_pago !== 'credito'}
                 placeholder="0"
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Notas</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Notas</label>
             <textarea
               value={form.notas ?? ''}
               onChange={e => handleChange('notas', e.target.value)}
               rows={2}
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
@@ -332,14 +332,14 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
             <label htmlFor="activo" className="text-sm text-gray-700">Gasto activo (se incluye en P&L)</label>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#e5e7eb' }}>
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: '#374151' }}>
+        <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#243f72' }}>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: 'rgba(255,255,255,0.75)' }}>
             Cancelar
           </button>
           <button
             onClick={() => { if (form.nombre.trim()) onSave(form); }}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-colors"
-            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#1B3A6B' }}
+            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#f59e0b' }}
           >
             <Save size={15} />
             Guardar
@@ -373,33 +373,33 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#e5e7eb' }}>
-          <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>
+        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#243f72' }}>
+          <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             {dep ? 'Editar Activo' : 'Nuevo Activo / Amortización'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} className="text-gray-500" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+            <X size={18} className="text-white/45" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Nombre del Activo *</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Nombre del Activo *</label>
             <input
               type="text"
               value={form.nombre}
               onChange={e => handleChange('nombre', e.target.value)}
               placeholder="Ej: Estufa Industrial, Refrigerador..."
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Tipo</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Tipo</label>
               <select
                 value={form.tipo}
                 onChange={e => handleChange('tipo', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 <option value="depreciacion">Depreciación (Activo Fijo)</option>
@@ -407,11 +407,11 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Método</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Método</label>
               <select
                 value={form.metodo}
                 onChange={e => handleChange('metodo', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 {(Object.keys(METODO_LABELS) as DepreciacionMetodo[]).map(k => (
@@ -422,50 +422,50 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Valor Original (MXN)</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Valor Original (MXN)</label>
               <input
                 type="number" min="0" step="0.01"
                 value={form.valor_original}
                 onChange={e => handleChange('valor_original', parseFloat(e.target.value) || 0)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Valor Residual (MXN)</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Valor Residual (MXN)</label>
               <input
                 type="number" min="0" step="0.01"
                 value={form.valor_residual}
                 onChange={e => handleChange('valor_residual', parseFloat(e.target.value) || 0)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Vida Útil (años)</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Vida Útil (años)</label>
               <input
                 type="number" min="1" max="50"
                 value={form.vida_util_anios}
                 onChange={e => handleChange('vida_util_anios', parseInt(e.target.value) || 1)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Fecha de Adquisición</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Fecha de Adquisición</label>
               <input
                 type="date"
                 value={form.fecha_adquisicion}
                 onChange={e => handleChange('fecha_adquisicion', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               />
             </div>
           </div>
           {mensual > 0 && (
-            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(96,165,250,0.1)', border: '1px solid #bfdbfe' }}>
               <span className="text-blue-700 font-600" style={{ fontWeight: 600 }}>
                 Depreciación mensual calculada: ${mensual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
               </span>
@@ -473,23 +473,23 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
           )}
           {/* Proveedor y método de pago */}
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Proveedor / Acreedor</label>
             <input
               type="text"
               value={form.proveedor ?? ''}
               onChange={e => handleChange('proveedor', e.target.value)}
               placeholder="Ej: Bimbo, CFE, Arrendador García"
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Método de pago</label>
               <select
                 value={form.metodo_pago ?? 'efectivo'}
                 onChange={e => handleChange('metodo_pago', e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db' }}
               >
                 <option value="efectivo">💵 Efectivo</option>
@@ -503,26 +503,26 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               </p>
             </div>
             <div>
-              <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
+              <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Días de crédito</label>
               <input
                 type="number" min={0} max={180}
                 value={form.dias_credito ?? 0}
                 onChange={e => handleChange('dias_credito', parseInt(e.target.value)||0)}
                 disabled={form.metodo_pago !== 'credito'}
                 placeholder="0"
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>Notas</label>
+            <label className="block text-xs font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>Notas</label>
             <textarea
               value={form.notas ?? ''}
               onChange={e => handleChange('notas', e.target.value)}
               rows={2}
-              className="w-full border rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+              className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
               style={{ borderColor: '#d1d5db' }}
             />
           </div>
@@ -537,14 +537,14 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
             <label htmlFor="dep_activo" className="text-sm text-gray-700">Activo vigente (se incluye en P&L)</label>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#e5e7eb' }}>
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: '#374151' }}>
+        <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#243f72' }}>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: 'rgba(255,255,255,0.75)' }}>
             Cancelar
           </button>
           <button
             onClick={() => { if (form.nombre.trim()) onSave(form); }}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-colors"
-            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#1B3A6B' }}
+            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#f59e0b' }}
           >
             <Save size={15} />
             Guardar
@@ -753,82 +753,70 @@ export default function GastosManagement() {
 
   if (isMobile) return <GastosMobile />;
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1e38' }}>
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between" style={{ borderColor: '#e5e7eb' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72', backgroundColor: '#0f1e38' }}>
         <div>
-          <h1 className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>Gastos y Depreciaciones</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestión de gastos recurrentes, depreciaciones y amortizaciones</p>
+          <h1 className="text-xl font-bold text-white">Gastos y Depreciaciones</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Gastos recurrentes, depreciaciones y amortizaciones</p>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'gastos' && (
-            <button
-              onClick={() => setShowGastoUnicoModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all"
-              style={{ fontWeight: 600, backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
-            >
-              <Zap size={16} />
-              Gasto Extraordinario
+            <button onClick={() => setShowGastoUnicoModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <Zap size={15} /> Gasto Extraordinario
             </button>
           )}
-          <button
-            onClick={() => activeTab === 'gastos' ? setShowGastoModal(true) : setShowDepModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-600 transition-all"
-            style={{ fontWeight: 600, backgroundColor: '#f59e0b', color: '#1B3A6B' }}
-          >
-            <Plus size={16} />
+          <button onClick={() => activeTab === 'gastos' ? setShowGastoModal(true) : setShowDepModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
+            style={{ backgroundColor: '#f59e0b', color: '#f59e0b', border: 'none' }}>
+            <Plus size={15} />
             {activeTab === 'gastos' ? 'Nuevo Gasto Recurrente' : 'Nuevo Activo'}
           </button>
         </div>
       </div>
 
-      <div className="px-6 py-5 space-y-5">
+      <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Gastos Mensuales', value: `$${totalMensualGastos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, icon: DollarSign, color: '#ef4444', bg: '#fef2f2', sub: 'Total activos/mes' },
-            { label: 'Pendientes de Pago', value: gastosPendientes.length.toString(), icon: Clock, color: '#f59e0b', bg: '#fffbeb', sub: `${gastosPendientes.length} gastos` },
-            { label: 'Vencen en 7 días', value: gastosProximos.length.toString(), icon: AlertTriangle, color: '#f97316', bg: '#fff7ed', sub: 'Próximos pagos' },
-            { label: 'Depreciación/mes', value: `$${totalDepMensual.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, icon: TrendingDown, color: '#8b5cf6', bg: '#f5f3ff', sub: `${depActivas.length} activos` },
+            { label: 'Gastos Mensuales', value: `$${totalMensualGastos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, icon: DollarSign, color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)', sub: 'Total activos/mes' },
+            { label: 'Pendientes de Pago', value: gastosPendientes.length.toString(), icon: Clock, color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)', sub: `${gastosPendientes.length} gastos` },
+            { label: 'Vencen en 7 días', value: gastosProximos.length.toString(), icon: AlertTriangle, color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.25)', sub: 'Próximos pagos' },
+            { label: 'Depreciación/mes', value: `$${totalDepMensual.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`, icon: TrendingDown, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.25)', sub: `${depActivas.length} activos` },
           ].map(kpi => {
             const KpiIcon = kpi.icon;
             return (
-              <div key={kpi.label} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div key={kpi.label} className="rounded-xl p-4" style={{ background: kpi.bg, border: `1px solid ${kpi.border}` }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500">{kpi.label}</span>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: kpi.bg }}>
-                    <KpiIcon size={16} style={{ color: kpi.color }} />
-                  </div>
+                  <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>{kpi.label}</span>
+                  <KpiIcon size={16} style={{ color: kpi.color }} />
                 </div>
-                <p className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>{kpi.value}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{kpi.sub}</p>
+                <p className="text-xl font-bold" style={{ color: kpi.color, fontFamily: 'monospace' }}>{kpi.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{kpi.sub}</p>
               </div>
             );
           })}
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#162d55', border: '1px solid #243f72' }}>
+          <div className="flex border-b" style={{ borderColor: '#243f72' }}>
             {([
               { key: 'gastos', label: 'Gastos Recurrentes', icon: RefreshCw },
-              { key: 'depreciaciones', label: 'Depreciaciones y Amortizaciones', icon: TrendingDown },
+              { key: 'depreciaciones', label: 'Depreciaciones', icon: TrendingDown },
             ] as { key: ActiveTab; label: string; icon: React.ElementType }[]).map(tab => {
               const TabIcon = tab.icon;
               return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className="flex items-center gap-2 px-5 py-3.5 text-sm font-600 transition-all border-b-2"
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className="flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-all"
                   style={{
-                    fontWeight: 600,
-                    borderBottomColor: activeTab === tab.key ? '#f59e0b' : 'transparent',
-                    color: activeTab === tab.key ? '#1B3A6B' : '#6b7280',
-                    backgroundColor: activeTab === tab.key ? '#fffbeb' : 'transparent',
-                  }}
-                >
-                  <TabIcon size={15} />
-                  {tab.label}
+                    borderBottom: `2px solid ${activeTab === tab.key ? '#f59e0b' : 'transparent'}`,
+                    color: activeTab === tab.key ? '#f59e0b' : 'rgba(255,255,255,0.45)',
+                    background: 'none', cursor: 'pointer',
+                  }}>
+                  <TabIcon size={14} />{tab.label}
                 </button>
               );
             })}
@@ -839,7 +827,7 @@ export default function GastosManagement() {
             <div className="p-5">
               {/* Filter bar */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="text-xs font-600 text-gray-500 mr-1" style={{ fontWeight: 600 }}>Categoría:</span>
+                <span className="text-xs font-600 text-white/45 mr-1" style={{ fontWeight: 600 }}>Categoría:</span>
                 {(['todas', ...Object.keys(CATEGORIA_LABELS)] as (GastoCategoria | 'todas')[]).map(cat => (
                   <button
                     key={cat}
@@ -847,8 +835,8 @@ export default function GastosManagement() {
                     className="px-3 py-1 rounded-full text-xs font-600 transition-all"
                     style={{
                       fontWeight: 600,
-                      backgroundColor: filterCategoria === cat ? '#1B3A6B' : '#f3f4f6',
-                      color: filterCategoria === cat ? 'white' : '#374151',
+                      backgroundColor: filterCategoria === cat ? '#f59e0b' : 'rgba(255,255,255,0.06)',
+                      color: filterCategoria === cat ? '#1B3A6B' : 'rgba(255,255,255,0.6)',
                     }}
                   >
                     {cat === 'todas' ? 'Todas' : CATEGORIA_LABELS[cat as GastoCategoria]}
@@ -857,12 +845,12 @@ export default function GastosManagement() {
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center py-12 text-gray-400 text-sm">Cargando gastos...</div>
+                <div className="flex items-center justify-center py-12 text-white/40 text-sm">Cargando gastos...</div>
               ) : filteredGastos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-12 text-white/40">
                   <DollarSign size={40} className="mb-3 opacity-30" />
                   <p className="text-sm">No hay gastos registrados</p>
-                  <button onClick={() => setShowGastoModal(true)} className="mt-3 text-sm text-amber-600 hover:underline">+ Agregar primer gasto</button>
+                  <button onClick={() => setShowGastoModal(true)} className="mt-3 text-sm text-amber-400 hover:underline">+ Agregar primer gasto</button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -892,24 +880,24 @@ export default function GastosManagement() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-600 text-gray-900 truncate" style={{ fontWeight: 600 }}>{gasto.nombre}</span>
+                            <span className="text-sm font-600 text-white truncate" style={{ fontWeight: 600 }}>{gasto.nombre}</span>
                             <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
                               {CATEGORIA_LABELS[gasto.categoria as GastoCategoria]}
                             </span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/60">
                               {FRECUENCIA_LABELS[gasto.frecuencia]}
                             </span>
-                            {!gasto.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Inactivo</span>}
+                            {!gasto.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/40">Inactivo</span>}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                            <span className="text-sm font-700 text-gray-800" style={{ fontWeight: 700 }}>
+                            <span className="text-sm font-700 text-white/80" style={{ fontWeight: 700 }}>
                               ${gasto.monto.toLocaleString('es-MX')}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-white/40">
                               ≈ ${montoMensual(gasto).toLocaleString('es-MX', { maximumFractionDigits: 0 })}/mes
                             </span>
                             {gasto.proximo_pago && (
-                              <span className={`text-xs flex items-center gap-1 ${vencido ? 'text-red-500' : esUrgente ? 'text-orange-500' : esProximo ? 'text-amber-600' : 'text-gray-400'}`}>
+                              <span className={`text-xs flex items-center gap-1 ${vencido ? 'text-red-500' : esUrgente ? 'text-orange-500' : esProximo ? 'text-amber-600' : 'text-white/40'}`}>
                                 <Calendar size={11} />
                                 {vencido ? `Vencido hace ${Math.abs(dias!)} días` : dias === 0 ? 'Vence hoy' : `${dias} días`}
                               </span>
@@ -941,13 +929,13 @@ export default function GastosManagement() {
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={() => { setEditingGasto(gasto); setShowGastoModal(true); }}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                           >
-                            <Edit2 size={14} className="text-gray-400" />
+                            <Edit2 size={14} className="text-white/40" />
                           </button>
                           <button
                             onClick={() => handleDeleteGasto(gasto.id)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
                           >
                             <Trash2 size={14} className="text-red-400" />
                           </button>
@@ -965,29 +953,29 @@ export default function GastosManagement() {
             <div className="p-5">
               {/* Summary */}
               <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="p-3 rounded-xl border" style={{ borderColor: '#e5e7eb', backgroundColor: '#f5f3ff' }}>
-                  <p className="text-xs text-purple-600 mb-1">Depreciación mensual total</p>
-                  <p className="text-lg font-700 text-purple-800" style={{ fontWeight: 700 }}>
+                <div className="p-3 rounded-xl border" style={{ borderColor: '#243f72', backgroundColor: 'rgba(167,139,250,0.1)' }}>
+                  <p className="text-xs text-[#a78bfa] mb-1">Depreciación mensual total</p>
+                  <p className="text-lg font-700 text-[#a78bfa]" style={{ fontWeight: 700 }}>
                     ${totalDepMensual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-xs text-purple-500 mt-0.5">Se refleja en el P&L</p>
+                  <p className="text-xs text-[#a78bfa]/60 mt-0.5">Se refleja en el P&L</p>
                 </div>
-                <div className="p-3 rounded-xl border" style={{ borderColor: '#e5e7eb', backgroundColor: '#eff6ff' }}>
-                  <p className="text-xs text-blue-600 mb-1">Depreciación anual total</p>
-                  <p className="text-lg font-700 text-blue-800" style={{ fontWeight: 700 }}>
+                <div className="p-3 rounded-xl border" style={{ borderColor: '#243f72', backgroundColor: 'rgba(96,165,250,0.1)' }}>
+                  <p className="text-xs text-[#60a5fa] mb-1">Depreciación anual total</p>
+                  <p className="text-lg font-700 text-[#60a5fa]" style={{ fontWeight: 700 }}>
                     ${(totalDepMensual * 12).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-xs text-blue-500 mt-0.5">{depActivas.length} activos vigentes</p>
+                  <p className="text-xs text-[#60a5fa]/60 mt-0.5">{depActivas.length} activos vigentes</p>
                 </div>
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center py-12 text-gray-400 text-sm">Cargando activos...</div>
+                <div className="flex items-center justify-center py-12 text-white/40 text-sm">Cargando activos...</div>
               ) : depreciaciones.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-12 text-white/40">
                   <TrendingDown size={40} className="mb-3 opacity-30" />
                   <p className="text-sm">No hay activos registrados</p>
-                  <button onClick={() => setShowDepModal(true)} className="mt-3 text-sm text-amber-600 hover:underline">+ Agregar primer activo</button>
+                  <button onClick={() => setShowDepModal(true)} className="mt-3 text-sm text-amber-400 hover:underline">+ Agregar primer activo</button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1002,31 +990,31 @@ export default function GastosManagement() {
                       <div
                         key={dep.id}
                         className="p-4 rounded-xl border transition-all"
-                        style={{ borderColor: '#e5e7eb', backgroundColor: 'white', opacity: dep.activo ? 1 : 0.5 }}
+                        style={{ borderColor: '#243f72', backgroundColor: '#162d55', opacity: dep.activo ? 1 : 0.5 }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="text-sm font-600 text-gray-900" style={{ fontWeight: 600 }}>{dep.nombre}</span>
+                              <span className="text-sm font-600 text-white" style={{ fontWeight: 600 }}>{dep.nombre}</span>
                               <span className="text-xs px-2 py-0.5 rounded-full" style={{
                                 backgroundColor: isAmort ? '#eff6ff' : '#f5f3ff',
                                 color: isAmort ? '#3b82f6' : '#8b5cf6',
                               }}>
                                 {isAmort ? 'Amortización' : 'Depreciación'}
                               </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/45">
                                 {METODO_LABELS[dep.metodo as DepreciacionMetodo]}
                               </span>
-                              {!dep.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Inactivo</span>}
+                              {!dep.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/40">Inactivo</span>}
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                            <div className="flex items-center gap-4 text-xs text-white/45 flex-wrap">
                               <span>Valor original: <strong className="text-gray-700">${dep.valor_original.toLocaleString('es-MX')}</strong></span>
                               <span>Vida útil: <strong className="text-gray-700">{dep.vida_util_anios} años</strong></span>
                               <span>Adquisición: <strong className="text-gray-700">{dep.fecha_adquisicion}</strong></span>
                             </div>
                             {/* Progress bar */}
                             <div className="mt-2">
-                              <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                              <div className="flex items-center justify-between text-xs text-white/40 mb-1">
                                 <span>Depreciado: ${acumulada.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
                                 <span>{pct.toFixed(1)}%</span>
                               </div>
@@ -1042,17 +1030,17 @@ export default function GastosManagement() {
                             <p className="text-base font-700" style={{ fontWeight: 700, color: isAmort ? '#3b82f6' : '#8b5cf6' }}>
                               ${mensual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
-                            <p className="text-xs text-gray-400">por mes</p>
+                            <p className="text-xs text-white/40">por mes</p>
                             <div className="flex items-center gap-1 mt-2 justify-end">
                               <button
                                 onClick={() => { setEditingDep(dep); setShowDepModal(true); }}
-                                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                               >
-                                <Edit2 size={14} className="text-gray-400" />
+                                <Edit2 size={14} className="text-white/40" />
                               </button>
                               <button
                                 onClick={() => handleDeleteDep(dep.id)}
-                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
                               >
                                 <Trash2 size={14} className="text-red-400" />
                               </button>
@@ -1069,7 +1057,7 @@ export default function GastosManagement() {
         </div>
 
         {/* P&L Connection note */}
-        <div className="p-4 rounded-xl border text-sm" style={{ backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}>
+        <div className="p-4 rounded-xl border text-sm" style={{ backgroundColor: 'rgba(52,211,153,0.1)', borderColor: '#a7f3d0' }}>
           <div className="flex items-start gap-2">
             <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
             <div>
@@ -1089,10 +1077,10 @@ export default function GastosManagement() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
-                <h3 className="font-bold text-gray-900">Registrar pago</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{showPagoModal.nombre}</p>
+                <h3 className="font-bold text-white">Registrar pago</h3>
+                <p className="text-sm text-white/45 mt-0.5">{showPagoModal.nombre}</p>
               </div>
-              <button onClick={() => setShowPagoModal(null)} className="p-2 rounded-xl hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setShowPagoModal(null)} className="p-2 rounded-xl hover:bg-white/10"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
               {pagosPendientes(showPagoModal) > 1 && (
@@ -1104,23 +1092,23 @@ export default function GastosManagement() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Monto pagado</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Monto pagado</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-medium">$</span>
                   <input type="number" value={pagoForm.monto_pagado} min={0} step={0.01}
                     onChange={e => setPagoForm(f => ({ ...f, monto_pagado: Number(e.target.value) }))}
                     className="w-full pl-7 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Monto programado: ${showPagoModal.monto.toLocaleString('es-MX')}</p>
+                <p className="text-xs text-white/40 mt-1">Monto programado: ${showPagoModal.monto.toLocaleString('es-MX')}</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Fecha de pago</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Fecha de pago</label>
                 <input type="date" value={pagoForm.fecha_pago}
                   onChange={e => setPagoForm(f => ({ ...f, fecha_pago: e.target.value }))}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Notas (opcional)</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Notas (opcional)</label>
                 <input type="text" value={pagoForm.notas} placeholder="Referencia bancaria, comprobante..."
                   onChange={e => setPagoForm(f => ({ ...f, notas: e.target.value }))}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
@@ -1128,13 +1116,13 @@ export default function GastosManagement() {
               {/* Payment history */}
               {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-2">Historial de pagos</p>
+                  <p className="text-xs font-semibold text-white/60 mb-2">Historial de pagos</p>
                   <div className="space-y-1.5 max-h-32 overflow-y-auto">
                     {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).slice(0, 6).map(p => (
                       <div key={p.id} className="flex justify-between items-center text-xs py-1.5 px-2.5 rounded-lg" style={{ background: '#f9fafb' }}>
-                        <span className="text-gray-500">{p.fecha_pago}</span>
-                        <span className="font-mono font-semibold text-gray-800">${Number(p.monto_pagado).toLocaleString('es-MX')}</span>
-                        {p.notas && <span className="text-gray-400 truncate max-w-24">{p.notas}</span>}
+                        <span className="text-white/45">{p.fecha_pago}</span>
+                        <span className="font-mono font-semibold text-white/80">${Number(p.monto_pagado).toLocaleString('es-MX')}</span>
+                        {p.notas && <span className="text-white/40 truncate max-w-24">{p.notas}</span>}
                       </div>
                     ))}
                   </div>
@@ -1142,7 +1130,7 @@ export default function GastosManagement() {
               )}
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setShowPagoModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+              <button onClick={() => setShowPagoModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-white/60 hover:bg-gray-50">
                 Cancelar
               </button>
               <button onClick={handleRegistrarPago} disabled={savingPago}

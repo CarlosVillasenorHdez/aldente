@@ -270,8 +270,8 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
                   <div className="flex items-center gap-3">
                     <span className="text-2xl w-8 text-center">{icon}</span>
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                      <p className="text-sm font-semibold text-white/80">{label}</p>
+                      <p className="text-xs text-white/45 mt-0.5">{desc}</p>
                     </div>
                   </div>
                   <button

@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const inp = "w-full border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm bg-[#0f1923] text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400";
 const sel = "w-full border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm bg-[#0f1923] text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400";
-const lbl = "text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5";
+const lbl = "text-xs font-semibold text-white/40 uppercase tracking-wide block mb-1.5";
 const TIER_COLORS = ['#F59E0B','#9CA3AF','#EAB308','#8B5CF6','#10B981','#EF4444','#3B82F6'];
 
 interface Dish { id: string; name: string; price: number; group: string }
@@ -23,7 +23,7 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
       </div>
       <div>
         <span className="text-sm text-gray-200">{label}</span>
-        {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-white/45 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -93,7 +93,7 @@ function BenefitsForm({ b, onChange, dishes }: { b: MembershipTierBenefits; onCh
           <div className="mt-3 pl-14 space-y-3">
             <div className="flex items-center gap-3">
               <input type="number" min={1} max={80} className={inp + ' max-w-[90px]'} value={b.discountPct} onChange={e => set({ discountPct: Number(e.target.value) })} />
-              <span className="text-sm text-gray-400">% de descuento</span>
+              <span className="text-sm text-white/40">% de descuento</span>
             </div>
             <div>
               <label className={lbl}>¿Sobre qué aplica?</label>
@@ -128,7 +128,7 @@ function BenefitsForm({ b, onChange, dishes }: { b: MembershipTierBenefits; onCh
             {b.birthdayType === 'descuento' && (
               <div className="flex items-center gap-3">
                 <input type="number" min={1} max={100} className={inp + ' max-w-[90px]'} value={b.birthdayDiscountPct} onChange={e => set({ birthdayDiscountPct: Number(e.target.value) })} />
-                <span className="text-sm text-gray-400">% de descuento en su cumpleaños</span>
+                <span className="text-sm text-white/40">% de descuento en su cumpleaños</span>
               </div>
             )}
             {b.birthdayType === 'producto_gratis' && (
@@ -178,7 +178,7 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
       <div className="bg-[#0f1923] border border-[#2a3f5f] rounded-2xl p-6 w-full max-w-md space-y-4 my-8">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-gray-100">{tier.id ? 'Editar nivel' : 'Nuevo nivel'}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300"><X size={18} /></button>
+          <button onClick={onClose} className="text-white/45 hover:text-white/30"><X size={18} /></button>
         </div>
 
         {/* Nombre */}
@@ -217,7 +217,7 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
                 <span className="text-base leading-none mt-0.5">{opt.icon}</span>
                 <div>
                   <p className="text-xs font-semibold text-gray-200">{opt.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{opt.sub}</p>
+                  <p className="text-xs text-white/45 mt-0.5">{opt.sub}</p>
                 </div>
               </button>
             ))}
@@ -225,7 +225,7 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
 
           {/* Umbral según el tipo */}
           {form.upgradeRule === 'manual' && (
-            <p className="text-xs text-gray-500 italic">El administrador o gerente asignará este nivel manualmente desde el módulo de Lealtad.</p>
+            <p className="text-xs text-white/45 italic">El administrador o gerente asignará este nivel manualmente desde el módulo de Lealtad.</p>
           )}
 
           {(form.upgradeRule === 'visitas' || form.upgradeRule === 'gasto') && (
@@ -238,7 +238,7 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
                   placeholder={form.upgradeRule === 'visitas' ? '20' : '5000'}
                   value={form.upgradeThreshold ?? 0}
                   onChange={e => setForm(f => ({ ...f, upgradeThreshold: Number(e.target.value) }))} />
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-white/40">
                   {form.upgradeRule === 'visitas' ? 'visitas' : 'pesos gastados'}
                 </span>
               </div>
@@ -273,7 +273,7 @@ function TierEditor({ tier, dishes, saving, onSave, onClose }: {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-gray-400 border border-[#2a3f5f] hover:bg-[#1a2535]">Cancelar</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-white/40 border border-[#2a3f5f] hover:bg-[#1a2535]">Cancelar</button>
           <button onClick={() => onSave(form)} disabled={saving || !form.name.trim()}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-[#1B3A6B] disabled:opacity-50">
             {saving ? 'Guardando...' : 'Guardar nivel'}
@@ -353,7 +353,7 @@ export default function LoyaltyConfig() {
     toast.success('Nivel eliminado');
   };
 
-  if (loading || !draft) return <div className="text-sm text-gray-400 py-12 text-center">Cargando...</div>;
+  if (loading || !draft) return <div className="text-sm text-white/40 py-12 text-center">Cargando...</div>;
 
   const mem = draft.membership;
   const useMultiLevel = tiers.length > 0;
@@ -386,7 +386,7 @@ export default function LoyaltyConfig() {
                     onChange={() => setMem({ trigger: opt.val })} />
                   <div>
                     <p className="text-sm font-medium text-gray-100">{opt.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{opt.sub}</p>
+                    <p className="text-xs text-white/45 mt-0.5">{opt.sub}</p>
                   </div>
                 </label>
               ))}
@@ -422,7 +422,7 @@ export default function LoyaltyConfig() {
                 <p className="text-sm font-semibold text-gray-100">
                   {useMultiLevel ? 'Niveles del programa' : '¿Qué recibe el cliente?'}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-white/45 mt-0.5">
                   {useMultiLevel
                     ? 'Cada nivel tiene sus propios beneficios'
                     : 'Todos los socios reciben lo mismo'}
@@ -447,7 +447,7 @@ export default function LoyaltyConfig() {
 
             {useMultiLevel ? (
               <div className="space-y-3">
-                <p className="text-xs text-gray-500">Cada nivel tiene su propia regla de ascenso — configúrala al editar el nivel.</p>
+                <p className="text-xs text-white/45">Cada nivel tiene su propia regla de ascenso — configúrala al editar el nivel.</p>
 
                 {/* Lista de niveles */}
                 {tiers.map((tier, idx) => (
@@ -455,7 +455,7 @@ export default function LoyaltyConfig() {
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: tier.color }} />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-gray-100">{tier.name || 'Sin nombre'}</span>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-white/45 mt-0.5">
                         {idx === 0 || (tier.upgradeThreshold ?? 0) === 0 ? 'Nivel de entrada' :
                           tier.upgradeRule === 'visitas' ? `A partir de ${tier.upgradeThreshold ?? 0} visitas` :
                           tier.upgradeRule === 'gasto'   ? `A partir de $${tier.upgradeThreshold ?? 0} acumulados` :
@@ -474,7 +474,7 @@ export default function LoyaltyConfig() {
                 ))}
                 <button
                   onClick={() => setEditingTier({ id: '', name: '', color: '#6B7280', order: tiers.length + 1, trigger: 'manual', triggerProductId: '', price: 0, durationMonths: 12, benefits: { ...DEFAULT_TIER_BENEFITS }, upgradeRule: 'visitas', upgradeThreshold: 0 })}
-                  className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-[#2a3f5f] rounded-xl text-sm text-gray-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-[#2a3f5f] rounded-xl text-sm text-white/40 hover:border-amber-500/50 hover:text-amber-400 transition-colors"
                 >
                   <Plus size={14} /> Agregar nivel
                 </button>
@@ -510,8 +510,8 @@ export default function LoyaltyConfig() {
           {/* Preview del cajero — solo en modo un nivel */}
           {!useMultiLevel && hasReward && (
             <div className="p-4 bg-[#0d1720] border border-[#2a3f5f] rounded-xl">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Así lo ve el cajero:</p>
-              <p className="text-sm text-gray-300 mb-2">👤 Ana García — <span className="text-green-400 font-semibold">SOCIA ACTIVA</span></p>
+              <p className="text-xs font-semibold text-white/45 uppercase tracking-wide mb-3">Así lo ve el cajero:</p>
+              <p className="text-sm text-white/30 mb-2">👤 Ana García — <span className="text-green-400 font-semibold">SOCIA ACTIVA</span></p>
               {mem.freeProductEnabled && <p className="text-sm text-amber-400">☕ {mem.freeProductLabel || 'Beneficio del día'} — DISPONIBLE</p>}
               {mem.discountEnabled && mem.discountPct > 0 && <p className="text-sm text-green-400">💚 {mem.discountPct}% {mem.discountAuto ? '(automático)' : '(el cajero activa)'}</p>}
               {mem.birthdayEnabled && <p className="text-sm text-pink-400">🎂 HOY ES SU CUMPLEAÑOS</p>}

@@ -309,10 +309,10 @@ export default function GoLive() {
           {counts.map(item => (
             <div key={item.table} className={`flex items-center justify-between px-5 py-3 ${item.count > 0 ? 'bg-red-50/40' : ''}`}>
               <div className="flex items-center gap-3">
-                <Database size={14} className={item.count > 0 ? 'text-red-400' : 'text-gray-300'} />
+                <Database size={14} className={item.count > 0 ? 'text-red-400' : 'text-white/30'} />
                 <span className="text-sm text-white/80">{item.label}</span>
               </div>
-              <span className={`text-sm font-mono font-semibold ${item.count > 0 ? 'text-red-600' : 'text-gray-300'}`}>
+              <span className={`text-sm font-mono font-semibold ${item.count > 0 ? 'text-red-600' : 'text-white/30'}`}>
                 {item.count > 0 ? `${fmt(item.count)} registros` : 'Sin datos'}
               </span>
             </div>

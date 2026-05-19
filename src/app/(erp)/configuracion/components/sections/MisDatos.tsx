@@ -319,7 +319,7 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
           <Shield size={22} style={{ color: '#1B3A6B', flexShrink: 0, marginTop: 2 }} />
           <div>
             <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>Tus datos son tuyos — siempre</p>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-white/60 mt-1">
               Conforme a la <strong>LFPDPPP</strong> (Ley Federal de Protección de Datos Personales en México)
               y tu derecho de <strong>Portabilidad y Acceso</strong>, puedes exportar toda tu información
               en cualquier momento en formatos estándar (CSV) compatibles con cualquier otro sistema.
@@ -333,8 +333,8 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
       {/* ── EXPORTAR ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Download size={16} className="text-gray-500" /> Exportar mis datos
+          <h3 className="font-semibold text-white/80 flex items-center gap-2">
+            <Download size={16} className="text-white/45" /> Exportar mis datos
           </h3>
           {isAdmin && (
             <button
@@ -361,8 +361,8 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
                   <Icon size={15} style={{ color: section.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800">{section.label}</p>
-                  <p className="text-xs text-gray-500 truncate">{section.description}</p>
+                  <p className="text-sm font-medium text-white/80">{section.label}</p>
+                  <p className="text-xs text-white/45 truncate">{section.description}</p>
                 </div>
                 {isAdmin && (
                   <button
@@ -381,7 +381,7 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
         </div>
 
         {!isAdmin && (
-          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+          <p className="text-xs text-white/40 mt-2 flex items-center gap-1">
             <AlertTriangle size={12} /> Solo admins y gerentes pueden exportar datos
           </p>
         )}
@@ -389,10 +389,10 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
 
       {/* ── IMPORTAR ── */}
       <div>
-        <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-3">
-          <Upload size={16} className="text-gray-500" /> Importar desde otro sistema
+        <h3 className="font-semibold text-white/80 flex items-center gap-2 mb-3">
+          <Upload size={16} className="text-white/45" /> Importar desde otro sistema
         </h3>
-        <p className="text-sm text-gray-500 mb-3">
+        <p className="text-sm text-white/45 mb-3">
           ¿Vienes de otro software? Importa tu información existente en formato CSV.
           Descarga la plantilla de cada sección para ver el formato exacto.
         </p>
@@ -413,7 +413,7 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
                     <Icon size={15} style={{ color: fmt.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800">{fmt.label}</p>
+                    <p className="text-sm font-medium text-white/80">{fmt.label}</p>
                     <button
                       onClick={() => setShowFormats(open ? null : fmt.key)}
                       className="text-xs text-blue-500 flex items-center gap-0.5 mt-0.5"
@@ -443,11 +443,11 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
 
                 {open && (
                   <div className="px-4 py-3 border-t" style={{ background: '#162d55', borderColor: '#243f72' }}>
-                    <p className="text-xs font-mono text-gray-500 mb-1">Formato (columnas en orden):</p>
+                    <p className="text-xs font-mono text-white/45 mb-1">Formato (columnas en orden):</p>
                     <code className="text-xs bg-[#0f1e38] px-2 py-1 rounded block mb-2">{fmt.format}</code>
-                    <p className="text-xs font-mono text-gray-400 mb-1">Ejemplo:</p>
-                    <code className="text-xs bg-[#0f1e38] px-2 py-1 rounded block text-gray-600">{fmt.example}</code>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs font-mono text-white/40 mb-1">Ejemplo:</p>
+                    <code className="text-xs bg-[#0f1e38] px-2 py-1 rounded block text-white/60">{fmt.example}</code>
+                    <p className="text-xs text-white/40 mt-2">
                       • La primera fila puede ser encabezado (se detecta automáticamente)<br />
                       • Campos vacíos se dejan en blanco<br />
                       • Usa coma como separador, comillas si el texto tiene comas
@@ -466,7 +466,7 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
         <AlertTriangle size={16} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
         <div>
           <p className="text-sm font-semibold" style={{ color: '#ef4444' }}>Si decides cancelar tu cuenta</p>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <p className="text-sm text-white/60 mt-0.5">
             Escríbenos a <strong>datos@aldenteerp.com</strong> y te enviaremos una exportación completa
             de toda tu información en un plazo máximo de <strong>5 días hábiles</strong>.
             Tus datos se eliminan de nuestros servidores <strong>30 días</strong> después de la cancelación,

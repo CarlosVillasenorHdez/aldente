@@ -282,10 +282,10 @@ export default function ReservacionesManagement() {
       {/* Header */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex gap-2">
-          <button onClick={() => setView('calendar')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'calendar' ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200'}`} style={view === 'calendar' ? { backgroundColor: '#1B3A6B' } : {}}>
+          <button onClick={() => setView('calendar')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'calendar' ? 'text-white' : 'text-white/60 bg-[#162d55] border border-[#243f72]'}`} style={view === 'calendar' ? { backgroundColor: '#1B3A6B' } : {}}>
             <CalendarDays size={16} /> Calendario
           </button>
-          <button onClick={() => setView('list')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'list' ? 'text-white' : 'text-gray-600 bg-[#162d55] border border-gray-200'}`} style={view === 'list' ? { backgroundColor: '#1B3A6B' } : {}}>
+          <button onClick={() => setView('list')} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${view === 'list' ? 'text-white' : 'text-white/60 bg-[#162d55] border border-[#243f72]'}`} style={view === 'list' ? { backgroundColor: '#1B3A6B' } : {}}>
             <List size={16} /> Lista
           </button>
         </div>
@@ -305,13 +305,13 @@ export default function ReservacionesManagement() {
           { label: 'Confirmadas', value: reservations.filter(r => r.status === 'confirmada').length, color: '#10b981', icon: Check },
           { label: 'Lista de Espera', value: waitlist.length, color: '#8b5cf6', icon: AlertCircle },
         ].map((s) => (
-          <div key={s.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+          <div key={s.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-[#243f72]/60 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.color + '15' }}>
               <s.icon size={20} style={{ color: s.color }} />
             </div>
             <div>
-              <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-xl font-bold text-gray-800">{s.value}</p>
+              <p className="text-xs text-white/45">{s.label}</p>
+              <p className="text-xl font-bold text-white/80">{s.value}</p>
             </div>
           </div>
         ))}
@@ -321,8 +321,8 @@ export default function ReservacionesManagement() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800">{editingId ? 'Editar Reservación' : 'Nueva Reservación'}</h3>
+            <div className="flex items-center justify-between p-6 border-b border-[#243f72]/60">
+              <h3 className="font-semibold text-white/80">{editingId ? 'Editar Reservación' : 'Nueva Reservación'}</h3>
               <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2 rounded-lg hover:bg-[#0f1e38]">
                 <X size={18} />
               </button>
@@ -330,34 +330,34 @@ export default function ReservacionesManagement() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Nombre del Cliente *</label>
-                  <input type="text" value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Juan García" />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Nombre del Cliente *</label>
+                  <input type="text" value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Juan García" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
-                  <input type="tel" value={form.guestPhone} onChange={e => setForm({ ...form, guestPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="555-0001" />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Teléfono</label>
+                  <input type="tel" value={form.guestPhone} onChange={e => setForm({ ...form, guestPhone: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="555-0001" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Email (para confirmación)</label>
-                  <input type="email" value={form.guestEmail} onChange={e => setForm({ ...form, guestEmail: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="cliente@email.com" />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Email (para confirmación)</label>
+                  <input type="email" value={form.guestEmail} onChange={e => setForm({ ...form, guestEmail: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="cliente@email.com" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
-                  <input type="date" value={form.reservationDate} onChange={e => setForm({ ...form, reservationDate: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Fecha</label>
+                  <input type="date" value={form.reservationDate} onChange={e => setForm({ ...form, reservationDate: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Hora</label>
-                  <select value={form.reservationTime} onChange={e => setForm({ ...form, reservationTime: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <label className="block text-xs font-medium text-white/60 mb-1">Hora</label>
+                  <select value={form.reservationTime} onChange={e => setForm({ ...form, reservationTime: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Personas</label>
-                  <input type="number" min={1} max={20} value={form.partySize} onChange={e => setForm({ ...form, partySize: Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Personas</label>
+                  <input type="number" min={1} max={20} value={form.partySize} onChange={e => setForm({ ...form, partySize: Number(e.target.value) })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Mesa</label>
-                  <select value={form.tableId} onChange={e => setForm({ ...form, tableId: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <label className="block text-xs font-medium text-white/60 mb-1">Mesa</label>
+                  <select value={form.tableId} onChange={e => setForm({ ...form, tableId: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     <option value="">Sin asignar</option>
                     {tables.filter(t => t.capacity >= form.partySize).map(t => (
                       <option key={t.id} value={t.id}>{t.name} (cap. {t.capacity})</option>
@@ -365,14 +365,14 @@ export default function ReservacionesManagement() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <label className="block text-xs font-medium text-white/60 mb-1">Estado</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notas</label>
-                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Alergias, preferencias, ocasión especial..." />
+                  <label className="block text-xs font-medium text-white/60 mb-1">Notas</label>
+                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Alergias, preferencias, ocasión especial..." />
                 </div>
               </div>
               {form.guestEmail && !editingId && (
@@ -385,7 +385,7 @@ export default function ReservacionesManagement() {
               <button onClick={handleSave} disabled={saving || sendingEmail} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1B3A6B' }}>
                 <Check size={16} /> {saving ? 'Guardando...' : sendingEmail ? 'Enviando correo...' : 'Guardar'}
               </button>
-              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-[#0f1e38] hover:bg-gray-200">
+              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-white/60 bg-[#0f1e38] hover:bg-gray-200">
                 Cancelar
               </button>
             </div>
@@ -395,21 +395,21 @@ export default function ReservacionesManagement() {
 
       {/* Calendar View */}
       {view === 'calendar' && (
-        <div className="bg-[#162d55] rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72]/60 overflow-hidden">
           {/* Month nav */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#243f72]/60">
             <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-lg hover:bg-[#0f1e38]">
               <ChevronLeft size={18} />
             </button>
-            <h3 className="font-semibold text-gray-800">{MONTHS_ES[month]} {year}</h3>
+            <h3 className="font-semibold text-white/80">{MONTHS_ES[month]} {year}</h3>
             <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-lg hover:bg-[#0f1e38]">
               <ChevronRight size={18} />
             </button>
           </div>
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-gray-100">
+          <div className="grid grid-cols-7 border-b border-[#243f72]/60">
             {DAYS_ES.map(d => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-gray-500">{d}</div>
+              <div key={d} className="py-2 text-center text-xs font-medium text-white/45">{d}</div>
             ))}
           </div>
           {/* Calendar grid */}
@@ -426,7 +426,7 @@ export default function ReservacionesManagement() {
                   onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                   className={`h-24 border-b border-r border-gray-50 p-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-[#0f1e38]'}`}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${isToday ? 'text-white' : 'text-gray-700'}`} style={isToday ? { backgroundColor: '#f59e0b' } : {}}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${isToday ? 'text-white' : 'text-white/70'}`} style={isToday ? { backgroundColor: '#f59e0b' } : {}}>
                     {day}
                   </div>
                   <div className="space-y-0.5 overflow-hidden">
@@ -436,7 +436,7 @@ export default function ReservacionesManagement() {
                       </div>
                     ))}
                     {dayReservations.length > 3 && (
-                      <div className="text-xs text-gray-400 px-1">+{dayReservations.length - 3} más</div>
+                      <div className="text-xs text-white/40 px-1">+{dayReservations.length - 3} más</div>
                     )}
                   </div>
                 </div>
@@ -445,12 +445,12 @@ export default function ReservacionesManagement() {
           </div>
           {/* Selected date detail */}
           {selectedDate && (
-            <div className="border-t border-gray-100 p-4">
-              <h4 className="font-medium text-gray-800 mb-3">
+            <div className="border-t border-[#243f72]/60 p-4">
+              <h4 className="font-medium text-white/80 mb-3">
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h4>
               {getReservationsForDate(selectedDate).length === 0 ? (
-                <p className="text-sm text-gray-400">Sin reservaciones para este día</p>
+                <p className="text-sm text-white/40">Sin reservaciones para este día</p>
               ) : (
                 <div className="space-y-2">
                   {getReservationsForDate(selectedDate).map(r => (
@@ -467,7 +467,7 @@ export default function ReservacionesManagement() {
       {view === 'list' && (
         <div className="space-y-3">
           {reservations.length === 0 ? (
-            <div className="bg-[#162d55] rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100">
+            <div className="bg-[#162d55] rounded-xl p-8 text-center text-white/40 shadow-sm border border-[#243f72]/60">
               <Calendar size={40} className="mx-auto mb-3 opacity-30" />
               <p>Sin reservaciones registradas</p>
             </div>
@@ -492,26 +492,26 @@ function ReservationCard({ reservation: r, tables, onEdit, onStatusChange, onSea
 }) {
   const table = tables.find(t => t.id === r.tableId);
   return (
-    <div className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-gray-100 flex items-start gap-4">
+    <div className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-[#243f72]/60 flex items-start gap-4">
       <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ backgroundColor: STATUS_COLORS[r.status] + '15' }}>
         <Clock size={14} style={{ color: STATUS_COLORS[r.status] }} />
         <span className="text-xs font-bold mt-0.5" style={{ color: STATUS_COLORS[r.status] }}>{r.reservationTime}</span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-gray-800">{r.guestName}</span>
+          <span className="font-semibold text-white/80">{r.guestName}</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: STATUS_COLORS[r.status] + '20', color: STATUS_COLORS[r.status] }}>
             {STATUS_LABELS[r.status]}
           </span>
           {r.confirmationSent && <span className="text-xs text-green-600">✉ Confirmado</span>}
         </div>
-        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+        <div className="flex items-center gap-3 mt-1 text-xs text-white/45 flex-wrap">
           <span className="flex items-center gap-1"><Users size={11} /> {r.partySize} personas</span>
           {table && <span>🪑 {table.name}</span>}
           {r.guestPhone && <span className="flex items-center gap-1"><Phone size={11} /> {r.guestPhone}</span>}
           {r.guestEmail && <span className="flex items-center gap-1"><Mail size={11} /> {r.guestEmail}</span>}
         </div>
-        {r.notes && <p className="text-xs text-gray-400 mt-1 truncate">{r.notes}</p>}
+        {r.notes && <p className="text-xs text-white/40 mt-1 truncate">{r.notes}</p>}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
         {(r.status === 'confirmada' || r.status === 'pendiente') && (
@@ -527,11 +527,11 @@ function ReservationCard({ reservation: r, tables, onEdit, onStatusChange, onSea
         <select
           value={r.status}
           onChange={e => onStatusChange(r.id, e.target.value)}
-          className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none"
+          className="text-xs border border-[#243f72] rounded-lg px-2 py-1 focus:outline-none"
         >
           {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button onClick={() => onEdit(r)} className="p-1.5 rounded-lg hover:bg-[#0f1e38] text-gray-400 hover:text-gray-600">
+        <button onClick={() => onEdit(r)} className="p-1.5 rounded-lg hover:bg-[#0f1e38] text-white/40 hover:text-white/60">
           <Edit2 size={14} />
         </button>
       </div>
