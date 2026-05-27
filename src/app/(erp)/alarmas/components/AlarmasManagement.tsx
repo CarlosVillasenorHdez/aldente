@@ -86,7 +86,7 @@ const categoryConfig: Record<
   inventario: { label: 'Inventario', icon: Package, color: '#8b5cf6' },
   ordenes: { label: 'Órdenes', icon: Clock, color: '#f59e0b' },
   gastos: { label: 'Gastos', icon: Receipt, color: '#ef4444' },
-  sistema: { label: 'Sistema', icon: AlertTriangle, color: '#6b7280' },
+  sistema: { label: 'Sistema', icon: AlertTriangle, color: 'rgba(255,255,255,0.45)' },
 };
 
 const FILTER_TABS: { key: AlertCategory | 'todas'; label: string }[] = [
@@ -261,21 +261,21 @@ export default function AlarmasManagement() {
           <div className="flex items-center gap-3 mb-1">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: '#fef3c7' }}
+              style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}
             >
               <Bell size={20} style={{ color: '#d97706' }} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Centro de Alarmas</h1>
-              <p className="text-sm text-gray-500">Alertas y notificaciones del sistema</p>
+              <h1 className="text-2xl font-bold text-white">Centro de Alarmas</h1>
+              <p className="text-sm text-white/45">Alertas y notificaciones del sistema</p>
             </div>
           </div>
         </div>
         <button
           onClick={fetchAlertas}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors hover:bg-gray-50"
-          style={{ borderColor: '#e5e7eb', color: '#374151' }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors hover:bg-[#0f1e38]"
+          style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Actualizar
@@ -292,7 +292,7 @@ export default function AlarmasManagement() {
             <button
               key={cat}
               onClick={() => setFiltro(filtro === cat ? 'todas' : cat)}
-              className="bg-white rounded-xl border p-4 text-left transition-all hover:shadow-md"
+              className="bg-[#162d55] rounded-xl border p-4 text-left transition-all hover:shadow-md"
               style={{
                 borderColor: filtro === cat ? cfg.color : '#e5e7eb',
                 boxShadow:
@@ -315,8 +315,8 @@ export default function AlarmasManagement() {
                   </span>
                 )}
               </div>
-              <p className="text-2xl font-bold text-gray-900">{count}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{cfg.label}</p>
+              <p className="text-2xl font-bold text-white">{count}</p>
+              <p className="text-xs text-white/45 mt-0.5">{cfg.label}</p>
             </button>
           );
         })}
@@ -324,8 +324,8 @@ export default function AlarmasManagement() {
 
       {/* Filters */}
       <div
-        className="bg-white rounded-xl border mb-4 p-4"
-        style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+        className="bg-[#162d55] rounded-xl border mb-4 p-4"
+        style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
       >
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1 flex-wrap">
@@ -380,17 +380,17 @@ export default function AlarmasManagement() {
 
       {/* Alerts List */}
       <div
-        className="bg-white rounded-xl border overflow-hidden"
-        style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+        className="bg-[#162d55] rounded-xl border overflow-hidden"
+        style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
       >
         {loading ? (
           <div className="divide-y">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex items-start gap-4 px-6 py-4 animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-gray-100 flex-shrink-0" />
+                <div className="w-10 h-10 rounded-xl bg-[#243f72]/60 flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-100 rounded w-2/3" />
-                  <div className="h-3 bg-gray-100 rounded w-full" />
+                  <div className="h-4 bg-[#243f72]/60 rounded w-2/3" />
+                  <div className="h-3 bg-[#243f72]/60 rounded w-full" />
                 </div>
               </div>
             ))}
@@ -399,17 +399,17 @@ export default function AlarmasManagement() {
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-              style={{ backgroundColor: '#f0fdf4' }}
+              style={{ backgroundColor: 'rgba(74,222,128,0.07)' }}
             >
               <CheckCircle size={24} className="text-green-500" />
             </div>
-            <p className="text-base font-semibold text-gray-700">Sin alertas activas</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-base font-semibold text-white/70">Sin alertas activas</p>
+            <p className="text-sm text-white/40 mt-1">
               {filtro !== 'todas' || soloAltas ?'No hay alertas con los filtros seleccionados' :'Todo el sistema está funcionando correctamente'}
             </p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: '#f3f4f6' }}>
+          <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             {alertasFiltradas.map((alerta) => {
               const sev = severityConfig[alerta.severidad];
               const cat = categoryConfig[alerta.categoria];
@@ -417,7 +417,7 @@ export default function AlarmasManagement() {
               return (
                 <div
                   key={alerta.id}
-                  className="flex items-start gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                  className="flex items-start gap-4 px-6 py-4 hover:bg-[#0f1e38] transition-colors"
                 >
                   {/* Icon */}
                   <div
@@ -430,7 +430,7 @@ export default function AlarmasManagement() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <p className="text-sm font-semibold text-gray-800">{alerta.titulo}</p>
+                      <p className="text-sm font-semibold text-white/80">{alerta.titulo}</p>
                       <span
                         className="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
                         style={{ backgroundColor: sev.badgeBg, color: sev.badgeText }}
@@ -444,15 +444,15 @@ export default function AlarmasManagement() {
                         {cat.label}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mb-1">{alerta.detalle}</p>
-                    <p className="text-xs text-gray-400">{alerta.tiempo}</p>
+                    <p className="text-xs text-white/45 mb-1">{alerta.detalle}</p>
+                    <p className="text-xs text-white/40">{alerta.tiempo}</p>
                   </div>
 
                   {/* Action */}
                   {alerta.accion && (
                     <Link href={alerta.accion.href} className="flex-shrink-0">
                       <button
-                        className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-100"
+                        className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-[#243f72]/60"
                         style={{ color: '#1B3A6B' }}
                       >
                         {alerta.accion.label}
@@ -469,7 +469,7 @@ export default function AlarmasManagement() {
 
       {/* Footer summary */}
       {!loading && alertasFiltradas.length > 0 && (
-        <p className="text-xs text-gray-400 text-center mt-4">
+        <p className="text-xs text-white/40 text-center mt-4">
           Mostrando {alertasFiltradas.length} alerta
           {alertasFiltradas.length !== 1 ? 's' : ''} · Actualización automática cada 60 segundos
         </p>

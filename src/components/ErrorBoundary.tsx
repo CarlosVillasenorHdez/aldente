@@ -36,10 +36,10 @@ export default class ErrorBoundary extends React.Component<Props, State> {
         <div className="flex flex-col items-center justify-center p-8 text-center"
           style={{ minHeight: 200 }}>
           <div className="text-4xl mb-3">⚠️</div>
-          <p className="text-sm font-bold text-gray-700 mb-1">
+          <p className="text-sm font-bold text-white/70 mb-1">
             Algo salió mal{this.props.label ? ` en ${this.props.label}` : ''}
           </p>
-          <p className="text-xs text-gray-400 mb-4 max-w-xs">
+          <p className="text-xs text-white/40 mb-4 max-w-xs">
             {this.state.error?.message ?? 'Error desconocido'}
           </p>
           <button

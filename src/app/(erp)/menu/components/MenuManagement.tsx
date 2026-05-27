@@ -393,7 +393,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
               <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Ingredientes, porciones y simulador de precio</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#162d55]/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
             <X size={16} />
           </button>
         </div>
@@ -516,7 +516,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => item.id && handleUpdateQty(item.id, Math.max(0.01, item.quantity - 0.1))}
-                          className="w-6 h-6 rounded flex items-center justify-center hover:bg-white/10"
+                          className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#162d55]/10"
                           style={{ color: 'rgba(255,255,255,0.5)' }}
                         >
                           <Minus size={11} />
@@ -536,7 +536,7 @@ function RecipeModal({ dish, onClose, onPriceUpdate }: { dish: Dish; onClose: ()
                         />
                         <button
                           onClick={() => item.id && handleUpdateQty(item.id, item.quantity + 0.1)}
-                          className="w-6 h-6 rounded flex items-center justify-center hover:bg-white/10"
+                          className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#162d55]/10"
                           style={{ color: 'rgba(255,255,255,0.5)' }}
                         >
                           <Plus size={11} />
@@ -1153,7 +1153,7 @@ function DishFormModal({ dish, onSave, onClose }: { dish: Dish | null; onSave: (
             )}
           </div>
           {step === 1 && (
-            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.4)' }}><X size={16} /></button>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#162d55]/10" style={{ color: 'rgba(255,255,255,0.4)' }}><X size={16} /></button>
           )}
         </div>
 
@@ -1384,7 +1384,7 @@ function DishCard({ dish, recipeCount, onEdit, onDelete, onToggle, onRecipe, onM
             {dish.available ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
             {dish.available ? 'Disponible' : 'No disponible'}
           </button>
-          <button onClick={() => onEdit(dish)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} title="Editar platillo"><Pencil size={13} /></button>
+          <button onClick={() => onEdit(dish)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-[#162d55]/10" style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} title="Editar platillo"><Pencil size={13} /></button>
           <button onClick={() => onDelete(dish)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500/20" style={{ color: 'rgba(239,68,68,0.6)', border: '1px solid rgba(239,68,68,0.15)' }} title="Eliminar platillo"><Trash2 size={13} /></button>
         </div>
       </div>

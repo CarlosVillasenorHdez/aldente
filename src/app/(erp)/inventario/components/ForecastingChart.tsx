@@ -339,7 +339,7 @@ export default function ForecastingChart() {
                   return (
                     <tr
                       key={fc.ingredient.id}
-                      className="border-b transition-colors hover:bg-white/5 cursor-pointer"
+                      className="border-b transition-colors hover:bg-[#162d55]/5 cursor-pointer"
                       style={{ borderColor: '#1a2f52', backgroundColor: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent' }}
                       onClick={() => toggleIngredient(fc.ingredient.id)}
                     >

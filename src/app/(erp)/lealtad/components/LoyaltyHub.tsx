@@ -390,7 +390,7 @@ export default function LoyaltyHub() {
                     : <span className="text-xs text-white/45">Faltan {visitsLeft}</span>}
                 </div>
                 {/* Barra de progreso */}
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-[#243f72] dark:bg-gray-700 rounded-full h-2">
                   <div className="bg-amber-500 h-2 rounded-full transition-all"
                     style={{ width: `${Math.min(100, (customer.totalVisits / visitsGoal) * 100)}%` }} />
                 </div>

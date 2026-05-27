@@ -62,12 +62,12 @@ function estadoSocio(s: { isActive: boolean; membershipExpiresAt: string | null;
 function MetricCard({ icon: Icon, label, value, sub, color = '#1B3A6B', alert = false }:
   { icon: any; label: string; value: string | number; sub?: string; color?: string; alert?: boolean }) {
   return (
-    <div className={`bg-[#162d55] dark:bg-gray-900 rounded-xl border p-5 ${alert ? 'border-amber-300 dark:border-amber-700' : 'border-gray-100 dark:border-gray-800'}`}>
+    <div className={`bg-[#162d55] dark:bg-gray-900 rounded-xl border p-5 ${alert ? 'border-amber-300 dark:border-amber-700' : 'border-[#243f72]/50 dark:border-gray-800'}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+          <p className="text-xs font-semibold text-white/45 dark:text-white/40 uppercase tracking-wide mb-1">{label}</p>
           <p className="text-3xl font-bold" style={{ color }}>{value}</p>
-          {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{sub}</p>}
+          {sub && <p className="text-xs text-white/45 dark:text-white/40 mt-1">{sub}</p>}
         </div>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: color + '15' }}>
           <Icon size={20} style={{ color }} />
@@ -199,7 +199,7 @@ export default function LoyaltyCRM() {
     : socios.filter(s => s.estado === filtro);
 
   if (loading) return (
-    <div className="flex items-center justify-center py-16 text-sm text-gray-600 dark:text-gray-400">
+    <div className="flex items-center justify-center py-16 text-sm text-white/60 dark:text-white/40">
       Cargando análisis...
     </div>
   );
@@ -219,12 +219,12 @@ export default function LoyaltyCRM() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Análisis del programa</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+          <h2 className="text-xl font-semibold text-white dark:text-white">Análisis del programa</h2>
+          <p className="text-sm text-white/60 dark:text-white/40 mt-0.5">
             Indicadores de salud del programa de membresía
           </p>
         </div>
-        <button onClick={load} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+        <button onClick={load} className="flex items-center gap-2 text-sm text-white/60 dark:text-white/40 hover:text-white dark:hover:text-white transition-colors">
           <RefreshCw size={15} /> Actualizar
         </button>
       </div>
@@ -274,16 +274,16 @@ export default function LoyaltyCRM() {
       )}
 
       {/* Lista de socios */}
-      <div className="bg-[#162d55] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Lista de socios</h3>
+      <div className="bg-[#162d55] dark:bg-gray-900 border border-[#243f72]/50 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#243f72]/50 dark:border-gray-800 flex items-center justify-between">
+          <h3 className="font-semibold text-white dark:text-white text-sm">Lista de socios</h3>
           <div className="flex gap-1">
             {(['todos', 'en_riesgo', 'por_vencer', 'vencido'] as const).map(f => (
               <button key={f} onClick={() => setFiltro(f)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   filtro === f
-                    ? 'bg-gray-900 dark:bg-[#162d55] text-white dark:text-gray-900'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-[#0f1e38] dark:hover:bg-gray-800'
+                    ? 'bg-gray-900 dark:bg-[#162d55] text-white dark:text-white'
+                    : 'text-white/60 dark:text-white/40 hover:bg-[#0f1e38] dark:hover:bg-gray-800'
                 }`}>
                 {f === 'todos' ? `Todos (${socios.length})`
                   : f === 'en_riesgo'  ? `En riesgo (${summary.sociosEnRiesgo})`
@@ -295,7 +295,7 @@ export default function LoyaltyCRM() {
         </div>
 
         {sociosFiltrados.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div className="py-12 text-center text-sm text-white/45 dark:text-white/40">
             No hay socios en esta categoría
           </div>
         ) : (
@@ -303,22 +303,22 @@ export default function LoyaltyCRM() {
             {sociosFiltrados.slice(0, 50).map(s => (
               <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-[#0f1e38] dark:hover:bg-gray-800/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#0f1e38] dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  <div className="w-8 h-8 rounded-full bg-[#0f1e38] dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-white/60 dark:text-white/40">
                     {s.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{s.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.phone}</p>
+                    <p className="text-sm font-medium text-white dark:text-white">{s.name}</p>
+                    <p className="text-xs text-white/45 dark:text-white/40">{s.phone}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-right">
                   <div className="hidden sm:block">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-white/45 dark:text-white/40">
                       {s.membershipExpiresAt
                         ? `Vence ${new Date(s.membershipExpiresAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}`
                         : 'Sin vencimiento'}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                    <p className="text-xs text-white/40 dark:text-white/45">
                       {s.diasSinUsar === 9999
                         ? 'Nunca ha usado el beneficio'
                         : s.diasSinUsar === 0
@@ -333,7 +333,7 @@ export default function LoyaltyCRM() {
               </div>
             ))}
             {sociosFiltrados.length > 50 && (
-              <div className="px-5 py-3 text-center text-xs text-gray-500 dark:text-gray-400">
+              <div className="px-5 py-3 text-center text-xs text-white/45 dark:text-white/40">
                 Mostrando 50 de {sociosFiltrados.length} socios
               </div>
             )}

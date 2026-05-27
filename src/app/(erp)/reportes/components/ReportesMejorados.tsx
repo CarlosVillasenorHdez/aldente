@@ -240,7 +240,7 @@ export default function ReportesMejorados() {
                     <p className="text-sm font-medium text-white truncate">{item.nombre}</p>
                     <p className="text-xs text-red-600">Stock: {item.stock} {item.unit} / Mín: {item.minStock} {item.unit}</p>
                   </div>
-                  <div className="w-16 bg-gray-200 rounded-full h-1.5 flex-shrink-0">
+                  <div className="w-16 bg-[#243f72] rounded-full h-1.5 flex-shrink-0">
                     <div className="h-1.5 rounded-full bg-red-500" style={{ width: `${Math.min(100, (item.stock / (item.minStock || 1)) * 100)}%` }} />
                   </div>
                 </div>

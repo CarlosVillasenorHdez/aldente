@@ -464,7 +464,7 @@ export default function PaymentModal({
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b rounded-t-2xl"
-          style={{ borderColor: '#f3f4f6', backgroundColor: '#1B3A6B' }}>
+          style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: '#1B3A6B' }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: 'rgba(245,158,11,0.2)' }}>
@@ -501,7 +501,7 @@ export default function PaymentModal({
           )}
 
           {/* ── PROPINA ── */}
-          <div className="rounded-xl p-3" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid #fde68a' }}>
             <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Propina</p>
             <div className="flex gap-2 mb-2">
               {[0, 10, 15, 20].map(pct => (
@@ -518,7 +518,7 @@ export default function PaymentModal({
                 value={tipCustom}
                 onChange={e => { setTipCustom(e.target.value); setTipPct(0); }}
                 className="flex-1 px-2 py-1 rounded-lg text-sm text-amber-900 font-bold outline-none"
-                style={{ border: '1px solid #fcd34d', background: '#fff' }} />
+                style={{ border: '1px solid #fcd34d', background: '#162d55' }} />
               {tipAmount > 0 && (
                 <span className="text-xs font-bold text-amber-700">= ${tipAmount.toFixed(2)}</span>
               )}
@@ -526,11 +526,11 @@ export default function PaymentModal({
           </div>
 
           {/* Total */}
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total a cobrar</p>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}>
+            <p className="text-xs font-semibold text-white/45 uppercase tracking-wide mb-1">Total a cobrar</p>
             {(pointsDiscount > 0 || tipAmount > 0) ? (
               <>
-                <p className="font-mono text-lg line-through text-gray-400">${total.toFixed(2)}</p>
+                <p className="font-mono text-lg line-through text-white/40">${total.toFixed(2)}</p>
                 {tipAmount > 0 && <p className="text-xs font-semibold text-amber-600">+ ${tipAmount.toFixed(2)} propina</p>}
                 {pointsDiscount > 0 && <p className="text-xs font-semibold text-green-600">− ${pointsDiscount.toFixed(2)} en puntos</p>}
                 <p className="font-mono font-bold text-3xl" style={{ color: method === 'cortesia' ? '#7c3aed' : '#15803d' }}>{method === 'cortesia' ? '🎁 $0.00 — Cortesía' : `$${effectiveTotal.toFixed(2)}`}</p>
@@ -548,7 +548,7 @@ export default function PaymentModal({
               <span className="text-xs font-semibold text-amber-800">Programa de Lealtad</span>
               {selectedCustomer && (
                 <button onClick={() => { handleSetCustomer(null); setLoyaltySearch(''); setLoyaltyResults([]); }}
-                  className="ml-auto text-gray-400 hover:text-gray-600">
+                  className="ml-auto text-white/40 hover:text-white/60">
                   <XCircle size={14} />
                 </button>
               )}
@@ -562,8 +562,8 @@ export default function PaymentModal({
                     {selectedCustomer.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{selectedCustomer.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-semibold text-white/80 truncate">{selectedCustomer.name}</p>
+                    <p className="text-xs text-white/45">
                       {selectedCustomer.points} pts disponibles
                       {!redeemPoints && pointsToEarn > 0 && <span className="text-green-600"> · +{pointsToEarn} pts esta compra</span>}
                     </p>
@@ -589,7 +589,7 @@ export default function PaymentModal({
                     )}
                     {membershipDiscount && loyaltyConfig.discountPct > 0 && (
                       <div className="flex items-center justify-between px-3 py-2 rounded-lg"
-                        style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac' }}>
+                        style={{ backgroundColor: 'rgba(74,222,128,0.07)', border: '1px solid #86efac' }}>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-green-700">
                             🏷️ Descuento de socio — {loyaltyConfig.discountPct}% aplicado
@@ -614,7 +614,7 @@ export default function PaymentModal({
                       <button
                         onClick={() => setMembershipDiscount(true)}
                         className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors hover:opacity-90"
-                        style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', color: '#15803d' }}>
+                        style={{ backgroundColor: 'rgba(74,222,128,0.07)', border: '1px solid #86efac', color: '#15803d' }}>
                         <span>🏷️ Aplicar descuento de socio ({loyaltyConfig.discountPct}%)</span>
                         <span>−${Math.round(total * loyaltyConfig.discountPct / 100 * 100) / 100}</span>
                       </button>
@@ -632,13 +632,13 @@ export default function PaymentModal({
                       <span style={{ color: redeemPoints ? '#92400e' : '#6b7280' }}>🎁 Canjear puntos como descuento</span>
                       <div className="w-9 h-5 rounded-full flex items-center px-0.5 transition-all"
                         style={{ backgroundColor: redeemPoints ? '#f59e0b' : '#d1d5db' }}>
-                        <div className="w-4 h-4 rounded-full bg-white shadow transition-transform"
+                        <div className="w-4 h-4 rounded-full bg-[#162d55] shadow transition-transform"
                           style={{ transform: redeemPoints ? 'translateX(16px)' : 'translateX(0)' }} />
                       </div>
                     </button>
 
                     {redeemPoints && (
-                      <div className="px-3 pb-3 pt-2 space-y-2" style={{ backgroundColor: '#fffbeb' }}>
+                      <div className="px-3 pb-3 pt-2 space-y-2" style={{ backgroundColor: 'rgba(245,158,11,0.08)' }}>
                         <div className="flex items-center justify-between text-xs text-amber-700">
                           <span>Puntos a canjear: <strong>{pointsToRedeem}</strong></span>
                           <span>Descuento: <strong className="text-green-700">${pointsDiscount.toFixed(2)}</strong></span>
@@ -654,7 +654,7 @@ export default function PaymentModal({
                         </div>
                         {pointsToRedeem > 0 && (
                           <div className="flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold"
-                            style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                            style={{ backgroundColor: 'rgba(74,222,128,0.08)', color: '#15803d' }}>
                             <span>Total con descuento</span>
                             <span className="font-mono">${effectiveTotal.toFixed(2)}</span>
                           </div>
@@ -667,12 +667,12 @@ export default function PaymentModal({
             ) : (
               <div className="px-3 py-2.5">
                 <div className="relative">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
                   <input
                     type="text" value={loyaltySearch} onChange={e => setLoyaltySearch(e.target.value)}
                     placeholder="Buscar cliente por nombre o teléfono…"
                     className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border focus:outline-none focus:ring-1 focus:ring-amber-300"
-                    style={{ borderColor: '#e5e7eb' }}
+                    style={{ borderColor: '#243f72' }}
                   />
                   {loyaltySearching && (
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 animate-spin"
@@ -680,20 +680,20 @@ export default function PaymentModal({
                   )}
                 </div>
                 {loyaltyResults.length > 0 && (
-                  <div className="mt-1.5 rounded-lg border overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
+                  <div className="mt-1.5 rounded-lg border overflow-hidden" style={{ borderColor: '#243f72' }}>
                     {loyaltyResults.map(c => (
                       <button key={c.id}
                         onClick={() => { handleSetCustomer(c); setLoyaltySearch(''); setLoyaltyResults([]); }}
                         className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-amber-50 transition-colors"
                         style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <span className="font-medium text-gray-800">{c.name}</span>
-                        <span className="text-gray-400">{c.phone} · <span className="text-amber-600 font-semibold">{c.points} pts</span></span>
+                        <span className="font-medium text-white/80">{c.name}</span>
+                        <span className="text-white/40">{c.phone} · <span className="text-amber-600 font-semibold">{c.points} pts</span></span>
                       </button>
                     ))}
                   </div>
                 )}
                 {loyaltySearch.trim().length >= 2 && !loyaltySearching && loyaltyResults.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-1.5 text-center">Sin resultados.</p>
+                  <p className="text-xs text-white/40 mt-1.5 text-center">Sin resultados.</p>
                 )}
               </div>
             )}
@@ -739,7 +739,7 @@ export default function PaymentModal({
                     </span>
                     <div className="w-9 h-5 rounded-full relative transition-all"
                       style={{ backgroundColor: necesitaFactura ? '#3b82f6' : '#d1d5db' }}>
-                      <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm"
+                      <div className="w-4 h-4 bg-[#162d55] rounded-full absolute top-0.5 transition-all shadow-sm"
                         style={{ left: necesitaFactura ? '18px' : '2px' }} />
                     </div>
                   </button>
@@ -752,7 +752,7 @@ export default function PaymentModal({
                           onChange={e => setRfcCliente(e.target.value.toUpperCase().replace(/\s/g, ''))}
                           placeholder="XAXX010101000 (público en general)"
                           maxLength={13}
-                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-mono focus:outline-none focus:border-blue-400 bg-white"
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-mono focus:outline-none focus:border-blue-400 bg-[#162d55]"
                         />
                         <p className="text-xs text-blue-500 mt-1">RFC sin factura: XAXX010101000</p>
                       </div>
@@ -762,7 +762,7 @@ export default function PaymentModal({
                           value={razonSocial}
                           onChange={e => setRazonSocial(e.target.value.toUpperCase())}
                           placeholder="NOMBRE O EMPRESA S.A. DE C.V."
-                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-white"
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-[#162d55]"
                         />
                       </div>
                       <div>
@@ -770,7 +770,7 @@ export default function PaymentModal({
                         <select
                           value={cfdiUso}
                           onChange={e => setCfdiUso(e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-white"
+                          className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm focus:outline-none focus:border-blue-400 bg-[#162d55]"
                         >
                           <option value="G01">G01 — Adquisición de mercancias</option>
                           <option value="G03">G03 — Gastos en general</option>
@@ -785,7 +785,7 @@ export default function PaymentModal({
                   )}
                 </div>
 
-                <p className="text-sm font-semibold text-gray-700 mb-2">Método de pago</p>
+                <p className="text-sm font-semibold text-white/70 mb-2">Método de pago</p>
                 <div className="grid grid-cols-2 gap-3">
                   {(['efectivo', 'tarjeta'] as const).map((m) => (
                     <button key={m} onClick={() => setMethod(m)}
@@ -801,7 +801,7 @@ export default function PaymentModal({
                         <p className="text-sm font-semibold capitalize" style={{ color: method === m ? '#92400e' : '#374151' }}>
                           {m === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
                         </p>
-                        <p className="text-xs text-gray-400">{m === 'efectivo' ? 'Pago en mano' : 'Débito / Crédito'}</p>
+                        <p className="text-xs text-white/40">{m === 'efectivo' ? 'Pago en mano' : 'Débito / Crédito'}</p>
                       </div>
                       {method === m && (
                         <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f59e0b' }}>
@@ -825,7 +825,7 @@ export default function PaymentModal({
               </button>
               {method === 'efectivo' && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Efectivo recibido</label>
+                  <label className="block text-sm font-semibold text-white/70 mb-1.5">Efectivo recibido</label>
                   <input type="number" placeholder={`Mínimo $${effectiveTotal.toFixed(2)}`}
                     value={cashInput} onChange={e => setCashInput(e.target.value)}
                     className="input-field text-lg font-mono font-bold text-center py-3" min={effectiveTotal} />
@@ -840,14 +840,14 @@ export default function PaymentModal({
                   </div>
                   {cashAmount >= effectiveTotal && (
                     <div className="mt-3 px-4 py-3 rounded-xl flex items-center justify-between"
-                      style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac' }}>
+                      style={{ backgroundColor: 'rgba(74,222,128,0.07)', border: '1px solid #86efac' }}>
                       <span className="text-sm font-semibold text-green-700">Cambio</span>
                       <span className="font-mono font-bold text-green-700 text-lg">${change.toFixed(2)}</span>
                     </div>
                   )}
                   {cashInput && cashAmount < effectiveTotal && (
                     <div className="mt-3 px-4 py-2.5 rounded-xl"
-                      style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}>
+                      style={{ backgroundColor: 'rgba(248,113,113,0.08)', border: '1px solid #fca5a5' }}>
                       <span className="text-xs text-red-600">Faltan ${(effectiveTotal - cashAmount).toFixed(2)}</span>
                     </div>
                   )}
@@ -860,9 +860,9 @@ export default function PaymentModal({
           {mode === 'split_amount' && (
             <div className="space-y-3">
               {amountParts.map((part, i) => (
-                <div key={i} className="p-3 rounded-xl border" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
+                <div key={i} className="p-3 rounded-xl border" style={{ borderColor: '#243f72', backgroundColor: 'rgba(255,255,255,0.04)' }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold text-gray-500">Persona {i + 1}</span>
+                    <span className="text-xs font-bold text-white/45">Persona {i + 1}</span>
                     {amountParts.length > 2 && (
                       <button onClick={() => setAmountParts(p => p.filter((_, idx) => idx !== i))}
                         className="ml-auto text-xs text-red-400 hover:text-red-600">Quitar</button>
@@ -878,7 +878,7 @@ export default function PaymentModal({
               ))}
               <button onClick={() => setAmountParts(p => [...p, { amount: '', method: 'efectivo' }])}
                 className="w-full py-2 rounded-xl text-xs font-semibold border-2 border-dashed transition-all"
-                style={{ borderColor: '#d1d5db', color: '#6b7280' }}>
+                style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.45)' }}>
                 + Agregar persona
               </button>
               <div className="flex items-center justify-between px-3 py-2 rounded-xl"
@@ -921,13 +921,13 @@ export default function PaymentModal({
                     })}
                     <button onClick={addPerson}
                       className="px-3 py-1.5 rounded-xl text-xs font-semibold border-2 border-dashed"
-                      style={{ borderColor: '#d1d5db', color: '#6b7280' }}>
+                      style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.45)' }}>
                       + Persona
                     </button>
                     {persons.length > 2 && (
                       <button onClick={() => removePerson(activePerson)}
                         className="px-3 py-1.5 rounded-xl text-xs font-semibold"
-                        style={{ backgroundColor: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5' }}>
+                        style={{ backgroundColor: 'rgba(248,113,113,0.08)', color: '#ef4444', border: '1px solid #fca5a5' }}>
                         Quitar
                       </button>
                     )}
@@ -945,7 +945,7 @@ export default function PaymentModal({
 
                   {/* Items list */}
                   {(items ?? []).length === 0 ? (
-                    <p className="text-xs text-center text-gray-400 py-4">Sin platillos en la orden</p>
+                    <p className="text-xs text-center text-white/40 py-4">Sin platillos en la orden</p>
                   ) : (
                     <div className="space-y-2">
                       {(items ?? []).map(item => {
@@ -963,11 +963,11 @@ export default function PaymentModal({
                             }}>
                             <span className="text-lg w-7 text-center flex-shrink-0">{item.emoji || '🍽️'}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
+                              <p className="text-sm font-semibold text-white/80 truncate">{item.name}</p>
                               {item.notes && (
                                 <p className="text-xs truncate" style={{ color: '#d97706' }}>↳ {item.notes}</p>
                               )}
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-white/40">
                                 ${item.price.toFixed(2)} c/u ·{' '}
                                 <span style={{ color: remaining === 0 ? '#22c55e' : '#f59e0b' }}>
                                   {remaining === 0 ? '✓ asignado' : `${remaining} sin asignar`}
@@ -997,9 +997,9 @@ export default function PaymentModal({
                   )}
 
                   {/* Summary bar */}
-                  <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-500">Resumen de asignaciones</span>
+                      <span className="text-xs font-semibold text-white/45">Resumen de asignaciones</span>
                       <span className={`text-xs font-bold ${allItemsAssigned ? 'text-green-600' : 'text-amber-600'}`}>
                         {allItemsAssigned ? '✓ Todo asignado' : 'Pendiente de asignar'}
                       </span>
@@ -1010,7 +1010,7 @@ export default function PaymentModal({
                       if (itemCount === 0) return null;
                       return (
                         <div key={p.id} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">{p.name} ({itemCount} plato{itemCount !== 1 ? 's' : ''})</span>
+                          <span className="text-xs text-white/60">{p.name} ({itemCount} plato{itemCount !== 1 ? 's' : ''})</span>
                           <span className="text-xs font-bold font-mono" style={{ color: '#1B3A6B' }}>
                             ${(pt?.total ?? 0).toFixed(2)}
                           </span>
@@ -1018,7 +1018,7 @@ export default function PaymentModal({
                       );
                     })}
                     <div className="flex items-center justify-between pt-1 border-t" style={{ borderColor: '#e2e8f0' }}>
-                      <span className="text-xs font-semibold text-gray-700">Total asignado</span>
+                      <span className="text-xs font-semibold text-white/70">Total asignado</span>
                       <span className="text-xs font-bold font-mono" style={{ color: '#1B3A6B' }}>
                         ${itemsGrandTotal.toFixed(2)} / ${total.toFixed(2)}
                       </span>
@@ -1039,11 +1039,11 @@ export default function PaymentModal({
               {itemsStep === 'pay' && (
                 <div className="space-y-3">
                   <button onClick={() => setItemsStep('assign')}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                    className="flex items-center gap-1.5 text-xs text-white/45 hover:text-white/70 transition-colors">
                     <ArrowLeft size={13} /> Volver a asignar platillos
                   </button>
 
-                  <p className="text-sm font-semibold text-gray-700">Cobrar por persona</p>
+                  <p className="text-sm font-semibold text-white/70">Cobrar por persona</p>
 
                   {persons.map(p => {
                     const pt = personTotals.find(t => t.id === p.id);
@@ -1053,12 +1053,12 @@ export default function PaymentModal({
                     const myChange = p.method === 'efectivo' ? cashVal - myTotal : 0;
                     const itemCount = Object.values(p.itemSplit).reduce((s: number, q: unknown) => s + (q as number), 0);
                     return (
-                      <div key={p.id} className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e7eb' }}>
+                      <div key={p.id} className="rounded-xl border overflow-hidden" style={{ borderColor: '#243f72' }}>
                         <div className="flex items-center justify-between px-4 py-2.5"
-                          style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                          style={{ backgroundColor: '#0f1e38', borderBottom: '1px solid #e5e7eb' }}>
                           <div>
-                            <p className="text-sm font-bold text-gray-800">{p.name}</p>
-                            <p className="text-xs text-gray-400">{itemCount} plato{itemCount !== 1 ? 's' : ''}</p>
+                            <p className="text-sm font-bold text-white/80">{p.name}</p>
+                            <p className="text-xs text-white/40">{itemCount} plato{itemCount !== 1 ? 's' : ''}</p>
                           </div>
                           <p className="font-mono font-bold text-lg" style={{ color: '#1B3A6B' }}>${myTotal.toFixed(2)}</p>
                         </div>
@@ -1075,7 +1075,7 @@ export default function PaymentModal({
                                 className="input-field w-full font-mono text-sm py-2 text-center" />
                               {cashVal >= myTotal && (
                                 <div className="flex items-center justify-between px-3 py-1.5 rounded-lg"
-                                  style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac' }}>
+                                  style={{ backgroundColor: 'rgba(74,222,128,0.07)', border: '1px solid #86efac' }}>
                                   <span className="text-xs text-green-700">Cambio</span>
                                   <span className="text-xs font-bold font-mono text-green-700">${myChange.toFixed(2)}</span>
                                 </div>
@@ -1096,7 +1096,7 @@ export default function PaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t" style={{ borderColor: '#f3f4f6' }}>
+        <div className="flex items-center gap-3 px-6 py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <button
             onClick={handlePrint}
             disabled={printing || printer.status === 'printing'}

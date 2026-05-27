@@ -67,7 +67,7 @@ export default function EquivalenciasTab({ equivalences, loadingEquiv, onAdd, on
           </thead>
           <tbody>
             {equivalences.map(eq => (
-              <tr key={eq.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
+              <tr key={eq.id} className="border-b transition-colors hover:bg-[#162d55]/5" style={{ borderColor: '#1a2f52' }}>
                 <td className="px-4 py-3.5">
                   <p className="text-sm font-semibold text-white">{eq.ingredientName}</p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Unidad base: {eq.ingredientUnit}</p>
@@ -90,7 +90,7 @@ export default function EquivalenciasTab({ equivalences, loadingEquiv, onAdd, on
                 <td className="px-4 py-3.5 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{eq.notes || '—'}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-1">
-                    <button onClick={() => onEdit(eq)} className="p-1.5 rounded-lg hover:bg-white/10" title="Editar">
+                    <button onClick={() => onEdit(eq)} className="p-1.5 rounded-lg hover:bg-[#162d55]/10" title="Editar">
                       <Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
                     </button>
                     <button onClick={() => onDelete(eq.id)} className="p-1.5 rounded-lg hover:bg-red-500/20" title="Eliminar">

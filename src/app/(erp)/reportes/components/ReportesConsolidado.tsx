@@ -119,19 +119,19 @@ function KpiCard({
   color: string; bg: string; delta?: number; loading?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+    <div className="bg-[#162d55] rounded-xl border p-4" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-500">{label}</span>
+        <span className="text-xs text-white/45">{label}</span>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: bg }}>
           <Icon size={16} style={{ color }} />
         </div>
       </div>
       {loading ? (
-        <div className="h-7 w-28 rounded-md animate-pulse" style={{ backgroundColor: '#f3f4f6' }} />
+        <div className="h-7 w-28 rounded-md animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
       ) : (
-        <p className="text-xl font-bold text-gray-900">{value}</p>
+        <p className="text-xl font-bold text-white">{value}</p>
       )}
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-white/40 mt-0.5">{sub}</p>}
       {delta !== undefined && !loading && (
         <div className="flex items-center gap-1 mt-1">
           {delta > 0 ? (
@@ -139,7 +139,7 @@ function KpiCard({
           ) : delta < 0 ? (
             <ArrowDownRight size={12} style={{ color: '#ef4444' }} />
           ) : (
-            <Minus size={12} style={{ color: '#9ca3af' }} />
+            <Minus size={12} style={{ color: 'rgba(255,255,255,0.4)' }} />
           )}
           <span className="text-xs font-semibold" style={{ color: delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '#9ca3af' }}>
             {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
@@ -180,23 +180,23 @@ function BranchSelector({
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium bg-white transition-all"
-        style={{ borderColor: '#d1d5db', color: '#374151' }}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium bg-[#162d55] transition-all"
+        style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}
       >
         <Building2 size={14} style={{ color: '#1B3A6B' }} />
         <span>{label}</span>
-        <ChevronDown size={14} style={{ color: '#9ca3af', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+        <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.4)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
       </button>
       {open && (
         <div
-          className="absolute top-full mt-1 left-0 z-50 bg-white rounded-xl border shadow-lg overflow-hidden"
-          style={{ borderColor: '#e5e7eb', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+          className="absolute top-full mt-1 left-0 z-50 bg-[#162d55] rounded-xl border shadow-lg overflow-hidden"
+          style={{ borderColor: '#243f72', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
         >
           <button
             onClick={() => { onChange([]); setOpen(false); }}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#0f1e38] transition-colors"
           >
-            <span className="font-medium text-gray-700">Todas las sucursales</span>
+            <span className="font-medium text-white/70">Todas las sucursales</span>
             {allSelected && <Check size={14} style={{ color: '#f59e0b' }} />}
           </button>
           <div style={{ borderTop: '1px solid #f3f4f6' }} />
@@ -204,10 +204,10 @@ function BranchSelector({
             <button
               key={b.id}
               onClick={() => toggle(b.id)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-[#0f1e38] transition-colors"
             >
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getBranchColor(idx) }} />
-              <span className="flex-1 text-left text-gray-700">{b.name}</span>
+              <span className="flex-1 text-left text-white/70">{b.name}</span>
               {selected.includes(b.id) && <Check size={14} style={{ color: '#f59e0b' }} />}
             </button>
           ))}
@@ -312,13 +312,13 @@ export default function ReportesConsolidado() {
   const MoneyTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-white rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#e5e7eb', minWidth: 160 }}>
-        <p className="font-semibold text-gray-700 mb-2">{label}</p>
+      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#243f72', minWidth: 160 }}>
+        <p className="font-semibold text-white/70 mb-2">{label}</p>
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center justify-between gap-4 mt-1">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-              <span className="text-gray-500">{p.name}</span>
+              <span className="text-white/45">{p.name}</span>
             </span>
             <span className="font-mono font-semibold" style={{ color: p.color }}>{fmtMoney(p.value)}</span>
           </div>
@@ -330,23 +330,23 @@ export default function ReportesConsolidado() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#0f1e38' }}>
 
       {/* ── Header ── */}
-      <div className="bg-white border-b px-6 py-4 flex flex-wrap items-center gap-3 justify-between print:hidden" style={{ borderColor: '#e5e7eb' }}>
+      <div className="bg-[#162d55] border-b px-6 py-4 flex flex-wrap items-center gap-3 justify-between print:hidden" style={{ borderColor: '#243f72' }}>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Reporte Consolidado</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{dateRangeLabel}</p>
+          <h1 className="text-xl font-bold text-white">Reporte Consolidado</h1>
+          <p className="text-sm text-white/45 mt-0.5">{dateRangeLabel}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <BranchSelector branches={branches} selected={selectedBranches} onChange={setSelectedBranches} />
           <button
             onClick={fetchMetrics}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium bg-white transition-all"
-            style={{ borderColor: '#d1d5db', color: '#374151' }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium bg-[#162d55] transition-all"
+            style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}
           >
-            <RefreshCw size={14} style={{ color: '#6b7280', animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw size={14} style={{ color: 'rgba(255,255,255,0.45)', animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             Actualizar
           </button>
           <button
@@ -364,10 +364,10 @@ export default function ReportesConsolidado() {
       <div className="px-6 py-5 space-y-6">
 
         {/* ── Date Range Filter ── */}
-        <div className="bg-white rounded-xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mr-2">
             <Calendar size={16} style={{ color: '#1B3A6B' }} />
-            <span className="text-sm font-semibold text-gray-700">Período:</span>
+            <span className="text-sm font-semibold text-white/70">Período:</span>
           </div>
           {(['hoy', 'semana', 'mes', 'personalizado'] as DateRange[]).map(r => (
             <button
@@ -385,12 +385,12 @@ export default function ReportesConsolidado() {
           {showCustom && (
             <div className="flex items-center gap-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="border rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none"
-                style={{ borderColor: '#d1d5db' }} />
-              <span className="text-gray-400 text-sm">—</span>
+                className="border rounded-lg px-3 py-1.5 text-sm text-white/70 focus:outline-none"
+                style={{ borderColor: '#243f72' }} />
+              <span className="text-white/40 text-sm">—</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="border rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none"
-                style={{ borderColor: '#d1d5db' }} />
+                className="border rounded-lg px-3 py-1.5 text-sm text-white/70 focus:outline-none"
+                style={{ borderColor: '#243f72' }} />
             </div>
           )}
         </div>
@@ -398,7 +398,7 @@ export default function ReportesConsolidado() {
         {/* ── KPI Global Totals ── */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Totales Consolidados</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-white/40">Totales Consolidados</span>
             <div className="flex-1 h-px" style={{ backgroundColor: '#e5e7eb' }} />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -410,25 +410,25 @@ export default function ReportesConsolidado() {
         </div>
 
         {/* ── Ranking de Sucursales ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
               <Award size={16} style={{ color: '#d97706' }} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Ranking de Sucursales</h2>
-              <p className="text-xs text-gray-500">Comparativo de desempeño — {dateRangeLabel}</p>
+              <h2 className="text-base font-bold text-white">Ranking de Sucursales</h2>
+              <p className="text-xs text-white/45">Comparativo de desempeño — {dateRangeLabel}</p>
             </div>
           </div>
 
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: '#f3f4f6' }} />
+                <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
               ))}
             </div>
           ) : ranking.length === 0 ? (
-            <div className="text-center py-10 text-gray-400 text-sm">
+            <div className="text-center py-10 text-white/40 text-sm">
               Sin datos para el período seleccionado.
             </div>
           ) : (
@@ -459,15 +459,15 @@ export default function ReportesConsolidado() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
-                          <span className="font-semibold text-gray-900 text-sm truncate">{b.name}</span>
+                          <span className="font-semibold text-white text-sm truncate">{b.name}</span>
                           {isTop && (
-                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(251,191,36,0.08)', color: '#d97706' }}>
                               Top
                             </span>
                           )}
                         </div>
                         {/* Bar */}
-                        <div className="w-full h-2 rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                        <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                           <div
                             className="h-full rounded-full transition-all duration-700"
                             style={{ width: `${pct}%`, backgroundColor: b.color }}
@@ -478,15 +478,15 @@ export default function ReportesConsolidado() {
                       {/* Metrics */}
                       <div className="flex items-center gap-6 flex-shrink-0">
                         <div className="text-right hidden sm:block">
-                          <p className="text-xs text-gray-400">Órdenes</p>
-                          <p className="text-sm font-bold text-gray-800 font-mono">{fmt(m.ordenes)}</p>
+                          <p className="text-xs text-white/40">Órdenes</p>
+                          <p className="text-sm font-bold text-white/80 font-mono">{fmt(m.ordenes)}</p>
                         </div>
                         <div className="text-right hidden md:block">
-                          <p className="text-xs text-gray-400">Ticket</p>
-                          <p className="text-sm font-bold text-gray-800 font-mono">${m.ticket.toFixed(0)}</p>
+                          <p className="text-xs text-white/40">Ticket</p>
+                          <p className="text-sm font-bold text-white/80 font-mono">${m.ticket.toFixed(0)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-gray-400">Ventas</p>
+                          <p className="text-xs text-white/40">Ventas</p>
                           <p className="text-base font-bold font-mono" style={{ color: b.color }}>{fmtMoney(m.ventas)}</p>
                         </div>
                       </div>
@@ -494,9 +494,9 @@ export default function ReportesConsolidado() {
 
                     {/* Top dish */}
                     {m.topDish !== '—' && (
-                      <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-gray-500" style={{ borderColor: '#f3f4f6' }}>
+                      <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-white/45" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                         <TrendingUp size={12} style={{ color: b.color }} />
-                        <span>Platillo más vendido: <strong className="text-gray-700">{m.topDish}</strong> ({m.topDishCount} uds)</span>
+                        <span>Platillo más vendido: <strong className="text-white/70">{m.topDish}</strong> ({m.topDishCount} uds)</span>
                       </div>
                     )}
                   </div>
@@ -507,19 +507,19 @@ export default function ReportesConsolidado() {
         </div>
 
         {/* ── Comparativo de Ventas por Sucursal (Barras) ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#eff6ff' }}>
               <TrendingUp size={16} style={{ color: '#3b82f6' }} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Comparativo de Ventas por Sucursal</h2>
-              <p className="text-xs text-gray-500">Desglose de ingresos y órdenes por unidad</p>
+              <h2 className="text-base font-bold text-white">Comparativo de Ventas por Sucursal</h2>
+              <p className="text-xs text-white/45">Desglose de ingresos y órdenes por unidad</p>
             </div>
           </div>
 
           {loading ? (
-            <div className="h-64 rounded-xl animate-pulse" style={{ backgroundColor: '#f3f4f6' }} />
+            <div className="h-64 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart
@@ -538,10 +538,10 @@ export default function ReportesConsolidado() {
                   content={({ active, payload, label }: any) => {
                     if (!active || !payload?.length) return null;
                     return (
-                      <div className="bg-white rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#e5e7eb', minWidth: 160 }}>
-                        <p className="font-semibold text-gray-700 mb-2">{label}</p>
-                        <div className="flex justify-between gap-4"><span className="text-gray-500">Ventas</span><span className="font-mono font-semibold text-amber-600">{fmtMoney(payload[0]?.value ?? 0)}</span></div>
-                        <div className="flex justify-between gap-4 mt-1"><span className="text-gray-500">Órdenes</span><span className="font-mono font-semibold text-blue-600">{payload[1]?.value ?? 0}</span></div>
+                      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#243f72', minWidth: 160 }}>
+                        <p className="font-semibold text-white/70 mb-2">{label}</p>
+                        <div className="flex justify-between gap-4"><span className="text-white/45">Ventas</span><span className="font-mono font-semibold text-amber-600">{fmtMoney(payload[0]?.value ?? 0)}</span></div>
+                        <div className="flex justify-between gap-4 mt-1"><span className="text-white/45">Órdenes</span><span className="font-mono font-semibold text-blue-600">{payload[1]?.value ?? 0}</span></div>
                       </div>
                     );
                   }}
@@ -558,14 +558,14 @@ export default function ReportesConsolidado() {
 
         {/* ── Ventas por Hora — Todas las Sucursales ── */}
         {activeBranches.length > 0 && !loading && (
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-2 mb-5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ecfdf5' }}>
                 <ShoppingCart size={16} style={{ color: '#10b981' }} />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900">Ventas por Hora — Todas las Sucursales</h2>
-                <p className="text-xs text-gray-500">Patrón de demanda por unidad durante el día</p>
+                <h2 className="text-base font-bold text-white">Ventas por Hora — Todas las Sucursales</h2>
+                <p className="text-xs text-white/45">Patrón de demanda por unidad durante el día</p>
               </div>
             </div>
 
@@ -574,7 +574,7 @@ export default function ReportesConsolidado() {
               {activeBranches.map(b => (
                 <div key={b.id} className="flex items-center gap-1.5">
                   <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: b.color }} />
-                  <span className="text-xs text-gray-500">{b.name}</span>
+                  <span className="text-xs text-white/45">{b.name}</span>
                 </div>
               ))}
             </div>
@@ -603,14 +603,14 @@ export default function ReportesConsolidado() {
 
         {/* ── Tendencia Diaria de Ventas ── */}
         {activeBranches.length > 0 && combinedDaily.length > 1 && !loading && (
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-2 mb-5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f5f3ff' }}>
                 <TrendingUp size={16} style={{ color: '#8b5cf6' }} />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900">Tendencia Diaria de Ventas</h2>
-                <p className="text-xs text-gray-500">Evolución por sucursal en el período</p>
+                <h2 className="text-base font-bold text-white">Tendencia Diaria de Ventas</h2>
+                <p className="text-xs text-white/45">Evolución por sucursal en el período</p>
               </div>
             </div>
 
@@ -618,7 +618,7 @@ export default function ReportesConsolidado() {
               {activeBranches.map(b => (
                 <div key={b.id} className="flex items-center gap-1.5">
                   <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: b.color }} />
-                  <span className="text-xs text-gray-500">{b.name}</span>
+                  <span className="text-xs text-white/45">{b.name}</span>
                 </div>
               ))}
             </div>
@@ -649,20 +649,20 @@ export default function ReportesConsolidado() {
         {activeBranches.length > 0 && !loading && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Top Platillos por Sucursal</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-white/40">Top Platillos por Sucursal</span>
               <div className="flex-1 h-px" style={{ backgroundColor: '#e5e7eb' }} />
             </div>
             <div className={`grid gap-4 ${activeBranches.length === 1 ? 'grid-cols-1' : activeBranches.length === 2 ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3'}`}>
               {activeBranches.map(b => (
-                <div key={b.id} className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div key={b.id} className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div className="flex items-center gap-2 mb-4">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: b.color }} />
-                    <h3 className="text-sm font-bold text-gray-900">{b.name}</h3>
-                    <span className="ml-auto text-xs text-gray-400">{fmt(b.metrics?.ordenes ?? 0)} órdenes</span>
+                    <h3 className="text-sm font-bold text-white">{b.name}</h3>
+                    <span className="ml-auto text-xs text-white/40">{fmt(b.metrics?.ordenes ?? 0)} órdenes</span>
                   </div>
 
                   {(b.metrics?.dishData?.length ?? 0) === 0 ? (
-                    <div className="text-xs text-gray-400 text-center py-6">Sin datos de platillos</div>
+                    <div className="text-xs text-white/40 text-center py-6">Sin datos de platillos</div>
                   ) : (
                     <div className="space-y-2">
                       {(b.metrics?.dishData ?? []).map((dish, di) => {
@@ -671,10 +671,10 @@ export default function ReportesConsolidado() {
                         return (
                           <div key={di}>
                             <div className="flex items-center justify-between text-xs mb-0.5">
-                              <span className="text-gray-700 truncate font-medium" style={{ maxWidth: '70%' }}>{dish.nombre}</span>
-                              <span className="font-mono text-gray-500 font-semibold">{dish.cantidad} uds</span>
+                              <span className="text-white/70 truncate font-medium" style={{ maxWidth: '70%' }}>{dish.nombre}</span>
+                              <span className="font-mono text-white/45 font-semibold">{dish.cantidad} uds</span>
                             </div>
-                            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                               <div
                                 className="h-full rounded-full"
                                 style={{ width: `${pct}%`, backgroundColor: di === 0 ? b.color : b.color + '88' }}
@@ -687,18 +687,18 @@ export default function ReportesConsolidado() {
                   )}
 
                   {/* Mini KPIs */}
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t" style={{ borderColor: '#f3f4f6' }}>
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                     <div className="text-center">
-                      <p className="text-xs text-gray-400">Ventas</p>
+                      <p className="text-xs text-white/40">Ventas</p>
                       <p className="text-sm font-bold font-mono" style={{ color: b.color }}>{fmtMoney(b.metrics?.ventas ?? 0)}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-400">Órdenes</p>
-                      <p className="text-sm font-bold font-mono text-gray-800">{fmt(b.metrics?.ordenes ?? 0)}</p>
+                      <p className="text-xs text-white/40">Órdenes</p>
+                      <p className="text-sm font-bold font-mono text-white/80">{fmt(b.metrics?.ordenes ?? 0)}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-400">Ticket</p>
-                      <p className="text-sm font-bold font-mono text-gray-800">${(b.metrics?.ticket ?? 0).toFixed(0)}</p>
+                      <p className="text-xs text-white/40">Ticket</p>
+                      <p className="text-sm font-bold font-mono text-white/80">${(b.metrics?.ticket ?? 0).toFixed(0)}</p>
                     </div>
                   </div>
                 </div>
@@ -708,19 +708,19 @@ export default function ReportesConsolidado() {
         )}
 
         {/* ── Tabla resumen homologada ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f8fafc' }}>
-              <Users size={16} style={{ color: '#6b7280' }} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#0f1e38' }}>
+              <Users size={16} style={{ color: 'rgba(255,255,255,0.45)' }} />
             </div>
-            <h2 className="text-base font-bold text-gray-900">Resumen Homologado</h2>
+            <h2 className="text-base font-bold text-white">Resumen Homologado</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
                   {['#', 'Sucursal', 'Ventas', '% del total', 'Órdenes', 'Ticket Prom.', 'Platillo Top'].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-2 px-3 text-xs font-semibold text-white/45 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -730,7 +730,7 @@ export default function ReportesConsolidado() {
                     <tr key={i}>
                       {[1, 2, 3, 4, 5, 6, 7].map(j => (
                         <td key={j} className="py-3 px-3">
-                          <div className="h-4 rounded animate-pulse" style={{ backgroundColor: '#f3f4f6', width: j === 2 ? '120px' : '60px' }} />
+                          <div className="h-4 rounded animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)', width: j === 2 ? '120px' : '60px' }} />
                         </td>
                       ))}
                     </tr>
@@ -739,38 +739,38 @@ export default function ReportesConsolidado() {
                     const m = b.metrics!;
                     const sharePct = totals.ventas > 0 ? ((m.ventas / totals.ventas) * 100).toFixed(1) : '0.0';
                     return (
-                      <tr key={b.id} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
-                        <td className="py-3 px-3 text-gray-400 text-xs">{idx + 1}</td>
+                      <tr key={b.id} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                        <td className="py-3 px-3 text-white/40 text-xs">{idx + 1}</td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
-                            <span className="font-semibold text-gray-800">{b.name}</span>
+                            <span className="font-semibold text-white/80">{b.name}</span>
                           </div>
                         </td>
                         <td className="py-3 px-3 font-mono font-bold" style={{ color: b.color }}>{fmtMoney(m.ventas)}</td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                            <div className="w-16 h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                               <div className="h-full rounded-full" style={{ width: `${sharePct}%`, backgroundColor: b.color }} />
                             </div>
-                            <span className="text-xs font-mono text-gray-600">{sharePct}%</span>
+                            <span className="text-xs font-mono text-white/60">{sharePct}%</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 font-mono text-gray-700">{fmt(m.ordenes)}</td>
-                        <td className="py-3 px-3 font-mono text-gray-700">${m.ticket.toFixed(2)}</td>
-                        <td className="py-3 px-3 text-gray-600 text-xs">{m.topDish}</td>
+                        <td className="py-3 px-3 font-mono text-white/70">{fmt(m.ordenes)}</td>
+                        <td className="py-3 px-3 font-mono text-white/70">${m.ticket.toFixed(2)}</td>
+                        <td className="py-3 px-3 text-white/60 text-xs">{m.topDish}</td>
                       </tr>
                     );
                   })}
               </tbody>
               {!loading && ranking.length > 0 && (
                 <tfoot>
-                  <tr style={{ borderTop: '2px solid #e5e7eb', backgroundColor: '#f8fafc' }}>
-                    <td colSpan={2} className="py-3 px-3 text-sm font-bold text-gray-700 uppercase tracking-wide">TOTAL</td>
-                    <td className="py-3 px-3 font-mono font-bold text-gray-900">{fmtMoney(totals.ventas)}</td>
-                    <td className="py-3 px-3 text-xs font-mono text-gray-500">100%</td>
-                    <td className="py-3 px-3 font-mono font-bold text-gray-900">{fmt(totals.ordenes)}</td>
-                    <td className="py-3 px-3 font-mono font-bold text-gray-900">${totals.ticket.toFixed(2)}</td>
+                  <tr style={{ borderTop: '2px solid #e5e7eb', backgroundColor: '#0f1e38' }}>
+                    <td colSpan={2} className="py-3 px-3 text-sm font-bold text-white/70 uppercase tracking-wide">TOTAL</td>
+                    <td className="py-3 px-3 font-mono font-bold text-white">{fmtMoney(totals.ventas)}</td>
+                    <td className="py-3 px-3 text-xs font-mono text-white/45">100%</td>
+                    <td className="py-3 px-3 font-mono font-bold text-white">{fmt(totals.ordenes)}</td>
+                    <td className="py-3 px-3 font-mono font-bold text-white">${totals.ticket.toFixed(2)}</td>
                     <td className="py-3 px-3" />
                   </tr>
                 </tfoot>
@@ -783,7 +783,7 @@ export default function ReportesConsolidado() {
         {/* ── Toggle P&L Button ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Estado de Resultados</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-white/40">Estado de Resultados</span>
             <div className="flex-1 h-px" style={{ backgroundColor: '#e5e7eb', minWidth: 40 }} />
           </div>
           <button
@@ -800,20 +800,20 @@ export default function ReportesConsolidado() {
           <div className="space-y-6">
 
             {/* ── P&L GLOBAL ── */}
-            <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ecfdf5' }}>
                   <DollarSign size={16} style={{ color: '#10b981' }} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">P&L Consolidado — Negocio Completo</h2>
-                  <p className="text-xs text-gray-500">Estado de resultados global de todas las sucursales · {dateRangeLabel}</p>
+                  <h2 className="text-base font-bold text-white">P&L Consolidado — Negocio Completo</h2>
+                  <p className="text-xs text-white/45">Estado de resultados global de todas las sucursales · {dateRangeLabel}</p>
                 </div>
               </div>
 
               {plLoading ? (
                 <div className="space-y-2">
-                  {[1,2,3,4,5].map(i => <div key={i} className="h-8 rounded-lg animate-pulse" style={{ backgroundColor: '#f3f4f6' }} />)}
+                  {[1,2,3,4,5].map(i => <div key={i} className="h-8 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />)}
                 </div>
               ) : globalPL ? (
                 <>
@@ -827,7 +827,7 @@ export default function ReportesConsolidado() {
                     ].map(k => (
                       <div key={k.label} className="rounded-xl p-3" style={{ backgroundColor: k.bg }}>
                         <p className="text-xs font-semibold mb-1" style={{ color: k.color }}>{k.label}</p>
-                        <p className="text-sm font-bold text-gray-900">{k.value}</p>
+                        <p className="text-sm font-bold text-white">{k.value}</p>
                       </div>
                     ))}
                   </div>
@@ -837,9 +837,9 @@ export default function ReportesConsolidado() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Concepto</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Monto (MXN)</th>
-                          <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase">% Ingresos</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-white/45 uppercase">Concepto</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-white/45 uppercase">Monto (MXN)</th>
+                          <th className="text-right py-2 px-3 text-xs font-semibold text-white/45 uppercase">% Ingresos</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -864,8 +864,8 @@ export default function ReportesConsolidado() {
                           { label: 'UTILIDAD NETA', val: globalPL.utilidadNeta, type: 'total' },
                         ].map((row, i) => {
                           if (row.type === 'header') return (
-                            <tr key={i} style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #e5e7eb' }}>
-                              <td colSpan={3} className="py-2 px-3 text-xs font-bold text-gray-500 uppercase tracking-widest">{row.label}</td>
+                            <tr key={i} style={{ backgroundColor: '#0f1e38', borderTop: '2px solid #e5e7eb' }}>
+                              <td colSpan={3} className="py-2 px-3 text-xs font-bold text-white/45 uppercase tracking-widest">{row.label}</td>
                             </tr>
                           );
                           const pct = globalPL.totalVentas > 0 && row.val != null ? ((row.val / globalPL.totalVentas) * 100).toFixed(1) : '—';
@@ -875,8 +875,8 @@ export default function ReportesConsolidado() {
                             : row.label.includes('BRUTA') ? '#3b82f6'
                             : row.label.includes('EBITDA') ? '#8b5cf6' : '#1B3A6B';
                           return (
-                            <tr key={i} className={isTotal ? '' : 'border-b hover:bg-gray-50'} style={{
-                              borderColor: '#f3f4f6',
+                            <tr key={i} className={isTotal ? '' : 'border-b hover:bg-[#0f1e38]'} style={{
+                              borderColor: 'rgba(255,255,255,0.06)',
                               backgroundColor: isTotal ? '#f0f9ff' : undefined,
                             }}>
                               <td className="py-2.5 px-3" style={{ paddingLeft: isTotal ? '12px' : '24px', fontWeight: isTotal ? 700 : 400, color: isTotal ? totalColor : '#374151' }}>
@@ -885,7 +885,7 @@ export default function ReportesConsolidado() {
                               <td className="py-2.5 px-3 text-right font-mono text-sm" style={{ color: isTotal ? totalColor : isCost ? '#ef4444' : '#374151', fontWeight: isTotal ? 700 : 400 }}>
                                 {row.val != null ? `${isCost && !isTotal ? '-' : ''}${fmtMoney(Math.abs(row.val ?? 0))}` : ''}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-xs font-mono text-gray-400">{row.val != null ? `${pct}%` : ''}</td>
+                              <td className="py-2.5 px-3 text-right text-xs font-mono text-white/40">{row.val != null ? `${pct}%` : ''}</td>
                             </tr>
                           );
                         })}
@@ -894,42 +894,42 @@ export default function ReportesConsolidado() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-400 text-center py-8">Sin datos para el período seleccionado.</p>
+                <p className="text-sm text-white/40 text-center py-8">Sin datos para el período seleccionado.</p>
               )}
             </div>
 
             {/* ── P&L POR SUCURSAL ── */}
             {branchPLs.length > 1 && (
-              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#eff6ff' }}>
                     <Building2 size={16} style={{ color: '#3b82f6' }} />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-gray-900">P&L por Sucursal</h2>
-                    <p className="text-xs text-gray-500">Rentabilidad individual de cada unidad · {dateRangeLabel}</p>
+                    <h2 className="text-base font-bold text-white">P&L por Sucursal</h2>
+                    <p className="text-xs text-white/45">Rentabilidad individual de cada unidad · {dateRangeLabel}</p>
                   </div>
                 </div>
 
                 {plLoading ? (
-                  <div className="h-40 animate-pulse rounded-xl" style={{ backgroundColor: '#f3f4f6' }} />
+                  <div className="h-40 animate-pulse rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
                           {['Sucursal', 'Ventas', 'COGS', 'Ut. Bruta', 'Margen B.', 'Nómina+Gastos', 'EBITDA', 'Ut. Neta', 'Margen N.'].map(h => (
-                            <th key={h} className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{h}</th>
+                            <th key={h} className="text-left py-2 px-3 text-xs font-semibold text-white/45 uppercase whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {branchPLs.map(b => (
-                          <tr key={b.branchId} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
+                          <tr key={b.branchId} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color }} />
-                                <span className="font-semibold text-gray-800">{b.branchName}</span>
+                                <span className="font-semibold text-white/80">{b.branchName}</span>
                               </div>
                             </td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: b.color }}>{fmtMoney(b.ventas)}</td>
@@ -941,7 +941,7 @@ export default function ReportesConsolidado() {
                                 {b.margenBruto}%
                               </span>
                             </td>
-                            <td className="py-3 px-3 font-mono text-gray-600">{fmtMoney(b.nomina + b.gastosOp)}</td>
+                            <td className="py-3 px-3 font-mono text-white/60">{fmtMoney(b.nomina + b.gastosOp)}</td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: b.ebitda >= 0 ? '#8b5cf6' : '#ef4444' }}>{fmtMoney(b.ebitda)}</td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: b.utilidadNeta >= 0 ? '#10b981' : '#ef4444' }}>{fmtMoney(b.utilidadNeta)}</td>
                             <td className="py-3 px-3">
@@ -955,13 +955,13 @@ export default function ReportesConsolidado() {
                       </tbody>
                       {branchPLs.length > 0 && globalPL && (
                         <tfoot>
-                          <tr style={{ borderTop: '2px solid #e5e7eb', backgroundColor: '#f8fafc' }}>
-                            <td className="py-3 px-3 font-bold text-gray-700 uppercase text-xs tracking-wide">TOTAL</td>
-                            <td className="py-3 px-3 font-mono font-bold text-gray-900">{fmtMoney(globalPL.totalVentas)}</td>
+                          <tr style={{ borderTop: '2px solid #e5e7eb', backgroundColor: '#0f1e38' }}>
+                            <td className="py-3 px-3 font-bold text-white/70 uppercase text-xs tracking-wide">TOTAL</td>
+                            <td className="py-3 px-3 font-mono font-bold text-white">{fmtMoney(globalPL.totalVentas)}</td>
                             <td className="py-3 px-3 font-mono font-bold text-red-500">{fmtMoney(globalPL.totalCogs)}</td>
                             <td className="py-3 px-3 font-mono font-bold text-blue-600">{fmtMoney(globalPL.utilidadBruta)}</td>
-                            <td className="py-3 px-3 font-mono font-bold text-gray-700">{globalPL.margenBruto}%</td>
-                            <td className="py-3 px-3 font-mono font-bold text-gray-700">{fmtMoney(globalPL.nominaMensual + globalPL.gastosOp.reduce((s,g)=>s+g.monto,0))}</td>
+                            <td className="py-3 px-3 font-mono font-bold text-white/70">{globalPL.margenBruto}%</td>
+                            <td className="py-3 px-3 font-mono font-bold text-white/70">{fmtMoney(globalPL.nominaMensual + globalPL.gastosOp.reduce((s,g)=>s+g.monto,0))}</td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: globalPL.ebitda >= 0 ? '#8b5cf6' : '#ef4444' }}>{fmtMoney(globalPL.ebitda)}</td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: globalPL.utilidadNeta >= 0 ? '#10b981' : '#ef4444' }}>{fmtMoney(globalPL.utilidadNeta)}</td>
                             <td className="py-3 px-3 font-mono font-bold" style={{ color: globalPL.margenNeto >= 0 ? '#10b981' : '#ef4444' }}>{globalPL.margenNeto}%</td>
@@ -972,7 +972,7 @@ export default function ReportesConsolidado() {
                   </div>
                 )}
 
-                <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
+                <div className="mt-4 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderLeft: '3px solid #f59e0b' }}>
                   <strong>📌 Nota:</strong> Los gastos operativos y nómina sin asignar a una sucursal específica se distribuyen proporcionalmente entre todas las sucursales. Para mayor precisión, asigna empleados y gastos a su sucursal en los módulos de Personal y Gastos.
                 </div>
               </div>

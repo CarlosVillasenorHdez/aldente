@@ -433,34 +433,34 @@ export default function CorteCaja() {
       <div className="max-w-xl mx-auto space-y-6">
         {/* Status */}
         <div className="bg-[#162d55] rounded-2xl border p-6 text-center" style={{ borderColor: '#243f72' }}>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#fef3c7' }}>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
             <Lock size={28} style={{ color: '#d97706' }} />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Caja Cerrada</h2>
-          <p className="text-sm text-gray-500">No hay un turno activo. Abre la caja para comenzar a registrar ventas.</p>
+          <h2 className="text-lg font-bold text-white mb-1">Caja Cerrada</h2>
+          <p className="text-sm text-white/45">No hay un turno activo. Abre la caja para comenzar a registrar ventas.</p>
         </div>
 
         {/* Apertura form */}
         <div className="bg-[#162d55] rounded-2xl border p-6" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+          <h3 className="text-base font-bold text-white mb-5 flex items-center gap-2">
             <Unlock size={18} style={{ color: '#10b981' }} /> Apertura de Caja
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre del cajero *</label>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Nombre del cajero *</label>
               <input type="text" value={aperturaPor} onChange={e => setAperturaPor(e.target.value)}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
                 style={{ borderColor: '#243f72' }} placeholder="Ej: María García" autoFocus />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Fondo inicial (efectivo en caja)</label>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Fondo inicial (efectivo en caja)</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
                 <input type="number" min={0} value={fondoInicial} onChange={e => setFondoInicial(e.target.value)}
                   className="w-full pl-7 pr-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 font-mono"
                   style={{ borderColor: '#243f72' }} placeholder="0.00" />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Dinero físico con el que arranca el turno (billetes de cambio).</p>
+              <p className="text-xs text-white/40 mt-1">Dinero físico con el que arranca el turno (billetes de cambio).</p>
             </div>
             <button onClick={handleAbrirCaja} disabled={abriendo || !aperturaPor.trim()}
               className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
@@ -473,22 +473,22 @@ export default function CorteCaja() {
 
         {/* Movimientos de caja */}
         {corteActivo && (
-          <div className="bg-[#162d55] border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="bg-[#162d55] border border-[#243f72]/50 rounded-2xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-800">Movimientos de caja</h3>
+              <h3 className="text-base font-semibold text-white/80">Movimientos de caja</h3>
               <button onClick={() => setShowMovModal(true)} className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-semibold" style={{ backgroundColor: '#1B3A6B', color: '#fff' }}>
                 + Movimiento
               </button>
             </div>
             {movimientos.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">Sin movimientos extra registrados</p>
+              <p className="text-sm text-white/40 text-center py-4">Sin movimientos extra registrados</p>
             ) : (
               <div className="space-y-2">
                 {movimientos.map((m, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50">
                     <div>
-                      <span className="text-sm font-medium text-gray-700">{m.concepto}</span>
-                      <span className="ml-2 text-xs text-gray-400">{new Date(m.at).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}</span>
+                      <span className="text-sm font-medium text-white/70">{m.concepto}</span>
+                      <span className="ml-2 text-xs text-white/40">{new Date(m.at).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}</span>
                     </div>
                     <span className={`text-sm font-mono font-bold ${m.tipo === 'ingreso' ? 'text-green-600' : 'text-red-500'}`}>
                       {m.tipo === 'ingreso' ? '+' : '-'}${m.monto.toFixed(2)}
@@ -496,7 +496,7 @@ export default function CorteCaja() {
                   </div>
                 ))}
                 <div className="flex justify-between pt-2 text-sm font-semibold">
-                  <span className="text-gray-600">Neto movimientos</span>
+                  <span className="text-white/60">Neto movimientos</span>
                   <span className={ingresosExtra - egresosExtra >= 0 ? 'text-green-600' : 'text-red-500'}>
                     {ingresosExtra - egresosExtra >= 0 ? '+' : ''}${(ingresosExtra - egresosExtra).toFixed(2)}
                   </span>
@@ -510,22 +510,22 @@ export default function CorteCaja() {
         {historial.length > 0 && (
           <div className="bg-[#162d55] rounded-2xl border" style={{ borderColor: '#243f72' }}>
             <button onClick={() => setShowHistorial(h => !h)}
-              className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-gray-700">
+              className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-white/70">
               <span className="flex items-center gap-2"><Receipt size={16} /> Historial de cortes ({historial.length})</span>
               {showHistorial ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
             {showHistorial && (
-              <div className="border-t divide-y" style={{ borderColor: '#f3f4f6' }}>
+              <div className="border-t divide-y" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                 {historial.map(h => (
                   <div key={h.id} className="px-6 py-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-800">
+                      <span className="text-sm font-semibold text-white/80">
                         {new Date(h.aperturaAt).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
                         {' · '}{h.aperturaPor}
                       </span>
                       <span className="text-sm font-bold font-mono" style={{ color: '#1B3A6B' }}>${fmt(h.ventasTotal ?? 0)}</span>
                     </div>
-                    <div className="flex gap-4 text-xs text-gray-500">
+                    <div className="flex gap-4 text-xs text-white/45">
                       <span>💵 ${fmt(h.ventasEfectivo ?? 0)}</span>
                       <span>💳 ${fmt(h.ventasTarjeta ?? 0)}</span>
                       <span>🧾 {h.ordenesCount ?? 0} órdenes</span>
@@ -556,22 +556,22 @@ export default function CorteCaja() {
       {/* ── Header status ── */}
       <div className="bg-[#162d55] rounded-2xl border p-5 flex items-center justify-between" style={{ borderColor: '#fde68a', backgroundColor: '#fffdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
             <Unlock size={22} style={{ color: '#d97706' }} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-gray-900">Caja Abierta</span>
+              <span className="text-base font-bold text-white">Caja Abierta</span>
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-white/45">
               Apertura: {aperturaDate.toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               {' · '}{corteActivo.aperturaPor}{' · '}{horasActivo}h activo
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-400">Fondo inicial</p>
+          <p className="text-xs text-white/40">Fondo inicial</p>
           <p className="text-lg font-bold font-mono" style={{ color: '#1B3A6B' }}>${fmt(corteActivo.fondoInicial)}</p>
         </div>
       </div>
@@ -579,7 +579,7 @@ export default function CorteCaja() {
       {/* ── KPI cards ── */}
       {summaryLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ backgroundColor: '#f3f4f6' }} />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />)}
         </div>
       ) : summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -597,12 +597,12 @@ export default function CorteCaja() {
           ].map(k => (
             <div key={k.label} className="bg-[#162d55] rounded-2xl border p-4" style={{ borderColor: '#243f72' }}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-500">{k.label}</span>
+                <span className="text-xs text-white/45">{k.label}</span>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.bg }}>
                   <k.icon size={14} style={{ color: k.color }} />
                 </div>
               </div>
-              <p className="text-xl font-bold font-mono text-gray-900" style={{ color: k.color }}>{k.value}</p>
+              <p className="text-xl font-bold font-mono text-white" style={{ color: k.color }}>{k.value}</p>
               {(k as any).sub && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{(k as any).sub}</p>}
             </div>
           ))}
@@ -614,15 +614,15 @@ export default function CorteCaja() {
         {/* ── Detalle por mesero ── */}
         {summary && summary.por_mesero.length > 0 && (
           <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72' }}>
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <Users size={16} style={{ color: '#8b5cf6' }} /> Ventas por Mesero
             </h3>
             <div className="space-y-2">
               {summary.por_mesero.map(m => (
-                <div key={m.nombre} className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: '#f3f4f6' }}>
+                <div key={m.nombre} className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{m.nombre}</p>
-                    <p className="text-xs text-gray-400">{m.ordenes} orden{m.ordenes !== 1 ? 'es' : ''}</p>
+                    <p className="text-sm font-medium text-white/80">{m.nombre}</p>
+                    <p className="text-xs text-white/40">{m.ordenes} orden{m.ordenes !== 1 ? 'es' : ''}</p>
                   </div>
                   <span className="font-mono font-bold text-sm" style={{ color: '#1B3A6B' }}>${fmt(m.total)}</span>
                 </div>
@@ -638,7 +638,7 @@ export default function CorteCaja() {
               ⚠️ Merma por Atención del Turno
             </h3>
             {summary.merma_total === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-3">Sin mermas registradas en este turno ✓</p>
+              <p className="text-sm text-white/40 text-center py-3">Sin mermas registradas en este turno ✓</p>
             ) : (
               <div className="space-y-3">
                 <div className="flex justify-between items-center pb-3 border-b" style={{ borderColor: '#fca5a5' }}>
@@ -649,9 +649,9 @@ export default function CorteCaja() {
                   {summary.ordenes_canceladas.map(o => (
                     <div key={o.id} className="flex justify-between items-center text-xs py-1.5">
                       <div>
-                        <span className="font-semibold text-gray-700">{o.mesa}</span>
-                        <span className="text-gray-400 ml-2">· {o.mesero}</span>
-                        {o.notes && <span className="text-gray-400 ml-2 italic text-xs">{o.notes.slice(0, 60)}</span>}
+                        <span className="font-semibold text-white/70">{o.mesa}</span>
+                        <span className="text-white/40 ml-2">· {o.mesero}</span>
+                        {o.notes && <span className="text-white/40 ml-2 italic text-xs">{o.notes.slice(0, 60)}</span>}
                       </div>
                       <span className="font-mono text-red-600 font-semibold">${fmt((o as any).wasteCost || o.subtotal)}</span>
                     </div>
@@ -665,7 +665,7 @@ export default function CorteCaja() {
         {/* ── Detalle fiscal ── */}
         {summary && (
           <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72' }}>
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
               <Receipt size={16} style={{ color: '#10b981' }} /> Resumen Fiscal del Turno
             </h3>
             <div className="space-y-2.5">
@@ -676,7 +676,7 @@ export default function CorteCaja() {
                 { label: 'TOTAL VENTAS',         value: summary.ventas_total,                    color: '#1B3A6B', bold: true },
               ].map(row => (
                 <div key={row.label} className={`flex justify-between items-center ${row.bold ? 'pt-2 border-t font-bold' : ''}`}
-                  style={{ borderColor: '#f3f4f6' }}>
+                  style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                   <span className="text-sm" style={{ color: row.bold ? '#1B3A6B' : '#6b7280' }}>{row.label}</span>
                   <span className="font-mono text-sm" style={{ color: row.color, fontWeight: row.bold ? 700 : 400 }}>
                     {row.value < 0 ? '-' : ''}${fmt(Math.abs(row.value))}
@@ -690,7 +690,7 @@ export default function CorteCaja() {
 
       {/* ── Cierre de caja ── */}
       <div className="bg-[#162d55] rounded-2xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+        <h3 className="text-base font-bold text-white mb-5 flex items-center gap-2">
           <Lock size={18} style={{ color: '#ef4444' }} /> Cierre de Caja
         </h3>
 
@@ -699,7 +699,7 @@ export default function CorteCaja() {
           {/* Denominaciones */}
           <div>
             <button onClick={() => setShowDenominaciones(d => !d)}
-              className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3 w-full">
+              className="flex items-center gap-2 text-sm font-semibold text-white/70 mb-3 w-full">
               <Banknote size={16} style={{ color: '#10b981' }} />
               Conteo de efectivo
               {showDenominaciones ? <ChevronUp size={14} className="ml-auto" /> : <ChevronDown size={14} className="ml-auto" />}
@@ -713,7 +713,7 @@ export default function CorteCaja() {
                     <div className="flex items-center gap-2 flex-1">
                       <button onClick={() => setDenominaciones(prev => ({ ...prev, [d.valor]: Math.max(0, (prev[d.valor] || 0) - 1) }))}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{ backgroundColor: '#fef2f2', color: '#ef4444' }}>
+                        style={{ backgroundColor: 'rgba(248,113,113,0.08)', color: '#ef4444' }}>
                         <Minus size={12} />
                       </button>
                       <input type="number" min={0} value={denominaciones[d.valor] || 0}
@@ -725,7 +725,7 @@ export default function CorteCaja() {
                         style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>
                         <Plus size={12} />
                       </button>
-                      <span className="text-xs text-gray-400 font-mono ml-1">
+                      <span className="text-xs text-white/40 font-mono ml-1">
                         = ${fmt(d.valor * (denominaciones[d.valor] || 0))}
                       </span>
                     </div>
@@ -735,13 +735,13 @@ export default function CorteCaja() {
             )}
 
             {/* Totales */}
-            <div className="mt-4 rounded-xl p-4 space-y-2" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <div className="mt-4 rounded-xl p-4 space-y-2" style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Fondo inicial</span>
+                <span className="text-white/45">Fondo inicial</span>
                 <span className="font-mono">${fmt(corteActivo.fondoInicial)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Ventas en efectivo</span>
+                <span className="text-white/45">Ventas en efectivo</span>
                 <span className="font-mono text-green-600">+${fmt(summary?.ventas_efectivo ?? 0)}</span>
               </div>
               <div className="flex justify-between text-sm font-semibold border-t pt-2" style={{ borderColor: '#e2e8f0' }}>
@@ -765,13 +765,13 @@ export default function CorteCaja() {
           {/* Cierre form */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Cajero que cierra *</label>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Cajero que cierra *</label>
               <input type="text" value={cierrePor} onChange={e => setCierrePor(e.target.value)}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
                 style={{ borderColor: '#243f72' }} placeholder="Nombre del cajero o gerente" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas del corte</label>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Notas del corte</label>
               <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={3}
                 className="w-full px-3 py-2.5 border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
                 style={{ borderColor: '#243f72' }}

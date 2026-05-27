@@ -113,7 +113,7 @@ export default function WasteAnalysisSummary() {
   if (loading) {
     return (
       <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 rounded-lg animate-pulse bg-gray-100" />)}
+        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 rounded-lg animate-pulse bg-[#243f72]/60" />)}
       </div>
     );
   }
@@ -129,19 +129,19 @@ export default function WasteAnalysisSummary() {
             <div key={rec} className="rounded-xl p-3 text-center" style={{ backgroundColor: cfg.bg }}>
               <Icon size={16} className="mx-auto mb-1" style={{ color: cfg.color }} />
               <p className="text-xl font-bold" style={{ color: cfg.color }}>{summary[rec]}</p>
-              <p className="text-xs mt-0.5 text-gray-600">{cfg.label}</p>
+              <p className="text-xs mt-0.5 text-white/60">{cfg.label}</p>
             </div>
           );
         })}
-        <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#fef2f2' }}>
-          <p className="text-xs text-gray-500 mb-1">Costo desperdicio est.</p>
+        <div className="rounded-xl p-3 text-center" style={{ backgroundColor: 'rgba(248,113,113,0.08)' }}>
+          <p className="text-xs text-white/45 mb-1">Costo desperdicio est.</p>
           <p className="text-xl font-bold text-red-600">${summary.totalWasteCost.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</p>
-          <p className="text-xs text-gray-500">últimos 90 días</p>
+          <p className="text-xs text-white/45">últimos 90 días</p>
         </div>
       </div>
 
       {/* Info */}
-      <div className="flex items-start gap-2 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#eff6ff', borderLeft: '3px solid #3b82f6' }}>
+      <div className="flex items-start gap-2 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: '#eff6ff', borderLeft: '3px solid #3b82f6' }}>
         <Info size={13} className="flex-shrink-0 mt-0.5 text-blue-500" />
         Análisis basado en los últimos 90 días de movimientos. Los ajustes negativos se contabilizan como desperdicio (caducidad/merma). Ve a <strong className="mx-1">Inventario → Análisis de Desperdicio</strong> para el detalle completo por insumo.
       </div>
@@ -150,7 +150,7 @@ export default function WasteAnalysisSummary() {
         {/* Chart */}
         {chartData.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">% Desperdicio por insumo (top 10)</h3>
+            <h3 className="text-sm font-semibold text-white/70 mb-3">% Desperdicio por insumo (top 10)</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} layout="vertical" barSize={10}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -168,13 +168,13 @@ export default function WasteAnalysisSummary() {
           {/* Top waste */}
           {topWaste.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">⚠️ Mayor desperdicio — reducir pedido</h3>
+              <h3 className="text-sm font-semibold text-white/70 mb-2">⚠️ Mayor desperdicio — reducir pedido</h3>
               <div className="space-y-1.5">
                 {topWaste.map((i) => (
-                  <div key={i.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
+                  <div key={i.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(248,113,113,0.08)' }}>
                     <div>
-                      <p className="text-xs font-semibold text-gray-800">{i.name}</p>
-                      <p className="text-xs text-gray-500">{i.wasteRatio.toFixed(1)}% desperdicio</p>
+                      <p className="text-xs font-semibold text-white/80">{i.name}</p>
+                      <p className="text-xs text-white/45">{i.wasteRatio.toFixed(1)}% desperdicio</p>
                     </div>
                     <p className="text-xs font-bold text-red-600">-${i.estimatedWasteCost.toFixed(0)}</p>
                   </div>
@@ -186,13 +186,13 @@ export default function WasteAnalysisSummary() {
           {/* Need to buy */}
           {needBuy.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">🛒 Stock bajo — comprar urgente</h3>
+              <h3 className="text-sm font-semibold text-white/70 mb-2">🛒 Stock bajo — comprar urgente</h3>
               <div className="space-y-1.5">
                 {needBuy.map((i) => (
-                  <div key={i.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: '#fffbeb' }}>
+                  <div key={i.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(245,158,11,0.08)' }}>
                     <div>
-                      <p className="text-xs font-semibold text-gray-800">{i.name}</p>
-                      <p className="text-xs text-gray-500">{i.currentStock.toFixed(1)} {i.unit} disponibles</p>
+                      <p className="text-xs font-semibold text-white/80">{i.name}</p>
+                      <p className="text-xs text-white/45">{i.currentStock.toFixed(1)} {i.unit} disponibles</p>
                     </div>
                     <p className="text-xs font-bold text-amber-600">{i.daysOfStock < 999 ? `${i.daysOfStock.toFixed(0)}d` : '∞'}</p>
                   </div>
@@ -202,7 +202,7 @@ export default function WasteAnalysisSummary() {
           )}
 
           {topWaste.length === 0 && needBuy.length === 0 && (
-            <div className="flex items-center gap-2 p-4 rounded-lg" style={{ backgroundColor: '#f0fdf4' }}>
+            <div className="flex items-center gap-2 p-4 rounded-lg" style={{ backgroundColor: 'rgba(74,222,128,0.07)' }}>
               <CheckCircle size={16} className="text-green-500" />
               <p className="text-sm text-green-700">¡Inventario en buen estado! No se detectaron problemas críticos.</p>
             </div>

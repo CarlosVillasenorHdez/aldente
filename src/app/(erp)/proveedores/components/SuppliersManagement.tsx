@@ -87,18 +87,18 @@ function SupplierModal({ supplier, onClose, onSaved }: {
 
   const F = ({ label, k, placeholder, type }: { label: string; k: keyof Supplier; placeholder?: string; type?: string }) => (
     <div>
-      <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>{label}</label>
       <input type={type ?? 'text'} value={(form[k] as string) ?? ''} placeholder={placeholder}
         onChange={e => set(k, e.target.value)}
-        style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)' }} />
     </div>
   );
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+      <div style={{ background: '#162d55', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1f2937', margin: 0 }}>{form.id ? 'Editar' : 'Nuevo'} proveedor</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{form.id ? 'Editar' : 'Nuevo'} proveedor</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="#9ca3af" /></button>
         </div>
         <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -113,53 +113,53 @@ function SupplierModal({ supplier, onClose, onSaved }: {
           </div>
           {/* Dirección estructurada */}
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Dirección</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Dirección</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input value={form.street ?? ''} onChange={e => set('street', e.target.value)}
                 placeholder="Calle y número — Ej: Av. Insurgentes Sur 1234"
-                style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', boxSizing: 'border-box' as const }} />
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)', boxSizing: 'border-box' as const }} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: 8 }}>
                 <input value={form.colonia ?? ''} onChange={e => set('colonia', e.target.value)}
                   placeholder="Colonia / Barrio"
-                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)' }} />
                 <input value={form.postal_code ?? ''} onChange={e => set('postal_code', e.target.value.replace(/\D/g,''))} maxLength={5}
                   placeholder="C.P."
-                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', fontFamily: 'monospace' }} />
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input value={form.city ?? ''} onChange={e => set('city', e.target.value)}
                   placeholder="Ciudad / Municipio"
-                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)' }} />
                 <input value={form.state_region ?? ''} onChange={e => set('state_region', e.target.value)}
                   placeholder="Estado"
-                  style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }} />
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)' }} />
               </div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Condiciones de pago</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Condiciones de pago</label>
               <select value={form.payment_terms ?? 'contado'} onChange={e => set('payment_terms', e.target.value)}
-                style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937' }}>
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)' }}>
                 {PAYMENT_TERMS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Límite de crédito ($)</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Límite de crédito ($)</label>
               <input type="number" min={0} step={100} value={form.credit_limit ?? 0}
                 onChange={e => set('credit_limit', parseFloat(e.target.value) || 0)}
-                style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', fontFamily: 'monospace' }} />
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace' }} />
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Notas</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 4 }}>Notas</label>
             <textarea value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} rows={2}
               placeholder="Horarios de entrega, condiciones especiales…"
-              style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: '#1f2937', resize: 'vertical', fontFamily: 'inherit' }} />
+              style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #243f72', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', color: 'rgba(255,255,255,0.85)', resize: 'vertical', fontFamily: 'inherit' }} />
           </div>
         </div>
         <div style={{ padding: '14px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #243f72', background: 'transparent', color: 'rgba(255,255,255,0.45)', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
           <button onClick={save} disabled={saving}
             style={{ padding: '8px 22px', borderRadius: 8, border: 'none', background: saving ? '#93c5fd' : '#1B3A6B', color: 'white', fontSize: 13, fontWeight: 600, cursor: saving ? 'wait' : 'pointer' }}>
             {saving ? 'Guardando…' : 'Guardar'}

@@ -60,7 +60,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 rounded-t-2xl border-b"
-          style={{ borderColor: '#f3f4f6' }}
+          style={{ borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <div className="flex items-center gap-3">
             <div
@@ -70,14 +70,14 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
               <AlertTriangle size={18} className="text-red-500" />
             </div>
             <div>
-              <h2 className="font-700 text-gray-900 text-base" style={{ fontWeight: 700 }}>
+              <h2 className="font-700 text-white text-base" style={{ fontWeight: 700 }}>
                 Cancelar Orden
               </h2>
-              <p className="text-xs text-gray-500 font-mono">{order.id} · {order.mesa}</p>
+              <p className="text-xs text-white/45 font-mono">{order.id} · {order.mesa}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} className="text-gray-400" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#243f72]/60 transition-colors">
+            <X size={18} className="text-white/40" />
           </button>
         </div>
 
@@ -86,7 +86,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
             {/* Warning */}
             <div
               className="rounded-xl px-4 py-3 flex items-start gap-3"
-              style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}
+              style={{ backgroundColor: 'rgba(248,113,113,0.08)', border: '1px solid #fca5a5' }}
             >
               <AlertTriangle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-700">
@@ -100,7 +100,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
             {cancelType === 'con_costo' && (
               <div
                 className="rounded-xl px-4 py-3 flex items-start gap-3"
-                style={{ backgroundColor: '#fff7ed', border: '1px solid #fb923c' }}
+                style={{ backgroundColor: 'rgba(251,146,60,0.08)', border: '1px solid #fb923c' }}
               >
                 <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" style={{ color: '#ea580c' }} />
                 <div>
@@ -119,16 +119,16 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
             {/* Order summary mini */}
             <div
               className="rounded-xl p-3 flex items-center justify-between"
-              style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+              style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}
             >
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Orden a cancelar</p>
-                <p className="text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>
+                <p className="text-xs text-white/40 mb-0.5">Orden a cancelar</p>
+                <p className="text-sm font-600 text-white/80" style={{ fontWeight: 600 }}>
                   {order.items.reduce((s, i) => s + i.qty, 0)} platillos · {order.items.length} tipos
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 mb-0.5">Total que se anulará</p>
+                <p className="text-xs text-white/40 mb-0.5">Total que se anulará</p>
                 <p className="font-mono font-700 text-red-600 text-base" style={{ fontWeight: 700 }}>
                   ${order.total.toFixed(2)}
                 </p>
@@ -137,10 +137,10 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
 
             {/* Reason selector */}
             <div>
-              <label className="block text-sm font-600 text-gray-700 mb-1.5" style={{ fontWeight: 600 }}>
+              <label className="block text-sm font-600 text-white/70 mb-1.5" style={{ fontWeight: 600 }}>
                 Motivo de cancelación <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-gray-400 mb-2">
+              <p className="text-xs text-white/40 mb-2">
                 Selecciona el motivo principal para el registro interno
               </p>
               <div className="space-y-2">
@@ -160,7 +160,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
                       className="flex-shrink-0"
                       style={{ accentColor: '#ef4444' }}
                     />
-                    <span className="text-sm text-gray-700">{reason}</span>
+                    <span className="text-sm text-white/70">{reason}</span>
                   </label>
                 ))}
               </div>
@@ -175,7 +175,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
             {/* Custom reason */}
             {isOther && (
               <div className="animate-fade-in">
-                <label className="block text-sm font-600 text-gray-700 mb-1.5" style={{ fontWeight: 600 }}>
+                <label className="block text-sm font-600 text-white/70 mb-1.5" style={{ fontWeight: 600 }}>
                   Describe el motivo <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -200,7 +200,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm }: CancelOr
           {/* Footer */}
           <div
             className="flex items-center gap-3 px-6 py-4 border-t"
-            style={{ borderColor: '#f3f4f6' }}
+            style={{ borderColor: 'rgba(255,255,255,0.06)' }}
           >
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">
               Volver

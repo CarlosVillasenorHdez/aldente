@@ -35,7 +35,7 @@ const inp = "w-full border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm bg-[#0f
 
 function StockBadge({ item }: { item: ExtraItem }) {
   if (!item.tracksInventory) {
-    return <span className="text-xs text-gray-500 italic">Sin control</span>;
+    return <span className="text-xs text-white/45 italic">Sin control</span>;
   }
   const color = item.stockActual <= 0 ? 'text-red-400' :
     item.stockActual <= item.stockMinimo ? 'text-orange-400' :
@@ -120,7 +120,7 @@ export default function ExtrasInventario() {
     await load();
   }
 
-  if (loading) return <div className="text-sm text-gray-400 py-12 text-center">Cargando...</div>;
+  if (loading) return <div className="text-sm text-white/40 py-12 text-center">Cargando...</div>;
 
   return (
     <div className="p-6 space-y-5">
@@ -151,7 +151,7 @@ export default function ExtrasInventario() {
       <div className="bg-[#132240] border border-[#243f72] rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#243f72] text-xs text-gray-400 uppercase tracking-wide">
+            <tr className="border-b border-[#243f72] text-xs text-white/40 uppercase tracking-wide">
               <th className="text-left px-5 py-3 font-semibold">Producto</th>
               <th className="text-left px-4 py-3 font-semibold">Tipo</th>
               <th className="text-right px-4 py-3 font-semibold">Precio venta</th>
@@ -163,7 +163,7 @@ export default function ExtrasInventario() {
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-12 text-gray-500">
+              <tr><td colSpan={7} className="text-center py-12 text-white/45">
                 No hay productos en la tienda de extras.<br/>
                 <span className="text-xs">Agrégalos desde Tienda de Extras → Catálogo.</span>
               </td></tr>
@@ -180,19 +180,19 @@ export default function ExtrasInventario() {
                       <span className="font-medium text-gray-100">{item.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-400 capitalize">{item.type === 'membership' ? 'Membresía' : item.type === 'product' ? 'Producto' : 'Otro'}</td>
+                  <td className="px-4 py-3 text-white/40 capitalize">{item.type === 'membership' ? 'Membresía' : item.type === 'product' ? 'Producto' : 'Otro'}</td>
                   <td className="px-4 py-3 text-right text-gray-200 font-mono">${item.price.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right font-mono">
                     {item.costoUnitario > 0
                       ? <span className="text-gray-200">${item.costoUnitario.toFixed(2)}</span>
-                      : <span className="text-gray-600 text-xs">No definido</span>}
+                      : <span className="text-white/60 text-xs">No definido</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {item.costoUnitario > 0 && item.price > 0 ? (
                       <span className={`font-semibold text-xs ${margin >= 40 ? 'text-green-400' : margin >= 20 ? 'text-amber-400' : 'text-red-400'}`}>
                         {margin.toFixed(0)}%
                       </span>
-                    ) : <span className="text-gray-600 text-xs">—</span>}
+                    ) : <span className="text-white/60 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center"><StockBadge item={item} /></td>
                   <td className="px-4 py-3">
@@ -224,16 +224,16 @@ export default function ExtrasInventario() {
           <div className="bg-[#0f1923] border border-[#2a3f5f] rounded-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-gray-100">{editing.name}</h3>
-              <button onClick={() => setEditing(null)} className="text-gray-500 hover:text-gray-300"><X size={18}/></button>
+              <button onClick={() => setEditing(null)} className="text-white/45 hover:text-white/30"><X size={18}/></button>
             </div>
 
             {/* Toggle de control de inventario */}
             <label className="flex items-center gap-3 cursor-pointer">
               <div onClick={() => setEditForm(f => ({ ...f, tracksInventory: !f.tracksInventory }))}
                 className={`relative w-11 h-6 rounded-full transition-colors ${editForm.tracksInventory ? 'bg-amber-500' : 'bg-gray-700'}`}>
-                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${editForm.tracksInventory ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`absolute top-0.5 w-5 h-5 bg-[#162d55] rounded-full shadow transition-transform ${editForm.tracksInventory ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
-              <span className="text-sm text-gray-300">Controla inventario físico</span>
+              <span className="text-sm text-white/30">Controla inventario físico</span>
             </label>
 
             {editForm.tracksInventory ? (
@@ -245,14 +245,14 @@ export default function ExtrasInventario() {
                   { lbl:'Punto de reorden (alerta compra)', key:'puntoReorden' },
                 ].map(({ lbl, key }) => (
                   <div key={key}>
-                    <label className="text-xs text-gray-400 block mb-1">{lbl}</label>
+                    <label className="text-xs text-white/40 block mb-1">{lbl}</label>
                     <input type="number" min={0} className={inp}
                       value={(editForm as any)[key] ?? 0}
                       onChange={e => setEditForm(f => ({ ...f, [key]: Number(e.target.value) }))} />
                   </div>
                 ))}
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Unidad</label>
+                  <label className="text-xs text-white/40 block mb-1">Unidad</label>
                   <select className={inp} value={editForm.unidad ?? 'pieza'}
                     onChange={e => setEditForm(f => ({ ...f, unidad: e.target.value }))}>
                     {['pieza','caja','paquete','kit','unidad','par','set','rollo'].map(u =>
@@ -268,13 +268,13 @@ export default function ExtrasInventario() {
                 )}
               </div>
             ) : (
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-xs text-white/45 italic">
                 Sin control de inventario — no descuenta stock al vender. Útil para membresías digitales o servicios.
               </p>
             )}
 
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-xl text-sm text-gray-400 border border-[#2a3f5f] hover:bg-[#1a2535]">Cancelar</button>
+              <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-xl text-sm text-white/40 border border-[#2a3f5f] hover:bg-[#1a2535]">Cancelar</button>
               <button onClick={saveEdit} disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-[#1B3A6B] disabled:opacity-50">
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
@@ -291,10 +291,10 @@ export default function ExtrasInventario() {
               <ShoppingCart size={20} className="text-green-400" />
               <h3 className="text-base font-bold text-gray-100">Entrada de mercancía</h3>
             </div>
-            <p className="text-sm text-gray-400">{showEntry.name}</p>
-            <p className="text-xs text-gray-500">Stock actual: <strong className="text-gray-300">{showEntry.stockActual} {showEntry.unidad}(s)</strong></p>
+            <p className="text-sm text-white/40">{showEntry.name}</p>
+            <p className="text-xs text-white/45">Stock actual: <strong className="text-white/30">{showEntry.stockActual} {showEntry.unidad}(s)</strong></p>
             <div>
-              <label className="text-xs text-gray-400 block mb-1">¿Cuántas unidades llegaron?</label>
+              <label className="text-xs text-white/40 block mb-1">¿Cuántas unidades llegaron?</label>
               <input type="number" min={1} className={inp} value={entryQty}
                 onChange={e => setEntryQty(Number(e.target.value))} autoFocus />
             </div>
@@ -304,7 +304,7 @@ export default function ExtrasInventario() {
               </p>
             )}
             <div className="flex gap-3">
-              <button onClick={() => setShowEntry(null)} className="flex-1 py-2.5 rounded-xl text-sm text-gray-400 border border-[#2a3f5f]">Cancelar</button>
+              <button onClick={() => setShowEntry(null)} className="flex-1 py-2.5 rounded-xl text-sm text-white/40 border border-[#2a3f5f]">Cancelar</button>
               <button onClick={registerEntry} disabled={saving || entryQty <= 0}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">
                 {saving ? 'Registrando...' : `+ ${entryQty} ${showEntry.unidad}(s)`}

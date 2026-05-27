@@ -164,12 +164,12 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#243f72' }}>
           <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             {gasto ? 'Editar Gasto' : 'Nuevo Gasto Recurrente'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors">
             <X size={18} className="text-white/45" />
           </button>
         </div>
@@ -182,7 +182,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               onChange={e => handleChange('nombre', e.target.value)}
               placeholder="Ej: Luz (CFE), Agua, Gas LP..."
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           {isUnico && (
@@ -199,7 +199,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                 value={form.categoria}
                 onChange={e => handleChange('categoria', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 {(Object.keys(CATEGORIA_LABELS) as GastoCategoria[]).map(k => (
                   <option key={k} value={k}>{CATEGORIA_LABELS[k]}</option>
@@ -212,7 +212,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                 value={form.frecuencia}
                 onChange={e => handleChange('frecuencia', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 {(Object.keys(FRECUENCIA_LABELS) as GastoFrecuencia[]).map(k => (
                   <option key={k} value={k}>{FRECUENCIA_LABELS[k]}</option>
@@ -230,7 +230,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                 value={form.monto}
                 onChange={e => handleChange('monto', parseFloat(e.target.value) || 0)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
             </div>
             {!isUnico && <div>
@@ -250,7 +250,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                   handleChange('proximo_pago', d.toISOString().split('T')[0]);
                 }}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Ej: 1 = cada primero · 15 = quincena · 31 = fin de mes</p>
             </div>}
@@ -262,7 +262,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               value={form.proximo_pago ?? ''}
               onChange={e => handleChange('proximo_pago', e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
             <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Se actualiza automáticamente al cambiar el día de pago</p>
           </div>
@@ -275,7 +275,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               onChange={e => handleChange('proveedor', e.target.value)}
               placeholder="Ej: Bimbo, CFE, Arrendador García"
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -285,7 +285,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                 value={form.metodo_pago ?? 'efectivo'}
                 onChange={e => handleChange('metodo_pago', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 <option value="efectivo">💵 Efectivo</option>
                 <option value="transferencia">🏦 Transferencia</option>
@@ -306,7 +306,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
                 disabled={form.metodo_pago !== 'credito'}
                 placeholder="0"
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
+                style={{ borderColor: '#243f72', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
             </div>
@@ -318,7 +318,7 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               onChange={e => handleChange('notas', e.target.value)}
               rows={2}
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -329,11 +329,11 @@ function GastoModal({ gasto, onClose, onSave, isUnico = false }: GastoModalProps
               onChange={e => handleChange('activo', e.target.checked)}
               className="w-4 h-4 rounded"
             />
-            <label htmlFor="activo" className="text-sm text-gray-700">Gasto activo (se incluye en P&L)</label>
+            <label htmlFor="activo" className="text-sm text-white/70">Gasto activo (se incluye en P&L)</label>
           </div>
         </div>
         <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#243f72' }}>
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: 'rgba(255,255,255,0.75)' }}>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-[#0f1e38]" style={{ fontWeight: 600, borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}>
             Cancelar
           </button>
           <button
@@ -372,12 +372,12 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: '#243f72' }}>
           <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>
             {dep ? 'Editar Activo' : 'Nuevo Activo / Amortización'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors">
             <X size={18} className="text-white/45" />
           </button>
         </div>
@@ -390,7 +390,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               onChange={e => handleChange('nombre', e.target.value)}
               placeholder="Ej: Estufa Industrial, Refrigerador..."
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -400,7 +400,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.tipo}
                 onChange={e => handleChange('tipo', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 <option value="depreciacion">Depreciación (Activo Fijo)</option>
                 <option value="amortizacion">Amortización (Activo Intangible)</option>
@@ -412,7 +412,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.metodo}
                 onChange={e => handleChange('metodo', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 {(Object.keys(METODO_LABELS) as DepreciacionMetodo[]).map(k => (
                   <option key={k} value={k}>{METODO_LABELS[k]}</option>
@@ -428,7 +428,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.valor_original}
                 onChange={e => handleChange('valor_original', parseFloat(e.target.value) || 0)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
             </div>
             <div>
@@ -438,7 +438,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.valor_residual}
                 onChange={e => handleChange('valor_residual', parseFloat(e.target.value) || 0)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
             </div>
           </div>
@@ -450,7 +450,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.vida_util_anios}
                 onChange={e => handleChange('vida_util_anios', parseInt(e.target.value) || 1)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
             </div>
             <div>
@@ -460,7 +460,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.fecha_adquisicion}
                 onChange={e => handleChange('fecha_adquisicion', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               />
             </div>
           </div>
@@ -480,7 +480,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               onChange={e => handleChange('proveedor', e.target.value)}
               placeholder="Ej: Bimbo, CFE, Arrendador García"
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -490,7 +490,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 value={form.metodo_pago ?? 'efectivo'}
                 onChange={e => handleChange('metodo_pago', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db' }}
+                style={{ borderColor: '#243f72' }}
               >
                 <option value="efectivo">💵 Efectivo</option>
                 <option value="transferencia">🏦 Transferencia</option>
@@ -511,7 +511,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
                 disabled={form.metodo_pago !== 'credito'}
                 placeholder="0"
                 className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                style={{ borderColor: '#d1d5db', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
+                style={{ borderColor: '#243f72', opacity: form.metodo_pago === 'credito' ? 1 : 0.4 }}
               />
               <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Solo aplica a pagos en crédito</p>
             </div>
@@ -523,7 +523,7 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               onChange={e => handleChange('notas', e.target.value)}
               rows={2}
               className="w-full border rounded-lg px-3 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-              style={{ borderColor: '#d1d5db' }}
+              style={{ borderColor: '#243f72' }}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -534,11 +534,11 @@ function DepModal({ dep, onClose, onSave }: DepModalProps) {
               onChange={e => handleChange('activo', e.target.checked)}
               className="w-4 h-4 rounded"
             />
-            <label htmlFor="dep_activo" className="text-sm text-gray-700">Activo vigente (se incluye en P&L)</label>
+            <label htmlFor="dep_activo" className="text-sm text-white/70">Activo vigente (se incluye en P&L)</label>
           </div>
         </div>
         <div className="flex gap-3 p-5 border-t" style={{ borderColor: '#243f72' }}>
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-gray-50" style={{ fontWeight: 600, borderColor: '#d1d5db', color: 'rgba(255,255,255,0.75)' }}>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg text-sm font-600 border transition-colors hover:bg-[#0f1e38]" style={{ fontWeight: 600, borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}>
             Cancelar
           </button>
           <button
@@ -884,10 +884,10 @@ export default function GastosManagement() {
                             <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
                               {CATEGORIA_LABELS[gasto.categoria as GastoCategoria]}
                             </span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/60">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[#243f72]/60 text-white/60">
                               {FRECUENCIA_LABELS[gasto.frecuencia]}
                             </span>
-                            {!gasto.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/40">Inactivo</span>}
+                            {!gasto.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-[#243f72]/60 text-white/40">Inactivo</span>}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                             <span className="text-sm font-700 text-white/80" style={{ fontWeight: 700 }}>
@@ -929,7 +929,7 @@ export default function GastosManagement() {
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={() => { setEditingGasto(gasto); setShowGastoModal(true); }}
-                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors"
                           >
                             <Edit2 size={14} className="text-white/40" />
                           </button>
@@ -1002,15 +1002,15 @@ export default function GastosManagement() {
                               }}>
                                 {isAmort ? 'Amortización' : 'Depreciación'}
                               </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/45">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#243f72]/60 text-white/45">
                                 {METODO_LABELS[dep.metodo as DepreciacionMetodo]}
                               </span>
-                              {!dep.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-white/40">Inactivo</span>}
+                              {!dep.activo && <span className="text-xs px-2 py-0.5 rounded-full bg-[#243f72]/60 text-white/40">Inactivo</span>}
                             </div>
                             <div className="flex items-center gap-4 text-xs text-white/45 flex-wrap">
-                              <span>Valor original: <strong className="text-gray-700">${dep.valor_original.toLocaleString('es-MX')}</strong></span>
-                              <span>Vida útil: <strong className="text-gray-700">{dep.vida_util_anios} años</strong></span>
-                              <span>Adquisición: <strong className="text-gray-700">{dep.fecha_adquisicion}</strong></span>
+                              <span>Valor original: <strong className="text-white/70">${dep.valor_original.toLocaleString('es-MX')}</strong></span>
+                              <span>Vida útil: <strong className="text-white/70">{dep.vida_util_anios} años</strong></span>
+                              <span>Adquisición: <strong className="text-white/70">{dep.fecha_adquisicion}</strong></span>
                             </div>
                             {/* Progress bar */}
                             <div className="mt-2">
@@ -1018,7 +1018,7 @@ export default function GastosManagement() {
                                 <span>Depreciado: ${acumulada.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span>
                                 <span>{pct.toFixed(1)}%</span>
                               </div>
-                              <div className="w-full h-1.5 rounded-full bg-gray-100">
+                              <div className="w-full h-1.5 rounded-full bg-[#243f72]/60">
                                 <div
                                   className="h-1.5 rounded-full transition-all"
                                   style={{ width: `${pct}%`, backgroundColor: isAmort ? '#3b82f6' : '#8b5cf6' }}
@@ -1034,7 +1034,7 @@ export default function GastosManagement() {
                             <div className="flex items-center gap-1 mt-2 justify-end">
                               <button
                                 onClick={() => { setEditingDep(dep); setShowDepModal(true); }}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors"
                               >
                                 <Edit2 size={14} className="text-white/40" />
                               </button>
@@ -1074,13 +1074,13 @@ export default function GastosManagement() {
       {/* ── Registrar Pago Modal ── */}
       {showPagoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="bg-[#162d55] rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-[#243f72]/50">
               <div>
                 <h3 className="font-bold text-white">Registrar pago</h3>
                 <p className="text-sm text-white/45 mt-0.5">{showPagoModal.nombre}</p>
               </div>
-              <button onClick={() => setShowPagoModal(null)} className="p-2 rounded-xl hover:bg-white/10"><X size={18} /></button>
+              <button onClick={() => setShowPagoModal(null)} className="p-2 rounded-xl hover:bg-[#162d55]/10"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
               {pagosPendientes(showPagoModal) > 1 && (
@@ -1097,7 +1097,7 @@ export default function GastosManagement() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-medium">$</span>
                   <input type="number" value={pagoForm.monto_pagado} min={0} step={0.01}
                     onChange={e => setPagoForm(f => ({ ...f, monto_pagado: Number(e.target.value) }))}
-                    className="w-full pl-7 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                    className="w-full pl-7 pr-3 py-2.5 border border-[#243f72] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                 </div>
                 <p className="text-xs text-white/40 mt-1">Monto programado: ${showPagoModal.monto.toLocaleString('es-MX')}</p>
               </div>
@@ -1105,13 +1105,13 @@ export default function GastosManagement() {
                 <label className="block text-xs font-semibold text-white/60 mb-1.5">Fecha de pago</label>
                 <input type="date" value={pagoForm.fecha_pago}
                   onChange={e => setPagoForm(f => ({ ...f, fecha_pago: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  className="w-full px-3 py-2.5 border border-[#243f72] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-white/60 mb-1.5">Notas (opcional)</label>
                 <input type="text" value={pagoForm.notas} placeholder="Referencia bancaria, comprobante..."
                   onChange={e => setPagoForm(f => ({ ...f, notas: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  className="w-full px-3 py-2.5 border border-[#243f72] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
               {/* Payment history */}
               {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).length > 0 && (
@@ -1119,7 +1119,7 @@ export default function GastosManagement() {
                   <p className="text-xs font-semibold text-white/60 mb-2">Historial de pagos</p>
                   <div className="space-y-1.5 max-h-32 overflow-y-auto">
                     {gastosPagos.filter(p => p.gasto_id === showPagoModal.id).slice(0, 6).map(p => (
-                      <div key={p.id} className="flex justify-between items-center text-xs py-1.5 px-2.5 rounded-lg" style={{ background: '#f9fafb' }}>
+                      <div key={p.id} className="flex justify-between items-center text-xs py-1.5 px-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)' }}>
                         <span className="text-white/45">{p.fecha_pago}</span>
                         <span className="font-mono font-semibold text-white/80">${Number(p.monto_pagado).toLocaleString('es-MX')}</span>
                         {p.notas && <span className="text-white/40 truncate max-w-24">{p.notas}</span>}
@@ -1129,8 +1129,8 @@ export default function GastosManagement() {
                 </div>
               )}
             </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setShowPagoModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-white/60 hover:bg-gray-50">
+            <div className="flex gap-3 p-5 border-t border-[#243f72]/50">
+              <button onClick={() => setShowPagoModal(null)} className="flex-1 py-2.5 rounded-xl border border-[#243f72] text-sm font-medium text-white/60 hover:bg-[#0f1e38]">
                 Cancelar
               </button>
               <button onClick={handleRegistrarPago} disabled={savingPago}

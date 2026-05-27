@@ -122,7 +122,7 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
   const avail   = member ? isBenefitAvailableToday(member.dailyBenefitUsedAt) : false;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden w-full max-w-sm">
+    <div className="bg-[#162d55] dark:bg-gray-900 rounded-2xl shadow-xl border border-[#243f72]/50 dark:border-gray-800 overflow-hidden w-full max-w-sm">
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 bg-amber-600">
@@ -141,13 +141,13 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
 
         {/* Búsqueda */}
         <div>
-          <label className="text-xs text-gray-500 font-medium block mb-1.5 flex items-center gap-1">
+          <label className="text-xs text-white/45 font-medium block mb-1.5 flex items-center gap-1">
             <Phone size={12} /> Número de celular
           </label>
           <div className="flex gap-2">
             <input
               ref={inputRef}
-              className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="flex-1 border border-[#243f72] dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-[#162d55] dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
               placeholder="5512345678"
               value={phone}
               maxLength={10}
@@ -170,12 +170,12 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
               <Search size={16} />
             </button>
           </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Se busca automáticamente al ingresar 10 dígitos</p>
+          <p className="text-xs text-white/60 dark:text-white/40 mt-1">Se busca automáticamente al ingresar 10 dígitos</p>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-4 text-sm text-gray-600">Buscando...</div>
+          <div className="text-center py-4 text-sm text-white/60">Buscando...</div>
         )}
 
         {/* No encontrado */}
@@ -197,8 +197,8 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
                   {member.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{member.name}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="font-semibold text-sm text-white dark:text-white">{member.name}</p>
+                  <p className="text-xs text-white/60 dark:text-white/40">
                     {member.membershipExpiresAt
                       ? `Vence ${new Date(member.membershipExpiresAt).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}`
                       : 'Sin fecha de vencimiento'}
@@ -215,9 +215,9 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
 
             {/* Beneficio del día */}
             {!active ? (
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <XCircle size={16} className="text-gray-400" />
-                <p className="text-sm text-gray-500">Membresía no activa — sin beneficio</p>
+              <div className="flex items-center gap-2 p-3 bg-[#0f1e38] dark:bg-gray-800 rounded-xl">
+                <XCircle size={16} className="text-white/40" />
+                <p className="text-sm text-white/45">Membresía no activa — sin beneficio</p>
               </div>
             ) : done ? (
               <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
@@ -242,11 +242,11 @@ export default function TermoWidget({ onClose, onBenefitUsed, benefitProductId, 
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                <Clock size={20} className="text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-4 bg-[#0f1e38] dark:bg-gray-800 rounded-xl border border-[#243f72]/50 dark:border-gray-700">
+                <Clock size={20} className="text-white/40 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold text-sm text-gray-700 dark:text-gray-300">Ya usó su café hoy</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="font-semibold text-sm text-white/70 dark:text-white/30">Ya usó su café hoy</p>
+                  <p className="text-xs text-white/45 mt-0.5">
                     A las {new Date(member.dailyBenefitUsedAt!).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}
                     {' '}· Disponible mañana
                   </p>

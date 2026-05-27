@@ -39,8 +39,8 @@ const STEP_INFO = [
   { icon: Rocket,          label: 'Lanzar' },
 ];
 
-const inp = "w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 bg-white";
-const sel = "w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 bg-white";
+const inp = "w-full px-4 py-3 rounded-xl border border-[#243f72] text-sm focus:outline-none focus:border-amber-400 bg-[#162d55]";
+const sel = "w-full px-4 py-3 rounded-xl border border-[#243f72] text-sm focus:outline-none focus:border-amber-400 bg-[#162d55]";
 
 export default function OnboardingFlow() {
   const { appUser } = useAuth();
@@ -348,7 +348,7 @@ export default function OnboardingFlow() {
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
-            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #243f72', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
               <ChevronLeft size={16} /> Atrás
             </button>
             {btn('Siguiente')}
@@ -393,11 +393,11 @@ export default function OnboardingFlow() {
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
-            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #243f72', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
               <ChevronLeft size={16} /> Atrás
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setStep(s => s + 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', color: C.muted }}>
+              <button onClick={() => setStep(s => s + 1)} style={{ background: 'none', border: '1px solid #243f72', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', color: C.muted }}>
                 Omitir
               </button>
               {btn('Siguiente', !dishName.trim() || !dishPrice)}
@@ -438,7 +438,7 @@ export default function OnboardingFlow() {
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
-            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #243f72', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
               <ChevronLeft size={16} /> Atrás
             </button>
             {btn('Siguiente')}
@@ -481,7 +481,7 @@ export default function OnboardingFlow() {
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between' }}>
-            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
+            <button onClick={() => setStep(s => s - 1)} style={{ background: 'none', border: '1px solid #243f72', borderRadius: 12, padding: '14px 20px', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: C.muted }}>
               <ChevronLeft size={16} /> Atrás
             </button>
             {btn('Siguiente')}
@@ -507,7 +507,7 @@ export default function OnboardingFlow() {
               [dishEmoji || '🍽️', dishName || 'Menú', 'Primer platillo'],
               ['📊', 'Dashboard', 'Listo para monitorear'],
             ].map(([emoji, label, sub]) => (
-              <div key={label} style={{ background: '#f8fafc', borderRadius: 12, padding: '14px 10px', border: '1px solid #e5e7eb' }}>
+              <div key={label} style={{ background: '#f8fafc', borderRadius: 12, padding: '14px 10px', border: '1px solid #243f72' }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>{emoji}</div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0 }}>{label}</p>
                 <p style={{ fontSize: 11, color: C.muted, margin: '2px 0 0' }}>{sub}</p>

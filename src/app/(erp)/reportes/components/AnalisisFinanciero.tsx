@@ -510,7 +510,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                         const pyMonth = prevYearMonths[mi];
                         const pyVal = pyMonth ? getVal(row, pyMonth) : null;
                         if (!pyVal || pyVal === 0 || loadingY2Y) {
-                          display = <span style={{ color: '#d1d5db' }}>{loadingY2Y ? '…' : '—'}</span>;
+                          display = <span style={{ color: 'rgba(255,255,255,0.25)' }}>{loadingY2Y ? '…' : '—'}</span>;
                         } else {
                           const pct = ((val - pyVal) / Math.abs(pyVal)) * 100;
                           const goodDir = row.tipo !== 'line' || !row.label.toLowerCase().includes('cost');
@@ -526,11 +526,11 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                         }
                       } else {
                         if (prevVal2 === null || prevVal2 === 0) {
-                          display = <span style={{ color: '#d1d5db' }}>—</span>;
+                          display = <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>;
                         } else {
                           const result = fmtD(val, prevVal2);
                           if (typeof result === 'string') {
-                            display = <span style={{ color: '#d1d5db' }}>{result}</span>;
+                            display = <span style={{ color: 'rgba(255,255,255,0.25)' }}>{result}</span>;
                           } else {
                             display = <span style={{ color: result.color, fontWeight: 500 }}>{result.text}</span>;
                           }
@@ -1107,7 +1107,7 @@ ${horizontalHtml}
                 const pct = Math.round((hoy.getDate() / diasDelMes) * 100);
                 return (
                   <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: '#fffbeb', color: '#fbbf24', border: '1px solid #fcd34d' }}>
+                    style={{ backgroundColor: 'rgba(245,158,11,0.08)', color: '#fbbf24', border: '1px solid #fcd34d' }}>
                     Nómina y gastos al {pct}% del mes ({hoy.getDate()}/{diasDelMes} días)
                   </span>
                 );

@@ -78,7 +78,7 @@ function TableSkeleton() {
   return (
     <div className="grid grid-cols-4 gap-3 p-5">
       {Array.from({ length: 16 }).map((_, i) => (
-        <div key={i} className="rounded-xl animate-pulse" style={{ minHeight: '100px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }} />
+        <div key={i} className="rounded-xl animate-pulse" style={{ minHeight: '100px', backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid #243f72' }} />
       ))}
     </div>
   );
@@ -88,12 +88,12 @@ function MenuSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="rounded-xl overflow-hidden animate-pulse border" style={{ borderColor: '#e5e7eb' }}>
-          <div className="h-24 bg-gray-100" />
+        <div key={i} className="rounded-xl overflow-hidden animate-pulse border" style={{ borderColor: '#243f72' }}>
+          <div className="h-24 bg-[#243f72]/60" />
           <div className="p-3 space-y-2">
-            <div className="h-3 bg-gray-100 rounded w-3/4" />
-            <div className="h-3 bg-gray-100 rounded w-full" />
-            <div className="h-3 bg-gray-100 rounded w-1/2" />
+            <div className="h-3 bg-[#243f72]/60 rounded w-3/4" />
+            <div className="h-3 bg-[#243f72]/60 rounded w-full" />
+            <div className="h-3 bg-[#243f72]/60 rounded w-1/2" />
           </div>
         </div>
       ))}
@@ -128,7 +128,7 @@ function TakeoutCard({
     }}>
       {/* Header: nombre + tiempo */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
           {order.customerName}
         </p>
         <span style={{ fontSize: 10, fontWeight: 700, color: isLate ? '#dc2626' : '#9ca3af', background: isLate ? '#fee2e2' : '#f3f4f6', padding: '1px 6px', borderRadius: 4 }}>
@@ -139,12 +139,12 @@ function TakeoutCard({
       {/* Items */}
       <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {order.items.slice(0, 3).map((item, i) => (
-          <p key={i} style={{ fontSize: 11, color: '#6b7280' }}>
+          <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
             {item.emoji || '🍽️'} {item.qty}× {item.name}
           </p>
         ))}
         {order.items.length > 3 && (
-          <p style={{ fontSize: 10, color: '#9ca3af', fontStyle: 'italic' }}>+{order.items.length - 3} más</p>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>+{order.items.length - 3} más</p>
         )}
       </div>
 
@@ -170,7 +170,7 @@ function TakeoutCard({
         </div>
       )}
       {mode === 'cooking' && (
-        <p style={{ fontSize: 10, color: '#9ca3af', fontStyle: 'italic' }}>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
           {order.kitchenStatus === 'pendiente' ? 'Esperando cocina...' : 'En preparación...'}
         </p>
       )}    </div>
@@ -1792,7 +1792,7 @@ export default function POSClient() {
         )}
       </div>
     )}
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[#0f1e38]">
       <div className="flex-shrink-0">
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
@@ -1820,7 +1820,7 @@ export default function POSClient() {
         <div className="flex-1 flex overflow-hidden pb-14 md:pb-0">
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab bar — clip-path tabs (Emil Kowalski technique) */}
-            <div className="flex items-center gap-1 px-4 pt-3 pb-0 bg-white border-b flex-shrink-0" style={{ borderColor: '#e5e7eb' }}>
+            <div className="flex items-center gap-1 px-4 pt-3 pb-0 bg-[#162d55] border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
               {/* Tabs simples con border-bottom activo */}
               <button
                 onClick={() => setView('tables')}
@@ -1842,7 +1842,7 @@ export default function POSClient() {
               >
                 Menú
                 {selectedTable && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: 'rgba(251,191,36,0.08)', color: '#92400e' }}>
                     {mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)}
                   </span>
                 )}
@@ -1904,7 +1904,7 @@ export default function POSClient() {
                 <button onClick={handleCancelTable} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }} title="Cancelar y liberar mesa sin cobrar">
                     <X size={12} />Cancelar mesa
                   </button>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid #fde68a' }}>
                     <div className="w-2 h-2 rounded-full bg-amber-400" />
                     <span className="font-semibold text-amber-800">{mergeGroupLabel ?? (selectedTable.name.length > 12 ? selectedTable.name.split(' ')[0] : selectedTable.name)} — {itemCount} items</span>
                   </div>
@@ -1915,16 +1915,16 @@ export default function POSClient() {
                 <div className="ml-auto flex items-center gap-2 pb-1">
                   {mergeMode ? (
                     <>
-                      <span className="text-xs text-gray-500">{mergeSelection.length} mesa(s) seleccionada(s)</span>
+                      <span className="text-xs text-white/45">{mergeSelection.length} mesa(s) seleccionada(s)</span>
                       <button onClick={handleConfirmMerge} disabled={mergeSelection.length < 2} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-40" style={{ backgroundColor: '#1B3A6B', color: 'white' }}>
                         <Merge size={12} />Confirmar unión
                       </button>
-                      <button onClick={() => { setMergeMode(false); setMergeSelection([]); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+                      <button onClick={() => { setMergeMode(false); setMergeSelection([]); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
                         Cancelar
                       </button>
                     </>
                   ) : (
-                    <button onClick={() => setMergeMode(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
+                    <button onClick={() => setMergeMode(true)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors" style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1px solid #243f72' }}>
                       <Merge size={12} />Unir mesas
                     </button>
                   )}
@@ -1933,7 +1933,7 @@ export default function POSClient() {
             </div>
 
             {mergeMode && (
-              <div className="flex items-center gap-3 px-4 py-2.5 text-sm flex-shrink-0" style={{ backgroundColor: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
+              <div className="flex items-center gap-3 px-4 py-2.5 text-sm flex-shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderBottom: '1px solid #fde68a' }}>
                 <Merge size={15} style={{ color: '#d97706' }} />
                 <span className="font-semibold text-amber-800">Modo unión de mesas:</span>
                 <span className="text-amber-700">Selecciona 2 o más mesas para unirlas en un solo ticket</span>
@@ -1943,11 +1943,11 @@ export default function POSClient() {
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               {view === 'takeout' ? (
                 // ── Panel de pedidos para llevar en curso ────────────────────
-                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: '#f9fafb', minHeight: '100%' }}>
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: 'rgba(255,255,255,0.04)', minHeight: '100%' }}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Pedidos Para Llevar en Curso</p>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>Pedidos Para Llevar en Curso</p>
                       <p style={{ fontSize: 12, color: takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0 ? '#dc2626' : '#6b7280', marginTop: 2, fontWeight: takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0 ? 600 : 400 }}>
                         {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length > 0
                           ? `🔔 ${takeoutOrders.filter(o => o.kitchenStatus === 'lista').length} listo(s) para entregar`
@@ -1961,7 +1961,7 @@ export default function POSClient() {
                   </div>
 
                   {takeoutOrders.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: '#9ca3af' }}>
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'rgba(255,255,255,0.4)' }}>
                       <p style={{ fontSize: 32, marginBottom: 8 }}>🥡</p>
                       <p style={{ fontSize: 13 }}>Sin pedidos para llevar activos</p>
                     </div>
@@ -1970,7 +1970,7 @@ export default function POSClient() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, alignItems: 'start' }}>
                       {/* Columna: Pendiente / En Cocina */}
                       {(['pendiente', 'preparacion'] as const).map(col => (
-                        <div key={col} style={{ background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                        <div key={col} style={{ background: '#162d55', borderRadius: 12, border: '1px solid #243f72', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                           <div style={{ padding: '10px 14px', background: col === 'pendiente' ? '#eff6ff' : '#fffbeb', borderBottom: `1px solid ${col === 'pendiente' ? '#bfdbfe' : '#fde68a'}` }}>
                             <p style={{ fontSize: 11, fontWeight: 700, color: col === 'pendiente' ? '#1d4ed8' : '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                               {col === 'pendiente' ? '⏳ Pendiente' : '🔥 En Cocina'}
@@ -1988,14 +1988,14 @@ export default function POSClient() {
                               </div>
                             ))}
                             {takeoutOrders.filter(o => o.kitchenStatus === col).length === 0 && (
-                              <p style={{ fontSize: 11, color: '#d1d5db', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
+                              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
                             )}
                           </div>
                         </div>
                       ))}
 
                       {/* Columna: Listo para entregar */}
-                      <div style={{ background: 'white', borderRadius: 12, border: '1px solid #6ee7b7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16,185,129,0.15)' }}>
+                      <div style={{ background: '#162d55', borderRadius: 12, border: '1px solid #6ee7b7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16,185,129,0.15)' }}>
                         <div style={{ padding: '10px 14px', background: '#ecfdf5', borderBottom: '1px solid #6ee7b7' }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             ✅ Listo — Entregar
@@ -2014,7 +2014,7 @@ export default function POSClient() {
                             </div>
                           ))}
                           {takeoutOrders.filter(o => o.kitchenStatus === 'lista').length === 0 && (
-                            <p style={{ fontSize: 11, color: '#d1d5db', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
+                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: '16px 0', fontStyle: 'italic' }}>Vacío</p>
                           )}
                         </div>
                       </div>
@@ -2161,8 +2161,8 @@ export default function POSClient() {
       </div>
 
       {/* ── Mobile bottom tab bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden border-t bg-white shadow-lg"
-        style={{ borderColor: '#e5e7eb' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden border-t bg-[#162d55] shadow-lg"
+        style={{ borderColor: '#243f72' }}>
         {[
           { key: 'tables', label: 'Mesas', emoji: '🪑' },
           { key: 'menu',   label: 'Menú',  emoji: '📋' },
@@ -2371,11 +2371,11 @@ export default function POSClient() {
         <div role="dialog" aria-modal="true" aria-labelledby="pos-cancel-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
-          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#162d55] rounded-2xl p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-50">
               <span className="text-2xl">🗑️</span>
             </div>
-            <h3 id="pos-cancel-title" className="text-base font-bold text-center text-gray-900 mb-2">¿Cancelar mesa?</h3>
+            <h3 id="pos-cancel-title" className="text-base font-bold text-center text-white mb-2">¿Cancelar mesa?</h3>
             {kitchenSent && (
               <div className="mb-3 p-3 rounded-xl text-sm" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
                 <p className="font-semibold text-red-700">Comandas en cocina activas</p>
@@ -2385,12 +2385,12 @@ export default function POSClient() {
                 </p>
               </div>
             )}
-            <p className="text-sm text-center text-gray-500 mb-5">
-              Se liberará <strong className="text-gray-800">{selectedTable.name}</strong>.
+            <p className="text-sm text-center text-white/45 mb-5">
+              Se liberará <strong className="text-white/80">{selectedTable.name}</strong>.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowCancelConfirm(false)} aria-label="Mantener la orden"
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700">
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#243f72]/60 text-white/70">
                 Mantener orden
               </button>
               <button onClick={executeCancelTable} aria-label="Confirmar cancelar y liberar mesa"
@@ -2407,17 +2407,17 @@ export default function POSClient() {
         <div role="dialog" aria-modal="true" aria-labelledby="pos-nokitchen-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
-          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#162d55] rounded-2xl p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-amber-50">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 id="pos-nokitchen-title" className="text-base font-bold text-center text-gray-900 mb-2">Orden no enviada a cocina</h3>
-            <p className="text-sm text-center text-gray-500 mb-5">
+            <h3 id="pos-nokitchen-title" className="text-base font-bold text-center text-white mb-2">Orden no enviada a cocina</h3>
+            <p className="text-sm text-center text-white/45 mb-5">
               Esta orden no fue enviada a cocina todavía. ¿Deseas cobrar de todas formas?
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowNoKitchenConfirm(false)} aria-label="Cancelar cobro"
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700">
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#243f72]/60 text-white/70">
                 Cancelar
               </button>
               <button onClick={() => { setShowNoKitchenConfirm(false); setShowPaymentModal(true); }}

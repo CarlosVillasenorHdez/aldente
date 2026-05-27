@@ -240,7 +240,7 @@ export default function PagoNominaTab() {
   if (loading) {
     return (
       <div className="p-6 space-y-3">
-        {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl animate-pulse bg-white border border-gray-100" />)}
+        {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl animate-pulse bg-[#162d55] border border-[#243f72]/50" />)}
       </div>
     );
   }
@@ -269,7 +269,7 @@ export default function PagoNominaTab() {
             {periodo.label} · {resumen.empleados} empleados · Estimado: {fmt(resumen.totalNomina)}
           </p>
           {ultimoPago && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-white/45 mt-1">
               Último pago: {fmtDate(ultimoPago.fechaPago)} — {fmt(ultimoPago.montoPagado)}
             </p>
           )}
@@ -284,10 +284,10 @@ export default function PagoNominaTab() {
       </div>
 
       {/* Resumen de la nómina actual */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <p className="text-sm font-bold text-gray-900">Nómina estimada — {periodo.label}</p>
-          <p className="text-xs text-gray-500 mt-0.5">
+      <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#243f72]/50">
+          <p className="text-sm font-bold text-white">Nómina estimada — {periodo.label}</p>
+          <p className="text-xs text-white/45 mt-0.5">
             Basada en {resumen.empleados} empleados activos
             {nominaConfig.modelo !== 'formal' && ` · Modelo: ${nominaConfig.modelo}`}
           </p>
@@ -300,20 +300,20 @@ export default function PagoNominaTab() {
             { label: 'Prestaciones (prorrata)', value: resumen.prestacionesMensuales, color: '#d97706' },
           ].map(item => (
             <div key={item.label}>
-              <p className="text-xs text-gray-500">{item.label}</p>
+              <p className="text-xs text-white/45">{item.label}</p>
               <p className="text-lg font-bold" style={{ color: item.color }}>{fmt(item.value)}</p>
             </div>
           ))}
-          <div className="col-span-2 pt-3 border-t border-gray-100 flex justify-between items-center">
-            <span className="text-sm font-semibold text-gray-700">Total a pagar</span>
-            <span className="text-2xl font-black text-gray-900">{fmt(resumen.totalNomina)}</span>
+          <div className="col-span-2 pt-3 border-t border-[#243f72]/50 flex justify-between items-center">
+            <span className="text-sm font-semibold text-white/70">Total a pagar</span>
+            <span className="text-2xl font-black text-white">{fmt(resumen.totalNomina)}</span>
           </div>
         </div>
       </div>
 
       {/* Form de registro */}
       {showForm && (
-        <div className="bg-white border-2 border-blue-200 rounded-2xl overflow-hidden">
+        <div className="bg-[#162d55] border-2 border-blue-200 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
             <p className="text-sm font-bold text-blue-900">Registrar pago de nómina</p>
             <button onClick={() => setShowForm(false)} className="text-blue-400 hover:text-blue-600 text-lg">✕</button>
@@ -321,38 +321,38 @@ export default function PagoNominaTab() {
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Período inicio</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Período inicio</label>
                 <input type="date" value={form.periodoInicio}
                   onChange={e => setForm(f => ({ ...f, periodoInicio: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400" />
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Período fin</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Período fin</label>
                 <input type="date" value={form.periodoFin}
                   onChange={e => setForm(f => ({ ...f, periodoFin: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400" />
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">
                   Monto pagado *
-                  <span className="text-gray-400 font-normal ml-1">(estimado: {fmt(resumen.totalNomina)})</span>
+                  <span className="text-white/40 font-normal ml-1">(estimado: {fmt(resumen.totalNomina)})</span>
                 </label>
                 <input type="number" value={form.montoPagado}
                   onChange={e => setForm(f => ({ ...f, montoPagado: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400 font-mono"
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400 font-mono"
                   placeholder={Math.round(resumen.totalNomina).toString()} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Fecha de pago</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Fecha de pago</label>
                 <input type="date" value={form.fechaPago}
                   onChange={e => setForm(f => ({ ...f, fechaPago: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400" />
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Método de pago</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Método de pago</label>
                 <select value={form.metodoPago}
                   onChange={e => setForm(f => ({ ...f, metodoPago: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400">
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400">
                   <option value="transferencia">Transferencia bancaria</option>
                   <option value="efectivo">Efectivo</option>
                   <option value="cheque">Cheque</option>
@@ -360,27 +360,27 @@ export default function PagoNominaTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Referencia / folio</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Referencia / folio</label>
                 <input type="text" value={form.referencia}
                   onChange={e => setForm(f => ({ ...f, referencia: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400"
                   placeholder="Número de transferencia..." />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Estado</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Estado</label>
                 <select value={form.status}
                   onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400">
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400">
                   <option value="pagado">Pagado completo</option>
                   <option value="parcial">Pago parcial</option>
                   <option value="pendiente">Pendiente</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Notas</label>
+                <label className="block text-xs font-semibold text-white/60 mb-1.5">Notas</label>
                 <input type="text" value={form.notas}
                   onChange={e => setForm(f => ({ ...f, notas: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400"
                   placeholder="Opcional..." />
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function PagoNominaTab() {
               <div className={`flex items-center justify-between p-3 rounded-xl text-sm ${
                 Number(form.montoPagado) > resumen.totalNomina ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'
               }`}>
-                <span className="text-gray-700">Diferencia vs estimado</span>
+                <span className="text-white/70">Diferencia vs estimado</span>
                 <span className={`font-bold ${Number(form.montoPagado) > resumen.totalNomina ? 'text-red-700' : 'text-amber-700'}`}>
                   {Number(form.montoPagado) > resumen.totalNomina ? '+' : ''}{fmt(Number(form.montoPagado) - resumen.totalNomina)}
                 </span>
@@ -399,7 +399,7 @@ export default function PagoNominaTab() {
 
             <div className="flex gap-3 pt-2">
               <button onClick={() => setShowForm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                className="flex-1 py-2.5 rounded-xl border border-[#243f72] text-sm font-semibold text-white/60 hover:bg-[#0f1e38]">
                 Cancelar
               </button>
               <button onClick={handleSave} disabled={saving}
@@ -414,9 +414,9 @@ export default function PagoNominaTab() {
 
       {/* Historial de pagos */}
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Historial de pagos</p>
+        <p className="text-xs font-bold text-white/45 uppercase tracking-wide mb-3">Historial de pagos</p>
         {pagos.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
+          <div className="text-center py-10 text-white/40">
             <DollarSign size={32} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">Sin pagos de nómina registrados</p>
             <p className="text-xs mt-1">El primer pago quedará aquí como referencia</p>
@@ -427,25 +427,25 @@ export default function PagoNominaTab() {
               const diff = p.montoPagado - p.montoEstimado;
               const pct = p.montoEstimado > 0 ? ((p.montoPagado / p.montoEstimado) * 100).toFixed(1) : '100';
               return (
-                <div key={p.id} className="bg-white border border-gray-200 rounded-xl px-5 py-3.5 flex items-center gap-4">
+                <div key={p.id} className="bg-[#162d55] border border-[#243f72] rounded-xl px-5 py-3.5 flex items-center gap-4">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    p.status === 'pagado' ? 'bg-green-100' : p.status === 'parcial' ? 'bg-amber-100' : 'bg-gray-100'
+                    p.status === 'pagado' ? 'bg-green-100' : p.status === 'parcial' ? 'bg-amber-100' : 'bg-[#243f72]/60'
                   }`}>
                     {p.status === 'pagado'
                       ? <CheckCircle size={15} className="text-green-600" />
                       : <Clock size={15} className="text-amber-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-white">
                       {fmtDate(p.periodoInicio)} — {fmtDate(p.periodoFin)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-white/40 mt-0.5">
                       {p.numEmpleados} empleados · Pagado el {fmtDate(p.fechaPago)}
                       {p.referencia && ` · Ref: ${p.referencia}`}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-gray-900">{fmt(p.montoPagado)}</p>
+                    <p className="text-sm font-bold text-white">{fmt(p.montoPagado)}</p>
                     {Math.abs(diff) > 1 && (
                       <p className={`text-xs ${diff > 0 ? 'text-red-500' : 'text-green-600'}`}>
                         {diff > 0 ? '+' : ''}{fmt(diff)} vs estimado

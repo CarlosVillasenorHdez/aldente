@@ -166,12 +166,12 @@ export default function TableMap({
   if (tables.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 p-8">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
-          <LayoutGrid size={28} className="text-gray-300" />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+          <LayoutGrid size={28} className="text-white/30" />
         </div>
         <div className="text-center">
-          <p className="text-base font-semibold text-gray-700 mb-1">No hay mesas configuradas</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-base font-semibold text-white/70 mb-1">No hay mesas configuradas</p>
+          <p className="text-sm text-white/40">
             Ve a Configuración → Layout Mesas para agregar mesas al restaurante.
           </p>
         </div>
@@ -219,23 +219,23 @@ export default function TableMap({
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-green-200 border border-green-400" />
-              <span className="text-xs text-gray-500">Libre ({libre})</span>
+              <span className="text-xs text-white/45">Libre ({libre})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-red-200 border border-red-400" />
-              <span className="text-xs text-gray-500">Ocupada ({ocupada})</span>
+              <span className="text-xs text-white/45">Ocupada ({ocupada})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-400" />
-              <span className="text-xs text-gray-500">En Espera ({espera})</span>
+              <span className="text-xs text-white/45">En Espera ({espera})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-purple-200 border border-purple-400" />
-              <span className="text-xs text-gray-500">Unidas</span>
+              <span className="text-xs text-white/45">Unidas</span>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-white/40">
               {ocupada}/{tables.length} mesas · {tables.length > 0 ? Math.round((ocupada / tables.length) * 100) : 0}% ocupación
             </span>
             {(onMoveTable || onDeleteTable) && (
@@ -257,7 +257,7 @@ export default function TableMap({
         </div>
 
         {editMode && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg mb-3 text-xs" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg mb-3 text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid #fde68a' }}>
             <Move size={13} style={{ color: '#d97706' }} />
             <span className="font-semibold text-amber-800">Modo edición:</span>
             <span className="text-amber-700">Arrastra las mesas para moverlas · Haz clic en 🗑 para eliminar · Los cambios se guardan automáticamente</span>
@@ -272,7 +272,7 @@ export default function TableMap({
             style={{
               width: GRID_COLS * CELL,
               height: GRID_ROWS * CELL,
-              backgroundColor: '#f8fafc',
+              backgroundColor: '#0f1e38',
               border: '1px solid #e2e8f0',
               backgroundImage: `
                 linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
@@ -406,7 +406,7 @@ export default function TableMap({
                 >
                   {/* Lock icon for other waiter's tables */}
                   {isOtherWaiter && (
-                    <div className="absolute top-1 right-1 text-gray-400 z-10">
+                    <div className="absolute top-1 right-1 text-white/40 z-10">
                       <Lock size={10} />
                     </div>
                   )}
@@ -462,7 +462,7 @@ export default function TableMap({
                       <div className="text-xs font-medium text-center leading-tight truncate px-1" style={{ color: textColor, fontSize: '10px', maxWidth: '90%' }}>
                         {liveTable.name.replace('Mesa ', '').length > 6 ? liveTable.name.replace('Mesa ', 'M.') : liveTable.name}
                       </div>
-                      <div className="mt-0.5 text-center" style={{ fontSize: '8px', color: '#9ca3af' }}>
+                      <div className="mt-0.5 text-center" style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>
                         {liveTable.waiter?.split(' ')[0]}
                       </div>
                     </>
@@ -520,8 +520,8 @@ export default function TableMap({
 
         {/* Waiter legend */}
         {tables.some((t) => t.waiter) && (
-          <div className="mt-4 p-4 rounded-xl border" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
-            <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Meseros en turno</p>
+          <div className="mt-4 p-4 rounded-xl border" style={{ backgroundColor: '#0f1e38', borderColor: '#e2e8f0' }}>
+            <p className="text-xs font-semibold text-white/45 mb-2 uppercase tracking-wide">Meseros en turno</p>
             <div className="flex flex-wrap gap-3">
               {Array.from(new Set(tables.filter((t) => t.waiter).map((t) => t.waiter!))).map((name) => {
                 const count = tables.filter((t) => t.waiter === name).length;
@@ -529,8 +529,8 @@ export default function TableMap({
                 return (
                   <div key={name} className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', fontSize: '9px' }}>{initials}</div>
-                    <span className="text-xs text-gray-600">{name}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}>{count} mesa{count !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-white/60">{name}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.08)', color: '#1e40af' }}>{count} mesa{count !== 1 ? 's' : ''}</span>
                   </div>
                 );
               })}
@@ -550,22 +550,22 @@ export default function TableMap({
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-green-200 border border-green-400" />
-            <span className="text-xs text-gray-500">Libre ({libre})</span>
+            <span className="text-xs text-white/45">Libre ({libre})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-red-200 border border-red-400" />
-            <span className="text-xs text-gray-500">Ocupada ({ocupada})</span>
+            <span className="text-xs text-white/45">Ocupada ({ocupada})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-400" />
-            <span className="text-xs text-gray-500">En Espera ({espera})</span>
+            <span className="text-xs text-white/45">En Espera ({espera})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-purple-200 border border-purple-400" />
-            <span className="text-xs text-gray-500">Unidas</span>
+            <span className="text-xs text-white/45">Unidas</span>
           </div>
         </div>
-        <div className="ml-auto text-xs text-gray-400">
+        <div className="ml-auto text-xs text-white/40">
           {ocupada}/{tables.length} mesas ocupadas · {tables.length > 0 ? Math.round((ocupada / tables.length) * 100) : 0}% ocupación
         </div>
       </div>
@@ -614,7 +614,7 @@ export default function TableMap({
               onClick={handleClick}
             >
               {isOtherWaiter && (
-                <div className="absolute top-1.5 right-1.5 text-gray-400 z-10">
+                <div className="absolute top-1.5 right-1.5 text-white/40 z-10">
                   <Lock size={12} />
                 </div>
               )}
@@ -645,7 +645,7 @@ export default function TableMap({
                   <div className="text-xs font-medium text-center leading-tight mb-1 truncate w-full px-1">
                     {table.name.replace('Mesa ', '').length > 8 ? table.name.replace('Mesa ', 'M.') : table.name}
                   </div>
-                  <div className="text-xs text-gray-400 text-center">{table.waiter?.split(' ')[0]}</div>
+                  <div className="text-xs text-white/40 text-center">{table.waiter?.split(' ')[0]}</div>
                 </>
               ) : (
                 <>
@@ -721,8 +721,8 @@ export default function TableMap({
 
       {/* Waiter legend */}
       {tables.some((t) => t.waiter) && (
-        <div className="mt-5 p-4 rounded-xl border" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
-          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Meseros en turno</p>
+        <div className="mt-5 p-4 rounded-xl border" style={{ backgroundColor: '#0f1e38', borderColor: '#e2e8f0' }}>
+          <p className="text-xs font-semibold text-white/45 mb-2 uppercase tracking-wide">Meseros en turno</p>
           <div className="flex flex-wrap gap-3">
             {Array.from(new Set(tables.filter((t) => t.waiter).map((t) => t.waiter!))).map((name) => {
               const count = tables.filter((t) => t.waiter === name).length;
@@ -730,8 +730,8 @@ export default function TableMap({
               return (
                 <div key={name} className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', fontSize: '9px' }}>{initials}</div>
-                  <span className="text-xs text-gray-600">{name}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}>{count} mesa{count !== 1 ? 's' : ''}</span>
+                  <span className="text-xs text-white/60">{name}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.08)', color: '#1e40af' }}>{count} mesa{count !== 1 ? 's' : ''}</span>
                 </div>
               );
             })}
@@ -746,18 +746,18 @@ export default function TableMap({
         <div role="dialog" aria-modal="true" aria-labelledby="reserv-warn-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
-          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#162d55] rounded-2xl p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#fef3c7' }}>
+              style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
               <span className="text-2xl">📅</span>
             </div>
-            <h3 id="reserv-warn-title" className="text-base font-bold text-center text-gray-900 mb-2">Reservación próxima</h3>
-            <p className="text-sm text-center text-gray-500 mb-5">
-              <strong className="text-gray-800">{reservConfirm.table.name}</strong> tiene una reservación en los próximos minutos. ¿Deseas sentar a alguien de todas formas?
+            <h3 id="reserv-warn-title" className="text-base font-bold text-center text-white mb-2">Reservación próxima</h3>
+            <p className="text-sm text-center text-white/45 mb-5">
+              <strong className="text-white/80">{reservConfirm.table.name}</strong> tiene una reservación en los próximos minutos. ¿Deseas sentar a alguien de todas formas?
             </p>
             <div className="flex gap-3">
               <button onClick={() => setReservConfirm(null)} aria-label="Elegir otra mesa"
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700">
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#243f72]/60 text-white/70">
                 Elegir otra mesa
               </button>
               <button

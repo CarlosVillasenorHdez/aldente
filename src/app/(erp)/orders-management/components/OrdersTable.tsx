@@ -78,7 +78,7 @@ function RowSkeleton() {
     <tr className="border-b animate-pulse" style={{ borderColor: '#f9fafb' }}>
       {Array.from({ length: 14 }).map((_, i) => (
         <td key={i} className="px-4 py-3.5">
-          <div className="h-4 rounded bg-gray-100" style={{ width: i === 0 ? '20px' : i === 1 ? '80px' : '60px' }} />
+          <div className="h-4 rounded bg-[#243f72]/60" style={{ width: i === 0 ? '20px' : i === 1 ? '80px' : '60px' }} />
         </td>
       ))}
     </tr>
@@ -92,12 +92,12 @@ function EmptyOrders() {
     <tr>
       <td colSpan={14} className="py-16 text-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
-            <ClipboardList size={28} className="text-gray-300" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            <ClipboardList size={28} className="text-white/30" />
           </div>
           <div>
-            <p className="text-base font-semibold text-gray-700 mb-1">No hay órdenes registradas</p>
-            <p className="text-sm text-gray-400">
+            <p className="text-base font-semibold text-white/70 mb-1">No hay órdenes registradas</p>
+            <p className="text-sm text-white/40">
               Las órdenes aparecerán aquí cuando se creen desde el Punto de Venta.
             </p>
           </div>
@@ -325,7 +325,7 @@ export default function OrdersTable() {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp size={12} className="text-gray-300" />;
+    if (sortField !== field) return <ChevronUp size={12} className="text-white/30" />;
     return sortDir === 'asc' ? <ChevronUp size={12} className="text-amber-500" /> : <ChevronDown size={12} className="text-amber-500" />;
   };
 
@@ -397,7 +397,7 @@ export default function OrdersTable() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Ventas — primary */}
-        <div className="rounded-xl p-4 border md:col-span-1" style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac' }}>
+        <div className="rounded-xl p-4 border md:col-span-1" style={{ backgroundColor: 'rgba(74,222,128,0.07)', borderColor: '#86efac' }}>
           <p className="text-xs font-medium mb-1" style={{ color: '#166534' }}>Ventas cerradas</p>
           <p className="font-mono font-bold text-xl" style={{ color: '#16a34a' }}>
             {loading ? '…' : `$${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
@@ -410,19 +410,19 @@ export default function OrdersTable() {
           <p className="font-mono font-bold text-xl" style={{ color: mermaTotal > 0 ? '#dc2626' : '#9ca3af' }}>
             {loading ? '…' : mermaTotal > 0 ? `$${mermaTotal.toFixed(2)}` : '$0.00'}
           </p>
-          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>{loading ? '' : `${ordenesMerma} orden${ordenesMerma !== 1 ? 'es' : ''} afectadas`}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{loading ? '' : `${ordenesMerma} orden${ordenesMerma !== 1 ? 'es' : ''} afectadas`}</p>
         </div>
         {/* Abiertas */}
-        <div className="rounded-xl p-4 border" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
+        <div className="rounded-xl p-4 border" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderColor: '#fde68a' }}>
           <p className="text-xs font-medium mb-1" style={{ color: '#92400e' }}>Abiertas ahora</p>
           <p className="font-mono font-bold text-xl" style={{ color: '#d97706' }}>{loading ? '…' : openCount}</p>
           <p className="text-xs mt-1" style={{ color: '#92400e' }}>En curso</p>
         </div>
         {/* Canceladas */}
-        <div className="rounded-xl p-4 border" style={{ backgroundColor: '#f9fafb', borderColor: '#e5e7eb' }}>
-          <p className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>Canceladas</p>
-          <p className="font-mono font-bold text-xl" style={{ color: '#6b7280' }}>{loading ? '…' : cancelCount}</p>
-          <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>Total en el período</p>
+        <div className="rounded-xl p-4 border" style={{ backgroundColor: 'rgba(255,255,255,0.04)', borderColor: '#243f72' }}>
+          <p className="text-xs font-medium mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Canceladas</p>
+          <p className="font-mono font-bold text-xl" style={{ color: 'rgba(255,255,255,0.45)' }}>{loading ? '…' : cancelCount}</p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Total en el período</p>
         </div>
       </div>
 
@@ -455,12 +455,12 @@ export default function OrdersTable() {
       })()}
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="bg-[#162d55] rounded-xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
           <input type="text" placeholder="Buscar por orden, mesa, mesero..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="input-field pl-8 py-2 text-sm" />
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 flex-shrink-0">
+        <div className="flex items-center gap-1 bg-[#243f72]/60 rounded-lg p-1 flex-shrink-0">
           {(['todas', 'abierta', 'preparacion', 'cerrada', 'cancelada'] as const).map((s) => {
             const labels: Record<string, string> = { todas: 'Todas', abierta: 'Abiertas', preparacion: 'En Prep.', cerrada: 'Cerradas', cancelada: 'Canceladas' };
             return (
@@ -475,7 +475,7 @@ export default function OrdersTable() {
           {meseros.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         {/* Quick period buttons */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 flex-shrink-0">
+        <div className="flex items-center gap-1 bg-[#243f72]/60 rounded-lg p-1 flex-shrink-0">
           {[
             { label: 'Hoy', action: () => { const d = todayStr(); setDateFrom(d); setDateTo(d); setPage(1); } },
             { label: 'Semana', action: () => { setDateFrom(weekStart()); setDateTo(todayStr()); setPage(1); } },
@@ -483,25 +483,25 @@ export default function OrdersTable() {
           ].map((p) => (
             <button key={p.label} onClick={p.action}
               className="px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap"
-              style={{ backgroundColor: 'transparent', color: '#6b7280' }}>
+              style={{ backgroundColor: 'transparent', color: 'rgba(255,255,255,0.45)' }}>
               {p.label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-xs text-gray-500">Desde</span>
+          <span className="text-xs text-white/45">Desde</span>
           <input type="date" value={dateFrom}
             onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
             className="input-field py-2 text-xs w-36"
           />
-          <span className="text-xs text-gray-500">Hasta</span>
+          <span className="text-xs text-white/45">Hasta</span>
           <input type="date" value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
             className="input-field py-2 text-xs w-36"
           />
           {(dateFrom || dateTo) && (
             <button onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1" title="Limpiar fechas">✕</button>
+              className="text-xs text-white/40 hover:text-red-500 transition-colors px-1" title="Limpiar fechas">✕</button>
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto">
@@ -542,11 +542,11 @@ export default function OrdersTable() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden"  style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="bg-[#162d55] rounded-xl border overflow-hidden"  style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ backgroundColor: '#0f1e38', borderBottom: '1px solid #e5e7eb' }}>
                 <th className="px-4 py-3 w-10">
                   <input type="checkbox" checked={selectedRows.size === paginated.length && paginated.length > 0} onChange={handleSelectAll} className="rounded" style={{ accentColor: '#f59e0b' }} />
                 </th>
@@ -563,7 +563,7 @@ export default function OrdersTable() {
                   { label: 'Estado', field: 'status' as SortField },
                   { label: '', field: null },
                 ].map((col, i) => (
-                  <th key={i} className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${col.field ? 'cursor-pointer select-none hover:bg-gray-100 transition-colors' : ''}`} style={{ color: '#9ca3af', letterSpacing: '0.05em' }} onClick={() => col.field && handleSort(col.field)}>
+                  <th key={i} className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap ${col.field ? 'cursor-pointer select-none hover:bg-[#243f72]/60 transition-colors' : ''}`} style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.05em' }} onClick={() => col.field && handleSort(col.field)}>
                     <div className="flex items-center gap-1">{col.label}{col.field && <SortIcon field={col.field} />}</div>
                   </th>
                 ))}
@@ -578,11 +578,11 @@ export default function OrdersTable() {
                 <tr>
                   <td colSpan={14} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
-                        <Filter size={24} className="text-gray-300" />
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                        <Filter size={24} className="text-white/30" />
                       </div>
-                      <p className="text-sm font-semibold text-gray-600">No se encontraron órdenes</p>
-                      <p className="text-xs text-gray-400">Ajusta los filtros o la búsqueda para ver resultados</p>
+                      <p className="text-sm font-semibold text-white/60">No se encontraron órdenes</p>
+                      <p className="text-xs text-white/40">Ajusta los filtros o la búsqueda para ver resultados</p>
                     </div>
                   </td>
                 </tr>
@@ -597,7 +597,7 @@ export default function OrdersTable() {
                       {/* # Orden */}
                       <td className="px-4 py-3.5">
                         <div>
-                          <span className="font-mono text-xs font-semibold text-gray-500">{order.id.slice(-6)}</span>
+                          <span className="font-mono text-xs font-semibold text-white/45">{order.id.slice(-6)}</span>
                           {order.cancelledComandas?.length > 0 && (
                             <span className="ml-1 text-xs px-1 rounded" style={{ background: '#fef2f2', color: '#dc2626' }}>
                               ⚠️ {order.cancelledComandas.length}
@@ -613,19 +613,19 @@ export default function OrdersTable() {
                           ) : (
                             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '9px' }}>{order.mesaNum}</div>
                           )}
-                          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{order.mesa}</span>
+                          <span className="text-sm font-medium text-white/70 whitespace-nowrap">{order.mesa}</span>
                           {order.orderType === 'para_llevar' && (
                             <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: 10 }}>Llevar</span>
                           )}
                         </div>
                       </td>
                       {/* Mesero */}
-                      <td className="px-4 py-3.5"><span className="text-sm text-gray-600 whitespace-nowrap">{order.mesero}</span></td>
+                      <td className="px-4 py-3.5"><span className="text-sm text-white/60 whitespace-nowrap">{order.mesero}</span></td>
                       {/* Platillos */}
                       <td className="px-4 py-3.5">
                         <div>
                           <div className="flex gap-0.5 mb-0.5">{order.items.slice(0, 4).map((item, idx) => <span key={idx} title={item.name} className="text-sm">{item.emoji}</span>)}</div>
-                          <span className="text-xs text-gray-400">{order.items.reduce((s, i) => s + i.qty, 0)} platillo{order.items.reduce((s,i)=>s+i.qty,0)!==1?'s':''}</span>
+                          <span className="text-xs text-white/40">{order.items.reduce((s, i) => s + i.qty, 0)} platillo{order.items.reduce((s,i)=>s+i.qty,0)!==1?'s':''}</span>
                         </div>
                       </td>
                       {/* Total */}
@@ -648,13 +648,13 @@ export default function OrdersTable() {
                               {order.payMethod === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
                             </span>
                           </div>
-                        ) : <span className="text-gray-300 text-sm">—</span>}
+                        ) : <span className="text-white/30 text-sm">—</span>}
                       </td>
                       {/* Hora */}
                       <td className="px-4 py-3.5">
-                        <div className="text-sm text-gray-500 whitespace-nowrap">
+                        <div className="text-sm text-white/45 whitespace-nowrap">
                           <div className="flex items-center gap-1"><Clock size={10} />{order.openedAt?.slice(11,16) || '—'}</div>
-                          {order.closedAt && <div className="text-xs text-gray-400">{order.closedAt?.slice(11,16)}</div>}
+                          {order.closedAt && <div className="text-xs text-white/40">{order.closedAt?.slice(11,16)}</div>}
                         </div>
                       </td>
                       {/* Duración */}
@@ -662,8 +662,8 @@ export default function OrdersTable() {
                         {order.durationMin !== null ? (
                           <span className="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: order.durationMin > 45 ? '#fee2e2' : '#f3f4f6', color: order.durationMin > 45 ? '#dc2626' : '#6b7280' }}>{order.durationMin} min</span>
                         ) : isOpen ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full animate-pulse" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: 600 }}>En curso</span>
-                        ) : <span className="text-gray-300 text-sm">—</span>}
+                          <span className="text-xs px-2 py-0.5 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(96,165,250,0.08)', color: '#1d4ed8', fontWeight: 600 }}>En curso</span>
+                        ) : <span className="text-white/30 text-sm">—</span>}
                       </td>
                       {/* Merma */}
                       <td className="px-4 py-3.5">
@@ -697,9 +697,9 @@ export default function OrdersTable() {
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="Ver detalle"><Eye size={14} className="text-gray-400 hover:text-blue-600" /></button>
+                          <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="Ver detalle"><Eye size={14} className="text-white/40 hover:text-blue-600" /></button>
                           {['abierta', 'preparacion', 'lista'].includes(order.status) && (
-                            <button onClick={() => setCancelOrder(order)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Cancelar orden"><XCircle size={14} className="text-gray-400 hover:text-red-500" /></button>
+                            <button onClick={() => setCancelOrder(order)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Cancelar orden"><XCircle size={14} className="text-white/40 hover:text-red-500" /></button>
                           )}
                         </div>
                       </td>
@@ -712,8 +712,8 @@ export default function OrdersTable() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#f3f4f6' }}>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-2 text-sm text-white/45">
             <span>Mostrar</span>
             <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="input-field py-1 px-2 text-sm w-16">
               {PAGE_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -721,7 +721,7 @@ export default function OrdersTable() {
             <span>de <strong>{filtered.length}</strong> órdenes</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronLeft size={16} className="text-gray-600" /></button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg hover:bg-[#243f72]/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronLeft size={16} className="text-white/60" /></button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let pageNum: number;
               if (totalPages <= 5) pageNum = i + 1;
@@ -732,7 +732,7 @@ export default function OrdersTable() {
                 <button key={pageNum} onClick={() => setPage(pageNum)} className="w-8 h-8 rounded-lg text-sm font-semibold transition-all duration-100" style={{ backgroundColor: page === pageNum ? '#1B3A6B' : 'transparent', color: page === pageNum ? 'white' : '#6b7280' }}>{pageNum}</button>
               );
             })}
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight size={16} className="text-gray-600" /></button>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="p-1.5 rounded-lg hover:bg-[#243f72]/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight size={16} className="text-white/60" /></button>
           </div>
         </div>
       </div>

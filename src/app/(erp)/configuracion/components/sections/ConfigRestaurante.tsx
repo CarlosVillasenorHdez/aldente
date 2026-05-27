@@ -152,7 +152,7 @@ function QRMenuCard({ tenantSlug }: { tenantSlug: string | null }) {
               <button onClick={handleDownload} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#1d4ed8', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 ⬇ Descargar PNG
               </button>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#f3f4f6', border: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 Cerrar
               </button>
             </div>

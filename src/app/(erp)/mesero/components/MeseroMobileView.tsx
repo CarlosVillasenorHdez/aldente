@@ -700,7 +700,7 @@ export default function MeseroMobileView() {
         <div className="space-y-4">
           {/* Waiter name badge */}
           <div className="flex items-center justify-between mb-1">
-            <p className="text-sm text-gray-500">Selecciona una mesa para tomar el pedido</p>
+            <p className="text-sm text-white/45">Selecciona una mesa para tomar el pedido</p>
             <div className="flex items-center gap-1.5">
               <span className="text-xs px-2 py-1 rounded-full font-semibold"
                 style={{ backgroundColor: '#1B3A6B', color: '#f59e0b' }}>
@@ -722,17 +722,17 @@ export default function MeseroMobileView() {
                     autoFocus
                     aria-label="Tu nombre"
                     className="text-xs px-2 py-1 rounded-lg border w-24 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                    style={{ borderColor: '#d1d5db', color: '#374151' }}
+                    style={{ borderColor: '#243f72', color: 'rgba(255,255,255,0.75)' }}
                     maxLength={30}
                   />
                   <button type="submit" className="text-xs text-green-600 font-semibold px-1" aria-label="Guardar nombre">✓</button>
-                  <button type="button" onClick={() => setEditingName(false)} className="text-xs text-gray-400 px-1" aria-label="Cancelar">✕</button>
+                  <button type="button" onClick={() => setEditingName(false)} className="text-xs text-white/40 px-1" aria-label="Cancelar">✕</button>
                 </form>
               ) : !appUser ? (
                 <button
                   onClick={() => { setNameInput(myName); setEditingName(true); }}
                   aria-label="Cambiar nombre del mesero"
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  className="text-xs text-white/40 hover:text-white/60 underline"
                 >
                   cambiar
                 </button>
@@ -754,7 +754,7 @@ export default function MeseroMobileView() {
               <button
                 onClick={() => setShowQRModal(true)}
                 className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95"
-                style={{ backgroundColor: '#f0fdf4', border: '2px solid #bbf7d0', color: '#16a34a' }}
+                style={{ backgroundColor: 'rgba(74,222,128,0.07)', border: '2px solid #bbf7d0', color: '#16a34a' }}
                 title="Mostrar carta QR a cliente"
               >
                 <span style={{ fontSize: 18 }}>📷</span>
@@ -887,12 +887,12 @@ export default function MeseroMobileView() {
 
               let borderClass = '';
               let bgStyle: React.CSSProperties = {};
-              if (isLibre) { borderClass = 'border-green-200'; bgStyle = { backgroundColor: '#f0fdf4' }; }
-              else if (isOrderReady && isMyTable) { borderClass = 'border-green-400'; bgStyle = { backgroundColor: '#f0fdf4' }; }
-              else if (isSlowTable && isMyTable) { borderClass = 'border-red-300'; bgStyle = { backgroundColor: '#fef2f2' }; }
-              else if (isMyTable) { borderClass = 'border-amber-300'; bgStyle = { backgroundColor: '#fffbeb' }; }
-              else if (isOtherTable) { borderClass = 'border-gray-200'; bgStyle = { backgroundColor: '#f9fafb', opacity: 0.6 }; }
-              else { borderClass = 'border-amber-200'; bgStyle = { backgroundColor: '#fffbeb' }; }
+              if (isLibre) { borderClass = 'border-green-200'; bgStyle = { backgroundColor: 'rgba(74,222,128,0.07)' }; }
+              else if (isOrderReady && isMyTable) { borderClass = 'border-green-400'; bgStyle = { backgroundColor: 'rgba(74,222,128,0.07)' }; }
+              else if (isSlowTable && isMyTable) { borderClass = 'border-red-300'; bgStyle = { backgroundColor: 'rgba(248,113,113,0.08)' }; }
+              else if (isMyTable) { borderClass = 'border-amber-300'; bgStyle = { backgroundColor: 'rgba(245,158,11,0.08)' }; }
+              else if (isOtherTable) { borderClass = 'border-[#243f72]'; bgStyle = { backgroundColor: 'rgba(255,255,255,0.04)', opacity: 0.6 }; }
+              else { borderClass = 'border-amber-200'; bgStyle = { backgroundColor: 'rgba(245,158,11,0.08)' }; }
 
               const handleTableClick = () => {
                 if (isOtherTable) {
@@ -912,20 +912,20 @@ export default function MeseroMobileView() {
                   <span className="text-2xl">
                     {isOrderReady && isMyTable ? '🔔' : isOtherTable ? '🔒' : '🪑'}
                   </span>
-                  <span className="text-xs font-bold text-gray-800">{table.name}</span>
+                  <span className="text-xs font-bold text-white/80">{table.name}</span>
 
                   {isLibre && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Libre</span>}
 
                   {!isLibre && elapsedMin !== null && (
                     <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                      isSlowTable ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                      isSlowTable ? 'bg-red-100 text-red-700' : 'bg-[#243f72]/60 text-white/60'
                     }`}>
                       {elapsedMin < 60 ? `${elapsedMin}min` : `${Math.floor(elapsedMin/60)}h${elapsedMin%60 > 0 ? elapsedMin%60+'m' : ''}`}
                     </span>
                   )}
 
                   {isMyTable && !isOrderReady && <span className="text-xs text-amber-700 font-medium">Mi mesa</span>}
-                  {isOtherTable && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500">{table.waiter?.split(' ')[0]}</span>}
+                  {isOtherTable && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-[#243f72]/60 text-white/45">{table.waiter?.split(' ')[0]}</span>}
 
                   {isOrderReady && isMyTable && (
                     <span className="text-xs px-1.5 py-0.5 rounded-full font-bold animate-pulse"
@@ -945,13 +945,13 @@ export default function MeseroMobileView() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setView('tables'); setSelectedTable(null); setOrderItems([]); setCurrentOrderId(null); }}
-              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200"
+              className="p-2 rounded-xl bg-[#243f72]/60 hover:bg-[#243f72]"
             >
               <ChevronLeft size={20} />
             </button>
             <div className="flex-1">
-              <h3 className="font-bold text-gray-900">{selectedTable.name}</h3>
-              <p className="text-xs text-gray-500">Cap. {selectedTable.capacity} personas</p>
+              <h3 className="font-bold text-white">{selectedTable.name}</h3>
+              <p className="text-xs text-white/45">Cap. {selectedTable.capacity} personas</p>
             </div>
             {selectedTable.currentOrderId && (
               <button
@@ -979,13 +979,13 @@ export default function MeseroMobileView() {
           </div>
 
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar platillo..."
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full pl-9 pr-3 py-2.5 border border-[#243f72] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
           </div>
 
@@ -994,7 +994,7 @@ export default function MeseroMobileView() {
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat ? 'text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat ? 'text-white' : 'text-white/60 bg-[#243f72]/60 hover:bg-[#243f72]'}`}
                 style={category === cat ? { backgroundColor: '#1B3A6B' } : {}}
               >
                 {cat}
@@ -1006,12 +1006,12 @@ export default function MeseroMobileView() {
             {filteredDishes.map(dish => {
               const qty = getQty(dish.id);
               return (
-                <div key={dish.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div key={dish.id} className="bg-[#162d55] rounded-2xl border border-[#243f72]/50 shadow-sm overflow-hidden">
                   <div className="h-16 flex items-center justify-center text-4xl" style={{ backgroundColor: '#f8f9fa' }}>
                     {dish.emoji}
                   </div>
                   <div className="p-3">
-                    <p className="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{dish.name}</p>
+                    <p className="text-xs font-semibold text-white/80 leading-tight mb-1 line-clamp-2">{dish.name}</p>
                     <p className="text-sm font-bold" style={{ color: '#f59e0b' }}>${Number(dish.price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                     <div className="flex items-center justify-between mt-2">
                       {qty === 0 ? (
@@ -1027,7 +1027,7 @@ export default function MeseroMobileView() {
                           <button onClick={() => { const line = orderItems.find(i => i.dishId === dish.id); if (line) removeItem(line.lineId); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-white active:scale-95" style={{ backgroundColor: '#ef4444' }}>
                             <Minus size={14} />
                           </button>
-                          <span className="font-bold text-gray-800">{qty}</span>
+                          <span className="font-bold text-white/80">{qty}</span>
                           <button onClick={() => addItem(dish)} className="w-8 h-8 rounded-lg flex items-center justify-center text-white active:scale-95" style={{ backgroundColor: '#10b981' }}>
                             <Plus size={14} />
                           </button>
@@ -1044,10 +1044,10 @@ export default function MeseroMobileView() {
 
       {showCart && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Pedido — {selectedTable?.name}</h3>
-              <button onClick={() => setShowCart(false)} className="p-2 rounded-xl hover:bg-gray-100">
+          <div className="bg-[#162d55] rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-[#243f72]/50">
+              <h3 className="font-bold text-white">Pedido — {selectedTable?.name}</h3>
+              <button onClick={() => setShowCart(false)} className="p-2 rounded-xl hover:bg-[#243f72]/60">
                 <X size={20} />
               </button>
             </div>
@@ -1057,14 +1057,14 @@ export default function MeseroMobileView() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{item.emoji}</span>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-800">{item.name}</p>
-                      <p className="text-xs text-gray-500">${item.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })} c/u</p>
+                      <p className="text-sm font-medium text-white/80">{item.name}</p>
+                      <p className="text-xs text-white/45">${item.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })} c/u</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => removeItem(item.lineId)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ef444420', color: '#ef4444' }}>
                         <Minus size={12} />
                       </button>
-                      <span className="font-bold text-gray-800 w-5 text-center">{item.qty}</span>
+                      <span className="font-bold text-white/80 w-5 text-center">{item.qty}</span>
                       <button
                         onClick={() => addItem(dishes.find(d => d.id === item.dishId) ?? { id: item.dishId, name: item.name, price: item.price, emoji: item.emoji, category: '', available: true, description: '', image: null, image_alt: null, popular: false, created_at: '', updated_at: null })}
                         className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -1081,7 +1081,7 @@ export default function MeseroMobileView() {
                         <MessageSquare size={12} />
                       </button>
                     </div>
-                    <span className="text-sm font-bold text-gray-800 w-16 text-right">
+                    <span className="text-sm font-bold text-white/80 w-16 text-right">
                       ${(item.qty * item.price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1096,7 +1096,7 @@ export default function MeseroMobileView() {
                         onChange={(e) => updateNote(item.dishId, e.target.value)}
                         placeholder="Sin cebolla, término medio..."
                         className="w-full px-3 py-1.5 text-xs rounded-lg border outline-none"
-                        style={{ borderColor: '#fde68a', backgroundColor: '#fffbeb', color: '#92400e' }}
+                        style={{ borderColor: '#fde68a', backgroundColor: 'rgba(245,158,11,0.08)', color: '#92400e' }}
                         autoFocus
                         onBlur={() => setExpandedNoteId(null)}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setExpandedNoteId(null); }}
@@ -1106,16 +1106,16 @@ export default function MeseroMobileView() {
                 </div>
               ))}
             </div>
-            <div className="p-5 border-t border-gray-100 space-y-3">
-              <div className="flex justify-between text-sm text-gray-600">
+            <div className="p-5 border-t border-[#243f72]/50 space-y-3">
+              <div className="flex justify-between text-sm text-white/60">
                 <span>Subtotal</span>
                 <span>${subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-white/60">
                 <span>IVA (16%)</span>
                 <span>${iva.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between font-bold text-gray-900">
+              <div className="flex justify-between font-bold text-white">
                 <span>Total</span>
                 <span>${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -1155,13 +1155,13 @@ export default function MeseroMobileView() {
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="w-full max-w-lg rounded-2xl p-5 space-y-3"
-            style={{ backgroundColor: 'white' }}>
+            style={{ backgroundColor: '#162d55' }}>
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-900">Nota a cocina</h3>
+              <h3 className="font-bold text-white">Nota a cocina</h3>
               <button onClick={() => { setShowNoteModal(false); setKitchenNote(''); }}
-                className="text-gray-400 hover:text-gray-600">✕</button>
+                className="text-white/40 hover:text-white/60">✕</button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-white/45">
               Envía una nota urgente sobre la orden de {selectedTable?.name}.
               Aparecerá resaltada en la pantalla de cocina.
             </p>
@@ -1170,14 +1170,14 @@ export default function MeseroMobileView() {
               onChange={e => setKitchenNote(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 rounded-xl border text-sm resize-none outline-none"
-              style={{ borderColor: '#e5e7eb', backgroundColor: '#fefce8' }}
+              style={{ borderColor: '#243f72', backgroundColor: '#fefce8' }}
               placeholder="Ej: sin cebolla en los tacos, alergia a mariscos, urgente mesa VIP..."
               autoFocus
             />
             <div className="flex gap-2">
               <button onClick={() => { setShowNoteModal(false); setKitchenNote(''); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
                 Cancelar
               </button>
               <button onClick={sendKitchenNote}
@@ -1287,21 +1287,21 @@ export default function MeseroMobileView() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
         >
-          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+          <div className="w-full max-w-sm bg-[#162d55] rounded-2xl p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-50">
               <span className="text-2xl">🗑️</span>
             </div>
-            <h3 id="mesero-cancel-title" className="text-base font-bold text-center text-gray-900 mb-2">
+            <h3 id="mesero-cancel-title" className="text-base font-bold text-center text-white mb-2">
               ¿Cancelar orden?
             </h3>
-            <p className="text-sm text-center text-gray-500 mb-5">
-              Se liberará <strong className="text-gray-800">{selectedTable.name}</strong> y se eliminarán todos los artículos sin cobrar.
+            <p className="text-sm text-center text-white/45 mb-5">
+              Se liberará <strong className="text-white/80">{selectedTable.name}</strong> y se eliminarán todos los artículos sin cobrar.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelConfirm(false)}
                 aria-label="Mantener la orden"
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-[#243f72]/60 text-white/70"
               >
                 Mantener orden
               </button>

@@ -227,7 +227,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
           >
             <Search size={14} />
             <span>Buscar...</span>
-            <kbd className="text-xs bg-gray-200 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+            <kbd className="text-xs bg-[#243f72] px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
           </button>
 
           {/* Bell */}
@@ -236,7 +236,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
               onClick={handleBellClick}
               className="p-2 rounded-lg hover:bg-[#243f72] transition-colors relative"
             >
-              <Bell size={18} className="text-gray-600" />
+              <Bell size={18} className="text-white/60" />
               {alerts.length > 0 && (
                 <span
                   className="absolute top-1 right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full text-white text-[10px] font-700 px-0.5"
@@ -259,8 +259,8 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
                 className="absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl border border-[#243f72] bg-[#0f1e38] z-50 overflow-hidden"
                 style={{ maxHeight: '400px' }}
               >
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <span className="text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>
+                <div className="px-4 py-3 border-b border-[#243f72]/50 flex items-center justify-between">
+                  <span className="text-sm font-600 text-white/80" style={{ fontWeight: 600 }}>
                     Alertas del sistema
                   </span>
                   {alerts.length > 0 && (
@@ -294,7 +294,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
                     ))
                   )}
                 </div>
-                <div className="px-4 py-2.5 border-t border-gray-100">
+                <div className="px-4 py-2.5 border-t border-[#243f72]/50">
                   <button
                     onClick={() => { router.push('/alarmas'); setBellOpen(false); }}
                     className="w-full text-xs text-center font-500 transition-colors hover:underline"
@@ -309,7 +309,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
 
           <div className="hidden sm:flex items-center gap-2 text-xs text-white/50 pl-2 border-l border-[#243f72] ml-1">
             <span className="font-mono font-600">{timeStr}</span>
-            <span className="text-gray-300">|</span>
+            <span className="text-white/30">|</span>
             <span className="capitalize hidden lg:block">{dateStr}</span>
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
             className="w-full max-w-lg bg-[#0f1e38] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#243f72]/50">
               <Search size={18} className="text-white/40 flex-shrink-0" />
               <input
                 ref={searchInputRef}
@@ -334,7 +334,7 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
                 placeholder="Buscar módulo..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 text-sm text-gray-800 outline-none placeholder-gray-400 bg-transparent"
+                className="flex-1 text-sm text-white/80 outline-none placeholder-gray-400 bg-transparent"
               />
               <button onClick={() => setSearchOpen(false)} className="p-1 rounded hover:bg-[#243f72]">
                 <X size={16} className="text-white/40" />
@@ -356,9 +356,9 @@ export default function Topbar({ title, subtitle, onMenuToggle, headerExtra, chi
                 ))
               )}
             </div>
-            <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-3 text-xs text-white/40">
-              <span><kbd className="bg-gray-100 px-1.5 py-0.5 rounded font-mono">↵</kbd> Navegar</span>
-              <span><kbd className="bg-gray-100 px-1.5 py-0.5 rounded font-mono">Esc</kbd> Cerrar</span>
+            <div className="px-4 py-2 border-t border-[#243f72]/50 flex items-center gap-3 text-xs text-white/40">
+              <span><kbd className="bg-[#243f72]/60 px-1.5 py-0.5 rounded font-mono">↵</kbd> Navegar</span>
+              <span><kbd className="bg-[#243f72]/60 px-1.5 py-0.5 rounded font-mono">Esc</kbd> Cerrar</span>
             </div>
           </div>
         </div>

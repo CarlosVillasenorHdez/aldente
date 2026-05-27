@@ -17,7 +17,7 @@ const statusConfig: Record<string, { label: string; bg: string; color: string }>
   preparacion: { label: 'En Preparación', bg: '#fef3c7', color: '#92400e' },
   lista: { label: 'Lista para Servir', bg: '#fef3c7', color: '#92400e' },
   cerrada: { label: 'Cerrada', bg: '#dcfce7', color: '#166534' },
-  cancelada: { label: 'Cancelada', bg: '#f3f4f6', color: '#6b7280' },
+  cancelada: { label: 'Cancelada', bg: '#f3f4f6', color: 'rgba(255,255,255,0.45)' },
 };
 
 export default function OrderDetailModal({ order, onClose, onCancel }: OrderDetailModalProps) {
@@ -79,7 +79,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
               <div
                 key={label}
                 className="flex items-start gap-3 p-3 rounded-xl"
-                style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+                style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}
               >
                 <div
                   className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -88,8 +88,8 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                   <Icon size={13} style={{ color: '#4338ca' }} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                  <p className="text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>{value}</p>
+                  <p className="text-xs text-white/40 mb-0.5">{label}</p>
+                  <p className="text-sm font-600 text-white/80" style={{ fontWeight: 600 }}>{value}</p>
                 </div>
               </div>
             ))}
@@ -97,35 +97,35 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
 
           {/* Branch */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">Sucursal</span>
-            <span className="font-600 text-gray-700" style={{ fontWeight: 600 }}>{order.branch}</span>
+            <span className="text-white/40">Sucursal</span>
+            <span className="font-600 text-white/70" style={{ fontWeight: 600 }}>{order.branch}</span>
           </div>
 
           {/* Items list */}
           <div>
-            <p className="text-xs font-600 text-gray-500 uppercase tracking-wide mb-3" style={{ fontWeight: 600 }}>
+            <p className="text-xs font-600 text-white/45 uppercase tracking-wide mb-3" style={{ fontWeight: 600 }}>
               Platillos Ordenados
             </p>
             <div
               className="rounded-xl overflow-hidden border"
-              style={{ borderColor: '#e5e7eb' }}
+              style={{ borderColor: '#243f72' }}
             >
               {order.items.map((item, idx) => (
                 <div
                   key={idx}
                   className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0"
-                  style={{ borderColor: '#f3f4f6' }}
+                  style={{ borderColor: 'rgba(255,255,255,0.06)' }}
                 >
                   <span className="text-xl">{item.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-500 text-gray-800 truncate" style={{ fontWeight: 500 }}>
+                    <p className="text-sm font-500 text-white/80 truncate" style={{ fontWeight: 500 }}>
                       {item.name}
                     </p>
-                    <p className="text-xs text-gray-400 font-mono">${item.price} c/u</p>
+                    <p className="text-xs text-white/40 font-mono">${item.price} c/u</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-gray-400 mb-0.5">×{item.qty}</p>
-                    <p className="font-mono font-700 text-sm text-gray-900" style={{ fontWeight: 700 }}>
+                    <p className="text-xs text-white/40 mb-0.5">×{item.qty}</p>
+                    <p className="font-mono font-700 text-sm text-white" style={{ fontWeight: 700 }}>
                       ${(item.price * item.qty).toFixed(2)}
                     </p>
                   </div>
@@ -137,9 +137,9 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
           {/* Totals */}
           <div
             className="rounded-xl p-4 space-y-2"
-            style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+            style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}
           >
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-white/45">
               <span>Subtotal</span>
               <span className="font-mono">${order.subtotal.toFixed(2)}</span>
             </div>
@@ -149,7 +149,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                 <span className="font-mono">−${order.discount.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-white/45">
               <span>IVA (16%)</span>
               <span className="font-mono">${order.iva.toFixed(2)}</span>
             </div>
@@ -163,7 +163,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
               className="flex justify-between text-base font-700 pt-2 border-t"
               style={{ borderColor: '#e2e8f0', fontWeight: 700 }}
             >
-              <span className="text-gray-900">Total</span>
+              <span className="text-white">Total</span>
               <span className="font-mono text-lg" style={{ color: '#1B3A6B' }}>
                 ${order.total.toFixed(2)}
               </span>
@@ -177,7 +177,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
               return (
                 <div className="rounded-lg overflow-hidden mt-2" style={{ border: '1px solid rgba(34,197,94,0.2)' }}>
                   {/* Costo */}
-                  <div className="flex justify-between px-3 py-2 text-sm" style={{ background: 'rgba(34,197,94,0.04)', color: '#6b7280', borderBottom: '1px solid rgba(34,197,94,0.1)' }}>
+                  <div className="flex justify-between px-3 py-2 text-sm" style={{ background: 'rgba(34,197,94,0.04)', color: 'rgba(255,255,255,0.45)', borderBottom: '1px solid rgba(34,197,94,0.1)' }}>
                     <span>Costo de recetas</span>
                     <span className="font-mono">${((order as any).costActual ?? 0).toFixed(2)}</span>
                   </div>
@@ -214,7 +214,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                 ) : (
                   <CreditCard size={14} className="text-blue-600" />
                 )}
-                <span className="text-sm text-gray-600 capitalize">
+                <span className="text-sm text-white/60 capitalize">
                   Pagado con {order.payMethod === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
                 </span>
               </div>
@@ -230,7 +230,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                 </p>
               </div>
               {order.cancelledComandas.map((c: any) => (
-                <div key={c.id} className="flex items-start justify-between px-4 py-2.5 border-t" style={{ borderColor: '#fef2f2', background: 'white' }}>
+                <div key={c.id} className="flex items-start justify-between px-4 py-2.5 border-t" style={{ borderColor: '#fef2f2', background: '#162d55' }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: c.hasCost ? '#dc2626' : '#6b7280' }}>
                       {c.hasCost ? '🔥' : '✗'} {c.reason || 'Cancelado'}
@@ -271,7 +271,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
         {/* Footer */}
         <div
           className="flex items-center gap-3 px-6 py-4 border-t"
-          style={{ borderColor: '#f3f4f6' }}
+          style={{ borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <button className="btn-secondary flex items-center gap-2 text-xs">
             <Printer size={14} />

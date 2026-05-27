@@ -210,7 +210,7 @@ export default function AnalisisDesperdicioTab() {
         <h3 className="text-sm font-bold text-white">
           {filterRec === 'todos' ? `Todos los insumos (${filtered.length})` : `${RECOMMENDATION_CONFIG[filterRec as keyof typeof RECOMMENDATION_CONFIG]?.label} (${filtered.length})`}
         </h3>
-        <button onClick={fetchAnalysis} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <button onClick={fetchAnalysis} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg hover:bg-[#162d55]/10 transition-all" style={{ color: 'rgba(255,255,255,0.5)' }}>
           <RefreshCw size={12} /> Actualizar
         </button>
       </div>
@@ -236,7 +236,7 @@ export default function AnalisisDesperdicioTab() {
               <div key={a.id} className="rounded-xl overflow-hidden transition-all" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: `1px solid ${isOpen ? cfg.border : 'rgba(255,255,255,0.08)'}` }}>
                 {/* Row */}
                 <button
-                  className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-white/5 transition-all"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-[#162d55]/5 transition-all"
                   onClick={() => setSelectedId(isOpen ? null : a.id)}
                 >
                   {/* Recommendation badge */}

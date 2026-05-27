@@ -107,7 +107,7 @@ export default function MovimientosTab({
           ) : movements.map(mv => {
             const mc = MOVEMENT_COLORS[mv.movementType] ?? MOVEMENT_COLORS['ajuste'];
             return (
-              <tr key={mv.id} className="border-b transition-colors hover:bg-white/5" style={{ borderColor: '#1a2f52' }}>
+              <tr key={mv.id} className="border-b transition-colors hover:bg-[#162d55]/5" style={{ borderColor: '#1a2f52' }}>
                 <td className="px-4 py-3.5 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{formatDate(mv.createdAt)}</td>
                 <td className="px-4 py-3.5 text-sm font-semibold text-white">{mv.ingredientName}</td>
                 <td className="px-4 py-3.5">

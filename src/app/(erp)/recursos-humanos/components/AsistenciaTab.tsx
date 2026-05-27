@@ -18,8 +18,8 @@ const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string; bg
   permiso_con_goce:  { label: 'Permiso c/goce', color: '#2563eb', bg: '#eff6ff', emoji: '📋' },
   permiso_sin_goce:  { label: 'Permiso s/goce', color: '#dc2626', bg: '#fef2f2', emoji: '📋' },
   incapacidad:       { label: 'Incapacidad',    color: '#0891b2', bg: '#ecfeff', emoji: '🏥' },
-  descanso:          { label: 'Descanso',       color: '#6b7280', bg: '#f9fafb', emoji: '🏖️' },
-  sin_horario:       { label: 'Sin horario',    color: '#9ca3af', bg: '#f9fafb', emoji: '⚪' },
+  descanso:          { label: 'Descanso',       color: 'rgba(255,255,255,0.45)', bg: '#f9fafb', emoji: '🏖️' },
+  sin_horario:       { label: 'Sin horario',    color: 'rgba(255,255,255,0.4)', bg: '#f9fafb', emoji: '⚪' },
 };
 
 function fmtDate(iso: string) {
@@ -173,7 +173,7 @@ export default function AsistenciaTab() {
     setExporting(false);
   };
 
-  const inp = "px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-400 bg-white";
+  const inp = "px-3 py-2 rounded-lg border border-[#243f72] text-sm focus:outline-none focus:border-blue-400 bg-[#162d55]";
 
   return (
     <div className="space-y-5">
@@ -181,7 +181,7 @@ export default function AsistenciaTab() {
       {/* Filtros */}
       <div className="flex items-center gap-3 flex-wrap">
         <input type="date" className={inp} value={startDate} onChange={e => setStartDate(e.target.value)} />
-        <span className="text-gray-400 text-sm">—</span>
+        <span className="text-white/40 text-sm">—</span>
         <input type="date" className={inp} value={endDate} onChange={e => setEndDate(e.target.value)} />
         <select className={inp} value={filterEmp} onChange={e => setFilterEmp(e.target.value)}>
           <option value="">Todos los empleados</option>
@@ -190,12 +190,12 @@ export default function AsistenciaTab() {
         <div className="flex gap-1 ml-auto">
           {(['resumen', 'detalle'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold capitalize ${view === v ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+              className={`px-3 py-2 rounded-lg text-xs font-semibold capitalize ${view === v ? 'bg-blue-600 text-white' : 'bg-[#243f72]/60 text-white/60'}`}>
               {v}
             </button>
           ))}
           <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 ml-2">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#243f72] text-white/60 hover:bg-[#0f1e38] ml-2">
             <Download size={13} /> {exporting ? '...' : 'Excel'}
           </button>
         </div>
@@ -212,57 +212,57 @@ export default function AsistenciaTab() {
             style={{ backgroundColor: k.bg, borderColor: k.color + '33' }}>
             <p className="text-2xl font-black" style={{ color: k.color }}>{k.value}</p>
             <p className="text-xs font-semibold mt-0.5" style={{ color: k.color }}>{k.label}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{startDate} — {endDate}</p>
+            <p className="text-xs text-white/40 mt-0.5">{startDate} — {endDate}</p>
           </div>
         ))}
       </div>
 
       {loading ? (
         <div className="space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-16 bg-[#243f72]/60 rounded-xl animate-pulse" />)}
         </div>
       ) : view === 'resumen' ? (
 
         /* ── Vista resumen por empleado ── */
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-[#0f1e38] border-b border-[#243f72]/50">
               <tr>
                 {['Empleado', 'A tiempo', 'Ret. leve', 'Ret. grave', 'Faltas', 'Vac/Perm/Inc', 'Min. retardo', 'Descuento'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/45 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {summaries.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin datos para el período seleccionado</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-white/40">Sin datos para el período seleccionado</td></tr>
               ) : summaries.map(s => (
-                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={s.id} className="hover:bg-[#0f1e38] transition-colors">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-semibold text-gray-900">{s.name}</p>
-                    <p className="text-xs text-gray-400">{s.role}</p>
+                    <p className="text-sm font-semibold text-white">{s.name}</p>
+                    <p className="text-xs text-white/40">{s.role}</p>
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-green-600">{s.aTiempo}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-amber-600">{s.retardosLeves || '—'}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-orange-600">{s.retardosGraves || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-sm font-bold ${s.faltas > 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                    <span className={`text-sm font-bold ${s.faltas > 0 ? 'text-red-600' : 'text-white/30'}`}>
                       {s.faltas || '—'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
+                  <td className="px-4 py-3 text-sm text-white/45">
                     {s.vacaciones > 0 && `📅${s.vacaciones} `}
                     {s.permisos > 0 && `📋${s.permisos} `}
                     {s.incapacidades > 0 && `🏥${s.incapacidades}`}
                     {s.vacaciones + s.permisos + s.incapacidades === 0 && '—'}
                   </td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600">
+                  <td className="px-4 py-3 text-sm font-mono text-white/60">
                     {s.minutosRetardoTotal > 0 ? `${s.minutosRetardoTotal}min` : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {s.totalDescuento > 0
                       ? <span className="text-sm font-bold text-red-600">${Math.round(s.totalDescuento).toLocaleString('es-MX')}</span>
-                      : <span className="text-sm text-gray-300">—</span>}
+                      : <span className="text-sm text-white/30">—</span>}
                   </td>
                 </tr>
               ))}
@@ -273,11 +273,11 @@ export default function AsistenciaTab() {
       ) : (
 
         /* ── Vista detalle por día ── */
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden">
           {/* Filtro de estado */}
-          <div className="px-4 py-3 border-b border-gray-100 flex gap-2 flex-wrap">
+          <div className="px-4 py-3 border-b border-[#243f72]/50 flex gap-2 flex-wrap">
             <button onClick={() => setFilterStatus('')}
-              className={`px-2.5 py-1 rounded-full text-xs font-semibold ${!filterStatus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold ${!filterStatus ? 'bg-blue-600 text-white' : 'bg-[#243f72]/60 text-white/45'}`}>
               Todos
             </button>
             {(['falta', 'retardo_grave', 'retardo_leve', 'vacaciones', 'incapacidad', 'permiso_con_goce'] as AttendanceStatus[]).map(s => {
@@ -293,38 +293,38 @@ export default function AsistenciaTab() {
           </div>
 
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-[#0f1e38] border-b border-[#243f72]/50">
               <tr>
                 {['Fecha', 'Empleado', 'Esperado', 'Llegó', 'Salió', 'Horas', 'Estado', 'Descuento'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/45 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredRecords.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-400">Sin incidencias en el período</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-white/40">Sin incidencias en el período</td></tr>
               ) : filteredRecords.map(r => (
-                <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600 whitespace-nowrap">{fmtDate(r.date)}</td>
+                <tr key={r.id} className="hover:bg-[#0f1e38] transition-colors">
+                  <td className="px-4 py-3 text-sm font-mono text-white/60 whitespace-nowrap">{fmtDate(r.date)}</td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-semibold text-gray-900">{r.employeeName}</p>
-                    <p className="text-xs text-gray-400">{r.role}</p>
+                    <p className="text-sm font-semibold text-white">{r.employeeName}</p>
+                    <p className="text-xs text-white/40">{r.role}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-500">{r.horaEntradaEsperada ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-white/45">{r.horaEntradaEsperada ?? '—'}</td>
                   <td className="px-4 py-3 text-sm font-mono font-semibold"
                     style={{ color: r.checkIn ? (r.minutosRetardo > 0 ? '#d97706' : '#15803d') : '#dc2626' }}>
                     {r.checkIn ?? 'Sin registro'}
                     {r.minutosRetardo > 0 && <span className="text-xs ml-1 font-normal text-orange-500">+{r.minutosRetardo}min</span>}
                   </td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-500">{r.checkOut ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600">
+                  <td className="px-4 py-3 text-sm font-mono text-white/45">{r.checkOut ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-white/60">
                     {r.horasTrabajadas != null ? `${r.horasTrabajadas.toFixed(1)}h` : '—'}
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                   <td className="px-4 py-3">
                     {r.descuentoSugerido > 0
                       ? <span className="text-sm font-bold text-red-600">${Math.round(r.descuentoSugerido).toLocaleString('es-MX')}</span>
-                      : <span className="text-sm text-gray-300">—</span>}
+                      : <span className="text-sm text-white/30">—</span>}
                   </td>
                 </tr>
               ))}

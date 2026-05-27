@@ -162,8 +162,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="w-full max-w-lg rounded-xl shadow-2xl" style={{ backgroundColor: '#1e2d4a', border: '1px solid #243f72' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#243f72' }}>
           <h3 className="text-base font-semibold text-white">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
-            <X size={18} className="text-gray-400" />
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-[#162d55]/10 transition-colors">
+            <X size={18} className="text-white/40" />
           </button>
         </div>
         <div className="p-6">{children}</div>
@@ -214,18 +214,18 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Empleado</label>
+          <label className="text-xs font-semibold text-white/40 uppercase tracking-wide block mb-1.5">Empleado</label>
           <select className={inp} style={s} value={empId} onChange={e => setEmpId(e.target.value)}>
             <option value="">Seleccionar...</option>
             {employees.filter(e => (e as any).hire_date).map(e => <option key={e.id} value={e.id} style={{ backgroundColor: '#162d55' }}>{e.name} — {e.role}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Fecha de baja</label>
+          <label className="text-xs font-semibold text-white/40 uppercase tracking-wide block mb-1.5">Fecha de baja</label>
           <input type="date" className={inp} style={{ ...s, colorScheme: 'dark' }} value={fechaBaja} onChange={e => setFechaBaja(e.target.value)} />
         </div>
         <div className="col-span-2">
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Motivo de la baja</label>
+          <label className="text-xs font-semibold text-white/40 uppercase tracking-wide block mb-1.5">Motivo de la baja</label>
           <div className="grid grid-cols-2 gap-2">
             {(Object.entries(motivoLabels) as [MotivoBaja, string][]).map(([v, l]) => (
               <label key={v} className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer" style={{ border: `1px solid ${motivo === v ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.1)'}`, backgroundColor: motivo === v ? 'rgba(245,158,11,0.08)' : 'transparent' }}>
@@ -236,7 +236,7 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Días de vacaciones ya tomados</label>
+          <label className="text-xs font-semibold text-white/40 uppercase tracking-wide block mb-1.5">Días de vacaciones ya tomados</label>
           <input type="number" min={0} className={inp} style={s} value={diasTomados} onChange={e => setDiasTomados(Number(e.target.value))} />
         </div>
       </div>
@@ -245,7 +245,7 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
         <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #243f72' }}>
           <div className="px-5 py-3" style={{ backgroundColor: '#162032' }}>
             <p className="text-sm font-bold text-white">{emp.name} — {motivoLabels[motivo]}</p>
-            <p className="text-xs text-gray-400">{resultado.aniosServicio} años de servicio · SD: {fmt(resultado.salarioDiario)}/día</p>
+            <p className="text-xs text-white/40">{resultado.aniosServicio} años de servicio · SD: {fmt(resultado.salarioDiario)}/día</p>
           </div>
         <div className="divide-y divide-[#1e2d3d]">
             {/* Finiquito */}
@@ -257,7 +257,7 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
                 { label: 'Aguinaldo proporcional', val: resultado.finiquito.aguinaldoProporcional },
               ].map(r => (
                 <div key={r.label} className="flex justify-between text-sm">
-                  <span className="text-gray-300">{r.label}</span>
+                  <span className="text-white/30">{r.label}</span>
                   <span className="text-white font-mono">{fmt(r.val)}</span>
                 </div>
               ))}
@@ -273,19 +273,19 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
                 <p className="text-xs font-bold text-red-400 uppercase tracking-wide">Indemnización constitucional</p>
                 {resultado.tresMesesSalario > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">3 meses de salario (90 días)</span>
+                    <span className="text-white/30">3 meses de salario (90 días)</span>
                     <span className="text-white font-mono">{fmt(resultado.tresMesesSalario)}</span>
                   </div>
                 )}
                 {resultado.veintieDiasPorAnio > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">20 días × {resultado.aniosServicio} años</span>
+                    <span className="text-white/30">20 días × {resultado.aniosServicio} años</span>
                     <span className="text-white font-mono">{fmt(resultado.veintieDiasPorAnio)}</span>
                   </div>
                 )}
                 {resultado.primaAntiguedad > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Prima de antigüedad (12 días × {resultado.aniosServicio} años)</span>
+                    <span className="text-white/30">Prima de antigüedad (12 días × {resultado.aniosServicio} años)</span>
                     <span className="text-white font-mono">{fmt(resultado.primaAntiguedad)}</span>
                   </div>
                 )}
@@ -301,7 +301,7 @@ function LiquidacionCalculator({ employees }: { employees: { id: string; name: s
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-base font-bold text-white">TOTAL A PAGAR</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Antes de deducciones fiscales del empleado</p>
+                  <p className="text-xs text-white/40 mt-0.5">Antes de deducciones fiscales del empleado</p>
                 </div>
                 <p className="text-2xl font-black" style={{ color: '#f59e0b' }}>{fmt(resultado.totalLiquidacion)}</p>
               </div>
@@ -538,7 +538,7 @@ export default function RHManagement() {
 
   const inputCls = 'w-full px-3 py-2 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
   const inputStyle = { backgroundColor: '#0f1e35', border: '1px solid #243f72' };
-  const labelCls = 'block text-xs text-gray-400 mb-1';
+  const labelCls = 'block text-xs text-white/40 mb-1';
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1e35' }}>
@@ -598,7 +598,7 @@ export default function RHManagement() {
       {activeTab !== 'resumen' && (
         <div className="flex-shrink-0 px-6 py-3 flex gap-3 border-b" style={{ borderColor: '#243f72' }}>
           <div className="relative flex-1 max-w-xs">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/45" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -619,7 +619,7 @@ export default function RHManagement() {
               <option value="aprobado">Aprobado</option>
               <option value="rechazado">Rechazado</option>
             </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
           </div>
         </div>
       )}
@@ -647,23 +647,23 @@ export default function RHManagement() {
                   <thead>
                     <tr style={{ backgroundColor: '#1e2d4a' }}>
                       {['Empleado', 'Fecha Inicio', 'Fecha Fin', 'Días', 'Estado', 'Notas', 'Acciones'].map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filterList(vacaciones).length === 0 ? (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-white/45">No hay registros</td></tr>
                     ) : filterList(vacaciones).map((v: any) => (
-                      <tr key={v.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
+                      <tr key={v.id} className="border-t hover:bg-[#162d55]/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{v.employees?.name ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-300">{formatDate(v.fecha_inicio)}</td>
-                        <td className="px-4 py-3 text-gray-300">{formatDate(v.fecha_fin)}</td>
-                        <td className="px-4 py-3 text-gray-300">{v.dias_solicitados}</td>
+                        <td className="px-4 py-3 text-white/30">{formatDate(v.fecha_inicio)}</td>
+                        <td className="px-4 py-3 text-white/30">{formatDate(v.fecha_fin)}</td>
+                        <td className="px-4 py-3 text-white/30">{v.dias_solicitados}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[v.estado as Estado]}`}>{ESTADO_LABELS[v.estado as Estado]}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-400 max-w-[160px] truncate">{v.notas ?? '—'}</td>
+                        <td className="px-4 py-3 text-white/40 max-w-[160px] truncate">{v.notas ?? '—'}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
                             {v.estado === 'pendiente' && (
@@ -672,7 +672,7 @@ export default function RHManagement() {
                                 <button onClick={() => updateEstado('rh_vacaciones', v.id, 'rechazado')} className="p-1.5 rounded-lg hover:bg-red-900/40 text-red-400 transition-colors" title="Rechazar"><XCircle size={14} /></button>
                               </>
                             )}
-                            <button onClick={() => deleteRecord('rh_vacaciones', v.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
+                            <button onClick={() => deleteRecord('rh_vacaciones', v.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-white/45 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
                           </div>
                         </td>
                       </tr>
@@ -689,19 +689,19 @@ export default function RHManagement() {
                   <thead>
                     <tr style={{ backgroundColor: '#1e2d4a' }}>
                       {['Empleado', 'Tipo', 'Fecha', 'Horas', 'Con Goce', 'Estado', 'Motivo', 'Acciones'].map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filterList(permisos).length === 0 ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-white/45">No hay registros</td></tr>
                     ) : filterList(permisos).map((p: any) => (
-                      <tr key={p.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
+                      <tr key={p.id} className="border-t hover:bg-[#162d55]/5 transition-colors" style={{ borderColor: '#243f72' }}>
                         <td className="px-4 py-3 text-white font-medium">{p.employees?.name ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-300">{PERM_TIPO_LABELS[p.tipo as PermTipo]}</td>
-                        <td className="px-4 py-3 text-gray-300">{formatDate(p.fecha)}</td>
-                        <td className="px-4 py-3 text-gray-300">{p.horas}h</td>
+                        <td className="px-4 py-3 text-white/30">{PERM_TIPO_LABELS[p.tipo as PermTipo]}</td>
+                        <td className="px-4 py-3 text-white/30">{formatDate(p.fecha)}</td>
+                        <td className="px-4 py-3 text-white/30">{p.horas}h</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.con_goce ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}>
                             {p.con_goce ? 'Sí' : 'No'}
@@ -710,7 +710,7 @@ export default function RHManagement() {
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[p.estado as Estado]}`}>{ESTADO_LABELS[p.estado as Estado]}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-400 max-w-[140px] truncate">{p.motivo ?? '—'}</td>
+                        <td className="px-4 py-3 text-white/40 max-w-[140px] truncate">{p.motivo ?? '—'}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
                             {p.estado === 'pendiente' && (
@@ -719,7 +719,7 @@ export default function RHManagement() {
                                 <button onClick={() => updateEstado('rh_permisos', p.id, 'rechazado')} className="p-1.5 rounded-lg hover:bg-red-900/40 text-red-400 transition-colors" title="Rechazar"><XCircle size={14} /></button>
                               </>
                             )}
-                            <button onClick={() => deleteRecord('rh_permisos', p.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
+                            <button onClick={() => deleteRecord('rh_permisos', p.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-white/45 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
                           </div>
                         </td>
                       </tr>
@@ -736,29 +736,29 @@ export default function RHManagement() {
                   <thead>
                     <tr style={{ backgroundColor: '#1e2d4a' }}>
                       {['Empleado', 'Fecha', 'Horas', 'Factor', 'Costo Extra', 'Estado', 'Descripción', 'Acciones'].map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filterList(tiemposExtras).length === 0 ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay registros</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-white/45">No hay registros</td></tr>
                     ) : filterList(tiemposExtras).map((t: any) => {
                       const hr = t.employees ? hourlyRate(t.employees.salary, t.employees.salary_frequency) : 0;
                       const costoExtra = Number(t.horas) * hr * Number(t.factor_pago);
                       return (
-                        <tr key={t.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
+                        <tr key={t.id} className="border-t hover:bg-[#162d55]/5 transition-colors" style={{ borderColor: '#243f72' }}>
                           <td className="px-4 py-3 text-white font-medium">{t.employees?.name ?? '—'}</td>
-                          <td className="px-4 py-3 text-gray-300">{formatDate(t.fecha)}</td>
-                          <td className="px-4 py-3 text-gray-300">{t.horas}h</td>
-                          <td className="px-4 py-3 text-gray-300">x{t.factor_pago}</td>
+                          <td className="px-4 py-3 text-white/30">{formatDate(t.fecha)}</td>
+                          <td className="px-4 py-3 text-white/30">{t.horas}h</td>
+                          <td className="px-4 py-3 text-white/30">x{t.factor_pago}</td>
                           <td className="px-4 py-3 text-amber-300 font-medium">
                             {hr > 0 ? `$${costoExtra.toFixed(2)}` : '—'}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[t.estado as Estado]}`}>{ESTADO_LABELS[t.estado as Estado]}</span>
                           </td>
-                          <td className="px-4 py-3 text-gray-400 max-w-[140px] truncate">{t.descripcion ?? '—'}</td>
+                          <td className="px-4 py-3 text-white/40 max-w-[140px] truncate">{t.descripcion ?? '—'}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1">
                               {t.estado === 'pendiente' && (
@@ -767,7 +767,7 @@ export default function RHManagement() {
                                   <button onClick={() => updateEstado('rh_tiempos_extras', t.id, 'rechazado')} className="p-1.5 rounded-lg hover:bg-red-900/40 text-red-400 transition-colors" title="Rechazar"><XCircle size={14} /></button>
                                 </>
                               )}
-                              <button onClick={() => deleteRecord('rh_tiempos_extras', t.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
+                              <button onClick={() => deleteRecord('rh_tiempos_extras', t.id)} className="p-1.5 rounded-lg hover:bg-red-900/40 text-white/45 hover:text-red-400 transition-colors" title="Eliminar"><X size={14} /></button>
                             </div>
                           </td>
                         </tr>
@@ -872,7 +872,7 @@ export default function RHManagement() {
                           </div>
                           <div>
                             <p className="text-2xl font-bold text-white">{kpi.value}</p>
-                            <p className="text-xs text-gray-400">{kpi.label}</p>
+                            <p className="text-xs text-white/40">{kpi.label}</p>
                           </div>
                         </div>
                       </div>
@@ -884,24 +884,24 @@ export default function RHManagement() {
                 <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #243f72' }}>
                   <div className="px-4 py-3 border-b" style={{ backgroundColor: '#1e2d4a', borderColor: '#243f72' }}>
                     <h3 className="text-sm font-semibold text-white">Impacto en Nómina por Empleado (mes actual)</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Basado en eventos aprobados. Descuentos por permisos sin goce, bonos por tiempos extras.</p>
+                    <p className="text-xs text-white/40 mt-0.5">Basado en eventos aprobados. Descuentos por permisos sin goce, bonos por tiempos extras.</p>
                   </div>
                   <table className="w-full text-sm">
                     <thead>
                       <tr style={{ backgroundColor: '#162236' }}>
                         {['Empleado', 'Puesto', 'Salario Base', 'Hrs Mes', 'Días Vac.', 'Hrs Perm. S/G', 'Descuento', 'Bonus TE', 'Salario Neto Est.'].map((h) => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-white/40 uppercase tracking-wide">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {resumen.length === 0 ? (
-                        <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">No hay empleados activos</td></tr>
+                        <tr><td colSpan={9} className="px-4 py-8 text-center text-white/45">No hay empleados activos</td></tr>
                       ) : resumen.map(({ emp, diasVac, horasPermSinGoce, horasTE, descuentoPermisos, bonusTE, salarioBase, salarioNeto, horasEsteMes }) => (
-                        <tr key={emp.id} className="border-t hover:bg-white/5 transition-colors" style={{ borderColor: '#243f72' }}>
+                        <tr key={emp.id} className="border-t hover:bg-[#162d55]/5 transition-colors" style={{ borderColor: '#243f72' }}>
                           <td className="px-4 py-3 text-white font-medium">{emp.name}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{emp.role}</td>
-                          <td className="px-4 py-3 text-gray-300">${salarioBase.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-3 text-white/40 text-xs">{emp.role}</td>
+                          <td className="px-4 py-3 text-white/30">${salarioBase.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                           <td className="px-4 py-3" style={{ color: horasEsteMes !== null ? (horasEsteMes >= 40 ? '#34d399' : '#fbbf24') : '#6b7280' }}>{horasEsteMes !== null ? `${horasEsteMes}h` : '—'}</td>
                           <td className="px-4 py-3 text-blue-300">{diasVac > 0 ? diasVac : '—'}</td>
                           <td className="px-4 py-3 text-orange-300">{horasPermSinGoce > 0 ? `${horasPermSinGoce}h` : '—'}</td>
@@ -964,7 +964,7 @@ export default function RHManagement() {
               <textarea value={vacForm.notas} onChange={(e) => setVacForm({ ...vacForm, notas: e.target.value })} rows={2} className={inputCls} style={inputStyle} placeholder="Motivo o comentarios..." />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
+              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-white/40 hover:bg-[#162d55]/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
               <button onClick={saveVacacion} disabled={saving || !vacForm.employee_id || !vacForm.fecha_inicio || !vacForm.fecha_fin} className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
@@ -1013,7 +1013,7 @@ export default function RHManagement() {
               <textarea value={permForm.motivo} onChange={(e) => setPermForm({ ...permForm, motivo: e.target.value })} rows={2} className={inputCls} style={inputStyle} placeholder="Descripción del permiso..." />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
+              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-white/40 hover:bg-[#162d55]/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
               <button onClick={savePermiso} disabled={saving || !permForm.employee_id || !permForm.fecha} className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
@@ -1056,7 +1056,7 @@ export default function RHManagement() {
               <textarea value={teForm.descripcion} onChange={(e) => setTeForm({ ...teForm, descripcion: e.target.value })} rows={2} className={inputCls} style={inputStyle} placeholder="Motivo del tiempo extra..." />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
+              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-white/40 hover:bg-[#162d55]/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
               <button onClick={saveTiempoExtra} disabled={saving || !teForm.employee_id || !teForm.fecha} className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
@@ -1120,7 +1120,7 @@ export default function RHManagement() {
               <textarea value={incapForm.notas} onChange={(e) => setIncapForm({ ...incapForm, notas: e.target.value })} rows={2} className={inputCls} style={inputStyle} placeholder="Descripción del diagnóstico, observaciones..." />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
+              <button onClick={() => setShowModal(null)} className="flex-1 py-2 rounded-lg text-sm text-white/40 hover:bg-[#162d55]/10 transition-colors" style={{ border: '1px solid #243f72' }}>Cancelar</button>
               <button onClick={saveIncapacidad} disabled={saving || !incapForm.employee_id || !incapForm.fecha_inicio || !incapForm.fecha_fin} className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ backgroundColor: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>
                 {saving ? 'Guardando...' : 'Registrar'}
               </button>

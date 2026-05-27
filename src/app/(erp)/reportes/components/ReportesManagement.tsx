@@ -75,15 +75,15 @@ const kpiData: Record<string, { ventas: number; ordenes: number; ticket: number;
 const BarTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#e5e7eb', minWidth: '160px' }}>
-        <p className="font-600 text-gray-700 mb-1 text-xs truncate" style={{ fontWeight: 600, maxWidth: '180px' }}>{label}</p>
+      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#243f72', minWidth: '160px' }}>
+        <p className="font-600 text-white/70 mb-1 text-xs truncate" style={{ fontWeight: 600, maxWidth: '180px' }}>{label}</p>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-gray-500 text-xs">Cantidad</span>
+          <span className="text-white/45 text-xs">Cantidad</span>
           <span className="font-mono font-600 text-amber-600" style={{ fontWeight: 600 }}>{payload[0]?.value}</span>
         </div>
         {payload[1] && (
           <div className="flex items-center justify-between gap-4 mt-1">
-            <span className="text-gray-500 text-xs">Ingresos</span>
+            <span className="text-white/45 text-xs">Ingresos</span>
             <span className="font-mono font-600 text-blue-600" style={{ fontWeight: 600 }}>${payload[1]?.value?.toLocaleString('es-MX')}</span>
           </div>
         )}
@@ -96,11 +96,11 @@ const BarTooltip = ({ active, payload, label }: any) => {
 const LineTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#e5e7eb', minWidth: '140px' }}>
-        <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
+      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#243f72', minWidth: '140px' }}>
+        <p className="font-600 text-white/70 mb-2" style={{ fontWeight: 600 }}>{label}</p>
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center justify-between gap-4 mt-1">
-            <span className="text-gray-500 text-xs">{p.name === 'ventas' ? 'Ventas' : 'Órdenes'}</span>
+            <span className="text-white/45 text-xs">{p.name === 'ventas' ? 'Ventas' : 'Órdenes'}</span>
             <span className="font-mono font-600" style={{ fontWeight: 600, color: p.color }}>
               {p.name === 'ventas' ? `$${p.value.toLocaleString('es-MX')}` : p.value}
             </span>
@@ -115,11 +115,11 @@ const LineTooltip = ({ active, payload, label }: any) => {
 const AreaTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#e5e7eb', minWidth: '140px' }}>
-        <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
+      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#243f72', minWidth: '140px' }}>
+        <p className="font-600 text-white/70 mb-2" style={{ fontWeight: 600 }}>{label}</p>
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center justify-between gap-4 mt-1">
-            <span className="text-gray-500 text-xs">{p.name === 'ventas' ? 'Ventas' : 'Meta'}</span>
+            <span className="text-white/45 text-xs">{p.name === 'ventas' ? 'Ventas' : 'Meta'}</span>
             <span className="font-mono font-600" style={{ fontWeight: 600, color: p.color }}>
               ${p.value.toLocaleString('es-MX')}
             </span>
@@ -134,11 +134,11 @@ const AreaTooltip = ({ active, payload, label }: any) => {
 const PeakTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#e5e7eb', minWidth: '150px' }}>
-        <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
+      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-sm" style={{ borderColor: '#243f72', minWidth: '150px' }}>
+        <p className="font-600 text-white/70 mb-2" style={{ fontWeight: 600 }}>{label}</p>
         {payload.map((p: any, i: number) => (
           <div key={i} className="flex items-center justify-between gap-4 mt-1">
-            <span className="text-gray-500 text-xs">{p.name === 'actual' ? 'Órdenes reales' : 'Predicción'}</span>
+            <span className="text-white/45 text-xs">{p.name === 'actual' ? 'Órdenes reales' : 'Predicción'}</span>
             <span className="font-mono font-600" style={{ fontWeight: 600, color: p.color }}>{p.value}</span>
           </div>
         ))}
@@ -852,7 +852,7 @@ export default function ReportesManagement() {
   const plMargenNeto = ((plUtilidadNeta / plTotalIngresos) * 100).toFixed(1);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#0f1e38' }}>
       {/* ── PDF Period Modal ── */}
       {showPDFModal && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
@@ -907,10 +907,10 @@ export default function ReportesManagement() {
         </div>
       )}
       {/* ── Header ── */}
-      <div className="bg-white border-b px-6 py-4 flex items-center justify-between" style={{ borderColor: '#e5e7eb' }}>
+      <div className="bg-[#162d55] border-b px-6 py-4 flex items-center justify-between" style={{ borderColor: '#243f72' }}>
         <div>
-          <h1 className="text-xl font-700 text-gray-900" style={{ fontWeight: 700 }}>Reportes y Análisis</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{dateRangeLabel}</p>
+          <h1 className="text-xl font-700 text-white" style={{ fontWeight: 700 }}>Reportes y Análisis</h1>
+          <p className="text-sm text-white/45 mt-0.5">{dateRangeLabel}</p>
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <button
@@ -940,11 +940,11 @@ export default function ReportesManagement() {
 
       <div className="px-6 py-5 space-y-6">
         {/* ── Date Range Filter ── */}
-        <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-4" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 mr-2">
               <Calendar size={16} style={{ color: '#1B3A6B' }} />
-              <span className="text-sm font-600 text-gray-700" style={{ fontWeight: 600 }}>Período:</span>
+              <span className="text-sm font-600 text-white/70" style={{ fontWeight: 600 }}>Período:</span>
             </div>
             {(['hoy', 'semana', 'mes', 'personalizado'] as DateRange[]).map((r) => (
               <button
@@ -966,16 +966,16 @@ export default function ReportesManagement() {
                   type="date"
                   value={customStart}
                   onChange={e => setCustomStart(e.target.value)}
-                  className="border rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2"
-                  style={{ borderColor: '#d1d5db' }}
+                  className="border rounded-lg px-3 py-1.5 text-sm text-white/70 focus:outline-none focus:ring-2"
+                  style={{ borderColor: '#243f72' }}
                 />
-                <span className="text-gray-400 text-sm">—</span>
+                <span className="text-white/40 text-sm">—</span>
                 <input
                   type="date"
                   value={customEnd}
                   onChange={e => setCustomEnd(e.target.value)}
-                  className="border rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2"
-                  style={{ borderColor: '#d1d5db' }}
+                  className="border rounded-lg px-3 py-1.5 text-sm text-white/70 focus:outline-none focus:ring-2"
+                  style={{ borderColor: '#243f72' }}
                 />
               </div>
             )}
@@ -990,33 +990,33 @@ export default function ReportesManagement() {
             { label: 'Utilidad bruta', value: realKpis ? `$${(realKpis.ventas - (realKpis as any).costo || 0).toLocaleString('es-MX')}` : '—', sub: realKpis ? `${realKpis.margenPct.toFixed(1)}% margen` : 'Sin datos', icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4' },
             { label: '⚠️ Merma', value: realKpis && (realKpis.merma ?? 0) > 0 ? `$${(realKpis.merma ?? 0).toFixed(2)}` : '$0.00', sub: (realKpis?.merma ?? 0) > 0 ? 'Platillos cancelados' : 'Sin mermas ✓', icon: AlertTriangle, color: (realKpis?.merma ?? 0) > 0 ? '#dc2626' : '#9ca3af', bg: (realKpis?.merma ?? 0) > 0 ? '#fef2f2' : '#f9fafb' },
             { label: 'Descuentos', value: realKpis ? `$${((realKpis as any).descuentos || 0).toFixed(2)}` : '—', sub: 'Total aplicado', icon: Tag, color: '#8b5cf6', bg: '#f5f3ff' },
-            { label: 'IVA generado', value: realKpis ? `$${((realKpis as any).iva || 0).toFixed(2)}` : '—', sub: 'Por pagar', icon: Receipt, color: '#6b7280', bg: '#f9fafb' },
+            { label: 'IVA generado', value: realKpis ? `$${((realKpis as any).iva || 0).toFixed(2)}` : '—', sub: 'Por pagar', icon: Receipt, color: 'rgba(255,255,255,0.45)', bg: '#f9fafb' },
           ].map((kpi) => {
             const KpiIcon = kpi.icon;
             return (
-              <div key={kpi.label} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div key={kpi.label} className="bg-[#162d55] rounded-xl border p-4" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500">{kpi.label}</span>
+                  <span className="text-xs text-white/45">{kpi.label}</span>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: kpi.bg }}>
                     <KpiIcon size={13} style={{ color: kpi.color }} />
                   </div>
                 </div>
                 <p className="text-lg font-bold font-mono" style={{ color: kpi.color, fontWeight: 700 }}>{kpi.value}</p>
-                {kpi.sub && <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{kpi.sub}</p>}
+                {kpi.sub && <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{kpi.sub}</p>}
               </div>
             );
           })}
         </div>
 
         {/* ── Total Sales Chart ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Ventas Totales</h2>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Ventas Totales</h2>
               {(() => {
               const gastosPeriodo = Math.round((monthlyPayroll + gastosOpMensual.reduce((s,g)=>s+g.monto,0) + depMensualTotal) * periodFactor);
               return (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white/45">
                   Meta de equilibrio: <strong style={{color:'#6b7280'}}>${gastosPeriodo.toLocaleString('es-MX')}</strong>
                   {' '}— necesitas vender más de esto para ser rentable en {dateRange === 'hoy' ? 'el día' : dateRange === 'semana' ? 'la semana' : dateRange === 'mes' ? 'el mes' : 'el período'}
                 </p>
@@ -1053,14 +1053,14 @@ export default function ReportesManagement() {
         {/* ── Top 10 & Worst 10 Bar Charts ── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Top 10 */}
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-2 mb-5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ecfdf5' }}>
                 <TrendingUp size={16} style={{ color: '#10b981' }} />
               </div>
               <div>
-                <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Top 10 Platillos</h2>
-                <p className="text-xs text-gray-500">Los más vendidos del período</p>
+                <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Top 10 Platillos</h2>
+                <p className="text-xs text-white/45">Los más vendidos del período</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -1075,14 +1075,14 @@ export default function ReportesManagement() {
           </div>
 
           {/* Worst 10 */}
-          <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-2 mb-5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef2f2' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(248,113,113,0.08)' }}>
                 <TrendingDown size={16} style={{ color: '#ef4444' }} />
               </div>
               <div>
-                <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Peores 10 Platillos</h2>
-                <p className="text-xs text-gray-500">Los menos vendidos del período</p>
+                <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Peores 10 Platillos</h2>
+                <p className="text-xs text-white/45">Los menos vendidos del período</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -1098,18 +1098,18 @@ export default function ReportesManagement() {
         </div>
 
         {/* ── Sales by Hour Line Chart ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#eff6ff' }}>
                 <Clock size={16} style={{ color: '#3b82f6' }} />
               </div>
               <div>
-                <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Ventas por Hora</h2>
-                <p className="text-xs text-gray-500">Patrón de demanda durante el día</p>
+                <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Ventas por Hora</h2>
+                <p className="text-xs text-white/45">Patrón de demanda durante el día</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-white/45">
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#f59e0b' }}></span>Ventas ($)</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#3b82f6' }}></span>Órdenes</span>
             </div>
@@ -1126,57 +1126,57 @@ export default function ReportesManagement() {
             </LineChart>
           </ResponsiveContainer>
           {/* Peak info */}
-          <div className="flex items-center gap-6 mt-4 pt-4 border-t text-sm" style={{ borderColor: '#f3f4f6' }}>
+          <div className="flex items-center gap-6 mt-4 pt-4 border-t text-sm" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Hora pico</p>
-              <p className="font-600 text-gray-800 font-mono text-base" style={{ fontWeight: 600 }}>$34,602</p>
+              <p className="text-xs text-white/40 mb-0.5">Hora pico</p>
+              <p className="font-600 text-white/80 font-mono text-base" style={{ fontWeight: 600 }}>$34,602</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Hora más baja</p>
-              <p className="font-600 text-gray-800 font-mono" style={{ fontWeight: 600 }}>$680</p>
+              <p className="text-xs text-white/40 mb-0.5">Hora más baja</p>
+              <p className="font-600 text-white/80 font-mono" style={{ fontWeight: 600 }}>$680</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Pico nocturno</p>
-              <p className="font-600 text-gray-800 font-mono" style={{ fontWeight: 600 }}>$3,980</p>
+              <p className="text-xs text-white/40 mb-0.5">Pico nocturno</p>
+              <p className="font-600 text-white/80 font-mono" style={{ fontWeight: 600 }}>$3,980</p>
             </div>
             <div className="ml-auto">
-              <p className="text-xs text-gray-400 mb-0.5">Total del día</p>
+              <p className="text-xs text-white/40 mb-0.5">Total del día</p>
               <p className="font-700 text-amber-600 font-mono text-base" style={{ fontWeight: 700 }}>$34,602</p>
             </div>
           </div>
         </div>
 
         {/* ── Market Basket Analysis ── */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f5f3ff' }}>
               <ShoppingCart size={16} style={{ color: '#8b5cf6' }} />
             </div>
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Análisis de Canasta de Mercado</h2>
-              <p className="text-xs text-gray-500">Productos que se compran juntos con mayor frecuencia</p>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Análisis de Canasta de Mercado</h2>
+              <p className="text-xs text-white/45">Productos que se compran juntos con mayor frecuencia</p>
             </div>
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-4 mt-3 mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: '#f8fafc' }}>
-            <div><span className="font-600 text-gray-700" style={{ fontWeight: 600 }}>Frecuencia:</span> <span className="text-gray-500">Veces que se pidieron juntos</span></div>
-            <div><span className="font-600 text-gray-700" style={{ fontWeight: 600 }}>Confianza:</span> <span className="text-gray-500">Probabilidad de compra conjunta</span></div>
-            <div><span className="font-600 text-gray-700" style={{ fontWeight: 600 }}>Lift:</span> <span className="text-gray-500">Fuerza de la asociación (&gt;1 = positiva)</span></div>
+          <div className="flex flex-wrap gap-4 mt-3 mb-4 p-3 rounded-lg text-xs" style={{ backgroundColor: '#0f1e38' }}>
+            <div><span className="font-600 text-white/70" style={{ fontWeight: 600 }}>Frecuencia:</span> <span className="text-white/45">Veces que se pidieron juntos</span></div>
+            <div><span className="font-600 text-white/70" style={{ fontWeight: 600 }}>Confianza:</span> <span className="text-white/45">Probabilidad de compra conjunta</span></div>
+            <div><span className="font-600 text-white/70" style={{ fontWeight: 600 }}>Lift:</span> <span className="text-white/45">Fuerza de la asociación (&gt;1 = positiva)</span></div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                  <th className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>#</th>
-                  <th className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Producto A</th>
-                  <th className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Producto B</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Frecuencia</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Confianza</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Lift</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ fontWeight: 600 }}>Precio Combo Rec.</th>
-                  <th className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Asociación</th>
+                  <th className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>#</th>
+                  <th className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Producto A</th>
+                  <th className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Producto B</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Frecuencia</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Confianza</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Lift</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide whitespace-nowrap" style={{ fontWeight: 600 }}>Precio Combo Rec.</th>
+                  <th className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Asociación</th>
                 </tr>
               </thead>
               <tbody>
@@ -1187,23 +1187,23 @@ export default function ReportesManagement() {
                   const discount = Math.min((pair.lift - 1) * 0.1, 0.25);
                   const comboPrice = Math.round((pair.precio_a + pair.precio_b) * (1 - discount));
                   return (
-                    <tr key={idx} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
-                      <td className="py-3 px-3 text-gray-400 text-xs">{idx + 1}</td>
+                    <tr key={idx} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <td className="py-3 px-3 text-white/40 text-xs">{idx + 1}</td>
                       <td className="py-3 px-3">
-                        <span className="font-500 text-gray-800 text-xs">{pair.producto_a}</span>
+                        <span className="font-500 text-white/80 text-xs">{pair.producto_a}</span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="font-500 text-gray-800 text-xs">{pair.producto_b}</span>
+                        <span className="font-500 text-white/80 text-xs">{pair.producto_b}</span>
                       </td>
                       <td className="py-3 px-3 text-right">
-                        <span className="font-600 text-gray-700 font-mono text-xs" style={{ fontWeight: 600 }}>{pair.frecuencia}</span>
+                        <span className="font-600 text-white/70 font-mono text-xs" style={{ fontWeight: 600 }}>{pair.frecuencia}</span>
                       </td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="w-16 h-1.5 rounded-full bg-[#243f72]/60 overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${barWidth}%`, backgroundColor: '#8b5cf6' }} />
                           </div>
-                          <span className="font-600 text-gray-700 font-mono text-xs w-8 text-right" style={{ fontWeight: 600 }}>{barWidth}%</span>
+                          <span className="font-600 text-white/70 font-mono text-xs w-8 text-right" style={{ fontWeight: 600 }}>{barWidth}%</span>
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -1213,8 +1213,8 @@ export default function ReportesManagement() {
                       </td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex flex-col items-end">
-                          <span className="font-700 text-gray-900 font-mono text-xs" style={{ fontWeight: 700, color: '#7c3aed' }}>${comboPrice}</span>
-                          <span className="text-gray-400 font-mono text-xs line-through">${pair.precio_a + pair.precio_b}</span>
+                          <span className="font-700 text-white font-mono text-xs" style={{ fontWeight: 700, color: '#7c3aed' }}>${comboPrice}</span>
+                          <span className="text-white/40 font-mono text-xs line-through">${pair.precio_a + pair.precio_b}</span>
                           <span className="text-xs" style={{ color: '#10b981' }}>-{Math.round(discount * 100)}%</span>
                         </div>
                       </td>
@@ -1223,9 +1223,9 @@ export default function ReportesManagement() {
                           {pair.lift >= 2 ? (
                             <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: '#ecfdf5', color: '#059669' }}>Muy fuerte</span>
                           ) : pair.lift >= 1.5 ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: '#fffbeb', color: '#d97706' }}>Fuerte</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: 'rgba(245,158,11,0.08)', color: '#d97706' }}>Fuerte</span>
                           ) : (
-                            <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>Moderada</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>Moderada</span>
                           )}
                         </div>
                       </td>
@@ -1237,14 +1237,14 @@ export default function ReportesManagement() {
           </div>
 
           {basketPairs.length > 0 ? (
-            <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
+            <div className="mt-4 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderLeft: '3px solid #f59e0b' }}>
               <strong>💡 Recomendación:</strong> El combo más frecuente es{' '}
               <strong>"{basketPairs[0].producto_a} + {basketPairs[0].producto_b}"</strong>{' '}
               — se pidieron juntos {basketPairs[0].frecuencia} veces (lift {basketPairs[0].lift.toFixed(1)}x).
               {basketPairs[1] && <> También considera <strong>"{basketPairs[1].producto_a} + {basketPairs[1].producto_b}"</strong>.</>}
             </div>
           ) : (
-            <div className="mt-4 p-3 rounded-lg text-xs text-gray-500" style={{ backgroundColor: '#f8fafc', borderLeft: '3px solid #e5e7eb' }}>
+            <div className="mt-4 p-3 rounded-lg text-xs text-white/45" style={{ backgroundColor: '#0f1e38', borderLeft: '3px solid #e5e7eb' }}>
               Sin suficientes datos para análisis de canasta en este período.
             </div>
           )}
@@ -1270,15 +1270,15 @@ export default function ReportesManagement() {
           };
 
           return (
-            <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(74,222,128,0.07)' }}>
                     <span style={{ fontSize: 16 }}>📊</span>
                   </div>
                   <div>
-                    <h2 className="text-base text-gray-900" style={{ fontWeight: 700 }}>Menu Engineering — Matriz BCG</h2>
-                    <p className="text-xs text-gray-500">Popularidad vs Rentabilidad · {cogsData.length} platillos analizados</p>
+                    <h2 className="text-base text-white" style={{ fontWeight: 700 }}>Menu Engineering — Matriz BCG</h2>
+                    <p className="text-xs text-white/45">Popularidad vs Rentabilidad · {cogsData.length} platillos analizados</p>
                   </div>
                 </div>
               </div>
@@ -1294,13 +1294,13 @@ export default function ReportesManagement() {
                   <div key={s.q} className="rounded-xl p-3" style={{ border: `1px solid ${s.color}30`, background: `${s.color}08` }}>
                     <div className="font-bold text-sm mb-1" style={{ color: s.color }}>{s.q}</div>
                     <div className="text-xs font-mono font-bold mb-1" style={{ color: s.color }}>{s.count} platillos</div>
-                    <div className="text-xs text-gray-500 leading-snug">{s.desc}</div>
+                    <div className="text-xs text-white/45 leading-snug">{s.desc}</div>
                   </div>
                 ))}
               </div>
 
               {/* SVG scatter plot */}
-              <div style={{ position: 'relative', width: '100%', paddingBottom: '56%', background: '#fafafa', borderRadius: 12, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', width: '100%', paddingBottom: '56%', background: '#fafafa', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
                 <svg viewBox="0 0 500 280" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                   {/* Quadrant lines */}
                   <line x1="250" y1="10" x2="250" y2="270" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
@@ -1340,17 +1340,17 @@ export default function ReportesManagement() {
                 {cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct < avgMargen).slice(0, 3).map(d => (
                   <div key={d.nombre} className="flex items-center gap-3 text-xs p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)' }}>
                     <span style={{ color: '#f87171' }}>🐴</span>
-                    <span className="font-semibold text-gray-700">{d.nombre}</span>
-                    <span className="text-gray-500">{d.unidadesVendidas} vendidos · {d.margenPct.toFixed(0)}% margen</span>
-                    <span className="ml-auto text-gray-400">Considera eliminarlo o reformularlo</span>
+                    <span className="font-semibold text-white/70">{d.nombre}</span>
+                    <span className="text-white/45">{d.unidadesVendidas} vendidos · {d.margenPct.toFixed(0)}% margen</span>
+                    <span className="ml-auto text-white/40">Considera eliminarlo o reformularlo</span>
                   </div>
                 ))}
                 {cogsData.filter(d => d.unidadesVendidas < avgUnits && d.margenPct >= avgMargen).slice(0, 2).map(d => (
                   <div key={d.nombre} className="flex items-center gap-3 text-xs p-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
                     <span style={{ color: '#f59e0b' }}>🧩</span>
-                    <span className="font-semibold text-gray-700">{d.nombre}</span>
-                    <span className="text-gray-500">{d.margenPct.toFixed(0)}% margen · poco pedido</span>
-                    <span className="ml-auto text-gray-400">Promociónalo o ponlo en lugar visible</span>
+                    <span className="font-semibold text-white/70">{d.nombre}</span>
+                    <span className="text-white/45">{d.margenPct.toFixed(0)}% margen · poco pedido</span>
+                    <span className="ml-auto text-white/40">Promociónalo o ponlo en lugar visible</span>
                   </div>
                 ))}
               </div>
@@ -1361,28 +1361,28 @@ export default function ReportesManagement() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Desempeño del Personal ── */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
               <Award size={16} style={{ color: '#d97706' }} />
             </div>
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Desempeño del Personal</h2>
-              <p className="text-xs text-gray-500">Órdenes por hora y métricas de productividad por empleado</p>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Desempeño del Personal</h2>
+              <p className="text-xs text-white/45">Órdenes por hora y métricas de productividad por empleado</p>
             </div>
           </div>
 
           {/* Top performer highlight */}
-          <div className="flex items-center gap-3 p-3 rounded-xl mb-5" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+          <div className="flex items-center gap-3 p-3 rounded-xl mb-5" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid #fde68a' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-700" style={{ backgroundColor: '#f59e0b', color: 'white', fontWeight: 700 }}>
               🏆
             </div>
             <div>
               <p className="text-xs text-amber-700 font-600" style={{ fontWeight: 600 }}>Mejor desempeño del período</p>
-              <p className="text-sm font-700 text-gray-900" style={{ fontWeight: 700 }}>{topStaff[0]?.nombre} — {topStaff[0]?.ordenesHora.toFixed(1)} órdenes/hora</p>
+              <p className="text-sm font-700 text-white" style={{ fontWeight: 700 }}>{topStaff[0]?.nombre} — {topStaff[0]?.ordenesHora.toFixed(1)} órdenes/hora</p>
             </div>
             <div className="ml-auto text-right">
-              <p className="text-xs text-gray-500">Ventas generadas</p>
+              <p className="text-xs text-white/45">Ventas generadas</p>
               <p className="text-sm font-700 text-amber-600 font-mono" style={{ fontWeight: 700 }}>${topStaff[0]?.ventasTotal.toLocaleString('es-MX')}</p>
             </div>
           </div>
@@ -1408,7 +1408,7 @@ export default function ReportesManagement() {
                   }}
                 >
                   {isTop && (
-                    <span className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-600" style={{ backgroundColor: '#fef3c7', color: '#d97706', fontWeight: 600 }}>
+                    <span className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-600" style={{ backgroundColor: 'rgba(251,191,36,0.08)', color: '#d97706', fontWeight: 600 }}>
                       #1 Top
                     </span>
                   )}
@@ -1417,31 +1417,31 @@ export default function ReportesManagement() {
                       {emp.nombre.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <p className="text-sm font-700 text-gray-900 leading-tight" style={{ fontWeight: 700 }}>{emp.nombre}</p>
-                      <p className="text-xs text-gray-500">{emp.rol}</p>
+                      <p className="text-sm font-700 text-white leading-tight" style={{ fontWeight: 700 }}>{emp.nombre}</p>
+                      <p className="text-xs text-white/45">{emp.rol}</p>
                     </div>
                   </div>
 
                   {/* Órdenes/hora — main metric */}
                   <div className="mb-3">
                     <div className="flex items-end justify-between mb-1">
-                      <span className="text-xs text-gray-500">Órdenes / hora</span>
+                      <span className="text-xs text-white/45">Órdenes / hora</span>
                       <span className="text-lg font-700 font-mono" style={{ fontWeight: 700, color: '#1B3A6B' }}>{emp.ordenesHora.toFixed(1)}</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-[#243f72]/60 overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, backgroundColor: isTop ? '#f59e0b' : '#1B3A6B' }} />
                     </div>
                   </div>
 
                   {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg p-2" style={{ backgroundColor: '#f8fafc' }}>
-                      <p className="text-xs text-gray-400 mb-0.5">Órdenes</p>
-                      <p className="text-sm font-700 text-gray-800 font-mono" style={{ fontWeight: 700 }}>{emp.ordenes}</p>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: '#0f1e38' }}>
+                      <p className="text-xs text-white/40 mb-0.5">Órdenes</p>
+                      <p className="text-sm font-700 text-white/80 font-mono" style={{ fontWeight: 700 }}>{emp.ordenes}</p>
                     </div>
-                    <div className="rounded-lg p-2" style={{ backgroundColor: '#f8fafc' }}>
-                      <p className="text-xs text-gray-400 mb-0.5">Horas</p>
-                      <p className="text-sm font-700 text-gray-800 font-mono" style={{ fontWeight: 700 }}>{emp.horas}h</p>
+                    <div className="rounded-lg p-2" style={{ backgroundColor: '#0f1e38' }}>
+                      <p className="text-xs text-white/40 mb-0.5">Horas</p>
+                      <p className="text-sm font-700 text-white/80 font-mono" style={{ fontWeight: 700 }}>{emp.horas}h</p>
                     </div>
                     <div className="rounded-lg p-2" style={{ backgroundColor: satisfBg }}>
                       <p className="text-xs mb-0.5" style={{ color: satisfColor }}>Satisf.</p>
@@ -1450,9 +1450,9 @@ export default function ReportesManagement() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: '#f3f4f6' }}>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                     <span className="text-xs px-2 py-0.5 rounded-full font-500" style={{ backgroundColor: turnoBg, color: turnoColor }}>{emp.turno}</span>
-                    <span className="text-xs font-600 text-gray-600 font-mono" style={{ fontWeight: 600 }}>${emp.ventasTotal.toLocaleString('es-MX')}</span>
+                    <span className="text-xs font-600 text-white/60 font-mono" style={{ fontWeight: 600 }}>${emp.ventasTotal.toLocaleString('es-MX')}</span>
                   </div>
                 </div>
               );
@@ -1465,17 +1465,17 @@ export default function ReportesManagement() {
               <thead>
                 <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
                   {['Empleado', 'Turno', 'Órdenes', 'Horas', 'Órd./Hora', 'Ventas', 'Satisfacción'].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
+                    <th key={h} className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {topStaff.map((emp, idx) => (
-                  <tr key={emp.nombre} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
+                  <tr key={emp.nombre} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 w-4">{idx + 1}</span>
-                        <span className="text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>{emp.nombre}</span>
+                        <span className="text-xs text-white/40 w-4">{idx + 1}</span>
+                        <span className="text-sm font-600 text-white/80" style={{ fontWeight: 600 }}>{emp.nombre}</span>
                       </div>
                     </td>
                     <td className="py-3 px-3">
@@ -1484,15 +1484,15 @@ export default function ReportesManagement() {
                         color: emp.turno === 'Matutino' ? '#3b82f6' : emp.turno === 'Vespertino' ? '#d97706' : '#8b5cf6',
                       }}>{emp.turno}</span>
                     </td>
-                    <td className="py-3 px-3 font-mono text-sm text-gray-700">{emp.ordenes}</td>
-                    <td className="py-3 px-3 font-mono text-sm text-gray-700">{emp.horas}h</td>
+                    <td className="py-3 px-3 font-mono text-sm text-white/70">{emp.ordenes}</td>
+                    <td className="py-3 px-3 font-mono text-sm text-white/70">{emp.horas}h</td>
                     <td className="py-3 px-3">
                       <span className="font-700 font-mono text-sm" style={{ fontWeight: 700, color: '#1B3A6B' }}>{emp.ordenesHora.toFixed(1)}</span>
                     </td>
-                    <td className="py-3 px-3 font-mono text-sm text-gray-700">${emp.ventasTotal.toLocaleString('es-MX')}</td>
+                    <td className="py-3 px-3 font-mono text-sm text-white/70">${emp.ventasTotal.toLocaleString('es-MX')}</td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-12 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="w-12 h-1.5 rounded-full bg-[#243f72]/60 overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${emp.satisfaccion}%`, backgroundColor: emp.satisfaccion >= 95 ? '#10b981' : emp.satisfaccion >= 88 ? '#d97706' : '#ef4444' }} />
                         </div>
                         <span className="text-xs font-600 font-mono" style={{ fontWeight: 600, color: emp.satisfaccion >= 95 ? '#10b981' : emp.satisfaccion >= 88 ? '#d97706' : '#ef4444' }}>{emp.satisfaccion}%</span>
@@ -1508,15 +1508,15 @@ export default function ReportesManagement() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Análisis de Costos (COGS por Platillo) ── */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef2f2' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(248,113,113,0.08)' }}>
                 <ChefHat size={16} style={{ color: '#ef4444' }} />
               </div>
               <div>
-                <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Análisis de Costos — COGS por Platillo</h2>
-                <p className="text-xs text-gray-500">
+                <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Análisis de Costos — COGS por Platillo</h2>
+                <p className="text-xs text-white/45">
                   {cogsData.length > 0
                     ? `Datos reales de ${cogsData.length} platillo${cogsData.length !== 1 ? 's' : ''} con receta configurada`
                     : 'Costo de ingredientes, margen bruto y contribución total'}
@@ -1529,7 +1529,7 @@ export default function ReportesManagement() {
                   ✓ Datos reales
                 </span>
               )}
-              <span className="text-xs text-gray-500">Ordenar por:</span>
+              <span className="text-xs text-white/45">Ordenar por:</span>
               <button
                 onClick={() => setCogsSort('contribucionTotal')}
                 className="px-3 py-1.5 rounded-lg text-xs font-600 transition-all"
@@ -1564,8 +1564,8 @@ export default function ReportesManagement() {
                 ].map(k => (
                   <div key={k.label} className="rounded-xl p-3" style={{ backgroundColor: k.bg }}>
                     <p className="text-xs font-600 mb-1" style={{ color: k.color, fontWeight: 600 }}>{k.label}</p>
-                    <p className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>{k.value}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{k.sub}</p>
+                    <p className="text-base font-700 text-white" style={{ fontWeight: 700 }}>{k.value}</p>
+                    <p className="text-xs text-white/45 mt-0.5">{k.sub}</p>
                   </div>
                 ))}
               </div>
@@ -1574,7 +1574,7 @@ export default function ReportesManagement() {
 
           {/* COGS chart */}
           {cogsLoading ? (
-            <div className="h-64 rounded-xl animate-pulse mb-5" style={{ backgroundColor: '#f3f4f6' }} />
+            <div className="h-64 rounded-xl animate-pulse mb-5" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
           ) : (
             <div className="mb-5">
               <ResponsiveContainer width="100%" height={260}>
@@ -1586,11 +1586,11 @@ export default function ReportesManagement() {
                     content={({ active, payload, label }: any) => {
                       if (!active || !payload?.length) return null;
                       return (
-                        <div className="bg-white rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#e5e7eb', minWidth: '180px' }}>
-                          <p className="font-600 text-gray-700 mb-2" style={{ fontWeight: 600 }}>{label}</p>
-                          <div className="flex justify-between gap-4"><span className="text-gray-500">Precio venta</span><span className="font-mono font-600" style={{ fontWeight: 600 }}>${payload[0]?.payload?.precioVenta}</span></div>
-                          <div className="flex justify-between gap-4 mt-1"><span className="text-gray-500">Costo ingredientes</span><span className="font-mono font-600 text-red-500" style={{ fontWeight: 600 }}>${payload[0]?.payload?.costoIngredientes}</span></div>
-                          <div className="flex justify-between gap-4 mt-1"><span className="text-gray-500">Margen bruto</span><span className="font-mono font-600 text-green-600" style={{ fontWeight: 600 }}>{payload[0]?.payload?.margenBruto}</span></div>
+                        <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#243f72', minWidth: '180px' }}>
+                          <p className="font-600 text-white/70 mb-2" style={{ fontWeight: 600 }}>{label}</p>
+                          <div className="flex justify-between gap-4"><span className="text-white/45">Precio venta</span><span className="font-mono font-600" style={{ fontWeight: 600 }}>${payload[0]?.payload?.precioVenta}</span></div>
+                          <div className="flex justify-between gap-4 mt-1"><span className="text-white/45">Costo ingredientes</span><span className="font-mono font-600 text-red-500" style={{ fontWeight: 600 }}>${payload[0]?.payload?.costoIngredientes}</span></div>
+                          <div className="flex justify-between gap-4 mt-1"><span className="text-white/45">Margen bruto</span><span className="font-mono font-600 text-green-600" style={{ fontWeight: 600 }}>{payload[0]?.payload?.margenBruto}</span></div>
                           {payload[0]?.payload?.hasRealCost && <p className="mt-2 text-green-600 font-600" style={{ fontWeight: 600 }}>✓ Costo real</p>}
                         </div>
                       );
@@ -1610,7 +1610,7 @@ export default function ReportesManagement() {
               <thead>
                 <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
                   {['Platillo', 'Categoría', 'Precio Venta', 'COGS', 'Margen Bruto', 'Margen %', 'Unidades', 'Contribución Total'].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
+                    <th key={h} className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1619,16 +1619,16 @@ export default function ReportesManagement() {
                   const margenColor = dish.margenPct >= 75 ? '#10b981' : dish.margenPct >= 60 ? '#f59e0b' : '#ef4444';
                   const margenBg = dish.margenPct >= 75 ? '#ecfdf5' : dish.margenPct >= 60 ? '#fffbeb' : '#fef2f2';
                   return (
-                    <tr key={dish.nombre} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
+                    <tr key={dish.nombre} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-4">{idx + 1}</span>
-                          <span className="text-sm font-600 text-gray-800" style={{ fontWeight: 600 }}>{dish.nombre}</span>
+                          <span className="text-xs text-white/40 w-4">{idx + 1}</span>
+                          <span className="text-sm font-600 text-white/80" style={{ fontWeight: 600 }}>{dish.nombre}</span>
                           {dish.hasRealCost && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#ecfdf5', color: '#059669' }}>✓</span>}
                         </div>
                       </td>
-                      <td className="py-3 px-3"><span className="text-xs text-gray-500">{dish.categoria}</span></td>
-                      <td className="py-3 px-3 font-mono text-sm text-gray-700">${dish.precioVenta.toFixed(2)}</td>
+                      <td className="py-3 px-3"><span className="text-xs text-white/45">{dish.categoria}</span></td>
+                      <td className="py-3 px-3 font-mono text-sm text-white/70">${dish.precioVenta.toFixed(2)}</td>
                       <td className="py-3 px-3 font-mono text-sm text-red-500">${dish.costoIngredientes.toFixed(2)}</td>
                       <td className="py-3 px-3 font-mono text-sm text-green-600">${dish.margenBruto.toFixed(2)}</td>
                       <td className="py-3 px-3">
@@ -1636,8 +1636,8 @@ export default function ReportesManagement() {
                           {dish.margenPct.toFixed(2)}%
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-mono text-sm text-gray-700">{dish.unidadesVendidas}</td>
-                      <td className="py-3 px-3 font-mono text-sm font-700 text-gray-900" style={{ fontWeight: 700 }}>${dish.contribucionTotal.toLocaleString('es-MX')}</td>
+                      <td className="py-3 px-3 font-mono text-sm text-white/70">{dish.unidadesVendidas}</td>
+                      <td className="py-3 px-3 font-mono text-sm font-700 text-white" style={{ fontWeight: 700 }}>${dish.contribucionTotal.toLocaleString('es-MX')}</td>
                     </tr>
                   );
                 })}
@@ -1646,7 +1646,7 @@ export default function ReportesManagement() {
           </div>
 
           {cogsData.length === 0 && !cogsLoading && (
-            <div className="mt-3 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#fffbeb', borderLeft: '3px solid #f59e0b' }}>
+            <div className="mt-3 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderLeft: '3px solid #f59e0b' }}>
               <strong>💡 Tip:</strong> Ve a la sección de Menú, abre la receta de cada platillo y agrega sus ingredientes con porciones para ver aquí los costos reales calculados automáticamente.
             </div>
           )}
@@ -1656,7 +1656,7 @@ export default function ReportesManagement() {
             const worstDish = [...source].sort((a, b) => a.margenPct - b.margenPct)[0];
             if (!worstDish) return null;
             return (
-              <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#fef2f2', borderLeft: '3px solid #ef4444' }}>
+              <div className="mt-4 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: 'rgba(248,113,113,0.08)', borderLeft: '3px solid #ef4444' }}>
                 <strong>⚠️ Atención:</strong> {worstDish.nombre} tiene el margen más bajo ({worstDish.margenPct}%). Considera revisar proveedores o ajustar el precio de venta para mejorar la rentabilidad.
               </div>
             );
@@ -1666,14 +1666,14 @@ export default function ReportesManagement() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Predicción de Horas Pico ── */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#eff6ff' }}>
               <TrendingUp size={16} style={{ color: '#3b82f6' }} />
             </div>
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Predicción de Horas Pico</h2>
-              <p className="text-xs text-gray-500">Demanda real vs. predicción basada en patrones históricos</p>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Predicción de Horas Pico</h2>
+              <p className="text-xs text-white/45">Demanda real vs. predicción basada en patrones históricos</p>
             </div>
           </div>
 
@@ -1692,7 +1692,7 @@ export default function ReportesManagement() {
 
           {/* Peak alerts */}
           <div className="mt-5">
-            <h3 className="text-sm font-700 text-gray-800 mb-3" style={{ fontWeight: 700 }}>Alertas y Recomendaciones de Staffing</h3>
+            <h3 className="text-sm font-700 text-white/80 mb-3" style={{ fontWeight: 700 }}>Alertas y Recomendaciones de Staffing</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {peakPredictions.map((p) => {
                 const isPeak = p.recomendacion === 'Pico máximo' || p.recomendacion === 'Pico nocturno';
@@ -1708,16 +1708,16 @@ export default function ReportesManagement() {
                       <span className="text-sm font-700" style={{ fontWeight: 700 }}>{p.hora}</span>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">Órdenes reales</span>
+                      <span className="text-xs text-white/45">Órdenes reales</span>
                       <span className="text-xs font-700 font-mono" style={{ fontWeight: 700, color: textColor }}>{p.actual}</span>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-gray-500">Predicción</span>
+                      <span className="text-xs text-white/45">Predicción</span>
                       <span className="text-xs font-700 font-mono" style={{ fontWeight: 700, color: textColor }}>{p.predicho}</span>
                     </div>
                     <div className="mt-2 pt-2 border-t" style={{ borderColor: borderColor }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Confianza del modelo</span>
+                        <span className="text-xs text-white/45">Confianza del modelo</span>
                         <span className="text-xs font-600 font-mono" style={{ fontWeight: 600, color: textColor }}>{p.confianza}%</span>
                       </div>
                       <div className="w-full h-1.5 rounded-full mt-1" style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}>
@@ -1730,7 +1730,7 @@ export default function ReportesManagement() {
             </div>
           </div>
 
-          <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#eff6ff', borderLeft: '3px solid #3b82f6' }}>
+          <div className="mt-4 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: '#eff6ff', borderLeft: '3px solid #3b82f6' }}>
             <strong>📊 Recomendación de staffing:</strong> Para las horas pico (13:00–15:00 y 19:00–21:00) se recomienda tener al menos 4 meseros activos. Considera programar descansos entre 10:00–11:00 y 16:00–17:00 cuando la demanda es baja.
           </div>
         </div>
@@ -1738,14 +1738,14 @@ export default function ReportesManagement() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Estado de Resultados (P&L) ── */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ecfdf5' }}>
               <DollarSign size={16} style={{ color: '#10b981' }} />
             </div>
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Estado de Resultados (P&L)</h2>
-              <p className="text-xs text-gray-500">Reporte de Pérdidas y Ganancias — {dateRangeLabel}</p>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Estado de Resultados (P&L)</h2>
+              <p className="text-xs text-white/45">Reporte de Pérdidas y Ganancias — {dateRangeLabel}</p>
             </div>
           </div>
 
@@ -1758,9 +1758,9 @@ export default function ReportesManagement() {
               { label: 'EBITDA', value: `$${plEbitda.toLocaleString('es-MX')}`, delta: plTotalIngresos > 0 ? `${((plEbitda/plTotalIngresos)*100).toFixed(1)}% margen` : '—', up: plEbitda >= 0, color: '#f59e0b', bg: '#fffbeb' },
               { label: 'Utilidad Neta', value: `$${plNetaCalculada.toLocaleString('es-MX')}`, delta: `${plMargenNeto}% margen`, up: plNetaCalculada >= 0, color: plNetaCalculada >= 0 ? '#10b981' : '#dc2626', bg: plNetaCalculada >= 0 ? '#ecfdf5' : '#fef2f2' },
             ].map(k => (
-              <div key={k.label} className="rounded-xl border p-4" style={{ borderColor: '#e5e7eb', backgroundColor: k.bg }}>
-                <p className="text-xs text-gray-500 mb-1">{k.label}</p>
-                <p className="text-lg font-700 text-gray-900" style={{ fontWeight: 700 }}>{k.value}</p>
+              <div key={k.label} className="rounded-xl border p-4" style={{ borderColor: '#243f72', backgroundColor: k.bg }}>
+                <p className="text-xs text-white/45 mb-1">{k.label}</p>
+                <p className="text-lg font-700 text-white" style={{ fontWeight: 700 }}>{k.value}</p>
                 <div className="flex items-center gap-1 mt-1">
                   {k.up ? <ArrowUpRight size={12} style={{ color: k.color }} /> : <ArrowDownRight size={12} style={{ color: '#ef4444' }} />}
                   <span className="text-xs font-600" style={{ fontWeight: 600, color: k.color }}>{k.delta}</span>
@@ -1794,8 +1794,8 @@ export default function ReportesManagement() {
                     if (!active || !payload?.length) return null;
                     const val = payload[0]?.value;
                     return (
-                      <div className="bg-white rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#e5e7eb' }}>
-                        <p className="font-600 text-gray-700 mb-1" style={{ fontWeight: 600 }}>{label}</p>
+                      <div className="bg-[#162d55] rounded-xl shadow-lg border p-3 text-xs" style={{ borderColor: '#243f72' }}>
+                        <p className="font-600 text-white/70 mb-1" style={{ fontWeight: 600 }}>{label}</p>
                         <p className="font-mono font-700" style={{ fontWeight: 700, color: val >= 0 ? '#10b981' : '#ef4444' }}>
                           {val >= 0 ? '+' : ''}${Math.abs(val).toLocaleString('es-MX')}
                         </p>
@@ -1815,9 +1815,9 @@ export default function ReportesManagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                  <th className="text-left py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Concepto</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Monto (MXN)</th>
-                  <th className="text-right py-2 px-3 text-xs font-600 text-gray-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>% Ingresos</th>
+                  <th className="text-left py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Concepto</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>Monto (MXN)</th>
+                  <th className="text-right py-2 px-3 text-xs font-600 text-white/45 uppercase tracking-wide" style={{ fontWeight: 600 }}>% Ingresos</th>
                 </tr>
               </thead>
               <tbody>
@@ -1829,8 +1829,8 @@ export default function ReportesManagement() {
 
                   if (isHeader) {
                     return (
-                      <tr key={idx} style={{ backgroundColor: '#f8fafc', borderTop: '2px solid #e5e7eb' }}>
-                        <td colSpan={3} className="py-2 px-3 text-xs font-700 text-gray-600 uppercase tracking-widest" style={{ fontWeight: 700 }}>{item.concepto}</td>
+                      <tr key={idx} style={{ backgroundColor: '#0f1e38', borderTop: '2px solid #e5e7eb' }}>
+                        <td colSpan={3} className="py-2 px-3 text-xs font-700 text-white/60 uppercase tracking-widest" style={{ fontWeight: 700 }}>{item.concepto}</td>
                       </tr>
                     );
                   }
@@ -1844,7 +1844,7 @@ export default function ReportesManagement() {
                         <td className="py-3 px-3 text-right font-mono text-sm" style={{ fontWeight: 700, color: totalColor }}>
                           ${item.monto.toLocaleString('es-MX')}
                         </td>
-                        <td className="py-3 px-3 text-right text-xs text-gray-400 font-mono">
+                        <td className="py-3 px-3 text-right text-xs text-white/40 font-mono">
                           {pct ? `${pct}%` : '—'}
                         </td>
                       </tr>
@@ -1852,12 +1852,12 @@ export default function ReportesManagement() {
                   }
 
                   return (
-                    <tr key={idx} className="border-b hover:bg-gray-50 transition-colors" style={{ borderColor: '#f3f4f6' }}>
-                      <td className="py-2.5 px-3 text-sm text-gray-700" style={{ paddingLeft: `${12 + item.nivel * 20}px` }}>{item.concepto}</td>
+                    <tr key={idx} className="border-b hover:bg-[#0f1e38] transition-colors" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <td className="py-2.5 px-3 text-sm text-white/70" style={{ paddingLeft: `${12 + item.nivel * 20}px` }}>{item.concepto}</td>
                       <td className="py-2.5 px-3 text-right font-mono text-sm" style={{ color: isCost ? '#ef4444' : '#374151' }}>
                         {isCost ? '-' : '+'}${item.monto.toLocaleString('es-MX')}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-xs text-gray-400 font-mono">
+                      <td className="py-2.5 px-3 text-right text-xs text-white/40 font-mono">
                         {pct ? `${pct}%` : '—'}
                       </td>
                     </tr>
@@ -1868,7 +1868,7 @@ export default function ReportesManagement() {
           </div>
 
           {/* P&L footer note */}
-          <div className="mt-4 p-3 rounded-lg text-xs text-gray-600" style={{ backgroundColor: '#ecfdf5', borderLeft: '3px solid #10b981' }}>
+          <div className="mt-4 p-3 rounded-lg text-xs text-white/60" style={{ backgroundColor: '#ecfdf5', borderLeft: '3px solid #10b981' }}>
             {plTotalIngresos > 0 ? (<><strong>✅ Resumen ejecutivo:</strong> El período muestra ingresos de <strong>${plTotalIngresos.toLocaleString('es-MX')}</strong> con una utilidad bruta del <strong>{plMargenBruto}%</strong>. {plMermaReal > 0 && <>La merma registrada de <strong>${plMermaReal.toLocaleString('es-MX')}</strong> representa el {((plMermaReal/plTotalIngresos)*100).toFixed(2)}% de las ventas — revisar razones de cancelación. </>}EBITDA: <strong>{plTotalIngresos > 0 ? ((plEbitda/plTotalIngresos)*100).toFixed(1) : 0}% margen</strong>. Margen neto: <strong>{plMargenNeto}%</strong>.</>) : 'Sin ventas en el período seleccionado.'}
           </div>
         </div>
@@ -1876,14 +1876,14 @@ export default function ReportesManagement() {
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* ── SECCIÓN: Análisis de Desperdicio e Inventario ── */}
         {/* ════════════════════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="bg-[#162d55] rounded-xl border p-5" style={{ borderColor: '#243f72', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#fef3c7' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
               <Trash2Icon size={16} style={{ color: '#d97706' }} />
             </div>
             <div>
-              <h2 className="text-base font-700 text-gray-900" style={{ fontWeight: 700 }}>Análisis de Desperdicio e Inventario</h2>
-              <p className="text-xs text-gray-500">Recomendaciones de compra/reducción basadas en historial de movimientos</p>
+              <h2 className="text-base font-700 text-white" style={{ fontWeight: 700 }}>Análisis de Desperdicio e Inventario</h2>
+              <p className="text-xs text-white/45">Recomendaciones de compra/reducción basadas en historial de movimientos</p>
             </div>
           </div>
           <WasteAnalysisSummary />

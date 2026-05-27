@@ -48,12 +48,12 @@ function Row({ label, value, sub, highlight, indent = false }: {
     amber: 'text-amber-700 font-semibold',
   };
   return (
-    <div className={`flex items-center justify-between py-2 ${indent ? 'pl-4' : ''} border-b border-gray-100 last:border-0`}>
+    <div className={`flex items-center justify-between py-2 ${indent ? 'pl-4' : ''} border-b border-[#243f72]/50 last:border-0`}>
       <div>
-        <span className="text-sm text-gray-700">{label}</span>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        <span className="text-sm text-white/70">{label}</span>
+        {sub && <p className="text-xs text-white/40 mt-0.5">{sub}</p>}
       </div>
-      <span className={`text-sm ${highlight ? colors[highlight] : 'text-gray-900'}`}>{value}</span>
+      <span className={`text-sm ${highlight ? colors[highlight] : 'text-white'}`}>{value}</span>
     </div>
   );
 }
@@ -74,31 +74,31 @@ function EmployeeCard({ emp, flags }: { emp: Employee; flags: typeof NOMINA_COMP
     : r === 'cocinero' ? 'Cocinero' : r === 'gerente' ? 'Gerente' : r;
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-[#243f72] rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-4 p-4 bg-white hover:bg-gray-50 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-4 bg-[#162d55] hover:bg-[#0f1e38] transition-colors text-left"
       >
         <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700 flex-shrink-0">
           {emp.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{emp.name}</p>
-          <p className="text-xs text-gray-500">{roleLabel(emp.role)} · {fmt(salMes)}/mes neto</p>
+          <p className="text-sm font-semibold text-white">{emp.name}</p>
+          <p className="text-xs text-white/45">{roleLabel(emp.role)} · {fmt(salMes)}/mes neto</p>
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-sm font-bold text-blue-700">{fmt(costo.totalMensual)}/mes</p>
-          <p className="text-xs text-gray-400">+{costo.porcentajeSobreSalario}% carga</p>
+          <p className="text-xs text-white/40">+{costo.porcentajeSobreSalario}% carga</p>
         </div>
-        <div className="text-gray-400 flex-shrink-0">
+        <div className="text-white/40 flex-shrink-0">
           {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 bg-gray-50 space-y-0.5">
+        <div className="px-4 pb-4 bg-[#0f1e38] space-y-0.5">
           <div className="pt-2 pb-1">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Desglose mensual</p>
+            <p className="text-xs font-bold text-white/45 uppercase tracking-wide">Desglose mensual</p>
           </div>
 
           <Row label="Salario neto al empleado" value={fmt(costo.salarioNeto)}
@@ -271,17 +271,17 @@ export default function NominaTab({ employees }: Props) {
             ]);
           }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border"
-          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: 'white' }}
+          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: '#162d55' }}
         >
           <Download size={15} /> Exportar nómina
         </button>
       </div>
 
       {/* Resumen del equipo */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
-          <h3 className="text-base font-bold text-gray-900">Resumen del equipo — {resumen.empleados} empleados</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Costo mensual total para el negocio</p>
+      <div className="bg-[#162d55] border border-[#243f72] rounded-2xl overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-[#243f72]/50 bg-gradient-to-r from-blue-50 to-white">
+          <h3 className="text-base font-bold text-white">Resumen del equipo — {resumen.empleados} empleados</h3>
+          <p className="text-xs text-white/45 mt-0.5">Costo mensual total para el negocio</p>
         </div>
 
         <div className="p-5 space-y-0.5">
@@ -292,11 +292,11 @@ export default function NominaTab({ employees }: Props) {
           <Row label="Prestaciones (aguinaldo + prima vac.)" value={fmt(resumen.prestacionesMensuales)} highlight="amber"
             sub="Prorrateadas mensualmente" />
 
-          <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-[#243f72]">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-base font-bold text-gray-900">Total nómina mensual real</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-base font-bold text-white">Total nómina mensual real</p>
+                <p className="text-xs text-white/45">
                   Factor promedio del equipo: {resumen.factorPromedioEquipo}× el salario base
                 </p>
               </div>
@@ -312,12 +312,12 @@ export default function NominaTab({ employees }: Props) {
                 { label: 'Prestaciones', monto: resumen.prestacionesMensuales, color: 'bg-amber-300' },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-3">
-                  <div className="w-20 text-xs text-gray-500 text-right">{item.label}</div>
-                  <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-20 text-xs text-white/45 text-right">{item.label}</div>
+                  <div className="flex-1 h-5 bg-[#243f72]/60 rounded-full overflow-hidden">
                     <div className={`h-full ${item.color} rounded-full transition-all`}
                       style={{ width: `${resumen.totalNomina > 0 ? (item.monto / resumen.totalNomina) * 100 : 0}%` }} />
                   </div>
-                  <div className="w-24 text-xs text-gray-700 font-semibold">{fmt(item.monto)}</div>
+                  <div className="w-24 text-xs text-white/70 font-semibold">{fmt(item.monto)}</div>
                 </div>
               ))}
             </div>
@@ -338,11 +338,11 @@ export default function NominaTab({ employees }: Props) {
 
       {/* Por empleado */}
       <div>
-        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-3">
           Desglose por empleado
         </h3>
         {activos.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-white/40">
             <p>No hay empleados con salario registrado</p>
             <p className="text-xs mt-1">Configura el salario en la pestaña Empleados</p>
           </div>
@@ -354,9 +354,9 @@ export default function NominaTab({ employees }: Props) {
       </div>
 
       {/* Referencia LFT */}
-      <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Referencia — Prestaciones mínimas LFT 2025</p>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs text-gray-600">
+      <div className="p-4 bg-[#0f1e38] border border-[#243f72] rounded-xl space-y-2">
+        <p className="text-xs font-bold text-white/60 uppercase tracking-wide">Referencia — Prestaciones mínimas LFT 2025</p>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs text-white/60">
           <span>Aguinaldo:</span><span className="font-semibold">15 días de salario</span>
           <span>Vacaciones (1er año):</span><span className="font-semibold">12 días (reforma 2023)</span>
           <span>Prima vacacional:</span><span className="font-semibold">25% sobre días de vacaciones</span>

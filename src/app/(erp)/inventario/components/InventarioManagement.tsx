@@ -135,7 +135,7 @@ const CATEGORY_COLORS: Record<Exclude<Category, 'Todas'>, string> = {
   Empaques:        'bg-slate-700/40 text-slate-300',
   Limpieza:        'bg-teal-900/40 text-teal-300',
   Abarrotes:       'bg-yellow-900/40 text-yellow-300',
-  Otros:           'bg-gray-700/40 text-gray-400',
+  Otros:           'bg-gray-700/40 text-white/40',
 };
 const MOVEMENT_COLORS: Record<MovementType, { bg: string; text: string; icon: React.ReactNode }> = {
   entrada: { bg: 'bg-green-900/30 text-green-300', text: 'Entrada', icon: <ArrowDownCircle size={13} className="text-green-400" /> },
@@ -1275,10 +1275,10 @@ export default function InventarioManagement() {
                                   </span>
                                   {/* Acciones */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => openHistoryFor(ing.id)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Ver historial">
+                                    <button onClick={() => openHistoryFor(ing.id)} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors" title="Ver historial">
                                       <History size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
                                     </button>
-                                    <button onClick={() => openEdit(ing)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar">
+                                    <button onClick={() => openEdit(ing)} className="p-1.5 rounded-lg hover:bg-[#162d55]/10 transition-colors" title="Editar">
                                       <Pencil size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
                                     </button>
                                     <button onClick={() => setDeleteId(ing.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar">
@@ -2195,7 +2195,7 @@ export default function InventarioManagement() {
                                   }
                                 }
                               }}
-                              className="w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10"
+                              className="w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-[#162d55]/10"
                               style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                               <span style={{ fontWeight: 500 }}>{i.name}</span>
                               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>

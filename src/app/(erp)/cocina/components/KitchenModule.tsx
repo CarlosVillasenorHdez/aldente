@@ -51,7 +51,7 @@ const STATUS_CONFIG: Record<KitchenStatus, { label: string; color: string; bg: s
   pendiente:   { label: 'Pendiente',        color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.35)'  },
   preparacion: { label: 'En Preparación',   color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)'  },
   lista:       { label: 'Lista para Servir',color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.35)'   },
-  entregada:   { label: 'Entregada',        color: '#6b7280', bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.25)' },
+  entregada:   { label: 'Entregada',        color: 'rgba(255,255,255,0.45)', bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.25)' },
 };
 
 const COLUMNS: KitchenStatus[] = ['pendiente', 'preparacion', 'lista'];

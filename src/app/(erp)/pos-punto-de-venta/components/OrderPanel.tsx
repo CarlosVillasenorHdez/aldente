@@ -97,13 +97,13 @@ export default function OrderPanel({
 
   return (
     <div
-      className="w-80 xl:w-96 flex-shrink-0 flex flex-col bg-white border-l"
-      style={{ borderColor: '#e5e7eb' }}
+      className="w-80 xl:w-96 flex-shrink-0 flex flex-col bg-[#162d55] border-l"
+      style={{ borderColor: '#243f72' }}
     >
       {/* Header */}
       <div
         className="px-4 py-3.5 border-b flex items-center justify-between flex-shrink-0"
-        style={{ borderColor: '#f3f4f6', backgroundColor: '#1B3A6B' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: '#1B3A6B' }}
       >
         <div className="flex items-center gap-2">
           <ShoppingCart size={16} style={{ color: '#f59e0b' }} />
@@ -157,14 +157,14 @@ export default function OrderPanel({
           <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ backgroundColor: '#f3f4f6' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
             >
-              <ShoppingCart size={28} className="text-gray-300" />
+              <ShoppingCart size={28} className="text-white/30" />
             </div>
-            <p className="text-sm font-600 text-gray-600 mb-1" style={{ fontWeight: 600 }}>
+            <p className="text-sm font-600 text-white/60 mb-1" style={{ fontWeight: 600 }}>
               Sin mesa seleccionada
             </p>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-white/40 leading-relaxed">
               Selecciona una mesa del mapa para comenzar a registrar una orden
             </p>
           </div>
@@ -172,14 +172,14 @@ export default function OrderPanel({
           <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ backgroundColor: '#fffbeb' }}
+              style={{ backgroundColor: 'rgba(245,158,11,0.08)' }}
             >
               <ShoppingCart size={28} style={{ color: '#f59e0b' }} />
             </div>
-            <p className="text-sm font-600 text-gray-700 mb-1" style={{ fontWeight: 600 }}>
+            <p className="text-sm font-600 text-white/70 mb-1" style={{ fontWeight: 600 }}>
               Orden vacía
             </p>
-            <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+            <p className="text-xs text-white/40 mb-4 leading-relaxed">
               Agrega platillos desde el menú para {selectedTable.name}
             </p>
             <button onClick={onShowMenu} className="btn-primary text-xs py-2 px-4">
@@ -209,32 +209,32 @@ export default function OrderPanel({
                   <div key={groupKey} className="border-b border-gray-50 last:border-0">
                     {/* Group header */}
                     <div
-                      className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors"
+                      className="px-4 py-3 flex items-start gap-3 hover:bg-[#0f1e38] transition-colors"
                       onClick={() => group.length > 1 && setExpandedNoteId(isExpanded ? null : groupKey)}
                       style={{ cursor: group.length > 1 ? 'pointer' : 'default' }}
                     >
                       <span className="text-xl flex-shrink-0 mt-0.5">{first.menuItem.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm text-gray-800 leading-tight" style={{ fontWeight: 600 }}>
+                          <p className="text-sm text-white/80 leading-tight" style={{ fontWeight: 600 }}>
                             {first.menuItem.name}
                           </p>
                           {group.length > 1 && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
                               ×{totalQty}
                             </span>
                           )}
                           {group.length > 1 && hasVariations && (
-                            <span className="text-xs" style={{ color: '#9ca3af' }}>
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                               {isExpanded ? '▲' : '▼'}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                        <p className="text-xs text-white/40 mt-0.5 font-mono">
                           ${first.menuItem.price.toFixed(2)} c/u
                         </p>
                       </div>
-                      <span className="font-mono text-sm text-gray-900" style={{ fontWeight: 700 }}>
+                      <span className="font-mono text-sm text-white" style={{ fontWeight: 700 }}>
                         ${totalPrice.toFixed(2)}
                       </span>
                     </div>
@@ -242,7 +242,7 @@ export default function OrderPanel({
                     {/* Individual lines — shown when expanded or only 1 item */}
                     {(isExpanded || group.length === 1) && group.map((item) => (
                       <div key={item.lineId} className="px-4 pb-2 ml-8">
-                        <div className="flex items-center gap-2 py-1.5 border-t border-dashed" style={{ borderColor: '#f3f4f6' }}>
+                        <div className="flex items-center gap-2 py-1.5 border-t border-dashed" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                           <div className="flex-1 min-w-0">
                             {/* Modifier group options chosen */}
                             {(item as any).selectedOptions?.length > 0 && (
@@ -260,12 +260,12 @@ export default function OrderPanel({
                               </p>
                             )}
                             {item.notes && (
-                              <p className="text-xs italic" style={{ color: '#9ca3af' }}>
+                              <p className="text-xs italic" style={{ color: 'rgba(255,255,255,0.4)' }}>
                                 📝 {item.notes}
                               </p>
                             )}
                             {!(item as any).selectedOptions?.length && !item.modifier && !item.notes && (
-                              <p className="text-xs" style={{ color: '#9ca3af' }}>Sin modificaciones</p>
+                              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Sin modificaciones</p>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -275,11 +275,11 @@ export default function OrderPanel({
                             </button>
                             <span className="font-mono text-xs w-4 text-center" style={{ fontWeight: 700 }}>{item.quantity}</span>
                             <button onClick={() => onUpdateQty(item.lineId, 1)}
-                              className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+                              className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(74,222,128,0.08)', color: '#16a34a' }}>
                               <Plus size={9} />
                             </button>
                             <button onClick={() => onRemoveItem(item.lineId)}
-                              className="w-5 h-5 rounded flex items-center justify-center ml-1" style={{ color: '#d1d5db' }}>
+                              className="w-5 h-5 rounded flex items-center justify-center ml-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
                               <Trash2 size={9} />
                             </button>
                           </div>
@@ -297,12 +297,12 @@ export default function OrderPanel({
 
       {/* Totals + Actions */}
       {orderItems.length > 0 && selectedTable && (
-        <div className="flex-shrink-0 border-t" style={{ borderColor: '#e5e7eb' }}>
+        <div className="flex-shrink-0 border-t" style={{ borderColor: '#243f72' }}>
           {/* Discount toggle */}
           <div className="px-4 pt-3">
             <button
               onClick={() => setShowDiscount(!showDiscount)}
-              className="flex items-center gap-2 text-xs font-600 text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex items-center gap-2 text-xs font-600 text-white/45 hover:text-white/70 transition-colors"
               style={{ fontWeight: 600 }}
             >
               <Tag size={12} />
@@ -316,7 +316,7 @@ export default function OrderPanel({
 
             {showDiscount && (
               <div className="mt-2 flex items-center gap-2 animate-fade-in">
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                <div className="flex items-center gap-1 bg-[#243f72]/60 rounded-lg p-0.5">
                   {(['pct', 'fixed'] as const).map((t) => (
                     <button
                       key={t}
@@ -346,7 +346,7 @@ export default function OrderPanel({
                 <button
                   onClick={applyDiscount}
                   className="text-xs px-3 py-1.5 rounded-lg font-600 transition-colors"
-                  style={{ backgroundColor: '#f3f4f6', color: '#374151', fontWeight: 600 }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}
                 >
                   Aplicar
                 </button>
@@ -356,7 +356,7 @@ export default function OrderPanel({
 
           {/* Totals breakdown */}
           <div className="px-4 py-3 space-y-1.5">
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-white/45">
               <span>Subtotal</span>
               <span className="font-mono">${subtotal.toFixed(2)}</span>
             </div>
@@ -366,15 +366,15 @@ export default function OrderPanel({
                 <span className="font-mono">−${discountAmount.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-sm text-white/45">
               <span style={{ fontStyle: "italic" }}>IVA incluido (desglose)</span>
               <span className="font-mono">${iva.toFixed(2)}</span>
             </div>
             <div
               className="flex justify-between text-base font-700 pt-1.5 border-t"
-              style={{ borderColor: '#e5e7eb', fontWeight: 700 }}
+              style={{ borderColor: '#243f72', fontWeight: 700 }}
             >
-              <span className="text-gray-900">Total</span>
+              <span className="text-white">Total</span>
               <span className="font-mono text-lg" style={{ color: '#1B3A6B' }}>
                 ${total.toFixed(2)}
               </span>
@@ -421,7 +421,7 @@ export default function OrderPanel({
                   className="flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
                   style={{
                     flex: '0 0 auto', width: 52,
-                    backgroundColor: '#f0fdf4',
+                    backgroundColor: 'rgba(74,222,128,0.07)',
                     color: '#16a34a',
                     border: '1px solid #bbf7d0',
                   }}
@@ -715,27 +715,27 @@ export default function OrderPanel({
       {showKitchenNote && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="w-full max-w-sm rounded-2xl p-5 space-y-3 bg-white shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl p-5 space-y-3 bg-[#162d55] shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare size={16} style={{ color: '#d97706' }} />
-                <h3 className="font-bold text-gray-900 text-sm">Nota urgente a cocina</h3>
+                <h3 className="font-bold text-white text-sm">Nota urgente a cocina</h3>
               </div>
               <button onClick={() => { setShowKitchenNote(false); setKitchenNoteText(''); }}
-                className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+                className="text-white/40 hover:text-white/60 text-lg leading-none">✕</button>
             </div>
             <textarea
               value={kitchenNoteText}
               onChange={e => setKitchenNoteText(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 rounded-xl border text-sm resize-none outline-none focus:border-amber-400"
-              style={{ borderColor: '#e5e7eb', backgroundColor: '#fefce8' }}
+              style={{ borderColor: '#243f72', backgroundColor: '#fefce8' }}
               placeholder="Ej: sin cebolla, alergia al gluten, cambiar guarnición..."
               autoFocus
             />
             <div className="flex gap-2">
               <button onClick={() => { setShowKitchenNote(false); setKitchenNoteText(''); }}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600">
+                className="flex-1 py-2 rounded-xl text-sm font-semibold bg-[#243f72]/60 text-white/60">
                 Cancelar
               </button>
               <button

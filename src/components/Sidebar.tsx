@@ -182,7 +182,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div className="px-3 pt-3 relative">
           <button
             onClick={() => setShowBranchSelector(p => !p)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-white/10"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-[#162d55]/10"
             style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
           >
             <GitBranch size={13} />
@@ -197,7 +197,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   setActiveBranch({ id: b.id, name: b.name });
                   setShowBranchSelector(false);
                 }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors hover:bg-white/10"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors hover:bg-[#162d55]/10"
                   style={{ color: b.id === activeBranchId ? '#f59e0b' : 'rgba(255,255,255,0.7)' }}>
                   <GitBranch size={12} />
                   <span className="truncate">{b.name}</span>
@@ -319,7 +319,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
         <button
           onClick={onToggle}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-white/10 mt-1"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-[#162d55]/10 mt-1"
           style={{ color: 'rgba(255,255,255,0.4)', justifyContent: collapsed ? 'center' : 'flex-start' }}
         >
           {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /><span>Colapsar</span></>}

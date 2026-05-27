@@ -385,7 +385,7 @@ export default function ReservacionesManagement() {
               <button onClick={handleSave} disabled={saving || sendingEmail} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1B3A6B' }}>
                 <Check size={16} /> {saving ? 'Guardando...' : sendingEmail ? 'Enviando correo...' : 'Guardar'}
               </button>
-              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-white/60 bg-[#0f1e38] hover:bg-gray-200">
+              <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-white/60 bg-[#0f1e38] hover:bg-[#243f72]">
                 Cancelar
               </button>
             </div>

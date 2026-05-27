@@ -47,14 +47,14 @@ export default function MembershipPopup({
     onRegisterNew({ phone, name, email });
   };
 
-  const inp = "w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400";
+  const inp = "w-full border border-[#243f72] dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm bg-[#162d55] dark:bg-gray-800 text-white dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={e => { if (e.target === e.currentTarget) onDismiss(); }}>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-[#162d55] dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
         {/* Header */}
         <div className="bg-amber-600 px-5 py-4 flex items-center justify-between">
@@ -78,12 +78,12 @@ export default function MembershipPopup({
           {/* Paso 1 — Buscar por teléfono (siempre visible hasta confirmar) */}
           {!scenario && (
             <>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-white/70 dark:text-white/30">
                 ¿El cliente quiere registrar su membresía?
               </p>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide block mb-1.5">
+                <label className="text-xs font-semibold text-white/60 dark:text-white/40 uppercase tracking-wide block mb-1.5">
                   <Phone size={11} className="inline mr-1" /> Teléfono del cliente
                 </label>
                 <div className="flex gap-2">
@@ -96,19 +96,19 @@ export default function MembershipPopup({
                     autoFocus
                   />
                   {searching && (
-                    <div className="flex items-center px-3 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center px-3 text-xs text-white/45 dark:text-white/40">
                       Buscando...
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-white/45 dark:text-white/40 mt-1">
                   Se busca automáticamente al ingresar 10 dígitos
                 </p>
               </div>
 
               <button
                 onClick={onSkip}
-                className="w-full py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="w-full py-2.5 rounded-xl text-sm text-white/60 dark:text-white/40 border border-[#243f72] dark:border-gray-700 hover:bg-[#0f1e38] dark:hover:bg-gray-800 transition-colors"
               >
                 No registrar membresía — continuar con la venta
               </button>
@@ -127,16 +127,16 @@ export default function MembershipPopup({
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide block mb-1">Nombre completo *</label>
+                  <label className="text-xs font-semibold text-white/60 dark:text-white/40 uppercase tracking-wide block mb-1">Nombre completo *</label>
                   <input className={inp} placeholder="Ana García" value={name}
                     onChange={e => setName(e.target.value)} autoFocus />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide block mb-1">Teléfono</label>
+                  <label className="text-xs font-semibold text-white/60 dark:text-white/40 uppercase tracking-wide block mb-1">Teléfono</label>
                   <input className={inp} value={phone} readOnly />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide block mb-1">Email (opcional)</label>
+                  <label className="text-xs font-semibold text-white/60 dark:text-white/40 uppercase tracking-wide block mb-1">Email (opcional)</label>
                   <input className={inp} placeholder="ana@correo.com" value={email}
                     onChange={e => setEmail(e.target.value)} />
                 </div>
@@ -144,7 +144,7 @@ export default function MembershipPopup({
 
               <div className="flex gap-3">
                 <button onClick={onSkip}
-                  className="flex-1 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-colors">
+                  className="flex-1 py-2.5 rounded-xl text-sm text-white/60 dark:text-white/40 border border-[#243f72] dark:border-gray-700 hover:bg-[#0f1e38] transition-colors">
                   Omitir
                 </button>
                 <button onClick={handleRegister} disabled={!name.trim() || registering}
@@ -177,7 +177,7 @@ export default function MembershipPopup({
                   : <XCircle size={18} className="text-red-500 flex-shrink-0 ml-auto" />}
               </div>
 
-              <p className="text-sm text-gray-700 dark:text-gray-300">¿Qué deseas hacer?</p>
+              <p className="text-sm text-white/70 dark:text-white/30">¿Qué deseas hacer?</p>
 
               <div className="space-y-2">
                 <button onClick={() => onRenewExisting(existingMember.id)} disabled={registering}
@@ -189,7 +189,7 @@ export default function MembershipPopup({
                 </button>
 
                 <button onClick={onSkip}
-                  className="w-full py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  className="w-full py-2.5 rounded-xl text-sm text-white/60 dark:text-white/40 border border-[#243f72] dark:border-gray-700 hover:bg-[#0f1e38] dark:hover:bg-gray-800 transition-colors">
                   Solo vender el producto — no modificar membresía
                 </button>
               </div>
