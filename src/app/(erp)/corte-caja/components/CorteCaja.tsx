@@ -551,10 +551,10 @@ export default function CorteCaja() {
 
   if (isMobile) return <CorteCajaMobile />;
   return (
-    <div className="space-y-5 max-w-4xl mx-auto print:max-w-none">
+    <div className="space-y-5 max-w-4xl mx-auto print:max-w-none p-1">
 
       {/* ── Header status ── */}
-      <div className="bg-[#162d55] rounded-2xl border p-5 flex items-center justify-between" style={{ borderColor: '#fde68a', backgroundColor: '#fffdf5', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="bg-[#162d55] rounded-2xl border p-5 flex items-center justify-between" style={{ borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(251,191,36,0.08)' }}>
             <Unlock size={22} style={{ color: '#d97706' }} />
@@ -572,7 +572,7 @@ export default function CorteCaja() {
         </div>
         <div className="text-right">
           <p className="text-xs text-white/40">Fondo inicial</p>
-          <p className="text-lg font-bold font-mono" style={{ color: '#1B3A6B' }}>${fmt(corteActivo.fondoInicial)}</p>
+          <p className="text-lg font-bold font-mono" style={{ color: '#f59e0b' }}>${fmt(corteActivo.fondoInicial)}</p>
         </div>
       </div>
 
@@ -584,21 +584,21 @@ export default function CorteCaja() {
       ) : summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: '#fffbeb', sub: `${summary.ordenes_count} órdenes` },
-            { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: '#ecfdf5', sub: null },
-            { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: '#eff6ff', sub: null },
-            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total ?? 0)}`, icon: TrendingUp, color: '#34d399', bg: '#ecfdf5', sub: null }] : []),
-            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
-            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total)}`, icon: TrendingUp, color: '#34d399', bg: '#ecfdf5', sub: null }] : []),
-            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar ?? 0)}`, icon: TrendingUp, color: '#60a5fa', bg: '#eff6ff', sub: null }] : []),
-            { label: 'Utilidad Bruta',  value: `$${fmt(summary.utilidad_bruta ?? 0)}`, icon: TrendingUp, color: '#16a34a', bg: '#f0fdf4', sub: `${(summary.margen_pct ?? 0).toFixed(1)}% margen` },
+            { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', sub: `${summary.ordenes_count} órdenes` },
+            { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: 'rgba(52,211,153,0.12)', sub: null },
+            { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: 'rgba(96,165,250,0.12)', sub: null },
+            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total ?? 0)}`, icon: TrendingUp, color: '#34d399', bg: 'rgba(52,211,153,0.12)', sub: null }] : []),
+            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar)}`, icon: TrendingUp, color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', sub: null }] : []),
+            ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total)}`, icon: TrendingUp, color: '#34d399', bg: 'rgba(52,211,153,0.12)', sub: null }] : []),
+            ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar ?? 0)}`, icon: TrendingUp, color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', sub: null }] : []),
+            { label: 'Utilidad Bruta',  value: `$${fmt(summary.utilidad_bruta ?? 0)}`, icon: TrendingUp, color: '#16a34a', bg: 'rgba(74,222,128,0.12)', sub: `${(summary.margen_pct ?? 0).toFixed(1)}% margen` },
             { label: '⚠️ Merma',       value: summary.merma_total > 0 ? `$${fmt(summary.merma_total)}` : '$0.00', icon: AlertTriangle, color: summary.merma_total > 0 ? '#dc2626' : '#9ca3af', bg: summary.merma_total > 0 ? '#fef2f2' : '#f9fafb', sub: summary.merma_total > 0 ? `${summary.ordenes_canceladas.length} cancelaciones` : 'Sin mermas ✓' },
-            { label: 'Órdenes',         value: String(summary.ordenes_count),      icon: ShoppingBag,  color: '#8b5cf6', bg: '#f5f3ff' },
+            { label: 'Órdenes',         value: String(summary.ordenes_count),      icon: ShoppingBag,  color: '#8b5cf6', bg: 'rgba(167,139,250,0.12)' },
           ].map(k => (
             <div key={k.label} className="bg-[#162d55] rounded-2xl border p-4" style={{ borderColor: '#243f72' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-white/45">{k.label}</span>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.bg }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
                   <k.icon size={14} style={{ color: k.color }} />
                 </div>
               </div>
@@ -624,7 +624,7 @@ export default function CorteCaja() {
                     <p className="text-sm font-medium text-white/80">{m.nombre}</p>
                     <p className="text-xs text-white/40">{m.ordenes} orden{m.ordenes !== 1 ? 'es' : ''}</p>
                   </div>
-                  <span className="font-mono font-bold text-sm" style={{ color: '#1B3A6B' }}>${fmt(m.total)}</span>
+                  <span className="font-mono font-bold text-sm" style={{ color: '#f59e0b' }}>${fmt(m.total)}</span>
                 </div>
               ))}
             </div>
@@ -633,7 +633,7 @@ export default function CorteCaja() {
 
         {/* ── Merma por Atención ── */}
         {summary && (
-          <div className="rounded-2xl border p-5" style={{ borderColor: summary.merma_total > 0 ? '#fca5a5' : '#e5e7eb', backgroundColor: summary.merma_total > 0 ? '#fff5f5' : 'white' }}>
+          <div className="rounded-2xl border p-5" style={{ borderColor: summary.merma_total > 0 ? 'rgba(248,113,113,0.35)' : '#243f72', backgroundColor: summary.merma_total > 0 ? 'rgba(248,113,113,0.07)' : '#162d55' }}>
             <h3 className="text-sm font-bold mb-4 flex items-center gap-2" style={{ color: '#dc2626' }}>
               ⚠️ Merma por Atención del Turno
             </h3>
@@ -642,8 +642,8 @@ export default function CorteCaja() {
             ) : (
               <div className="space-y-3">
                 <div className="flex justify-between items-center pb-3 border-b" style={{ borderColor: '#fca5a5' }}>
-                  <span className="text-sm font-semibold text-red-700">{summary.ordenes_canceladas.length} órdenes con costo</span>
-                  <span className="font-mono font-bold text-red-700 text-lg">${fmt(summary.merma_total)}</span>
+                  <span className="text-sm font-semibold text-red-400">{summary.ordenes_canceladas.length} órdenes con costo</span>
+                  <span className="font-mono font-bold text-red-400 text-lg">${fmt(summary.merma_total)}</span>
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {summary.ordenes_canceladas.map(o => (
@@ -653,7 +653,7 @@ export default function CorteCaja() {
                         <span className="text-white/40 ml-2">· {o.mesero}</span>
                         {o.notes && <span className="text-white/40 ml-2 italic text-xs">{o.notes.slice(0, 60)}</span>}
                       </div>
-                      <span className="font-mono text-red-600 font-semibold">${fmt((o as any).wasteCost || o.subtotal)}</span>
+                      <span className="font-mono text-red-400 font-semibold">${fmt((o as any).wasteCost || o.subtotal)}</span>
                     </div>
                   ))}
                 </div>
@@ -673,11 +673,11 @@ export default function CorteCaja() {
                 { label: 'Subtotal (sin IVA)', value: summary.ventas_total - summary.iva_total, color: 'rgba(255,255,255,0.75)' },
                 { label: 'IVA (16%)',           value: summary.iva_total,                        color: 'rgba(255,255,255,0.45)' },
                 { label: 'Descuentos aplicados', value: -summary.descuentos_total,               color: '#ef4444' },
-                { label: 'TOTAL VENTAS',         value: summary.ventas_total,                    color: '#1B3A6B', bold: true },
+                { label: 'TOTAL VENTAS',         value: summary.ventas_total,                    color: '#f59e0b', bold: true },
               ].map(row => (
                 <div key={row.label} className={`flex justify-between items-center ${row.bold ? 'pt-2 border-t font-bold' : ''}`}
                   style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                  <span className="text-sm" style={{ color: row.bold ? '#1B3A6B' : '#6b7280' }}>{row.label}</span>
+                  <span className="text-sm" style={{ color: row.bold ? '#f59e0b' : 'rgba(255,255,255,0.45)' }}>{row.label}</span>
                   <span className="font-mono text-sm" style={{ color: row.color, fontWeight: row.bold ? 700 : 400 }}>
                     {row.value < 0 ? '-' : ''}${fmt(Math.abs(row.value))}
                   </span>

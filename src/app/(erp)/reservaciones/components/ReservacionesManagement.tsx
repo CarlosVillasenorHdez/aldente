@@ -301,7 +301,7 @@ export default function ReservacionesManagement() {
       {/* Today summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Hoy', value: todayReservations.length, color: '#1B3A6B', icon: Calendar },
+          { label: 'Hoy', value: todayReservations.length, color: '#60a5fa', icon: Calendar },
           { label: 'Confirmadas', value: reservations.filter(r => r.status === 'confirmada').length, color: '#10b981', icon: Check },
           { label: 'Lista de Espera', value: waitlist.length, color: '#8b5cf6', icon: AlertCircle },
         ].map((s) => (
@@ -331,33 +331,33 @@ export default function ReservacionesManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-white/60 mb-1">Nombre del Cliente *</label>
-                  <input type="text" value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Juan García" />
+                  <input type="text" value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} placeholder="Juan García" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Teléfono</label>
-                  <input type="tel" value={form.guestPhone} onChange={e => setForm({ ...form, guestPhone: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="555-0001" />
+                  <input type="tel" value={form.guestPhone} onChange={e => setForm({ ...form, guestPhone: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} placeholder="555-0001" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Email (para confirmación)</label>
-                  <input type="email" value={form.guestEmail} onChange={e => setForm({ ...form, guestEmail: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="cliente@email.com" />
+                  <input type="email" value={form.guestEmail} onChange={e => setForm({ ...form, guestEmail: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} placeholder="cliente@email.com" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Fecha</label>
-                  <input type="date" value={form.reservationDate} onChange={e => setForm({ ...form, reservationDate: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <input type="date" value={form.reservationDate} onChange={e => setForm({ ...form, reservationDate: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Hora</label>
-                  <select value={form.reservationTime} onChange={e => setForm({ ...form, reservationTime: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <select value={form.reservationTime} onChange={e => setForm({ ...form, reservationTime: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }}>
                     {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Personas</label>
-                  <input type="number" min={1} max={20} value={form.partySize} onChange={e => setForm({ ...form, partySize: Number(e.target.value) })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <input type="number" min={1} max={20} value={form.partySize} onChange={e => setForm({ ...form, partySize: Number(e.target.value) })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Mesa</label>
-                  <select value={form.tableId} onChange={e => setForm({ ...form, tableId: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <select value={form.tableId} onChange={e => setForm({ ...form, tableId: e.target.value })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }}>
                     <option value="">Sin asignar</option>
                     {tables.filter(t => t.capacity >= form.partySize).map(t => (
                       <option key={t.id} value={t.id}>{t.name} (cap. {t.capacity})</option>
@@ -366,23 +366,23 @@ export default function ReservacionesManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1">Estado</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }}>
                     {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-white/60 mb-1">Notas</label>
-                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Alergias, preferencias, ocasión especial..." />
+                  <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-[#243f72] rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-500" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }} placeholder="Alergias, preferencias, ocasión especial..." />
                 </div>
               </div>
               {form.guestEmail && !editingId && (
-                <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+                <p className="text-xs text-blue-400 bg-blue-900/20 px-3 py-2 rounded-lg">
                   📧 Se enviará confirmación automática al correo del cliente
                 </p>
               )}
             </div>
             <div className="flex gap-3 p-6 pt-0">
-              <button onClick={handleSave} disabled={saving || sendingEmail} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1B3A6B' }}>
+              <button onClick={handleSave} disabled={saving || sendingEmail} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#f59e0b', color: '#1B3A6B' }}>
                 <Check size={16} /> {saving ? 'Guardando...' : sendingEmail ? 'Enviando correo...' : 'Guardar'}
               </button>
               <button onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2 rounded-lg text-sm font-medium text-white/60 bg-[#0f1e38] hover:bg-[#243f72]">
