@@ -1,6 +1,7 @@
 import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import DashboardKPIs from './components/DashboardKPIs';
+import DashboardInsights from './components/DashboardInsights';
 import FirstStepsChecklist from './components/FirstStepsChecklist';
 import SalesChart from './components/SalesChart';
 import RecentOrders from './components/RecentOrders';
@@ -37,6 +38,9 @@ export default function DashboardPage() {
 
         {/* 3. KPIs — ventas, equilibrio, margen */}
         <DashboardKPIs />
+
+        {/* 3b. Insights accionables — qué hacer con esos números */}
+        <DashboardInsights />
 
         {/* 4. Score de salud del restaurante */}
         <HealthScore />
