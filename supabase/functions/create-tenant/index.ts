@@ -151,6 +151,63 @@ serve(async (req) => {
       employee_id: empRow?.id ?? null,
     });
 
+    // ── Email de bienvenida (no bloqueante — si falla, el registro igual procede) ──
+    try {
+      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+      const SITE_URL = Deno.env.get('SITE_URL') ?? 'https://aldente-erp.com';
+      if (RESEND_API_KEY && email?.trim()) {
+        const firstName = (adminName?.trim() || 'Bienvenido').split(' ')[0];
+        const loginUrl = `${SITE_URL}/r/${slug.trim()}`;
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Aldente <noreply@aldenteerp.com>',
+            to: email.trim(),
+            subject: `¡${restaurantName} ya está en Aldente! 🎉`,
+            html: `
+              <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#0f1e38;padding:0;border-radius:12px;overflow:hidden;">
+                <div style="background:#1B3A6B;padding:32px;text-align:center;">
+                  <h1 style="color:#f59e0b;margin:0;font-size:26px;">🍽️ Aldente</h1>
+                </div>
+                <div style="padding:32px;">
+                  <h2 style="color:#f0ede8;margin:0 0 16px;font-size:20px;">Bienvenido, ${firstName}.</h2>
+                  <p style="color:rgba(240,237,232,.75);font-size:15px;line-height:1.6;margin:0 0 16px;">
+                    <strong style="color:#f0ede8;">${restaurantName}</strong> ya tiene su sistema listo.
+                    Tienes <strong style="color:#d4922a;">14 días de prueba gratuita</strong> para explorarlo sin límites.
+                  </p>
+                  <div style="background:rgba(245,158,11,.1);border-left:3px solid #f59e0b;padding:14px 16px;border-radius:4px;margin:20px 0;">
+                    <p style="color:#f0ede8;font-size:14px;margin:0;font-style:italic;">
+                      Tu restaurante en números reales — para que dirijas el negocio, no el caos.
+                    </p>
+                  </div>
+                  <a href="${loginUrl}" style="display:inline-block;background:#f59e0b;color:#1B3A6B;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;margin:8px 0 24px;">
+                    Entrar a mi restaurante →
+                  </a>
+                  <p style="color:rgba(240,237,232,.75);font-size:14px;margin:0 0 8px;font-weight:600;">¿Qué puedes hacer hoy?</p>
+                  <ul style="font-size:14px;color:rgba(240,237,232,.6);line-height:2;padding-left:20px;margin:0 0 16px;">
+                    <li>Configura tu menú con precios (prueba el Asistente IA)</li>
+                    <li>Crea las mesas de tu restaurante</li>
+                    <li>Agrega a tu equipo con sus PINs</li>
+                    <li>Haz tu primera orden de prueba en el POS</li>
+                  </ul>
+                  <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:24px 0;">
+                  <p style="color:rgba(240,237,232,.5);font-size:13px;margin:0;">
+                    ¿Alguna duda? Responde a este correo y te ayudamos personalmente.
+                  </p>
+                </div>
+              </div>
+            `,
+          }),
+        });
+      }
+    } catch (emailErr) {
+      console.error('[create-tenant] email de bienvenida falló (no crítico):', emailErr);
+    }
+
     return json({ ok: true, tenantId: tid, slug: slug.trim() });
 
   } catch (e: unknown) {
