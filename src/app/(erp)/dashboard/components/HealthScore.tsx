@@ -81,7 +81,7 @@ export default function HealthScore() {
       supabase.from('orders').select('total, closed_at').eq('tenant_id', tid).eq('status', 'cerrada').eq('is_comanda', false).gte('closed_at', last7UTC).lt('closed_at', todayUTC),
       supabase.from('ingredients').select('stock, min_stock').eq('tenant_id', tid),
       supabase.from('employees').select('id').eq('tenant_id', tid).eq('status', 'activo'),
-      supabase.from('attendance_logs').select('employee_id').eq('tenant_id', tid).gte('check_in', todayUTC).is('check_out', null),
+      supabase.from('employee_attendance').select('employee_id').eq('tenant_id', tid).eq('date', new Date().toISOString().slice(0, 10)).is('check_out', null),
       supabase.from('orders').select('id').eq('tenant_id', tid).in('status', ['abierta', 'preparacion']).lt('created_at', slowThreshold.toISOString()),
     ]);
 

@@ -114,16 +114,7 @@ export default function OnboardingFlow() {
   async function saveStep3() {
     if (!dishName.trim() || !dishPrice) return;
     const tid = getTenantId();
-    // Crear categoría si no existe
-    const { data: cats } = await supabase.from('dish_categories')
-      .select('id').eq('tenant_id', tid).eq('name', dishCategory).limit(1);
-    let catId = cats?.[0]?.id;
-    if (!catId) {
-      const { data: newCat } = await supabase.from('dish_categories')
-        .insert({ tenant_id: tid, name: dishCategory, emoji: '🍽️', order_index: 1 })
-        .select('id').single();
-      catId = newCat?.id;
-    }
+    // Los platillos usan 'category' como texto inline (no hay tabla dish_categories)
     await supabase.from('dishes').insert({
       tenant_id: tid, name: dishName.trim(),
       price: Number(dishPrice), category: dishCategory,

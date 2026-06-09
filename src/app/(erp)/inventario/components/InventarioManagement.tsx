@@ -320,8 +320,8 @@ export default function InventarioManagement() {
 
     // Audit log
     try {
-      await supabase.from('audit_logs').insert({
-        tenant_id: tenantId, action: 'CLEAR_INVENTORY',
+      await supabase.from('audit_log').insert({
+        tenant_id: tenantId, action: 'CLEAR_INVENTORY', entity: 'ingredients',
         user_id: appUser?.id, user_name: appUser?.fullName,
         details: `Inventario limpiado por ${appUser?.fullName} (${appUser?.appRole}) — ${new Date().toISOString()}`,
       });
