@@ -1,6 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/AppLayout';
+import FeatureGate from '@/components/FeatureGate';
 import ReportesMejorados from './components/ReportesMejorados';
 import ReportesConsolidado from './components/ReportesConsolidado';
 import AnalisisFinanciero from './components/AnalisisFinanciero';
@@ -30,6 +31,7 @@ export default function ReportesPage() {
 
   return (
     <AppLayout title="Reportes" subtitle="Análisis de ventas y rendimiento">
+      <FeatureGate feature="reportes" title="Reportes & P&L">
       <div className="space-y-4" style={{ minHeight: '100vh' }}>
 
         {/* Tab bar — dark theme */}
@@ -85,6 +87,7 @@ export default function ReportesPage() {
         )}
 
       </div>
+    </FeatureGate>
     </AppLayout>
   );
 }

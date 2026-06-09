@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import FeatureGate from '@/components/FeatureGate';
 import SucursalesManagement from './components/SucursalesManagement';
 import InventarioConsolidado from './components/InventarioConsolidado';
 import MultiSucursalAnalytics from './components/MultiSucursalAnalytics';
@@ -20,6 +21,7 @@ export default function SucursalesPage() {
 
   return (
     <AppLayout title="Multi-Sucursal" subtitle="Gestión y análisis de todas tus sucursales">
+      <FeatureGate feature="multiSucursal" title="Multi-Sucursal">
       <div className="space-y-4">
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(0,0,0,.08)', paddingBottom: 0 }}>
@@ -41,6 +43,7 @@ export default function SucursalesPage() {
         {tab === 'gestion'   && <SucursalesManagement />}
         {tab === 'inventario' && <InventarioConsolidado />}
       </div>
+    </FeatureGate>
     </AppLayout>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import FeatureGate from '@/components/FeatureGate';
 import LoyaltyHub from './components/LoyaltyHub';
 import LoyaltyCRM from './components/LoyaltyCRM';
 import { Users, BarChart2 } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function LoyaltyPage() {
   const [tab, setTab] = useState<Tab>('clientes');
   return (
     <AppLayout title="Lealtad" subtitle="Programa de clientes frecuentes">
+      <FeatureGate feature="lealtad" title="Lealtad">
       <div className="flex gap-1 bg-[#243f72]/60 dark:bg-gray-800 p-1 rounded-xl mb-6 w-fit">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
@@ -31,6 +33,7 @@ export default function LoyaltyPage() {
       </div>
       {tab === 'clientes' && <LoyaltyHub />}
       {tab === 'analisis' && <LoyaltyCRM />}
+    </FeatureGate>
     </AppLayout>
   );
 }
