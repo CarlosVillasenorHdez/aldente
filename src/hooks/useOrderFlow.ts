@@ -271,6 +271,16 @@ export function useOrderFlow() {
 
     // ── Fallback JS (solo si la RPC no existe en DB) ─────────────────────────
     try {
+      // ★ GUARD DE IDEMPOTENCIA ★ — si la orden ya está cerrada, no volver a
+      // descontar inventario (evita doble descuento si la RPC sí funcionó pero
+      // se perdió la respuesta por timeout de red).
+      const { data: existing } = await supabase.from('orders')
+        .select('status').eq('id', orderId).maybeSingle();
+      if (existing?.status === 'cerrada') {
+        console.warn('[close_order fallback] orden ya cerrada, omitiendo descuento');
+        return true;
+      }
+
       // Update order to closed
       const { error: orderErr } = await supabase.from('orders').update({
         subtotal, iva, discount: discountAmount, total,
