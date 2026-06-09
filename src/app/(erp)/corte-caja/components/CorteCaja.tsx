@@ -183,24 +183,27 @@ export default function CorteCaja() {
   // ── Load order summary for active corte ────────────────────────────────────
   const loadSummary = useCallback(async (desde: string) => {
     setSummaryLoading(true);
-    const [{ data: orders }, { data: mermaOrders }] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type, tip_amount')
-        .eq('tenant_id', getTenantId())
-        .eq('status', 'cerrada')
-        .eq('is_comanda', false)
-        .gte('closed_at', desde)
-        .order('closed_at', { ascending: false }),
-      supabase
-        .from('orders')
-        .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at, is_comanda, parent_order_id')
-        .eq('tenant_id', getTenantId())
-        .eq('status', 'cancelada')
-        .eq('cancel_type', 'con_costo')
-        .gte('updated_at', desde)
-        .order('updated_at', { ascending: false }),
-    ]);
+    let _qOrders = supabase
+      .from('orders')
+      .select('total, subtotal, iva, discount, pay_method, mesero, closed_at, cost_actual, margin_actual, waste_cost, order_type, tip_amount')
+      .eq('tenant_id', getTenantId())
+      .eq('status', 'cerrada')
+      .eq('is_comanda', false)
+      .gte('closed_at', desde)
+      .order('closed_at', { ascending: false });
+    if (activeBranchId) _qOrders = (_qOrders as any).eq('branch_id', activeBranchId);
+
+    let _qMerma = supabase
+      .from('orders')
+      .select('id, mesa, mesero, subtotal, waste_cost, cancel_reason, updated_at, is_comanda, parent_order_id')
+      .eq('tenant_id', getTenantId())
+      .eq('status', 'cancelada')
+      .eq('cancel_type', 'con_costo')
+      .gte('updated_at', desde)
+      .order('updated_at', { ascending: false });
+    if (activeBranchId) _qMerma = (_qMerma as any).eq('branch_id', activeBranchId);
+
+    const [{ data: orders }, { data: mermaOrders }] = await Promise.all([_qOrders, _qMerma]);
 
     if (!orders || orders.length === 0) {
       setSummary({ ventas_efectivo: 0, ventas_tarjeta: 0, ventas_total: 0, ordenes_count: 0, descuentos_total: 0, iva_total: 0, costo_total: 0, utilidad_bruta: 0, margen_pct: 0, merma_ingredientes: 0, por_mesero: [], por_hora: [], merma_total: 0, ordenes_canceladas: [] });
@@ -237,8 +240,10 @@ export default function CorteCaja() {
     const utilidad_bruta = orders.reduce((s, o) => s + Number((o as any).margin_actual ?? 0), 0);
     const margen_pct = ventas_total > 0 ? (utilidad_bruta / ventas_total) * 100 : 0;
     const merma_ingredientes = (mermaOrders || []).reduce((s, o) => {
+      // La merma es el COSTO de lo desperdiciado (waste_cost), no el precio de venta.
+      // Si no hay waste_cost registrado, no asumimos el subtotal completo (inflaría la merma).
       const wc = Number((o as any).waste_cost ?? 0);
-      return s + (wc > 0 ? wc : Number(o.subtotal ?? 0));
+      return s + wc;
     }, 0);
 
     setSummary({
@@ -263,7 +268,7 @@ export default function CorteCaja() {
       })),
     });
     setSummaryLoading(false);
-  }, [supabase]);
+  }, [supabase, activeBranchId]);
 
   useEffect(() => {
     if (corteActivo) {
