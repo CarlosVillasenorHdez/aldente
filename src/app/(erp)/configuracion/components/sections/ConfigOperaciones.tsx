@@ -83,6 +83,26 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     setPrinterLoading(true);
     try {
       const { data } = await supabase.from('printer_config').select('*').eq('tenant_id', getTenantId()).limit(1).single();
+
+      // ── Fuente única: leer dirección/teléfono de la sucursal y RFC del negocio ──
+      // Si las líneas de encabezado están vacías, se llenan automáticamente con
+      // los datos capturados en "Datos del restaurante". El usuario puede
+      // sobrescribirlas si quiere un texto distinto.
+      let autoLine1 = '';
+      let autoLine2 = '';
+      try {
+        const [{ data: branchData }, { data: rfcData }] = await Promise.all([
+          supabase.from('branches').select('address, colonia, phone').eq('tenant_id', getTenantId()).limit(1).single(),
+          supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'restaurant_rfc').limit(1).single(),
+        ]);
+        const addr = [branchData?.address, branchData?.colonia].filter(Boolean).join(', ');
+        autoLine1 = addr || '';
+        const parts: string[] = [];
+        if (branchData?.phone) parts.push(`Tel: ${branchData.phone}`);
+        if (rfcData?.config_value) parts.push(`RFC: ${rfcData.config_value}`);
+        autoLine2 = parts.join(' · ');
+      } catch { /* sin datos aún — se queda vacío */ }
+
       if (data) {
         const cfg: PrinterConfig = {
           id: data.id,
@@ -106,13 +126,16 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
           showIva:         data.show_iva         ?? true,
           showDiscount:    data.show_discount    ?? true,
           showUnitPrice:   data.show_unit_price  ?? true,
-          headerLine1:     data.header_line1     || '',
-          headerLine2:     data.header_line2     || '',
+          headerLine1:     data.header_line1     || autoLine1,
+          headerLine2:     data.header_line2     || autoLine2,
           separatorChar:   data.separator_char   || '-',
           isActive: data.is_active ?? true,
         };
         setPrinterConfig(cfg);
         setPrinterDraft(cfg);
+      } else if (autoLine1 || autoLine2) {
+        // Sin config de impresora guardada aún — pre-llenar el draft con los datos del negocio
+        setPrinterDraft(p => ({ ...p, headerLine1: autoLine1, headerLine2: autoLine2 }));
       }
     } catch {
       // use defaults
@@ -393,7 +416,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   return (
     <div className="max-w-2xl">
       {activeSection === 'horarios' && <div>
-              <SectionTitle icon={Clock} title="Horarios de Atención" />
+              <SectionTitle icon={Clock} title="Horarios de tu negocio" />
               <div className="rounded-xl overflow-hidden mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
                 <div className="grid grid-cols-4 gap-4 px-5 py-3 text-xs font-semibold" style={{ backgroundColor: '#0f1923', color: 'rgba(255,255,255,0.4)' }}>
                   <span>DÍA</span><span>ABIERTO</span><span>APERTURA</span><span>CIERRE</span>
@@ -683,7 +706,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
       )}
 
       {activeSection === 'impresora' && <div className="max-w-2xl">
-              <SectionTitle icon={Printer} title="Configuración de Impresora de Tickets" />
+              <SectionTitle icon={Printer} title="Impresora y diseño del ticket" />
 
               {printerLoading ? (
                 <div className="flex items-center justify-center py-16">
@@ -900,10 +923,13 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                       🧾 Diseño del Ticket
                     </label>
 
-                    {/* Encabezado extra */}
+                    {/* Encabezado extra — se auto-llena desde Datos del restaurante */}
                     <div className="space-y-2 mb-4">
+                      <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        💡 Estas líneas se llenan automáticamente con la dirección, teléfono y RFC que capturaste en <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Datos del restaurante</strong>. Puedes editarlas si quieres un texto distinto.
+                      </p>
                       <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Línea de encabezado 1 (dirección, slogan...)</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Línea 1 — dirección</label>
                         <input type="text" value={printerDraft.headerLine1}
                           onChange={e => setPrinterDraft(p => ({ ...p, headerLine1: e.target.value }))}
                           className="w-full px-3 py-2 rounded-lg text-sm outline-none"
@@ -911,7 +937,7 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                           placeholder="Av. Reforma 123, Col. Centro" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Línea de encabezado 2 (tel, RFC, web...)</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Línea 2 — teléfono y RFC</label>
                         <input type="text" value={printerDraft.headerLine2}
                           onChange={e => setPrinterDraft(p => ({ ...p, headerLine2: e.target.value }))}
                           className="w-full px-3 py-2 rounded-lg text-sm outline-none"

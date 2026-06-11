@@ -414,7 +414,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
     <div className="max-w-2xl">
       {/* Restaurante */}
       {activeSection === 'restaurante' && <div>
-        <SectionTitle icon={Store} title="Información del Restaurante" />
+        <SectionTitle icon={Store} title="Datos de tu restaurante" />
         <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
           <label className="block text-sm font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>Logo del Restaurante</label>
           <div className="flex items-center gap-5">
@@ -563,10 +563,10 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
 
       {/* Operación */}
       {activeSection === 'operacion' && <div>
-        <SectionTitle icon={Store} title="Parámetros de Operación" />
+        <SectionTitle icon={Store} title="Impuestos y moneda" />
         <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
           <label className="block text-sm font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Porcentaje de IVA</label>
-          <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>Impuesto al Valor Agregado aplicado a las ventas</p>
+          <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>El IVA que se agrega a tus ventas (en México normalmente es 16%)</p>
           <div className="flex items-center gap-3">
             <input type="number" min={0} max={100} step={0.5} value={ivaPercentDraft}
               onChange={(e) => setIvaPercentDraft(parseFloat(e.target.value) || 0)}
@@ -579,7 +579,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         </div>
         <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
           <label className="block text-sm font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Moneda</label>
-          <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>Símbolo y código monetario para tickets, reportes y pantallas</p>
+          <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>La moneda con la que cobras — aparece en tickets y reportes</p>
           <div className="mb-3">
             <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>País / Región</label>
             <select onChange={(e) => {

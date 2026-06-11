@@ -251,8 +251,8 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
         <div className="max-w-2xl space-y-4">
               <SectionTitle
                 icon={Zap}
-                title="Funcionalidades del Sistema"
-                subtitle="Activa o desactiva módulos. Los módulos desactivados desaparecen del menú lateral inmediatamente al guardar."
+                title="Módulos activos"
+                subtitle="Prende o apaga las partes del sistema que usas. Lo que apagues desaparece del menú."
               />
               {([
                 { key: 'meseroMovil',     label: 'Mesero Móvil',          desc: 'App para tomar pedidos desde el teléfono del mesero',    icon: '📱' },
@@ -301,7 +301,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       )}
       {activeSection === 'lealtad_config' && (
         <div className="max-w-2xl" style={{display:'flex',flexDirection:'column',gap:16}}>
-          <SectionTitle icon={Star} title="Configuración del Programa de Lealtad" />
+          <SectionTitle icon={Star} title="Programa de lealtad" />
 
           {/* Nombre */}
           <div style={{background:'#1a2535',border:'1px solid #1e2d3d',borderRadius:12,padding:'18px 20px'}}>
@@ -419,7 +419,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       )}
             {activeSection === 'sistema' && (
         <div className="max-w-2xl">
-              <SectionTitle icon={Settings2} title="Configuración del Sistema" />
+              <SectionTitle icon={Settings2} title="Sistema" />
 
               {/* WhatsApp monthly report */}
               <WhatsAppReportToggle />

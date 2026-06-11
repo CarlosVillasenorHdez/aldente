@@ -16,21 +16,24 @@ import Icon from '@/components/ui/AppIcon';
 
 
 const SECTIONS = [
-  { id: 'plan',            label: 'Plan y módulos',     icon: Zap,        group: 'Cuenta' },
-  { id: 'establecimiento', label: 'Tipo de Negocio',   icon: Layers,     group: 'Configuración' },
-  { id: 'restaurante',   label: 'Restaurante',        icon: Store,      group: 'Configuración' },
-  { id: 'operacion',     label: 'Operación',           icon: Hash,       group: 'Configuración' },
-  { id: 'layout',        label: 'Layout Mesas',        icon: LayoutGrid, group: 'Configuración' },
-  { id: 'horarios',      label: 'Horarios',            icon: Clock,      group: 'Operación' },
-  { id: 'impresora',     label: 'Impresora',           icon: Printer,    group: 'Operación' },
-  { id: 'costos',        label: 'Costos MO',           icon: DollarSign, group: 'Operación' },
-  { id: 'funcionalidades', label: 'Funcionalidades',  icon: Zap,        group: 'Sistema' },
-  { id: 'lealtad_config',label: 'Programa de Lealtad', icon: Star,      group: 'Sistema' },
-  { id: 'sistema',       label: 'Sistema',             icon: Settings2,  group: 'Sistema' },
-  // Usuarios & Roles → movido a Personal (tab Acceso + Permisos)
-  { id: 'auditoria',     label: 'Auditoría',            icon: Shield,     group: 'Sistema' },
-  { id: 'mis-datos',    label: 'Mis Datos',             icon: Database,   group: 'Sistema' },
-  { id: 'golive',       label: '🚀 Preparar lanzamiento', icon: Zap,       group: 'Sistema' },
+  // 🏪 MI NEGOCIO — identidad: quién soy, qué tipo de lugar, cuándo abro
+  { id: 'restaurante',     label: 'Datos del restaurante', icon: Store,      group: 'Mi Negocio' },
+  { id: 'establecimiento', label: 'Tipo de negocio',       icon: Layers,     group: 'Mi Negocio' },
+  { id: 'horarios',        label: 'Horarios',              icon: Clock,      group: 'Mi Negocio' },
+  // ⚙️ OPERACIÓN — el montaje físico y operativo del local
+  { id: 'operacion',     label: 'Impuestos y moneda',    icon: Hash,       group: 'Operación' },
+  { id: 'layout',        label: 'Mesas y áreas',         icon: LayoutGrid, group: 'Operación' },
+  { id: 'impresora',     label: 'Impresora y tickets',   icon: Printer,    group: 'Operación' },
+  { id: 'costos',        label: 'Costos de mano de obra',icon: DollarSign, group: 'Operación' },
+  // 💳 CUENTA — lo que el cliente contrató
+  { id: 'plan',          label: 'Plan y módulos',        icon: Zap,        group: 'Cuenta' },
+  { id: 'lealtad_config',label: 'Programa de lealtad',   icon: Star,       group: 'Cuenta' },
+  { id: 'funcionalidades', label: 'Funcionalidades',     icon: Settings2,  group: 'Cuenta' },
+  // 🔧 AVANZADO — administración técnica, uso poco frecuente
+  { id: 'sistema',       label: 'Sistema',               icon: Settings2,  group: 'Avanzado' },
+  { id: 'auditoria',     label: 'Auditoría',             icon: Shield,     group: 'Avanzado' },
+  { id: 'mis-datos',    label: 'Mis datos',              icon: Database,   group: 'Avanzado' },
+  { id: 'golive',       label: 'Preparar lanzamiento',   icon: Zap,        group: 'Avanzado' },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
@@ -58,7 +61,9 @@ export default function ConfiguracionManagement() {
 
   const activeComponent = resolveComponent(activeSection);
 
-  const groups = [...new Set(SECTIONS.map(s => s.group))];
+  // Orden explícito de grupos (Mi Negocio primero — onboarding natural)
+  const GROUP_ORDER = ['Mi Negocio', 'Operación', 'Cuenta', 'Avanzado'];
+  const groups = GROUP_ORDER.filter(g => SECTIONS.some(s => s.group === g));
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1923' }}>
@@ -72,7 +77,7 @@ export default function ConfiguracionManagement() {
           <div>
             <h1 className="text-xl font-bold" style={{ color: '#f1f5f9' }}>Configuración</h1>
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Administración del sistema — Solo Administradores
+              Todo lo de tu negocio en un solo lugar
             </p>
           </div>
         </div>
