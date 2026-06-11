@@ -8,7 +8,7 @@ import { Zap, Star, Settings2, CheckCircle, Save, AlertTriangle, RotateCcw } fro
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { DEFAULT_FEATURES, FEATURE_KEYS, Features, invalidateFeaturesCache } from '@/hooks/useFeatures';
+import { DEFAULT_FEATURES, FEATURE_KEYS, Features, invalidateFeaturesCache, PLAN_FEATURES, PLAN_NAMES } from '@/hooks/useFeatures';
 import UsuariosManagement from '../UsuariosManagement';
 import Icon from '@/components/ui/AppIcon';
 
@@ -124,6 +124,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const [features, setFeatures] = useState<Features>({ ...DEFAULT_FEATURES });
   const [featuresSaving, setFeaturesSaving] = useState(false);
   const [featuresSaved, setFeaturesSaved] = useState(false);
+  const [tenantPlan, setTenantPlan] = useState<string>('');
 
   const [loyaltyName, setLoyaltyName] = useState('Club de Puntos');
   const [loyaltyPesosPerPoint, setLoyaltyPesosPerPoint] = useState(10);
@@ -148,6 +149,10 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
   const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
+    // Cargar el plan del tenant (determina qué módulos puede activar)
+    supabase.from('tenants').select('plan').eq('id', getTenantId()).single().then(({ data }) => {
+      if (data?.plan) setTenantPlan(data.plan);
+    });
     supabase.from('system_config').select('config_key, config_value').eq('tenant_id', getTenantId()).then(({ data }) => {
       if (!data) return;
       const map: Record<string, string> = {};
@@ -265,26 +270,47 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
                 { key: 'reportes',        label: 'Reportes y Análisis',    desc: 'P&L, COGS, canasta de mercado y consolidado sucursales', icon: '📊' },
                 { key: 'alarmas',         label: 'Alarmas',                desc: 'Panel de alertas de inventario, órdenes y sistema',      icon: '🔔' },
                 { key: 'multiSucursal',   label: 'Multi-Sucursal',         desc: 'Gestión centralizada de varias sucursales',              icon: '🏢' },
-              ] as { key: keyof Features; label: string; desc: string; icon: string }[]).map(({ key, label, desc, icon }) => (
+              ] as { key: keyof Features; label: string; desc: string; icon: string }[]).map(({ key, label, desc, icon }) => {
+                // ¿El plan del tenant incluye este módulo?
+                // Plan 'medida' (a la carta): todos los módulos son activables.
+                // Planes bundle: solo los incluidos en PLAN_FEATURES.
+                const planAllows = tenantPlan === 'medida' || !tenantPlan
+                  ? true
+                  : (PLAN_FEATURES[tenantPlan] ?? PLAN_FEATURES['operacion']).includes(key);
+                return (
                 <div key={key} className="flex items-center justify-between p-4 rounded-xl border transition-colors"
-                  style={{ borderColor: features[key] ? '#fde68a' : '#e5e7eb', backgroundColor: features[key] ? '#fffdf5' : 'white' }}>
+                  style={{
+                    borderColor: !planAllows ? 'rgba(255,255,255,0.08)' : features[key] ? 'rgba(245,158,11,0.35)' : '#243f72',
+                    backgroundColor: !planAllows ? 'rgba(255,255,255,0.02)' : features[key] ? 'rgba(245,158,11,0.07)' : '#162d55',
+                    opacity: planAllows ? 1 : 0.55,
+                  }}>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl w-8 text-center">{icon}</span>
                     <div>
                       <p className="text-sm font-semibold text-white/80">{label}</p>
                       <p className="text-xs text-white/45 mt-0.5">{desc}</p>
+                      {!planAllows && (
+                        <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>
+                          🔒 No incluido en tu plan {PLAN_NAMES[tenantPlan] ?? tenantPlan} — actívalo desde Plan y módulos
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
-                    className="flex-shrink-0 w-12 h-6 rounded-full flex items-center px-1 transition-all duration-200"
-                    style={{ backgroundColor: features[key] ? '#f59e0b' : '#d1d5db' }}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-[#162d55] shadow-sm transition-transform duration-200"
-                      style={{ transform: features[key] ? 'translateX(24px)' : 'translateX(0)' }} />
-                  </button>
+                  {planAllows ? (
+                    <button
+                      onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className="flex-shrink-0 w-12 h-6 rounded-full flex items-center px-1 transition-all duration-200"
+                      style={{ backgroundColor: features[key] ? '#f59e0b' : 'rgba(255,255,255,0.15)' }}
+                    >
+                      <div className="w-4 h-4 rounded-full shadow-sm transition-transform duration-200"
+                        style={{ transform: features[key] ? 'translateX(24px)' : 'translateX(0)', backgroundColor: features[key] ? '#1B3A6B' : 'rgba(255,255,255,0.6)' }} />
+                    </button>
+                  ) : (
+                    <span className="flex-shrink-0 text-lg" style={{ opacity: 0.4 }}>🔒</span>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               <div className="flex items-center gap-3 pt-2">
                 <button onClick={handleSaveFeatures} disabled={featuresSaving}
                   className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"

@@ -117,7 +117,11 @@ function planToFeatures(plan: string): Features {
     // "A tu medida" features are loaded from system_config, not here
     return DEFAULT_FEATURES;
   }
-  const allowed = PLAN_FEATURES[plan] ?? Object.keys(DEFAULT_FEATURES) as (keyof Features)[];
+  // Fail-closed: si el plan no se reconoce (null, 'trial', valor legado sin
+  // mapear), dar los features del plan MÁS BARATO — nunca todos.
+  // Antes el fallback era Object.keys(DEFAULT_FEATURES) = TODO desbloqueado,
+  // lo que regalaba el producto completo a cualquier tenant con plan inválido.
+  const allowed = PLAN_FEATURES[plan] ?? PLAN_FEATURES['operacion'];
   const f = { ...DEFAULT_FEATURES };
   (Object.keys(f) as (keyof Features)[]).forEach(k => {
     f[k] = allowed.includes(k);
@@ -167,7 +171,23 @@ export function useFeatures(): { features: Features; plan: string; loading: bool
             if (mod) f[mod.key] = c.config_value === 'true';
           });
         } else {
+          // Plan bundle: el plan define el TECHO de módulos disponibles.
+          // Los toggles de "Módulos activos" actúan como filtro: el usuario
+          // puede APAGAR un módulo incluido (no lo usa), pero nunca PRENDER
+          // uno fuera de su plan. features = plan ∩ toggles.
           f = planToFeatures(p);
+          const { data: configs } = await supabase
+            .from('system_config')
+            .select('config_key, config_value')
+            .eq('tenant_id', appUser.tenantId)
+            .in('config_key', MODULE_CATALOG.map(m => `feature_${m.key.replace(/([A-Z])/g, '_$1').toLowerCase()}`));
+          (configs ?? []).forEach((c: any) => {
+            const mod = MODULE_CATALOG.find(m =>
+              `feature_${m.key.replace(/([A-Z])/g, '_$1').toLowerCase()}` === c.config_key
+            );
+            // Solo puede APAGAR (false), nunca prender algo fuera del plan
+            if (mod && c.config_value === 'false') f[mod.key] = false;
+          });
         }
 
         _cachedPlan = p;
