@@ -133,13 +133,25 @@ function planToFeatures(plan: string): Features {
 let _cachedPlan: string | null = null;
 let _cachedFeatures: Features | null = null;
 
-export function invalidateFeaturesCache() { _cachedPlan = null; _cachedFeatures = null; }
+export function invalidateFeaturesCache() {
+  _cachedPlan = null; _cachedFeatures = null;
+  // Notificar a todos los componentes montados (Sidebar, gates) que recarguen
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('features-updated'));
+}
 
 export function useFeatures(): { features: Features; plan: string; loading: boolean } {
   const { appUser } = useAuth();
   const [features, setFeatures] = useState<Features>(_cachedFeatures ?? DEFAULT_FEATURES);
   const [plan, setPlan] = useState<string>(_cachedPlan ?? 'operacion');
   const [loading, setLoading] = useState(!_cachedFeatures);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Escuchar invalidaciones de cache (al guardar toggles en Configuración)
+  useEffect(() => {
+    const onUpdate = () => setRefreshTick(t => t + 1);
+    window.addEventListener('features-updated', onUpdate);
+    return () => window.removeEventListener('features-updated', onUpdate);
+  }, []);
 
   useEffect(() => {
     if (!appUser?.tenantId) return;
@@ -196,7 +208,7 @@ export function useFeatures(): { features: Features; plan: string; loading: bool
         setPlan(p);
         setLoading(false);
       });
-  }, [appUser?.tenantId]); // eslint-disable-line
+  }, [appUser?.tenantId, refreshTick]); // eslint-disable-line
 
   return { features, plan, loading };
 }

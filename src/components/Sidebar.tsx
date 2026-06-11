@@ -211,17 +211,23 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
-        {navGroups.map((group) => (
+        {navGroups.map((group) => {
+          // Calcular items visibles ANTES de renderizar — si el grupo queda
+          // vacío (todos filtrados por feature/permiso), no mostrar ni el título
+          const visibleItems = group.items.filter((item) =>
+            !((item as any).feature && !features[(item as any).feature as keyof Features]) &&
+            canAccess(item.pageKey)
+          );
+          if (visibleItems.length === 0) return null;
+          return (
           <div key={group.group} className="mb-4">
             {!collapsed && (
               <p className="text-xs px-3 mb-1.5 tracking-widest" style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
                 {group.group}
               </p>
             )}
-            {group.items.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon;
-              if ((item as any).feature && !features[(item as any).feature as keyof Features]) return null;
-              if (!canAccess(item.pageKey)) return null;
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const badge = item.pageKey === 'orders'
                 ? (openOrdersCount > 0 ? openOrdersCount : undefined)
@@ -260,7 +266,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* User info + collapse toggle */}

@@ -184,7 +184,13 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
       description: `Feature: ${feat}`,
       tenant_id: appUser?.tenantId,
     }));
-    await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
+    const { error: saveErr } = await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
+    if (saveErr) {
+      console.error('[features save]', saveErr);
+      alert('No se pudieron guardar los módulos: ' + saveErr.message);
+      setFeaturesSaving(false);
+      return;
+    }
     invalidateFeaturesCache();
     setFeaturesSaving(false);
     setFeaturesSaved(true);
@@ -262,6 +268,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
               {([
                 { key: 'meseroMovil',     label: 'Mesero Móvil',          desc: 'App para tomar pedidos desde el teléfono del mesero',    icon: '📱' },
                 { key: 'lealtad',         label: 'Programa de Lealtad',    desc: 'Puntos, niveles y canjes para clientes frecuentes',      icon: '⭐' },
+                { key: 'extrasStore',     label: 'Tienda de Extras',       desc: 'Membresías, merch y productos fuera del menú',           icon: '🛍️' },
                 { key: 'reservaciones',   label: 'Reservaciones',          desc: 'Calendario de reservas y gestión de mesas futuras',      icon: '📅' },
                 { key: 'delivery',        label: 'Delivery',               desc: 'Pedidos Uber Eats, Rappi, DiDi Food y captura manual',   icon: '🛵' },
                 { key: 'inventario',      label: 'Inventario',             desc: 'Stock, alertas de mínimos y movimientos de ingredientes', icon: '📦' },
@@ -319,7 +326,7 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
                 </button>
                 {featuresSaved && (
                   <span className="text-sm font-semibold text-green-600 flex items-center gap-1">
-                    ✓ Guardado — recarga la página para ver el menú actualizado
+                    ✓ Guardado — el menú lateral ya se actualizó
                   </span>
                 )}
               </div>
