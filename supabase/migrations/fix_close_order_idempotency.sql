@@ -114,10 +114,10 @@ BEGIN
     WHERE id=v_rec.ingredient_id AND tenant_id=v_tenant_uuid;
 
     INSERT INTO stock_movements (
-      tenant_id, ingredient_id, movement_type, quantity, previous_stock,
+      tenant_id, branch_id, ingredient_id, movement_type, quantity, previous_stock,
       new_stock, reason, created_by, unit_cost, total_cost, created_at
     ) VALUES (
-      v_tenant_uuid, v_rec.ingredient_id, 'salida', v_deduct_qty, v_cur_stock,
+      v_tenant_uuid, NULLIF(p_branch_id,'')::UUID, v_rec.ingredient_id, 'salida', v_deduct_qty, v_cur_stock,
       v_new_stock, 'Venta: '||v_rec.dish_name||' x'||v_rec.item_qty||' — '||p_order_id,
       'Sistema (close_order)', v_cost_unit, v_deduct_qty*v_cost_unit, v_now
     );

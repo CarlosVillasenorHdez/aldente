@@ -1,5 +1,6 @@
 'use client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { useBranch } from '@/hooks/useBranch';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadXLSX } from '@/lib/exportUtils';
@@ -84,6 +85,7 @@ type RowDef = { label: string; key: keyof MonthData | null; tipo: 'header'|'line
 
 // ─── PLHorizontal ─────────────────────────────────────────────────────────────
 function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; numMonths: number; onDataReady?: (months: MonthData[], rows: RowDef[], getVal: (r: RowDef, m: MonthData) => number) => void }) {
+  const { activeBranchId } = useBranch();
   const supabase = createClient();
   const [months, setMonths] = useState<MonthData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,13 +106,16 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         const label = d.toLocaleString('es-MX', { month: 'short', year: '2-digit' });
 
         const [ordRes, gastosRes, nomRes, depRes] = await Promise.all([
-          supabase.from('orders').select('total, subtotal, discount, iva')
+          (() => { let q = supabase.from('orders').select('total, subtotal, discount, iva, branch_id')
             .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
-            .gte('closed_at', start).lte('closed_at', end),
-          supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria')
-            .eq('tenant_id', tenantId),
-          supabase.from('employees').select('salary, salary_frequency')
-            .eq('tenant_id', tenantId).eq('status', 'activo'),
+            .gte('closed_at', start).lte('closed_at', end);
+            if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId); return q; })(),
+          (() => { let q = supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria, branch_id')
+            .eq('tenant_id', tenantId);
+            if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`); return q; })(),
+          (() => { let q = supabase.from('employees').select('salary, salary_frequency, branch_id')
+            .eq('tenant_id', tenantId).eq('status', 'activo');
+            if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`); return q; })(),
           supabase.from('depreciaciones').select('valor_original, vida_util_anios, valor_residual, fecha_adquisicion')
             .eq('tenant_id', tenantId),
         ]);
@@ -149,10 +154,12 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
         // COGS desde stock_movements.total_cost (WACC real)
         // Prioridad: si el movimiento tiene total_cost (nuevo), usarlo. Si no, fallback a cost_actual de órdenes.
-        const { data: stockMovData } = await supabase.from('stock_movements')
-          .select('total_cost, quantity, unit_cost')
+        let _smQ = supabase.from('stock_movements')
+          .select('total_cost, quantity, unit_cost, branch_id')
           .eq('tenant_id', tenantId).eq('movement_type', 'salida')
           .gte('created_at', start).lte('created_at', end);
+        if (activeBranchId) _smQ = (_smQ as any).eq('branch_id', activeBranchId);
+        const { data: stockMovData } = await _smQ;
 
         const cogsFromMovements = (stockMovData ?? []).reduce((s, m) => {
           // Si tiene total_cost (WACC preciso), usarlo; si no, quantity × unit_cost como fallback
@@ -161,10 +168,12 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         }, 0);
 
         // Merma — desde stock_movements tipo 'merma' con total_cost
-        const { data: mermaMovData } = await supabase.from('stock_movements')
-          .select('total_cost, quantity, unit_cost')
+        let _mmQ = supabase.from('stock_movements')
+          .select('total_cost, quantity, unit_cost, branch_id')
           .eq('tenant_id', tenantId).eq('movement_type', 'merma')
           .gte('created_at', start).lte('created_at', end);
+        if (activeBranchId) _mmQ = (_mmQ as any).eq('branch_id', activeBranchId);
+        const { data: mermaMovData } = await _mmQ;
 
         const mermaFromMovements = (mermaMovData ?? []).reduce((s, m) => {
           const tc = m.total_cost != null ? Number(m.total_cost) : (Number(m.quantity) * Number(m.unit_cost ?? 0));
@@ -199,7 +208,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       setLoading(false);
     }
     load();
-  }, [tenantId, numMonths]); // eslint-disable-line
+  }, [tenantId, numMonths, activeBranchId]); // eslint-disable-line
 
   const rows: RowDef[] = [
     { label: 'Ingresos', key: null, tipo: 'header' },
@@ -243,18 +252,23 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
       const label = d.toLocaleString('es-MX', { month: 'short', year: '2-digit' });
 
       const [ordRes, gastosRes, nomRes, depRes, cogsData, mermaData] = await Promise.all([
-        supabase.from('orders').select('total, discount, iva')
+        (() => { let q = supabase.from('orders').select('total, discount, iva')
           .eq('tenant_id', tenantId).eq('status', 'cerrada').eq('is_comanda', false)
-          .gte('closed_at', start).lte('closed_at', end),
-        supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria').eq('tenant_id', tenantId),
-        supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', tenantId).eq('status', 'activo'),
+          .gte('closed_at', start).lte('closed_at', end);
+          if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId); return q; })(),
+        (() => { let q = supabase.from('gastos_recurrentes').select('monto, frecuencia, categoria').eq('tenant_id', tenantId);
+          if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`); return q; })(),
+        (() => { let q = supabase.from('employees').select('salary, salary_frequency').eq('tenant_id', tenantId).eq('status', 'activo');
+          if (activeBranchId) q = (q as any).or(`branch_id.is.null,branch_id.eq.${activeBranchId}`); return q; })(),
         supabase.from('depreciaciones').select('valor_original, vida_util_anios, valor_residual, fecha_adquisicion').eq('tenant_id', tenantId),
-        supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
+        (() => { let q = supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
           .eq('tenant_id', tenantId).eq('movement_type', 'salida')
-          .gte('created_at', start).lte('created_at', end),
-        supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
+          .gte('created_at', start).lte('created_at', end);
+          if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId); return q; })(),
+        (() => { let q = supabase.from('stock_movements').select('total_cost, unit_cost, quantity')
           .eq('tenant_id', tenantId).eq('movement_type', 'merma')
-          .gte('created_at', start).lte('created_at', end),
+          .gte('created_at', start).lte('created_at', end);
+          if (activeBranchId) q = (q as any).eq('branch_id', activeBranchId); return q; })(),
       ]);
       const orders = ordRes.data ?? [];
       const ventas = orders.reduce((s, o) => s + Number(o.total ?? 0), 0);
@@ -578,6 +592,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AnalisisFinanciero() {
+  const { activeBranchId } = useBranch();
   const supabase = createClient();
   const { appUser } = useAuth();
   const [period, setPeriod] = useState<Period>('mes_actual');

@@ -498,6 +498,7 @@ export function useOrderFlow() {
             unit_cost: u.costPerUnit,
             total_cost: u.deductQty * u.costPerUnit,
             tenant_id: DEFAULT_TENANT,
+            branch_id: branchId ?? null,
           })
         ),
       ]);
