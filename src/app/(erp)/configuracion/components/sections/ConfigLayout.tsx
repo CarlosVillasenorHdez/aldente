@@ -139,9 +139,9 @@ export default function ConfigLayout() {
       .delete().eq('tenant_id', getTenantId()).eq('branch_id', activeBranchId ?? '00000000-0000-0000-0000-000000000000');
 
     // 3. Re-insert only real mesa entries, preserving operational state for occupied tables
-    for (const lt of realTables) {
+    const tablesPayload = realTables.map((lt) => {
       const existing = (existingRows || []).find((r: any) => r.number === lt.number);
-      await supabase.from('restaurant_tables').insert({
+      return {
         number: lt.number,
         name: lt.name,
         capacity: lt.capacity,
@@ -150,7 +150,10 @@ export default function ConfigLayout() {
         waiter: existing?.waiter ?? null,
         tenant_id: getTenantId(),
         branch_id: activeBranchId ?? null,
-      });
+      };
+    });
+    if (tablesPayload.length > 0) {
+      await supabase.from('restaurant_tables').insert(tablesPayload);
     }
 
     toast.success(`Layout guardado · ${realTables.length} mesa${realTables.length !== 1 ? 's' : ''} configurada${realTables.length !== 1 ? 's' : ''}`);

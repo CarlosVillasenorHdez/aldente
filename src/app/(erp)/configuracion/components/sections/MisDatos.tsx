@@ -259,40 +259,36 @@ export default function MisDatos({ activeSection }: { activeSection: string }) {
       let ok = 0, fail = 0;
 
       if (handler === 'menu') {
-        for (const [name, description, price, category, emoji] of rows) {
-          const { error } = await supabase.from('dishes').insert({
-            name, description: description || '', price: parseFloat(price) || 0,
-            category: category || 'Otros', emoji: emoji || '🍽️',
-            available: true, tenant_id: tid,
-          });
-          if (error) fail++; else ok++;
-        }
+        const payload = rows.map(([name, description, price, category, emoji]) => ({
+          name, description: description || '', price: parseFloat(price) || 0,
+          category: category || 'Otros', emoji: emoji || '🍽️',
+          available: true, tenant_id: tid,
+        }));
+        const { error, count } = await supabase.from('dishes').insert(payload, { count: 'exact' });
+        if (error) { fail += payload.length; } else { ok += count ?? payload.length; }
       } else if (handler === 'inventario') {
-        for (const [name, category, unit, cost, minStock] of rows) {
-          const { error } = await supabase.from('ingredients').insert({
-            name, category: category || 'Otros', unit: unit || 'kg',
-            cost: parseFloat(cost) || 0, min_stock: parseFloat(minStock) || 0,
-            stock: 0, reorder_point: 0, lead_time_days: 1, tenant_id: tid,
-          });
-          if (error) fail++; else ok++;
-        }
+        const payload = rows.map(([name, category, unit, cost, minStock]) => ({
+          name, category: category || 'Otros', unit: unit || 'kg',
+          cost: parseFloat(cost) || 0, min_stock: parseFloat(minStock) || 0,
+          stock: 0, reorder_point: 0, lead_time_days: 1, tenant_id: tid,
+        }));
+        const { error, count } = await supabase.from('ingredients').insert(payload, { count: 'exact' });
+        if (error) { fail += payload.length; } else { ok += count ?? payload.length; }
       } else if (handler === 'clientes') {
-        for (const [name, phone, email, points] of rows) {
-          const { error } = await supabase.from('loyalty_customers').insert({
-            name, phone: phone || '', email: email || '',
-            points: parseInt(points) || 0, total_spent: 0,
-            is_active: true, tenant_id: tid,
-          });
-          if (error) fail++; else ok++;
-        }
+        const payload = rows.map(([name, phone, email, points]) => ({
+          name, phone: phone || '', email: email || '',
+          points: parseInt(points) || 0, total_spent: 0,
+          is_active: true, tenant_id: tid,
+        }));
+        const { error, count } = await supabase.from('loyalty_customers').insert(payload, { count: 'exact' });
+        if (error) { fail += payload.length; } else { ok += count ?? payload.length; }
       } else if (handler === 'proveedores') {
-        for (const [name, contact_name, phone, email] of rows) {
-          const { error } = await supabase.from('suppliers').insert({
-            name, contact_name: contact_name || '', phone: phone || '',
-            email: email || '', tenant_id: tid,
-          });
-          if (error) fail++; else ok++;
-        }
+        const payload = rows.map(([name, contact_name, phone, email]) => ({
+          name, contact_name: contact_name || '', phone: phone || '',
+          email: email || '', tenant_id: tid,
+        }));
+        const { error, count } = await supabase.from('suppliers').insert(payload, { count: 'exact' });
+        if (error) { fail += payload.length; } else { ok += count ?? payload.length; }
       }
 
       setImportResults(prev => ({ ...prev, [handler]: { ok, fail } }));
