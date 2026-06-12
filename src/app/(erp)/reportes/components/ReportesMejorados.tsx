@@ -111,7 +111,7 @@ export default function ReportesMejorados() {
               key={p}
               onClick={() => setPeriod(p)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p ? 'text-white' : 'text-white/60 bg-[#162d55] border border-[#243f72] hover:bg-[#0f1e38]'}`}
-              style={period === p ? { backgroundColor: '#1B3A6B' } : {}}
+              style={period === p ? { backgroundColor: '#f59e0b', color: '#1B3A6B' } : {}}
           >
             {PERIOD_LABELS[p]}
           </button>
@@ -121,26 +121,70 @@ export default function ReportesMejorados() {
           onClick={handleExport}
           disabled={exporting || loading}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
-          style={{ borderColor: '#1B3A6B', color: '#1B3A6B', backgroundColor: '#162d55' }}
+          style={{ borderColor: '#f59e0b', color: '#f59e0b', backgroundColor: '#162d55' }}
         >
           <Download size={15} />
           {exporting ? 'Exportando...' : 'Excel / CSV'}
         </button>
       </div>
 
+      {/* Barra de interpretación — qué significan los números */}
+      {(() => {
+        const reads: { tone: 'good' | 'warn' | 'bad' | 'info'; text: string }[] = [];
+        // Margen
+        if (kpis.utilidadBruta > 0 && kpis.totalVentas > 0) {
+          const m = kpis.margenPct;
+          if (m >= 65) reads.push({ tone: 'good', text: `Margen bruto de ${m.toFixed(0)}% — saludable para restaurante (lo ideal es 60-70%).` });
+          else if (m >= 55) reads.push({ tone: 'info', text: `Margen bruto de ${m.toFixed(0)}% — aceptable, pero hay espacio para optimizar costos o precios.` });
+          else reads.push({ tone: 'warn', text: `Margen bruto de ${m.toFixed(0)}% — por debajo del objetivo. Revisa los costos de tus platillos más vendidos.` });
+        }
+        // Ticket promedio
+        if (kpis.ticketPromedio > 0) {
+          reads.push({ tone: 'info', text: `Ticket promedio de $${kpis.ticketPromedio.toFixed(0)}. Sugerir bebidas o postres puede subirlo sin más clientes.` });
+        }
+        // Merma
+        if (kpis.mermaTotal > 0 && kpis.totalVentas > 0) {
+          const mermaPct = (kpis.mermaTotal / kpis.totalVentas) * 100;
+          if (mermaPct > 3) reads.push({ tone: 'bad', text: `Merma de $${kpis.mermaTotal.toFixed(0)} (${mermaPct.toFixed(1)}% de ventas) — alta. Cada peso de merma sale directo de tu utilidad.` });
+          else reads.push({ tone: 'good', text: `Merma de $${kpis.mermaTotal.toFixed(0)} (${mermaPct.toFixed(1)}%) — bajo control.` });
+        }
+        // Break-even
+        if (breakeven > 0) {
+          if (kpis.totalVentas >= breakeven) reads.push({ tone: 'good', text: `Superaste tu punto de equilibrio ($${breakeven.toLocaleString('es-MX')}). Lo que vendas de más es ganancia.` });
+          else reads.push({ tone: 'warn', text: `Aún no llegas al punto de equilibrio ($${breakeven.toLocaleString('es-MX')}). Te faltan $${(breakeven - kpis.totalVentas).toLocaleString('es-MX')}.` });
+        }
+        if (reads.length === 0) return null;
+        const toneColor = { good: '#34d399', warn: '#fbbf24', bad: '#f87171', info: '#60a5fa' };
+        return (
+          <div className="rounded-xl p-4" style={{ background: '#162d55', border: '1px solid #243f72' }}>
+            <p className="text-xs font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              💡 Qué dicen tus números
+            </p>
+            <div className="space-y-2">
+              {reads.map((r, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span style={{ color: toneColor[r.tone], fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>•</span>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.5 }}>{r.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Ventas Totales', value: `$${kpis.totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#10b981' },
+          { label: 'Ventas Totales', value: `$${kpis.totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#34d399' },
           ...(kpis.ventasExtras > 0 ? [
             { label: '↳ Restaurante', value: `$${kpis.ventasRestaurante.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#6ee7b7' },
             { label: '↳ Tienda extras', value: `$${kpis.ventasExtras.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: '#a78bfa' },
           ] : []),
-          { label: 'Órdenes', value: kpis.totalOrdenes, icon: ShoppingCart, color: '#1B3A6B' },
+          { label: 'Órdenes', value: kpis.totalOrdenes, icon: ShoppingCart, color: '#60a5fa' },
           { label: 'Ticket Promedio', value: `$${kpis.ticketPromedio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: '#f59e0b' },
-          { label: 'Utilidad Bruta', value: kpis.utilidadBruta > 0 ? `$${kpis.utilidadBruta.toFixed(2)}` : '—', icon: TrendingUp, color: '#16a34a' },
-          { label: '⚠️ Merma', value: kpis.mermaTotal > 0 ? `$${kpis.mermaTotal.toFixed(2)}` : '$0.00', icon: TrendingUp, color: kpis.mermaTotal > 0 ? '#dc2626' : '#9ca3af' },
-          { label: 'Alertas Inventario', value: lowStock.length, icon: AlertTriangle, color: lowStock.length > 0 ? '#ef4444' : '#6b7280' },
+          { label: 'Utilidad Bruta', value: kpis.utilidadBruta > 0 ? `$${kpis.utilidadBruta.toFixed(2)}` : '—', icon: TrendingUp, color: '#4ade80' },
+          { label: '⚠️ Merma', value: kpis.mermaTotal > 0 ? `$${kpis.mermaTotal.toFixed(2)}` : '$0.00', icon: TrendingUp, color: kpis.mermaTotal > 0 ? '#f87171' : 'rgba(255,255,255,0.3)' },
+          { label: 'Alertas Inventario', value: lowStock.length, icon: AlertTriangle, color: lowStock.length > 0 ? '#f87171' : 'rgba(255,255,255,0.3)' },
         ].map(k => (
           <div key={k.label} className="bg-[#162d55] rounded-xl p-4 shadow-sm border border-[#243f72] flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: k.color + '15' }}>
@@ -157,10 +201,10 @@ export default function ReportesMejorados() {
       {/* Sales Trend Chart */}
       <div className="bg-[#162d55] rounded-xl shadow-sm border border-[#243f72] p-6">
         <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-          <BarChart3 size={18} style={{ color: '#1B3A6B' }} />
+          <BarChart3 size={18} style={{ color: '#f59e0b' }} />
           Tendencia de Ventas — {(PERIOD_LABELS as any)[period]}
         </h3>
-        {breakeven > 0 && <p className="text-xs mb-3" style={{color:'#9ca3af'}}>Meta de equilibrio: <strong style={{color:'#6b7280'}}>${breakeven.toLocaleString('es-MX')}</strong> — debes superar esto para ser rentable</p>}
+        {breakeven > 0 && <p className="text-xs mb-3" style={{color:'rgba(255,255,255,0.5)'}}>Meta de equilibrio: <strong style={{color:'#f59e0b'}}>${breakeven.toLocaleString('es-MX')}</strong> — debes superar esto para ser rentable</p>}
         {salesTrend.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-white/40 text-sm">Sin datos para el período seleccionado</div>
         ) : (
@@ -168,16 +212,16 @@ export default function ReportesMejorados() {
             <AreaChart data={salesTrend}>
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1B3A6B" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#1B3A6B" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#34d399" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 'Ventas']} />
-              <Area type="monotone" dataKey="ventas" stroke="#1B3A6B" fill="url(#salesGrad)" strokeWidth={2} />
-              {breakeven > 0 && <Area type="monotone" dataKey="meta" stroke="#9ca3af" fill="none" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />}
+              <Area type="monotone" dataKey="ventas" stroke="#34d399" fill="url(#salesGrad)" strokeWidth={2.5} />
+              {breakeven > 0 && <Area type="monotone" dataKey="meta" stroke="rgba(255,255,255,0.35)" fill="none" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />}
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -262,11 +306,11 @@ export default function ReportesMejorados() {
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={topProducts.slice(0, 6)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10 }} />
                 <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10 }} width={120} />
                 <Tooltip formatter={(v: any) => [v, 'Unidades']} />
-                <Bar dataKey="cantidad" fill="#10b981" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="cantidad" fill="#f59e0b" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

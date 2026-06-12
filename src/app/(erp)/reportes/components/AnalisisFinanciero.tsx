@@ -21,10 +21,10 @@ const fmtPct = (n: number) => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, color, trend }: { label: string; value: string; sub?: string; color?: string; trend?: number }) {
   return (
-    <div style={{ background:'white', borderRadius:12, padding:'16px 20px', border:'1px solid #e5e7eb', flex:1, minWidth:140 }}>
-      <div style={{ fontSize:11, color:'#6b7280', fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>{label}</div>
+    <div style={{ background:'#162d55', borderRadius:12, padding:'16px 20px', border:'1px solid #243f72', flex:1, minWidth:140 }}>
+      <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>{label}</div>
       <div style={{ fontSize:22, fontWeight:800, color: color ?? '#1f2937', fontFamily:'monospace', marginBottom:2 }}>{value}</div>
-      {sub && <div style={{ fontSize:11, color:'#9ca3af' }}>{sub}</div>}
+      {sub && <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)' }}>{sub}</div>}
       {trend !== undefined && (
         <div style={{ fontSize:11, color: trend >= 0 ? '#16a34a' : '#dc2626', display:'flex', alignItems:'center', gap:3, marginTop:4 }}>
           {trend >= 0 ? <TrendingUp size={11}/> : <TrendingDown size={11}/>}
@@ -44,10 +44,10 @@ function PLRowComp({ row, showSign = true }: { row: PLRow; showSign?: boolean })
     : (row.tipo === 'item' && row.monto < 0 ? '#dc2626' : '#1f2937');
 
   return (
-    <tr style={{ borderBottom: row.tipo === 'subtotal' || row.tipo === 'total' ? '2px solid #e5e7eb' : '1px solid #f3f4f6', background: row.tipo === 'header' ? '#f8fafc' : row.tipo === 'total' ? '#f0fdf4' : 'white' }}>
+    <tr style={{ borderBottom: row.tipo === 'subtotal' || row.tipo === 'total' ? '2px solid #243f72' : '1px solid #f3f4f6', background: row.tipo === 'header' ? '#f8fafc' : row.tipo === 'total' ? '#f0fdf4' : 'white' }}>
       <td style={{ padding: row.tipo === 'header' ? '10px 16px 6px' : '8px 16px', paddingLeft: 16 + (row.indent ?? 0) * 20, fontSize: row.tipo === 'header' ? 11 : 13, fontWeight: row.tipo === 'header' ? 700 : row.tipo === 'total' ? 700 : 400, color: row.tipo === 'header' ? '#6b7280' : '#1f2937', letterSpacing: row.tipo === 'header' ? '.06em' : 0, textTransform: row.tipo === 'header' ? 'uppercase' : 'none' }}>
         {row.concepto}
-        {row.note && <span style={{ fontSize:10, color:'#9ca3af', marginLeft:6 }}>{row.note}</span>}
+        {row.note && <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginLeft:6 }}>{row.note}</span>}
       </td>
       <td style={{ padding:'8px 16px', textAlign:'right', fontSize:13, fontWeight: row.tipo === 'total' ? 700 : 400, color: amtColor, fontFamily:'monospace', whiteSpace:'nowrap' }}>
         {row.tipo === 'header' || row.monto === 0 && row.tipo !== 'item' ? '' : (showSign && row.tipo === 'item' && row.monto > 0 ? '' : '') + '$' + fmt(Math.abs(row.monto))}
@@ -59,7 +59,7 @@ function PLRowComp({ row, showSign = true }: { row: PLRow; showSign?: boolean })
 function BSRowComp({ row }: { row: BSRow }) {
   if (row.tipo === 'divider') return <tr><td colSpan={2} style={{ height:8 }} /></tr>;
   return (
-    <tr style={{ borderBottom: row.tipo === 'total' ? '2px solid #e5e7eb' : '1px solid #f3f4f6', background: row.tipo === 'header' ? '#f8fafc' : row.tipo === 'total' ? '#eff6ff' : 'white' }}>
+    <tr style={{ borderBottom: row.tipo === 'total' ? '2px solid #243f72' : '1px solid #f3f4f6', background: row.tipo === 'header' ? '#f8fafc' : row.tipo === 'total' ? '#eff6ff' : 'white' }}>
       <td style={{ padding: row.tipo === 'header' ? '10px 16px 6px' : '8px 16px', paddingLeft: 16 + (row.indent ?? 0) * 20, fontSize: row.tipo === 'header' ? 11 : 13, fontWeight: row.tipo === 'header' ? 700 : row.tipo === 'total' ? 700 : 400, color: row.tipo === 'header' ? '#6b7280' : '#1f2937', textTransform: row.tipo === 'header' ? 'uppercase' : 'none', letterSpacing: row.tipo === 'header' ? '.06em' : 0 }}>
         {row.concepto}
       </td>
@@ -351,7 +351,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     { key: 'prime_cost',    label: 'Prime Cost',     isMoney: false, goodUp: false },
   ];
 
-  const C = { hdr:'#f9fafb', border:'#e5e7eb', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
+  const C = { hdr:'#f9fafb', border:'#243f72', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
   const thStyle: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 600, color: C.muted, textAlign: 'right', background: C.hdr, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
   const TOTAL_COL_STYLE: React.CSSProperties = { fontWeight: 700, color: C.blue, background: '#f0f4ff' };
 
@@ -592,7 +592,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AnalisisFinanciero() {
-  const { activeBranchId } = useBranch();
+  const { activeBranchId, branches } = useBranch();
   const supabase = createClient();
   const { appUser } = useAuth();
   const [period, setPeriod] = useState<Period>('mes_actual');
@@ -1004,7 +1004,7 @@ export default function AnalisisFinanciero() {
         nomina:acc.nomina+m.nomina, gastosOp:acc.gastosOp+m.gastosOp,
         depreciacion:acc.depreciacion+m.depreciacion, financiero:acc.financiero+m.financiero,
       }), { label:'Total', ventas:0, descuentos:0, iva:0, cogs:0, merma:0, nomina:0, gastosOp:0, depreciacion:0, financiero:0 });
-      const thH = ['Concepto', ...hMonths.map((m: MonthData) => m.label), 'Total'].map(h => '<th style="padding:5px 8px;text-align:right;background:#f8fafc;font-size:10px;border-bottom:1px solid #e5e7eb">' + h + '</th>').join('');
+      const thH = ['Concepto', ...hMonths.map((m: MonthData) => m.label), 'Total'].map(h => '<th style="padding:5px 8px;text-align:right;background:#f8fafc;font-size:10px;border-bottom:1px solid #243f72">' + h + '</th>').join('');
       const bodyH = hRows.map((r: RowDef) => {
         if (r.tipo === 'header') return '<tr><td colspan="' + (hMonths.length+2) + '" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;padding:5px 8px;background:#f8fafc">' + r.label + '</td></tr>';
         const isTotal = r.tipo === 'total'; const isSub = r.tipo === 'sub';
@@ -1031,7 +1031,7 @@ export default function AnalisisFinanciero() {
   h1 { font-size: 22px; font-weight: 800; color: #1B3A6B; margin-bottom: 2px; }
   .subtitle { color: #6b7280; font-size: 12px; margin-bottom: 24px; }
   .kpis { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-  .kpi { flex: 1; min-width: 100px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; }
+  .kpi { flex: 1; min-width: 100px; border: 1px solid #243f72; border-radius: 10px; padding: 12px 14px; }
   .kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; }
   .kpi-value { font-size: 18px; font-weight: 800; font-family: monospace; margin-bottom: 2px; }
   .kpi-sub { font-size: 10px; color: #9ca3af; }
@@ -1040,12 +1040,12 @@ export default function AnalisisFinanciero() {
   td { padding: 6px 8px; font-size: 11px; border-bottom: 1px solid #f3f4f6; }
   td:last-child { text-align: right; font-family: monospace; white-space: nowrap; }
   .tr-header td { background: #f8fafc; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; padding: 8px 8px 4px; border-bottom: none; }
-  .tr-total td { background: #f0fdf4; font-weight: 700; font-size: 12px; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; }
+  .tr-total td { background: #f0fdf4; font-weight: 700; font-size: 12px; border-top: 2px solid #243f72; border-bottom: 2px solid #243f72; }
   .tr-sub td { font-weight: 600; border-top: 1px solid #d1d5db; }
   .note { font-size: 9px; color: #9ca3af; }
   .cols { display: flex; gap: 16px; }
   .col { flex: 1; }
-  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; display: flex; justify-content: space-between; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #243f72; font-size: 10px; color: #9ca3af; display: flex; justify-content: space-between; }
   @media print { body { padding: 20px; } @page { margin: 15mm; size: A4; } }
 </style>
 </head>
@@ -1105,14 +1105,27 @@ ${horizontalHtml}
   ];
 
   return (
-    <div style={{ background:'#f8fafc', minHeight:'100vh' }}>
+    <div style={{ background:'#0f1e38', minHeight:'100vh' }}>
       {/* ── Header ── */}
-      <div style={{ background:'white', borderBottom:'1px solid #e5e7eb', padding:'20px 24px' }}>
+      <div style={{ background:'#162d55', borderBottom:'1px solid #243f72', padding:'20px 24px' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
           <div>
-            <h1 style={{ fontSize:20, fontWeight:800, color:'#1f2937', margin:0 }}>Análisis Financiero</h1>
-            <p style={{ fontSize:13, color:'#6b7280', marginTop:4 }}>
-              {dateRange.label} · Datos en tiempo real desde Supabase
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <h1 style={{ fontSize:20, fontWeight:800, color:'white', margin:0 }}>Análisis Financiero</h1>
+              {(() => {
+                const activeBranch = branches?.find((b: any) => b.id === activeBranchId);
+                return (
+                  <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20,
+                    background: activeBranchId ? 'rgba(96,165,250,0.15)' : 'rgba(245,158,11,0.15)',
+                    color: activeBranchId ? '#60a5fa' : '#f59e0b',
+                    border: `1px solid ${activeBranchId ? 'rgba(96,165,250,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+                    {activeBranch ? `📍 ${activeBranch.name}` : '🏢 Todas las sucursales'}
+                  </span>
+                );
+              })()}
+            </div>
+            <p style={{ fontSize:13, color:'rgba(255,255,255,0.5)', marginTop:4 }}>
+              {dateRange.label} · Datos en tiempo real
               {(() => {
                 const hoy = new Date();
                 const esMesActual = hoy.getMonth() === new Date(dateRange.start).getMonth() &&
@@ -1131,7 +1144,7 @@ ${horizontalHtml}
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             {/* Period selector */}
-            <div style={{ display:'flex', gap:4, background:'#f3f4f6', borderRadius:10, padding:3 }}>
+            <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.06)', borderRadius:10, padding:3 }}>
               {PERIODS.map(p => (
                 <button key={p.id} onClick={() => setPeriod(p.id)}
                   style={{ padding:'6px 12px', borderRadius:8, fontSize:12, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
@@ -1141,8 +1154,8 @@ ${horizontalHtml}
                 </button>
               ))}
             </div>
-            <button onClick={load} style={{ padding:'8px 12px', borderRadius:8, background:'#f3f4f6', border:'none', cursor:'pointer' }}>
-              <RefreshCw size={14} style={{ color:'#6b7280' }} />
+            <button onClick={load} style={{ padding:'8px 12px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'none', cursor:'pointer' }}>
+              <RefreshCw size={14} style={{ color:'rgba(255,255,255,0.5)' }} />
             </button>
             <button onClick={async () => {
               const sheets = [{ name: 'P&L', rows: plRows.filter(r=>r.tipo!=='divider').map(r=>({ Concepto: r.concepto, Monto: r.monto.toFixed(2), Tipo: r.tipo })) }];
@@ -1191,7 +1204,7 @@ ${horizontalHtml}
       </div>
 
       {/* ── Sub-tabs ── */}
-      <div style={{ background:'white', borderBottom:'1px solid #e5e7eb', padding:'0 24px', display:'flex', gap:0 }}>
+      <div style={{ background:'#162d55', borderBottom:'1px solid #243f72', padding:'0 24px', display:'flex', gap:0 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             style={{ padding:'12px 20px', fontSize:13, fontWeight:600, border:'none', borderBottom: activeTab===t.id ? '2px solid #1B3A6B' : '2px solid transparent', background:'none', color: activeTab===t.id ? '#1B3A6B' : '#6b7280', cursor:'pointer', transition:'all .15s' }}>
@@ -1201,7 +1214,7 @@ ${horizontalHtml}
       </div>
 
       {loading && (
-        <div style={{ textAlign:'center', padding:'60px 0', color:'#9ca3af', fontSize:13 }}>
+        <div style={{ textAlign:'center', padding:'60px 0', color:'rgba(255,255,255,0.4)', fontSize:13 }}>
           Cargando datos financieros…
         </div>
       )}
@@ -1212,13 +1225,13 @@ ${horizontalHtml}
           {/* ── P&L ── */}
           {activeTab === 'pl' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20, alignItems:'start' }}>
-              <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                <div style={{ padding:'16px 20px', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden' }}>
+                <div style={{ padding:'16px 20px', borderBottom:'1px solid #243f72', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div>
-                    <h2 style={{ fontSize:15, fontWeight:700, color:'#1f2937', margin:0 }}>Estado de Resultados</h2>
-                    <p style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{plView === 'vertical' ? dateRange.label + ' · NIF B-3' : 'Últimos 6 meses · análisis horizontal'}</p>
+                    <h2 style={{ fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.9)', margin:0 }}>Estado de Resultados</h2>
+                    <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2 }}>{plView === 'vertical' ? dateRange.label + ' · NIF B-3' : 'Últimos 6 meses · análisis horizontal'}</p>
                   </div>
-                  <div style={{ display:'flex', gap:4, background:'#f3f4f6', borderRadius:8, padding:3 }}>
+                  <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.06)', borderRadius:8, padding:3 }}>
                     <button onClick={() => setPlView('vertical')}
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
                         background: plView==='vertical' ? '#1B3A6B' : 'transparent',
@@ -1233,7 +1246,7 @@ ${horizontalHtml}
                     </button>
                   </div>
                   {plView === 'horizontal' && (
-                    <div style={{ display:'flex', gap:4, background:'#f3f4f6', borderRadius:8, padding:3 }}>
+                    <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.06)', borderRadius:8, padding:3 }}>
                       {[3,6,12,24].map(n => (
                         <button key={n} onClick={() => setNumMonths(n)}
                           style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer',
@@ -1260,8 +1273,8 @@ ${horizontalHtml}
 
               {/* Sidebar: ratios & breakdown */}
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:16 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#6b7280', marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>Estructura de costos</div>
+                <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', padding:16 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>Estructura de costos</div>
                   {[
                     { label:'Food Cost',   pct: foodCostPct,  ideal:'28–35%', ok: foodCostPct<=35 },
                     { label:'Labor Cost',  pct: laborCostPct, ideal:'25–35%', ok: laborCostPct<=35 },
@@ -1272,26 +1285,26 @@ ${horizontalHtml}
                   ].map(({ label, pct, ideal, ok }) => (
                     <div key={label} style={{ marginBottom:10 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                        <span style={{ fontSize:12, color:'#374151' }}>{label}</span>
+                        <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>{label}</span>
                         <span style={{ fontSize:12, fontWeight:700, color: ok?'#15803d':'#dc2626', fontFamily:'monospace' }}>{pct.toFixed(1)}%</span>
                       </div>
-                      <div style={{ height:5, borderRadius:3, background:'#f3f4f6', overflow:'hidden' }}>
+                      <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
                         <div style={{ height:'100%', width:`${Math.min(pct,100)}%`, background: ok?'#16a34a':'#dc2626', borderRadius:3 }} />
                       </div>
-                      <div style={{ fontSize:10, color:'#9ca3af', marginTop:1 }}>Ideal: {ideal}</div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:1 }}>Ideal: {ideal}</div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:16 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#6b7280', marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>Forma de cobro</div>
+                <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', padding:16 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', marginBottom:12, textTransform:'uppercase', letterSpacing:'.06em' }}>Forma de cobro</div>
                   {[
                     { label:'Efectivo', monto: ventasEfec, color:'#16a34a' },
                     { label:'Tarjeta',  monto: ventasTarj, color:'#1d4ed8' },
                     { label:'Cortesías (sin cobro)', monto: cortesias, color:'#7c3aed', isCnt: true },
                   ].map(({ label, monto, color, isCnt }) => (
                     <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
-                      <span style={{ fontSize:12, color:'#374151' }}>{label}</span>
+                      <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>{label}</span>
                       <span style={{ fontSize:13, fontWeight:700, color, fontFamily:'monospace' }}>{isCnt ? `${monto} veces` : `$${fmt(monto as number)}`}</span>
                     </div>
                   ))}
@@ -1318,24 +1331,24 @@ ${horizontalHtml}
 
               {/* Desglose de ventas */}
               {ventasExtras > 0 && (
-                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                  <div style={{ padding:'10px 16px', background:'#f9fafb', borderBottom:'1px solid #e5e7eb' }}>
-                    <p style={{ fontSize:12, fontWeight:700, color:'#374151' }}>📊 Desglose de ventas</p>
+                <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden' }}>
+                  <div style={{ padding:'10px 16px', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid #243f72' }}>
+                    <p style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>📊 Desglose de ventas</p>
                   </div>
                   <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:8 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <span style={{ fontSize:12, color:'#374151' }}>🍽️ Restaurante (platillos)</span>
+                      <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>🍽️ Restaurante (platillos)</span>
                       <span style={{ fontSize:13, fontWeight:700, color:'#1d4ed8', fontFamily:'monospace' }}>${fmt(ventasRest)}</span>
                     </div>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, borderBottom:'1px solid #f3f4f6' }}>
                       <div>
-                        <span style={{ fontSize:12, color:'#374151' }}>🛍️ Tienda de extras</span>
-                        {cogsExtras > 0 && <span style={{ fontSize:10, color:'#9ca3af', marginLeft:6 }}>COGS: ${fmt(cogsExtras)}</span>}
+                        <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>🛍️ Tienda de extras</span>
+                        {cogsExtras > 0 && <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginLeft:6 }}>COGS: ${fmt(cogsExtras)}</span>}
                       </div>
                       <span style={{ fontSize:13, fontWeight:700, color:'#7c3aed', fontFamily:'monospace' }}>${fmt(ventasExtras)}</span>
                     </div>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Total</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>Total</span>
                       <span style={{ fontSize:13, fontWeight:700, color:'#10b981', fontFamily:'monospace' }}>${fmt(ventas)}</span>
                     </div>
                   </div>
@@ -1343,7 +1356,7 @@ ${horizontalHtml}
               )}
           {/* ── Programa de Lealtad — impacto financiero ── */}
           {activeTab === 'pl' && (loyaltyIncome > 0 || loyaltyCost > 0 || loyaltyDiscount > 0 || loyaltyBenefits > 0) && (
-            <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden', marginTop:0 }}>
+            <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden', marginTop:0 }}>
               <div style={{ padding:'12px 16px', background:'linear-gradient(135deg,#1B3A6B,#0F766E)', display:'flex', alignItems:'center', gap:8 }}>
                 <span style={{ fontSize:16 }}>⭐</span>
                 <span style={{ color:'white', fontWeight:700, fontSize:13 }}>Programa de Lealtad</span>
@@ -1351,7 +1364,7 @@ ${horizontalHtml}
               <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 }}>
                 {loyaltyIncome > 0 && (
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)', display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ width:8, height:8, borderRadius:'50%', background:'#16a34a', display:'inline-block' }}/>
                       Ingresos por membresías
                     </span>
@@ -1360,17 +1373,17 @@ ${horizontalHtml}
                 )}
                 {loyaltyCost > 0 && (
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)', display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ width:8, height:8, borderRadius:'50%', background:'#dc2626', display:'inline-block' }}/>
                       Costo de beneficios otorgados (WACC)
-                      {loyaltyBenefits > 0 && <span style={{ fontSize:10, color:'#9ca3af' }}>{loyaltyBenefits} cafés</span>}
+                      {loyaltyBenefits > 0 && <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)' }}>{loyaltyBenefits} cafés</span>}
                     </span>
                     <span style={{ fontSize:13, fontWeight:700, color:'#dc2626', fontFamily:'monospace' }}>-${fmt(loyaltyCost)}</span>
                   </div>
                 )}
                 {loyaltyDiscount > 0 && (
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
-                    <span style={{ fontSize:12, color:'#374151', display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)', display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ width:8, height:8, borderRadius:'50%', background:'#d97706', display:'inline-block' }}/>
                       Descuentos aplicados por lealtad
                     </span>
@@ -1379,7 +1392,7 @@ ${horizontalHtml}
                 )}
                 {/* Costo neto */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', marginTop:2 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Costo neto del programa</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>Costo neto del programa</span>
                   <span style={{ fontSize:13, fontWeight:700, fontFamily:'monospace',
                     color: (loyaltyIncome - loyaltyCost - loyaltyDiscount) >= 0 ? '#16a34a' : '#dc2626' }}>
                     ${fmt(Math.abs(loyaltyIncome - loyaltyCost - loyaltyDiscount))}
@@ -1387,7 +1400,7 @@ ${horizontalHtml}
                   </span>
                 </div>
                 {loyaltyBenefits > 0 && (
-                  <p style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>
+                  <p style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:2 }}>
                     El costo de cada beneficio refleja el WACC real del platillo regalado (ingredientes + labor).
                   </p>
                 )}
@@ -1398,19 +1411,19 @@ ${horizontalHtml}
           {/* ── Balance Sheet ── */}
           {activeTab === 'bs' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
-              <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb', background:'#eff6ff' }}>
+              <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden' }}>
+                <div style={{ padding:'14px 18px', borderBottom:'1px solid #243f72', background:'#eff6ff' }}>
                   <div style={{ fontSize:13, fontWeight:700, color:'#1e40af' }}>ACTIVOS</div>
-                  <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Lo que tiene el negocio</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginTop:2 }}>Lo que tiene el negocio</div>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <tbody>{bsActivos.map((r, i) => <React.Fragment key={i}><BSRowComp row={r as BSRow} /></React.Fragment>)}</tbody>
                 </table>
               </div>
-              <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb', background:'#fef2f2' }}>
+              <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden' }}>
+                <div style={{ padding:'14px 18px', borderBottom:'1px solid #243f72', background:'#fef2f2' }}>
                   <div style={{ fontSize:13, fontWeight:700, color:'#dc2626' }}>PASIVOS Y CAPITAL</div>
-                  <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>Lo que debe + patrimonio</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginTop:2 }}>Lo que debe + patrimonio</div>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <tbody>{bsPasivos.map((r, i) => <React.Fragment key={i}><BSRowComp row={r as BSRow} /></React.Fragment>)}</tbody>
@@ -1418,8 +1431,8 @@ ${horizontalHtml}
               </div>
 
               {/* Ratios card */}
-              <div style={{ gridColumn:'1/-1', background:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:20 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'#6b7280', marginBottom:16, textTransform:'uppercase', letterSpacing:'.06em' }}>Razones financieras</div>
+              <div style={{ gridColumn:'1/-1', background:'#162d55', borderRadius:12, border:'1px solid #243f72', padding:20 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', marginBottom:16, textTransform:'uppercase', letterSpacing:'.06em' }}>Razones financieras</div>
                 <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
                   {[
                     { label:'Liquidez corriente', value: ratioLiquidez, format: (v:number)=>v.toFixed(2)+'x', ok: (v:number)=>v>=1.5, ideal:'≥ 1.5x — cubres deudas corto plazo' },
@@ -1428,15 +1441,15 @@ ${horizontalHtml}
                     { label:'Margen neto', value: margenNeto, format:(v:number)=>v.toFixed(1)+'%', ok:(v:number)=>v>=10, ideal:'≥10% — restaurante saludable' },
                   ].map(({ label, value, format, ok, ideal }) => (
                     <div key={label} style={{ flex:1, minWidth:160, padding:'12px 16px', borderRadius:10, background: value !== null && ok(value as number) ? '#f0fdf4' : '#fef2f2', border:`1px solid ${value!==null&&ok(value as number)?'#bbf7d0':'#fecaca'}` }}>
-                      <div style={{ fontSize:11, color:'#6b7280', marginBottom:4 }}>{label}</div>
+                      <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginBottom:4 }}>{label}</div>
                       <div style={{ fontSize:20, fontWeight:800, fontFamily:'monospace', color: value!==null&&ok(value as number)?'#15803d':'#dc2626' }}>
                         {value !== null ? format(value as number) : '—'}
                       </div>
-                      <div style={{ fontSize:10, color:'#9ca3af', marginTop:4 }}>{ideal}</div>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:4 }}>{ideal}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop:14, padding:'10px 14px', borderRadius:8, background:'#f8fafc', fontSize:11, color:'#6b7280', border:'1px solid #e5e7eb' }}>
+                <div style={{ marginTop:14, padding:'10px 14px', borderRadius:8, background:'#0f1e38', fontSize:11, color:'rgba(255,255,255,0.5)', border:'1px solid #243f72' }}>
                   <strong>Nota:</strong> El Balance Sheet usa ventas en efectivo/tarjeta como proxy de caja y banco, e inventario valorado a costo. Para un Balance Sheet auditado, complementa con saldos bancarios reales, cuentas por cobrar y pasivos a largo plazo con tu contador.
                 </div>
               </div>
@@ -1446,10 +1459,10 @@ ${horizontalHtml}
           {/* ── Flujo de Caja ── */}
           {activeTab === 'flujo' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20, alignItems:'start' }}>
-              <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                <div style={{ padding:'14px 18px', borderBottom:'1px solid #e5e7eb' }}>
-                  <h2 style={{ fontSize:15, fontWeight:700, color:'#1f2937', margin:0 }}>Flujo de Caja Simplificado</h2>
-                  <p style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>Método indirecto · {dateRange.label}</p>
+              <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', overflow:'hidden' }}>
+                <div style={{ padding:'14px 18px', borderBottom:'1px solid #243f72' }}>
+                  <h2 style={{ fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.9)', margin:0 }}>Flujo de Caja Simplificado</h2>
+                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2 }}>Método indirecto · {dateRange.label}</p>
                 </div>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <tbody>
@@ -1475,7 +1488,7 @@ ${horizontalHtml}
 
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                 <div style={{ background: flujoNeto >= 0 ? '#f0fdf4' : '#fef2f2', borderRadius:12, border:`1px solid ${flujoNeto>=0?'#bbf7d0':'#fecaca'}`, padding:20 }}>
-                  <div style={{ fontSize:11, color:'#6b7280', marginBottom:6 }}>Flujo neto del período</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginBottom:6 }}>Flujo neto del período</div>
                   <div style={{ fontSize:32, fontWeight:800, fontFamily:'monospace', color: flujoNeto>=0?'#15803d':'#dc2626' }}>
                     {flujoNeto >= 0 ? '+' : ''}${fmt(flujoNeto)}
                   </div>
@@ -1486,26 +1499,26 @@ ${horizontalHtml}
                   </div>
                 </div>
 
-                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:16 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#6b7280', marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>Ventas por forma de pago</div>
+                <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', padding:16 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', marginBottom:10, textTransform:'uppercase', letterSpacing:'.06em' }}>Ventas por forma de pago</div>
                   {ventas > 0 && [
                     { label:'💵 Efectivo', monto: ventasEfec, pct: ventasEfec/ventas*100 },
                     { label:'💳 Tarjeta',  monto: ventasTarj, pct: ventasTarj/ventas*100 },
                   ].map(({ label, monto, pct }) => (
                     <div key={label} style={{ marginBottom:10 }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3, fontSize:12, color:'#374151' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3, fontSize:12, color:'rgba(255,255,255,0.75)' }}>
                         <span>{label}</span>
                         <span style={{ fontFamily:'monospace' }}>${fmt(monto)} ({pct.toFixed(0)}%)</span>
                       </div>
-                      <div style={{ height:4, borderRadius:2, background:'#f3f4f6', overflow:'hidden' }}>
+                      <div style={{ height:4, borderRadius:2, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
                         <div style={{ height:'100%', width:`${pct}%`, background:'#1B3A6B', borderRadius:2 }} />
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ background:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:16, fontSize:11, color:'#6b7280', lineHeight:1.6 }}>
-                  <strong style={{ color:'#374151' }}>Nota metodológica:</strong> Este flujo es una aproximación usando el método indirecto partiendo de EBITDA. Para el Estado de Flujo de Efectivo completo (NIF B-2) se requieren los movimientos reales de cuentas bancarias. Comparte este reporte con tu contador para el cierre fiscal.
+                <div style={{ background:'#162d55', borderRadius:12, border:'1px solid #243f72', padding:16, fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.6 }}>
+                  <strong style={{ color:'rgba(255,255,255,0.75)' }}>Nota metodológica:</strong> Este flujo es una aproximación usando el método indirecto partiendo de EBITDA. Para el Estado de Flujo de Efectivo completo (NIF B-2) se requieren los movimientos reales de cuentas bancarias. Comparte este reporte con tu contador para el cierre fiscal.
                 </div>
               </div>
             </div>

@@ -7,7 +7,7 @@ import ReportesConsolidado from './components/ReportesConsolidado';
 import AnalisisFinanciero from './components/AnalisisFinanciero';
 import PresupuestoVsReal from './components/PresupuestoVsReal';
 import UpgradeGate from '@/components/UpgradeGate';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFeatures } from '@/hooks/useFeatures';
 import HelpDrawer from '@/components/HelpDrawer';
 import { HELP_REPORTES } from '@/lib/helpContent';
@@ -17,10 +17,6 @@ type View = 'ventas' | 'financiero' | 'presupuesto' | 'consolidado';
 export default function ReportesPage() {
   const { features } = useFeatures();
   const [activeView, setActiveView] = useState<View>('ventas');
-
-  useEffect(() => {
-    if (features.multiSucursal) setActiveView('consolidado');
-  }, [features.multiSucursal]);
 
   const tabs = [
     { id: 'ventas' as View,       label: '📊 Ventas & Platillos',  show: true },
