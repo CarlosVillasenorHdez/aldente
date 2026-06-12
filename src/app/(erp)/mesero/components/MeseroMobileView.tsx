@@ -517,6 +517,7 @@ export default function MeseroMobileView() {
         payMethod: 'efectivo',
         waiterName: myName,
         branchName,
+        branchId: activeBranch ?? null,
         openedAt: null,
         loyaltyCustomerId: loyaltyCustomerId ?? null,
       });
@@ -540,11 +541,13 @@ export default function MeseroMobileView() {
       payMethod: method,
       waiterName: myName,
       branchName,
+      branchId: activeBranch ?? null,
       openedAt: null,
       loyaltyCustomerId: loyaltyCustomerId ?? null,
       loyaltyPointsEarned: loyaltyCustomerId
         ? Math.floor(total / (loyaltyConfig.points?.pesosPerPoint ?? 10))
         : 0,
+      tip: tip ?? 0,
     });
     if (!ok) return;
 

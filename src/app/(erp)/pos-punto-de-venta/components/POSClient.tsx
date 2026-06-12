@@ -2076,7 +2076,7 @@ export default function POSClient() {
                                 opacity: selectedTable ? 1 : 0.55 }}>
                               <span style={{ fontSize:24, flexShrink:0 }}>{combo.emoji ?? '🎁'}</span>
                               <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:14, fontWeight:700, color:'#1f2937', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{combo.name}</div>
+                                <div style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{combo.name}</div>
                                 <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.5 }}>
                                   {(combo.items as any[]).map((i: any) => `${i.qty > 1 ? i.qty+'× ' : ''}${i.name}`).join(' · ')}
                                 </div>

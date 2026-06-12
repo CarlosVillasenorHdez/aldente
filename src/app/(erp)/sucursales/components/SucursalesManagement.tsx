@@ -191,7 +191,7 @@ export default function SucursalesManagement() {
     setEditingId(b.id); setShowForm(true);
   }
 
-  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #e5e7eb', background:'#f9fafb', color:'#1f2937', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
+  const inp = { padding:'10px 14px', borderRadius:10, border:'1px solid #243f72', background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.85)', fontSize:14, outline:'none', width:'100%', fontFamily:'inherit', transition:'border-color .2s', boxSizing:'border-box' } as React.CSSProperties;
   const fInp = { padding:'9px 12px', borderRadius:9, border:'1px solid #2a3f5f', background:'#0f1923', color:'#f1f5f9', fontSize:13, outline:'none', width:'100%', fontFamily:'inherit', boxSizing:'border-box' } as React.CSSProperties;
   const lbl = { display:'block', fontSize:11, color:'rgba(255,255,255,0.45)', marginBottom:5, textTransform:'uppercase', letterSpacing:'.06em' } as React.CSSProperties;
 
@@ -385,7 +385,7 @@ export default function SucursalesManagement() {
                   <div style={{ width:44, height:44, borderRadius:12, background: activeBranchId===b.id?'rgba(201,150,58,.25)':'rgba(201,150,58,.12)', border:`1px solid ${activeBranchId===b.id?'rgba(201,150,58,.6)':'rgba(201,150,58,.25)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{isMain ? '🏠' : '🏢'}</div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-                      <h3 style={{ fontSize:16, fontWeight:700, color:'#1f2937', margin:0 }}>{b.name}</h3>
+                      <h3 style={{ fontSize:16, fontWeight:700, color:'white', margin:0 }}>{b.name}</h3>
                       {isMain && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Sucursal principal</span>}
                       {activeBranchId===b.id && <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background:'rgba(201,150,58,.15)', color:'#c9963a', border:'1px solid rgba(201,150,58,.3)' }}>Activa</span>}
                       <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: b.isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)', color: b.isActive?'#34d399':'#f87171', border: `1px solid ${b.isActive?'rgba(52,211,153,.2)':'rgba(248,113,113,.2)'}` }}>
@@ -441,7 +441,7 @@ export default function SucursalesManagement() {
                             {u.appRole==='admin'?'👑':u.appRole==='mesero'?'🍽️':u.appRole==='cocinero'?'👨‍🍳':'👤'}
                           </div>
                           <div style={{ flex:1 }}>
-                            <span style={{ fontSize:13, fontWeight:600, color:'#1f2937' }}>{u.fullName}</span>
+                            <span style={{ fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.85)' }}>{u.fullName}</span>
                             <span style={{ fontSize:11, color:ROLE_COLORS[u.appRole]||'rgba(255,255,255,.4)', marginLeft:8 }}>{ROLE_LABELS[u.appRole]||u.appRole}</span>
                           </div>
                           <button onClick={()=>assignUserToBranch(u.id, null)} disabled={assigningUser===u.id}

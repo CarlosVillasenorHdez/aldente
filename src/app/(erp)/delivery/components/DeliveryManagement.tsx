@@ -1,5 +1,6 @@
 'use client';
 import { useBranch } from '@/hooks/useBranch';
+import { useOrderFlow } from '@/hooks/useOrderFlow';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { useSysConfig } from '@/hooks/useSysConfig';
 
@@ -72,6 +73,7 @@ const emptyForm = {
 export default function DeliveryManagement() {
   const supabase = createClient();
   const { activeBranchId } = useBranch();
+  const { closeOrder } = useOrderFlow();
   const { ivaPercent, ivaIncludedInPrice } = useSysConfig();
   const IVA_RATE = ivaPercent / 100;
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
@@ -214,13 +216,42 @@ export default function DeliveryManagement() {
       }
       toast.success(`Pedido enviado a cocina · ${STATUS_LABELS[nextStatus]}`);
     } else if (nextStatus === 'entregado') {
-      // Cerrar la orden en el KDS para que aparezca en el corte de caja
+      // Cerrar la orden vía close_order para que descuente inventario y calcule COGS
+      // (no solo UPDATE status — eso dejaba el COGS en cero e inflaba el margen)
       const orderId = `DEL-${order.id.slice(-8).toUpperCase()}`;
-      await supabase.from('orders').update({
-        status: 'cerrada',
-        closed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('id', orderId).eq('tenant_id', getTenantId());
+      // Intentar mapear los items por nombre a platillos reales (para la receta)
+      const { data: dishMatch } = await supabase.from('dishes')
+        .select('id, name').eq('tenant_id', getTenantId());
+      const dishByName = new Map((dishMatch ?? []).map((d: any) => [d.name.toLowerCase().trim(), d.id]));
+      // Actualizar order_items con dish_id donde haya match (habilita la deducción por receta)
+      for (const it of order.items) {
+        const did = dishByName.get(it.name.toLowerCase().trim());
+        if (did) {
+          await supabase.from('order_items').update({ dish_id: did })
+            .eq('order_id', orderId).eq('name', it.name).eq('tenant_id', getTenantId());
+        }
+      }
+      const ok = await closeOrder({
+        orderId,
+        tableIds: [],
+        items: order.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) as any,
+        subtotal: order.items.reduce((s, i) => s + i.price * i.qty, 0),
+        discountAmount: 0,
+        iva: 0,
+        total: order.total,
+        payMethod: 'tarjeta',  // delivery casi siempre prepagado por la plataforma
+        waiterName: 'Delivery',
+        branchName: 'Delivery',
+        branchId: activeBranchId ?? null,
+        openedAt: order.receivedAt || null,
+        loyaltyCustomerId: null,
+      });
+      if (!ok) {
+        // Fallback: al menos marcar cerrada para que aparezca en corte de caja
+        await supabase.from('orders').update({
+          status: 'cerrada', closed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).eq('id', orderId).eq('tenant_id', getTenantId());
+      }
       toast.success(`Pedido entregado · ${STATUS_LABELS[nextStatus]}`);
     } else {
       toast.success(`Estado: ${STATUS_LABELS[nextStatus]}`);
