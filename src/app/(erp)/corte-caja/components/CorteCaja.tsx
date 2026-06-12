@@ -41,6 +41,7 @@ interface OrderSummary {
   ventas_mesa?: number;
   ventas_para_llevar?: number;
   propinas_total?: number;
+  propinas_efectivo?: number;
   ventas_tarjeta: number;
   ventas_total: number;
   ordenes_count: number;
@@ -215,6 +216,11 @@ export default function CorteCaja() {
     const ventas_mesa       = orders.filter(o => !o.order_type || o.order_type === 'mesa').reduce((s, o) => s + Number(o.total), 0);
     const ventas_para_llevar = orders.filter(o => o.order_type === 'para_llevar').reduce((s, o) => s + Number(o.total), 0);
     const propinas_total = orders.reduce((s, o) => s + Number((o as any).tip_amount ?? 0), 0);
+    // Propinas pagadas EN EFECTIVO — son las únicas que están físicamente en la caja.
+    // Las propinas con tarjeta van al banco, no a la caja, así que no cuentan para el cuadre.
+    const propinas_efectivo = orders
+      .filter(o => o.pay_method === 'efectivo')
+      .reduce((s, o) => s + Number((o as any).tip_amount ?? 0), 0);
     const ventas_tarjeta  = orders.filter(o => o.pay_method === 'tarjeta').reduce((s, o) => s + Number(o.total), 0);
     const ventas_total    = orders.reduce((s, o) => s + Number(o.total), 0);
     const descuentos_total = orders.reduce((s, o) => s + Number(o.discount), 0);
@@ -248,7 +254,7 @@ export default function CorteCaja() {
 
     setSummary({
       ventas_efectivo,
-      ventas_mesa, ventas_para_llevar, propinas_total, ventas_tarjeta, ventas_total,
+      ventas_mesa, ventas_para_llevar, propinas_total, propinas_efectivo, ventas_tarjeta, ventas_total,
       ordenes_count: orders.length,
       descuentos_total, iva_total,
       costo_total, utilidad_bruta, margen_pct,
@@ -346,7 +352,11 @@ export default function CorteCaja() {
 
   const ingresosExtra = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
   const egresosExtra  = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
-  const expectedEfectivo = (corteActivo?.fondoInicial ?? 0) + (summary?.ventas_efectivo ?? 0) + ingresosExtra - egresosExtra;
+  // El efectivo esperado = fondo + ventas en efectivo + PROPINAS en efectivo
+  // (que físicamente están en la caja) + ingresos extra - egresos extra.
+  // Omitir las propinas en efectivo causaba un descuadre positivo recurrente.
+  const propinasEfectivo = summary?.propinas_efectivo ?? 0;
+  const expectedEfectivo = (corteActivo?.fondoInicial ?? 0) + (summary?.ventas_efectivo ?? 0) + propinasEfectivo + ingresosExtra - egresosExtra;
   const diferencia = efectivoContado - expectedEfectivo;
 
   // ── Cierre de caja ──────────────────────────────────────────────────────────
@@ -740,24 +750,42 @@ export default function CorteCaja() {
             )}
 
             {/* Totales */}
-            <div className="mt-4 rounded-xl p-4 space-y-2" style={{ backgroundColor: '#0f1e38', border: '1px solid #e2e8f0' }}>
+            <div className="mt-4 rounded-xl p-4 space-y-2" style={{ backgroundColor: '#0f1e38', border: '1px solid #243f72' }}>
               <div className="flex justify-between text-sm">
                 <span className="text-white/45">Fondo inicial</span>
-                <span className="font-mono">${fmt(corteActivo.fondoInicial)}</span>
+                <span className="font-mono text-white/80">${fmt(corteActivo.fondoInicial)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-white/45">Ventas en efectivo</span>
-                <span className="font-mono text-green-600">+${fmt(summary?.ventas_efectivo ?? 0)}</span>
+                <span className="font-mono text-green-400">+${fmt(summary?.ventas_efectivo ?? 0)}</span>
               </div>
-              <div className="flex justify-between text-sm font-semibold border-t pt-2" style={{ borderColor: '#e2e8f0' }}>
-                <span>Efectivo esperado</span>
-                <span className="font-mono" style={{ color: '#1B3A6B' }}>${fmt(expectedEfectivo)}</span>
+              {(summary?.propinas_efectivo ?? 0) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/45">Propinas en efectivo 🫶</span>
+                  <span className="font-mono text-green-400">+${fmt(summary?.propinas_efectivo ?? 0)}</span>
+                </div>
+              )}
+              {ingresosExtra > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/45">Ingresos extra</span>
+                  <span className="font-mono text-green-400">+${fmt(ingresosExtra)}</span>
+                </div>
+              )}
+              {egresosExtra > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/45">Egresos / retiros</span>
+                  <span className="font-mono text-red-400">−${fmt(egresosExtra)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-semibold border-t pt-2" style={{ borderColor: '#243f72' }}>
+                <span className="text-white/80">Efectivo esperado</span>
+                <span className="font-mono" style={{ color: '#f59e0b' }}>${fmt(expectedEfectivo)}</span>
               </div>
               <div className="flex justify-between text-sm font-semibold">
-                <span>Efectivo contado</span>
-                <span className="font-mono">${fmt(efectivoContado)}</span>
+                <span className="text-white/80">Efectivo contado</span>
+                <span className="font-mono text-white/80">${fmt(efectivoContado)}</span>
               </div>
-              <div className="flex justify-between font-bold text-base pt-1 border-t" style={{ borderColor: '#e2e8f0' }}>
+              <div className="flex justify-between font-bold text-base pt-1 border-t" style={{ borderColor: '#243f72' }}>
                 <span>Diferencia</span>
                 <span className="font-mono" style={{ color: diferencia === 0 ? '#10b981' : diferencia > 0 ? '#3b82f6' : '#ef4444' }}>
                   {diferencia >= 0 ? '+' : ''}${fmt(diferencia)}
