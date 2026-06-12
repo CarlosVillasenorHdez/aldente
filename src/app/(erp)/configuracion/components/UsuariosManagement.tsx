@@ -175,7 +175,7 @@ export default function UsuariosManagement() {
   const fetchPermissions = useCallback(async () => {
     setPermLoading(true);
     try {
-      const { data, error } = await supabase.from('role_permissions').select('*');
+      const { data, error } = await supabase.from('role_permissions').select('*').eq('tenant_id', getTenantId());
 
       // Build map from DB data
       const map: AllRolePermissions = {};
@@ -311,10 +311,12 @@ export default function UsuariosManagement() {
   async function handleSavePermissions() {
     setPermSaving(true);
     try {
-      const rows: { role: string; page_key: string; can_access: boolean }[] = [];
+      const tid = getTenantId();
+      if (!tid) { setFormError('No se pudo identificar el restaurante. Recarga la página.'); setPermSaving(false); return; }
+      const rows: { role: string; page_key: string; can_access: boolean; tenant_id: string }[] = [];
       Object.entries(permissions).forEach(([role, pages]) => {
         Object.entries(pages as RolePermissions).forEach(([page_key, can_access]) => {
-          rows.push({ role, page_key, can_access: can_access as boolean });
+          rows.push({ role, page_key, can_access: can_access as boolean, tenant_id: tid });
         });
       });
 
@@ -326,7 +328,7 @@ export default function UsuariosManagement() {
 
       const { error } = await supabase
         .from('role_permissions')
-        .upsert(rows, { onConflict: 'role,page_key' });
+        .upsert(rows, { onConflict: 'tenant_id,role,page_key' });
 
       if (error) {
         setFormError('Error al guardar: ' + error.message);
@@ -362,12 +364,14 @@ export default function UsuariosManagement() {
     PAGE_DEFINITIONS.forEach((p) => { newPerms[p.key] = false; });
 
     // Save to DB
+    const _tid = getTenantId();
+    if (!_tid) { setNewProfileError('No se pudo identificar el restaurante. Recarga la página.'); return; }
     const rows = PAGE_DEFINITIONS.map((p) => ({
-      role: key, page_key: p.key, can_access: false,
+      role: key, page_key: p.key, can_access: false, tenant_id: _tid,
     }));
     const { error } = await supabase
       .from('role_permissions')
-      .upsert(rows, { onConflict: 'role,page_key' });
+      .upsert(rows, { onConflict: 'tenant_id,role,page_key' });
 
     if (error) {
       setNewProfileError('Error al crear perfil: ' + error.message);

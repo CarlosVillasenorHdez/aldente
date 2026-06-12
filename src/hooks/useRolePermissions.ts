@@ -18,9 +18,11 @@ export function invalidatePermissionsCache(role?: string) {
 export function useRolePermissions() {
   const { appUser } = useAuth();
   const role = appUser?.appRole ?? null;
+  const tenantId = appUser?.tenantId ?? null;
+  const cacheKey = role && tenantId ? `${tenantId}:${role}` : null;
 
   const [permissions, setPermissions] = useState<Record<string, boolean> | null>(
-    role ? (_cache[role] ?? null) : null
+    cacheKey ? (_cache[cacheKey] ?? null) : null
   );
   const [loading, setLoading] = useState(true);
 
@@ -32,25 +34,26 @@ export function useRolePermissions() {
 
     // Admin always has full access — skip DB query
     if (role === 'admin') {
-      _cache[role] = {};
+      if (cacheKey) _cache[cacheKey] = {};
       setPermissions({});
       setLoading(false);
       return;
     }
 
     // Use cache if available
-    if (_cache[role] !== undefined) {
-      setPermissions(_cache[role]);
+    if (cacheKey && _cache[cacheKey] !== undefined) {
+      setPermissions(_cache[cacheKey]);
       setLoading(false);
       return;
     }
 
-    // Fetch from DB
+    // Fetch from DB — filtrado por tenant (cada restaurante tiene sus permisos)
     const supabase = createClient();
     supabase
       .from('role_permissions')
       .select('page_key, can_access')
       .eq('role', role)
+      .eq('tenant_id', appUser?.tenantId ?? '')
       .then(({ data, error }) => {
         if (error || !data || data.length === 0) {
           // No permissions configured: default to DENY all for non-admin
@@ -61,19 +64,19 @@ export function useRolePermissions() {
             orders: true,
             cocina: role === 'cocinero' || role === 'ayudante_cocina',
           };
-          _cache[role] = safeDefaults;
+          if (cacheKey) _cache[cacheKey] = safeDefaults;
           setPermissions(safeDefaults);
         } else {
           const map: Record<string, boolean> = {};
           data.forEach((row) => {
             map[row.page_key] = row.can_access;
           });
-          _cache[role] = map;
+          if (cacheKey) _cache[cacheKey] = map;
           setPermissions(map);
         }
         setLoading(false);
       });
-  }, [role]);
+  }, [role, tenantId]);
 
   function canAccess(pageKey: string): boolean {
     if (!role) return false;
