@@ -59,11 +59,11 @@ function PLRowComp({ row, showSign = true }: { row: PLRow; showSign?: boolean })
 function BSRowComp({ row }: { row: BSRow }) {
   if (row.tipo === 'divider') return <tr><td colSpan={2} style={{ height:8 }} /></tr>;
   return (
-    <tr style={{ borderBottom: row.tipo === 'total' ? '2px solid #243f72' : '1px solid #f3f4f6', background: row.tipo === 'header' ? '#f8fafc' : row.tipo === 'total' ? '#eff6ff' : 'white' }}>
-      <td style={{ padding: row.tipo === 'header' ? '10px 16px 6px' : '8px 16px', paddingLeft: 16 + (row.indent ?? 0) * 20, fontSize: row.tipo === 'header' ? 11 : 13, fontWeight: row.tipo === 'header' ? 700 : row.tipo === 'total' ? 700 : 400, color: row.tipo === 'header' ? '#6b7280' : '#1f2937', textTransform: row.tipo === 'header' ? 'uppercase' : 'none', letterSpacing: row.tipo === 'header' ? '.06em' : 0 }}>
+    <tr style={{ borderBottom: row.tipo === 'total' ? '2px solid #243f72' : '1px solid rgba(255,255,255,0.08)', background: row.tipo === 'header' ? 'rgba(255,255,255,0.04)' : row.tipo === 'total' ? 'rgba(245,158,11,0.08)' : 'transparent' }}>
+      <td style={{ padding: row.tipo === 'header' ? '10px 16px 6px' : '8px 16px', paddingLeft: 16 + (row.indent ?? 0) * 20, fontSize: row.tipo === 'header' ? 11 : 13, fontWeight: row.tipo === 'header' ? 700 : row.tipo === 'total' ? 700 : 400, color: row.tipo === 'header' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)', textTransform: row.tipo === 'header' ? 'uppercase' : 'none', letterSpacing: row.tipo === 'header' ? '.06em' : 0 }}>
         {row.concepto}
       </td>
-      <td style={{ padding:'8px 16px', textAlign:'right', fontSize:13, fontWeight: row.tipo === 'total' ? 700 : 400, color: row.tipo === 'total' ? '#1e40af' : '#1f2937', fontFamily:'monospace' }}>
+      <td style={{ padding:'8px 16px', textAlign:'right', fontSize:13, fontWeight: row.tipo === 'total' ? 700 : 400, color: row.tipo === 'total' ? '#60a5fa' : 'rgba(255,255,255,0.85)', fontFamily:'monospace' }}>
         {row.tipo === 'header' || (row.monto === 0 && row.tipo !== 'item') ? '' : '$' + fmt(row.monto)}
       </td>
     </tr>
@@ -351,9 +351,9 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
     { key: 'prime_cost',    label: 'Prime Cost',     isMoney: false, goodUp: false },
   ];
 
-  const C = { hdr:'#f9fafb', border:'#243f72', text:'#1f2937', muted:'#6b7280', blue:'#1B3A6B' };
+  const C = { hdr:'#1a3260', border:'#243f72', text:'rgba(255,255,255,0.9)', muted:'rgba(255,255,255,0.5)', blue:'#f59e0b' };
   const thStyle: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 600, color: C.muted, textAlign: 'right', background: C.hdr, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
-  const TOTAL_COL_STYLE: React.CSSProperties = { fontWeight: 700, color: C.blue, background: '#f0f4ff' };
+  const TOTAL_COL_STYLE: React.CSSProperties = { fontWeight: 700, color: C.blue, background: 'rgba(245,158,11,0.10)' };
 
   const totals: MonthData = months.reduce((acc, m) => ({
     label: 'Total', ventas: acc.ventas + m.ventas, descuentos: acc.descuentos + m.descuentos,
@@ -398,7 +398,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
         {([['pesos','$ Pesos'], ['pct','% sobre ventas'], ['delta','Δ vs mes ant.'], ['y2y','↕ vs año ant.']] as [HView,string][]).map(([v, lbl]) => (
           <button key={v} onClick={() => { setView(v); if (v === 'y2y') fetchPrevYear(); }}
             style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: view === v ? C.blue : '#f3f4f6', color: view === v ? 'white' : C.muted }}>
+              background: view === v ? C.blue : 'rgba(255,255,255,0.06)', color: view === v ? '#1B3A6B' : C.muted }}>
             {lbl}
           </button>
         ))}
@@ -432,7 +432,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {delta !== null ? (
                   <p style={{ fontSize: 11, margin: 0, fontWeight: 600,
-                    color: isGood ? '#16a34a' : '#dc2626' }}>
+                    color: isGood ? '#34d399' : '#f87171' }}>
                     {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}% vs {prev?.label}
                   </p>
                 ) : <p style={{ fontSize: 11, margin: 0, color: C.muted }}>—</p>}
@@ -491,7 +491,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                   <tr key={ri} style={{ borderTop: (isTotal || isSub) ? `1px solid ${C.border}` : undefined }}>
                     <td style={{ padding: '9px 10px', paddingLeft: row.indent ? 22 : 10,
                       fontWeight: isTotal || isSub ? 600 : 400, color: C.text,
-                      background: isTotal ? '#eff6ff' : 'transparent',
+                      background: isTotal ? 'rgba(245,158,11,0.08)' : 'transparent',
                       borderBottom: `1px solid ${C.border}` }}>
                       {row.label}
                     </td>
@@ -500,7 +500,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                       const prevVal2 = mi > 0 ? vals[mi - 1] : null;
                       const isMax = row.tipo === 'line' && val === Math.max(...vals);
                       const isMin = row.tipo === 'line' && val === Math.min(...vals) && val !== Math.max(...vals);
-                      const cellBg = isMax ? 'rgba(22,163,74,0.05)' : isMin ? 'rgba(220,38,38,0.05)' : isTotal ? '#eff6ff' : 'transparent';
+                      const cellBg = isMax ? 'rgba(22,163,74,0.05)' : isMin ? 'rgba(220,38,38,0.05)' : isTotal ? 'rgba(245,158,11,0.08)' : 'transparent';
 
                       let display: React.ReactNode;
                       if (view === 'pesos') {
@@ -509,9 +509,9 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
                             {(isSub || isTotal) && barW > 0 && (
                               <span style={{ display: 'inline-block', height: 3, width: barW,
-                                borderRadius: 2, background: val >= 0 ? '#1d4ed8' : '#dc2626', flexShrink: 0 }} />
+                                borderRadius: 2, background: val >= 0 ? '#60a5fa' : '#f87171', flexShrink: 0 }} />
                             )}
-                            <span style={{ color: isTotal ? (val >= 0 ? '#15803d' : '#dc2626') : C.text }}>
+                            <span style={{ color: isTotal ? (val >= 0 ? '#34d399' : '#f87171') : C.text }}>
                               {fmtMXN(val)}
                             </span>
                           </span>
@@ -519,7 +519,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                       } else if (view === 'pct') {
                         const base = months[mi].ventas || 1;
                         const pct  = val / base * 100;
-                        display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#dc2626' : C.text }}>{fmtP(val, base)}</span>;
+                        display = <span style={{ color: (isSub||isTotal) && pct < 0 ? '#f87171' : C.text }}>{fmtP(val, base)}</span>;
                       } else if (view === 'y2y') {
                         const pyMonth = prevYearMonths[mi];
                         const pyVal = pyMonth ? getVal(row, pyMonth) : null;
@@ -529,7 +529,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                           const pct = ((val - pyVal) / Math.abs(pyVal)) * 100;
                           const goodDir = row.tipo !== 'line' || !row.label.toLowerCase().includes('cost');
                           const isGood = goodDir ? pct >= 0 : pct <= 0;
-                          const col = isGood ? '#16a34a' : '#dc2626';
+                          const col = isGood ? '#34d399' : '#f87171';
                           const s = pct >= 0 ? '▲' : '▼';
                           display = (
                             <div style={{ textAlign: 'right' }}>
@@ -561,7 +561,7 @@ function PLHorizontal({ tenantId, numMonths, onDataReady }: { tenantId: string; 
                     })}
                     <td style={{ ...TOTAL_COL_STYLE, padding: '9px 10px', textAlign: 'right',
                       fontWeight: isTotal || isSub ? 700 : 400, borderBottom: `1px solid ${C.border}` }}>
-                      <span style={{ color: isTotal ? (totVal >= 0 ? '#15803d' : '#dc2626') : C.blue }}>
+                      <span style={{ color: isTotal ? (totVal >= 0 ? '#34d399' : '#f87171') : C.blue }}>
                         {view === 'pesos' ? fmtMXN(totVal) :
                          view === 'pct'   ? fmtP(totVal, totals.ventas) :
                          view === 'y2y'   ? (() => {
@@ -1207,7 +1207,7 @@ ${horizontalHtml}
       <div style={{ background:'#162d55', borderBottom:'1px solid #243f72', padding:'0 24px', display:'flex', gap:0 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
-            style={{ padding:'12px 20px', fontSize:13, fontWeight:600, border:'none', borderBottom: activeTab===t.id ? '2px solid #1B3A6B' : '2px solid transparent', background:'none', color: activeTab===t.id ? '#1B3A6B' : '#6b7280', cursor:'pointer', transition:'all .15s' }}>
+            style={{ padding:'12px 20px', fontSize:13, fontWeight:600, border:'none', borderBottom: activeTab===t.id ? '2px solid #f59e0b' : '2px solid transparent', background:'none', color: activeTab===t.id ? '#f59e0b' : 'rgba(255,255,255,0.5)', cursor:'pointer', transition:'all .15s' }}>
             {t.label}
           </button>
         ))}
@@ -1234,14 +1234,14 @@ ${horizontalHtml}
                   <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.06)', borderRadius:8, padding:3 }}>
                     <button onClick={() => setPlView('vertical')}
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
-                        background: plView==='vertical' ? '#1B3A6B' : 'transparent',
-                        color: plView==='vertical' ? 'white' : '#6b7280' }}>
+                        background: plView==='vertical' ? '#f59e0b' : 'transparent',
+                        color: plView==='vertical' ? '#1B3A6B' : 'rgba(255,255,255,0.5)' }}>
                       <span style={{ fontSize:12 }}>≡</span> Vertical
                     </button>
                     <button onClick={() => setPlView('horizontal')}
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer', transition:'all .15s',
-                        background: plView==='horizontal' ? '#1B3A6B' : 'transparent',
-                        color: plView==='horizontal' ? 'white' : '#6b7280' }}>
+                        background: plView==='horizontal' ? '#f59e0b' : 'transparent',
+                        color: plView==='horizontal' ? '#1B3A6B' : 'rgba(255,255,255,0.5)' }}>
                       <BarChart2 size={11} /> Horizontal
                     </button>
                   </div>
@@ -1250,8 +1250,8 @@ ${horizontalHtml}
                       {[3,6,12,24].map(n => (
                         <button key={n} onClick={() => setNumMonths(n)}
                           style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer',
-                            background: numMonths===n ? '#1B3A6B' : 'transparent',
-                            color: numMonths===n ? 'white' : '#6b7280' }}>
+                            background: numMonths===n ? '#f59e0b' : 'transparent',
+                            color: numMonths===n ? '#1B3A6B' : 'rgba(255,255,255,0.5)' }}>
                           {n}m
                         </button>
                       ))}
@@ -1286,7 +1286,7 @@ ${horizontalHtml}
                     <div key={label} style={{ marginBottom:10 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
                         <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>{label}</span>
-                        <span style={{ fontSize:12, fontWeight:700, color: ok?'#15803d':'#dc2626', fontFamily:'monospace' }}>{pct.toFixed(1)}%</span>
+                        <span style={{ fontSize:12, fontWeight:700, color: ok?'#34d399':'#f87171', fontFamily:'monospace' }}>{pct.toFixed(1)}%</span>
                       </div>
                       <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
                         <div style={{ height:'100%', width:`${Math.min(pct,100)}%`, background: ok?'#16a34a':'#dc2626', borderRadius:3 }} />
