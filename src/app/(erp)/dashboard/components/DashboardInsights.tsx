@@ -86,10 +86,16 @@ export default function DashboardInsights() {
     const criticos = (lowStock ?? []).filter(i => Number(i.stock) <= Number(i.min_stock));
     const descuentos = (orders ?? []).reduce((s, o) => s + Number(o.discount ?? 0), 0);
 
-    // Órdenes demoradas (abiertas > 30 min)
+    // Órdenes demoradas (abiertas > 30 min) — atención de cocina/servicio
     const demoradas = (abiertas ?? []).filter(o => {
       const mins = (now.getTime() - new Date(o.created_at).getTime()) / 60000;
-      return mins > 30;
+      return mins > 30 && mins <= 240;
+    });
+
+    // Órdenes abandonadas (abiertas > 4 horas) — probablemente olvidadas o walkout
+    const abandonadas = (abiertas ?? []).filter(o => {
+      const hrs = (now.getTime() - new Date(o.created_at).getTime()) / 3600000;
+      return hrs > 4;
     });
 
     const nextInsights: Insight[] = [];
@@ -145,6 +151,17 @@ export default function DashboardInsights() {
         title: `${demoradas.length} orden${demoradas.length > 1 ? 'es' : ''} lleva${demoradas.length > 1 ? 'n' : ''} más de 30 min abierta${demoradas.length > 1 ? 's' : ''}`,
         description: 'Revisa si hay órdenes olvidadas o mesas que necesitan atención.',
         action: { label: 'Ver cocina', href: '/cocina' },
+      });
+    }
+
+    // 5b. Órdenes abandonadas (>4h) — el gerente debe cerrarlas o cancelarlas
+    if (abandonadas.length > 0) {
+      nextInsights.push({
+        id: 'ordenes-abandonadas', type: 'warning',
+        icon: <ShoppingBag size={16} />,
+        title: `${abandonadas.length} mesa${abandonadas.length > 1 ? 's' : ''} abierta${abandonadas.length > 1 ? 's' : ''} hace más de 4 horas`,
+        description: 'Probablemente se olvidó cerrarlas o el cliente se fue. Revísalas y ciérralas o cancélalas desde el Punto de Venta.',
+        action: { label: 'Ir al POS', href: '/pos-punto-de-venta' },
       });
     }
 

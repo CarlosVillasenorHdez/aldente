@@ -204,8 +204,9 @@ export default function ConfigEstablecimiento() {
               🚫 Prohibir venta sin stock
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.5 }}>
-              Si está activo, los platillos sin ingredientes suficientes no se pueden agregar al pedido.
-              Requiere que los platillos tengan receta y el inventario esté actualizado.
+              Por defecto (apagado), el POS <strong style={{ color: 'rgba(255,255,255,.6)' }}>avisa</strong> con una etiqueta cuando un platillo se queda sin ingredientes, pero permite venderlo.
+              Si lo activas, esos platillos <strong style={{ color: 'rgba(255,255,255,.6)' }}>no se podrán agregar</strong> al pedido.
+              Requiere que los platillos tengan receta y el inventario actualizado.
             </div>
           </div>
           <button

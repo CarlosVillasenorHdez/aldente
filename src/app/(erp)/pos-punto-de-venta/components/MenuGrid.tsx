@@ -9,6 +9,7 @@ interface MenuGridProps {
   onAddItem: (item: MenuItem) => void;
   orderItems: OrderItem[];
   selectedTable: Table | null;
+  lowStockDishes?: Set<string>;
 }
 
 const categories = ['Todos', 'Entradas', 'Platos Fuertes', 'Postres', 'Bebidas', 'Extras'];
@@ -21,7 +22,7 @@ const categoryColors: Record<string, { bg: string; color: string }> = {
   Extras: { bg: '#f3f4f6', color: 'rgba(255,255,255,0.75)' },
 };
 
-export default function MenuGrid({ items, onAddItem, orderItems, selectedTable }: MenuGridProps) {
+export default function MenuGrid({ items, onAddItem, orderItems, selectedTable, lowStockDishes }: MenuGridProps) {
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [search, setSearch] = useState('');
 
@@ -103,6 +104,15 @@ export default function MenuGrid({ items, onAddItem, orderItems, selectedTable }
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 6,
                           background: 'rgba(139,92,246,0.85)', color: 'white', letterSpacing: '.02em' }}>
                           OPC
+                        </span>
+                      </div>
+                    )}
+                    {item.available && lowStockDishes?.has(item.id) && (
+                      <div className="absolute bottom-2 left-2" title="Stock bajo de ingredientes — puedes vender pero revisa el inventario">
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 6,
+                          background: 'rgba(251,146,60,0.9)', color: '#1B3A6B', letterSpacing: '.02em',
+                          display: 'flex', alignItems: 'center', gap: 3 }}>
+                          ⚠ STOCK BAJO
                         </span>
                       </div>
                     )}

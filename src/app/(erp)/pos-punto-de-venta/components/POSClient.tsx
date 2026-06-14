@@ -409,33 +409,34 @@ export default function POSClient() {
     setLoadingMenu(false);
   }, [supabase]);
 
-  // When blockSaleNoStock turns on, mark dishes unavailable if ingredients are low
-  // Uses functional setMenuItems(prev=>) so we don't need menuItems in deps
-  // (avoids infinite loop: setMenuItems → menuItems changes → effect re-runs)
-  const stockCheckDoneRef = useRef(false);
+  // Stock por platillo: avisar (no bloquear). Calcula cuántas porciones se
+  // pueden hacer con el stock actual y marca como "lowStock" las que estén
+  // al límite. NO sobrescribe el flag manual `available` del dueño.
+  // Refresca cada 3 minutos para reflejar ventas durante el servicio.
+  const [lowStockDishes, setLowStockDishes] = useState<Set<string>>(new Set());
   useEffect(() => {
-    if (!blockSaleNoStock) { stockCheckDoneRef.current = false; return; }
-    if (stockCheckDoneRef.current) return; // already checked this session
-    stockCheckDoneRef.current = true;
-    supabase.from('dish_recipes')
-      .select('dish_id, quantity, ingredients(id, stock, unit)')
-      .eq('tenant_id', getTenantId())
-      .then(({ data: recipes }) => {
-        if (!recipes) return;
-        const canMake: Record<string, boolean> = {};
-        recipes.forEach((r: any) => {
-          const ing = r.ingredients;
-          if (!ing) return;
-          if (Number(ing.stock) < Number(r.quantity)) {
-            canMake[r.dish_id] = false;
-          }
-        });
-        setMenuItems(prev => prev.map(m => ({
-          ...m,
-          available: canMake[m.id] === false ? false : m.available,
-        })));
+    let cancelled = false;
+    const checkStock = async () => {
+      const { data: recipes } = await supabase.from('dish_recipes')
+        .select('dish_id, quantity, ingredients(id, stock, min_stock)')
+        .eq('tenant_id', getTenantId());
+      if (!recipes || cancelled) return;
+      // Para cada platillo, ¿alguno de sus ingredientes ya no alcanza ni para 1 porción?
+      const low = new Set<string>();
+      recipes.forEach((r: any) => {
+        const ing = r.ingredients;
+        if (!ing) return;
+        const needed = Number(r.quantity);
+        const stock = Number(ing.stock ?? 0);
+        // Sin stock suficiente para una porción más → marcar el platillo
+        if (needed > 0 && stock < needed) low.add(r.dish_id);
       });
-  }, [blockSaleNoStock, supabase]);
+      if (!cancelled) setLowStockDishes(low);
+    };
+    checkStock();
+    const interval = setInterval(checkStock, 3 * 60 * 1000); // cada 3 min
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [supabase]);
 
   useEffect(() => {
     fetchTables();
@@ -1159,9 +1160,25 @@ export default function POSClient() {
 
   const handleAddItem = useCallback((item: MenuItem) => {
     if (!item.available || !selectedTable) return;
+    // Platillo sin stock suficiente de ingredientes
+    if (lowStockDishes.has(item.id)) {
+      if (blockSaleNoStock) {
+        // El dueño activó "Prohibir venta sin stock" → bloquear
+        toast.error(`🚫 ${item.name}: sin ingredientes suficientes`, {
+          description: 'La venta sin stock está bloqueada en Configuración.',
+          duration: 4000,
+        });
+        return;
+      }
+      // Por defecto: avisar pero permitir vender
+      toast.warning(`⚠️ ${item.name}: stock bajo de ingredientes`, {
+        description: 'Puedes venderlo, pero revisa el inventario pronto.',
+        duration: 4000,
+      });
+    }
     // Open modifier modal — confirm adds lines with customization
     setModifierPending(item);
-  }, [selectedTable]);
+  }, [selectedTable, lowStockDishes, blockSaleNoStock]);
 
   const handleModifierConfirm = useCallback(async (lines: ModifierLine[]) => {
     if (!modifierPending || !selectedTable) return;
@@ -2104,6 +2121,7 @@ export default function POSClient() {
                         onAddItem={handleAddItem}
                         orderItems={orderItems}
                         selectedTable={selectedTable}
+                        lowStockDishes={lowStockDishes}
                       />
                     )}
                   </>
