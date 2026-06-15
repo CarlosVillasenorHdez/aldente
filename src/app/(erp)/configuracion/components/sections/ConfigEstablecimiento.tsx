@@ -90,6 +90,7 @@ export default function ConfigEstablecimiento() {
   const { appUser } = useAuth();
   const [selected, setSelected] = useState<EstablishmentType>('restaurante');
   const [blockSaleNoStock, setBlockSaleNoStock] = useState(false);
+  const [abandonedHours, setAbandonedHours] = useState(4);
   const [savingOps, setSavingOps] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -100,10 +101,11 @@ export default function ConfigEstablecimiento() {
         .from('system_config')
         .select('config_key, config_value')
         .eq('tenant_id', getTenantId())
-        .in('config_key', ['establishment_type', 'block_sale_no_stock']);
+        .in('config_key', ['establishment_type', 'block_sale_no_stock', 'abandoned_order_hours']);
       (rows || []).forEach((r: any) => {
         if (r.config_key === 'establishment_type') setSelected(r.config_value as EstablishmentType);
         if (r.config_key === 'block_sale_no_stock') setBlockSaleNoStock(r.config_value === 'true');
+        if (r.config_key === 'abandoned_order_hours') setAbandonedHours(Number(r.config_value) || 4);
       });
       setLoaded(true);
     })();
@@ -114,6 +116,7 @@ export default function ConfigEstablecimiento() {
     const rows = [
       { tenant_id: getTenantId(), config_key: 'establishment_type', config_value: selected },
       { tenant_id: getTenantId(), config_key: 'block_sale_no_stock', config_value: String(blockSaleNoStock) },
+      { tenant_id: getTenantId(), config_key: 'abandoned_order_hours', config_value: String(abandonedHours) },
     ];
     const { error } = await supabase.from('system_config').upsert(rows, { onConflict: 'tenant_id,config_key' });
 
@@ -214,6 +217,34 @@ export default function ConfigEstablecimiento() {
             style={{ width: 44, height: 24, borderRadius: 12, background: blockSaleNoStock ? '#c9963a' : 'rgba(255,255,255,.15)', border: 'none', position: 'relative', transition: 'all .3s', cursor: 'pointer', flexShrink: 0, marginLeft: 16 }}>
             <span style={{ position: 'absolute', top: 3, left: blockSaleNoStock ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#162d55', transition: 'left .25s' }} />
           </button>
+        </div>
+      </div>
+
+      {/* Umbral de mesas abandonadas */}
+      <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>
+              ⏱ Avisar de mesas abandonadas
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.5 }}>
+              El Dashboard te avisará cuando una mesa lleve abierta más de este tiempo,
+              para que la cierres o canceles. Ajústalo a tu tipo de negocio: una taquería
+              cierra rápido; un bar abre cuentas largas.
+            </div>
+          </div>
+          <select
+            value={abandonedHours}
+            onChange={e => setAbandonedHours(Number(e.target.value))}
+            style={{ background: '#0f1e38', border: '1px solid #243f72', color: '#f1f5f9', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer', flexShrink: 0 }}>
+            <option value={1}>1 hora</option>
+            <option value={2}>2 horas</option>
+            <option value={3}>3 horas</option>
+            <option value={4}>4 horas</option>
+            <option value={6}>6 horas</option>
+            <option value={8}>8 horas</option>
+            <option value={12}>12 horas</option>
+          </select>
         </div>
       </div>
 

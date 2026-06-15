@@ -61,6 +61,7 @@ export default function DashboardInsights() {
       { data: lowStock },
       { data: gastos },
       { data: employees },
+      { data: cfgRows },
     ] = await Promise.all([
       qOrders,
       supabase.from('orders').select('total').eq('tenant_id', tid).eq('status', 'cerrada')
@@ -75,7 +76,10 @@ export default function DashboardInsights() {
         .eq('tenant_id', tid).eq('activo', true)
         .lte('proximo_pago', new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10)),
       supabase.from('employees').select('id').eq('tenant_id', tid).eq('status', 'activo'),
+      supabase.from('system_config').select('config_value').eq('tenant_id', tid).eq('config_key', 'abandoned_order_hours').maybeSingle(),
     ]);
+
+    const abandonedHours = Number(cfgRows?.config_value) || 4;
 
     const ventasHoy = (orders ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
     const ventasAyer = (ordersYest ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
@@ -89,13 +93,13 @@ export default function DashboardInsights() {
     // Órdenes demoradas (abiertas > 30 min) — atención de cocina/servicio
     const demoradas = (abiertas ?? []).filter(o => {
       const mins = (now.getTime() - new Date(o.created_at).getTime()) / 60000;
-      return mins > 30 && mins <= 240;
+      return mins > 30 && mins <= abandonedHours * 60;
     });
 
-    // Órdenes abandonadas (abiertas > 4 horas) — probablemente olvidadas o walkout
+    // Órdenes abandonadas (> umbral configurable) — olvidadas o walkout
     const abandonadas = (abiertas ?? []).filter(o => {
       const hrs = (now.getTime() - new Date(o.created_at).getTime()) / 3600000;
-      return hrs > 4;
+      return hrs > abandonedHours;
     });
 
     const nextInsights: Insight[] = [];
@@ -159,7 +163,7 @@ export default function DashboardInsights() {
       nextInsights.push({
         id: 'ordenes-abandonadas', type: 'warning',
         icon: <ShoppingBag size={16} />,
-        title: `${abandonadas.length} mesa${abandonadas.length > 1 ? 's' : ''} abierta${abandonadas.length > 1 ? 's' : ''} hace más de 4 horas`,
+        title: `${abandonadas.length} mesa${abandonadas.length > 1 ? 's' : ''} abierta${abandonadas.length > 1 ? 's' : ''} hace más de ${abandonedHours} hora${abandonedHours > 1 ? 's' : ''}`,
         description: 'Probablemente se olvidó cerrarlas o el cliente se fue. Revísalas y ciérralas o cancélalas desde el Punto de Venta.',
         action: { label: 'Ir al POS', href: '/pos-punto-de-venta' },
       });
