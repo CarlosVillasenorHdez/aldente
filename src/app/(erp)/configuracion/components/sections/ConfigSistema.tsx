@@ -6,7 +6,6 @@ import React, { useState, useEffect } from 'react';
 
 import { Zap, Star, Settings2, CheckCircle, Save, AlertTriangle, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { setSupabaseTenantContext } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { DEFAULT_FEATURES, FEATURE_KEYS, Features, invalidateFeaturesCache, PLAN_FEATURES, PLAN_NAMES } from '@/hooks/useFeatures';
@@ -179,10 +178,6 @@ export default function ConfigSistema({ activeSection }: { activeSection: string
 
   const handleSaveFeatures = async () => {
     setFeaturesSaving(true);
-    // Asegurar el contexto de tenant para RLS antes de escribir
-    if (appUser?.tenantId) {
-      try { await setSupabaseTenantContext(supabase, appUser.tenantId); } catch { /* noop */ }
-    }
     const rows = Object.entries(FEATURE_KEYS).map(([feat, key]) => ({
       config_key: key,
       config_value: features[feat as keyof Features] ? 'true' : 'false',

@@ -8,7 +8,7 @@ import InventarioSimple from './components/InventarioSimple';
 import InventarioMobile from './components/InventarioMobile';
 import MobileGate from '@/components/MobileGate';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClient, setSupabaseTenantContext } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
 import { Sparkles, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,7 +41,6 @@ export default function InventarioPage() {
     const tid = getTenantId();
     if (!tid) return;
     try {
-      await setSupabaseTenantContext(supabase, tid);
       const { error } = await supabase.from('system_config').upsert(
         { tenant_id: tid, config_key: 'inventory_mode', config_value: m, description: 'Modo de inventario del restaurante' },
         { onConflict: 'tenant_id,config_key' }
