@@ -56,106 +56,118 @@ export default function InventarioSimple() {
 
   // Items que se acaban pronto (stock <= mínimo)
   const seAcaban = items.filter(i => i.minStock > 0 && i.stock <= i.minStock);
-  // Valor total del inventario (lo que tienes en la bodega, en dinero)
   const valorTotal = items.reduce((s, i) => s + i.stock * i.cost, 0);
+
+  // Agrupar por categoría para una lista ordenada
+  const grouped = items.reduce<Record<string, SimpleItem[]>>((acc, i) => {
+    (acc[i.category] ??= []).push(i);
+    return acc;
+  }, {});
+  const categories = Object.keys(grouped).sort();
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#0f1e38' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
-        <div>
-          <h1 className="text-xl font-bold text-white">Mi Inventario</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            Registra lo que compras y cuenta lo que te queda. El sistema te avisa antes de que se acabe.
-          </p>
+      {/* Barra de resumen — stats inline, no tarjetas gigantes */}
+      <div className="flex items-stretch border-b flex-shrink-0" style={{ borderColor: '#243f72' }}>
+        <div className="flex-1 px-6 py-4">
+          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>Valor en bodega</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: '#4ade80', fontFamily: 'ui-monospace, monospace' }}>{fmtMXN(valorTotal)}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Dinero invertido en insumos</p>
         </div>
-        <button onClick={() => setModal({ type: 'nuevo' })}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
-          style={{ backgroundColor: '#f59e0b', color: '#1B3A6B', border: 'none' }}>
-          <Plus size={15} /> Agregar insumo
-        </button>
+        <div className="w-px" style={{ background: '#243f72' }} />
+        <div className="flex-1 px-6 py-4">
+          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>Se acaban pronto</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: seAcaban.length > 0 ? '#f87171' : '#4ade80', fontFamily: 'ui-monospace, monospace' }}>
+            {seAcaban.length}<span className="text-sm font-normal" style={{ color: 'rgba(255,255,255,0.35)' }}> de {items.length}</span>
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{seAcaban.length > 0 ? 'Necesitas comprar' : 'Todo en orden'}</p>
+        </div>
+        <div className="flex items-center pr-6">
+          <button onClick={() => setModal({ type: 'nuevo' })}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#f59e0b', color: '#1B3A6B', border: 'none' }}>
+            <Plus size={16} /> Agregar insumo
+          </button>
+        </div>
       </div>
 
-      <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
-        {/* Resumen */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-xl p-4" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Valor en bodega</span>
-              <Package size={15} style={{ color: '#4ade80' }} />
-            </div>
-            <p className="text-2xl font-bold" style={{ color: '#4ade80', fontFamily: 'monospace' }}>{fmtMXN(valorTotal)}</p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Dinero que tienes en insumos</p>
-          </div>
-          <div className="rounded-xl p-4" style={{ background: seAcaban.length > 0 ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${seAcaban.length > 0 ? 'rgba(248,113,113,0.3)' : '#243f72'}` }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Se acaban pronto</span>
-              <AlertTriangle size={15} style={{ color: seAcaban.length > 0 ? '#f87171' : 'rgba(255,255,255,0.3)' }} />
-            </div>
-            <p className="text-2xl font-bold" style={{ color: seAcaban.length > 0 ? '#f87171' : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>{seAcaban.length}</p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {seAcaban.length > 0 ? 'Hay que comprar' : 'Todo en orden'}
-            </p>
-          </div>
-        </div>
-
-        {/* Alerta de los que se acaban */}
+      <div className="px-6 py-5 overflow-y-auto flex-1">
+        {/* Banda de compra urgente */}
         {seAcaban.length > 0 && (
-          <div className="rounded-xl p-4" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}>
-            <p className="text-sm font-semibold mb-2" style={{ color: '#f87171' }}>⚠️ Necesitas comprar:</p>
-            <div className="flex flex-wrap gap-2">
-              {seAcaban.map(i => (
-                <span key={i.id} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(248,113,113,0.15)', color: '#fca5a5' }}>
-                  {i.name} ({fmt(i.stock)} {i.unit})
-                </span>
-              ))}
-            </div>
+          <div className="rounded-lg px-4 py-3 mb-5 flex items-center gap-3" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
+            <AlertTriangle size={16} style={{ color: '#f87171', flexShrink: 0 }} />
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <span style={{ fontWeight: 600 }}>Lista de compras:</span>{' '}
+              {seAcaban.map(i => i.name).join(', ')}
+            </p>
           </div>
         )}
 
-        {/* Lista de insumos */}
         {loading ? (
-          <p className="text-center py-12 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Cargando...</p>
+          <p className="text-center py-16 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Cargando insumos...</p>
         ) : items.length === 0 ? (
-          <div className="text-center py-16">
-            <Package size={40} style={{ color: 'rgba(255,255,255,0.2)', margin: '0 auto 12px' }} />
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Aún no tienes insumos.</p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              Agrega lo que compras seguido: tortillas, carne, refrescos, etc.
+          <div className="text-center py-20 max-w-md mx-auto">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style={{ background: 'rgba(245,158,11,0.1)' }}>
+              <Package size={26} style={{ color: '#f59e0b' }} />
+            </div>
+            <p className="text-base font-semibold text-white">Empieza tu inventario</p>
+            <p className="text-sm mt-2 mb-5" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+              Agrega lo que compras seguido — carne, tortillas, refrescos, papas. Sin pesar nada: registras lo que compras y cuentas lo que te queda.
             </p>
+            <button onClick={() => setModal({ type: 'nuevo' })}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold"
+              style={{ backgroundColor: '#f59e0b', color: '#1B3A6B', border: 'none' }}>
+              <Plus size={16} /> Agregar mi primer insumo
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {items.map(i => {
-              const low = i.minStock > 0 && i.stock <= i.minStock;
-              return (
-                <div key={i.id} className="rounded-xl p-4" style={{ background: '#162d55', border: `1px solid ${low ? 'rgba(248,113,113,0.3)' : '#243f72'}` }}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-sm font-bold text-white">{i.name}</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{i.category}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold font-mono" style={{ color: low ? '#f87171' : '#4ade80' }}>{fmt(i.stock)}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{i.unit}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => setModal({ type: 'compra', item: i })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
-                      style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }}>
-                      <ShoppingCart size={13} /> Compré
-                    </button>
-                    <button onClick={() => setModal({ type: 'conteo', item: i })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
-                      style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}>
-                      <ClipboardCheck size={13} /> Conté
-                    </button>
-                  </div>
-                  {low && <p className="text-xs mt-2 text-center" style={{ color: '#f87171' }}>⚠️ Se está acabando</p>}
+          <div className="space-y-6">
+            {categories.map(cat => (
+              <div key={cat}>
+                <p className="text-xs font-semibold uppercase mb-2 px-1" style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>{cat}</p>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #243f72' }}>
+                  {grouped[cat].map((i, idx) => {
+                    const low = i.minStock > 0 && i.stock <= i.minStock;
+                    return (
+                      <div key={i.id} className="flex items-center gap-4 px-4 py-3"
+                        style={{ background: idx % 2 === 0 ? '#162d55' : '#15294d', borderTop: idx > 0 ? '1px solid #243f72' : 'none' }}>
+                        {/* Indicador de estado */}
+                        <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: low ? '#f87171' : '#4ade80' }} />
+                        {/* Nombre + estado */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{i.name}</p>
+                          {low ? (
+                            <p className="text-xs mt-0.5" style={{ color: '#f87171' }}>Se está acabando — hay que comprar</p>
+                          ) : (
+                            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                              {i.minStock > 0 ? `Te aviso al llegar a ${fmt(i.minStock)} ${i.unit}` : 'Sin alerta configurada'}
+                            </p>
+                          )}
+                        </div>
+                        {/* Stock actual */}
+                        <div className="text-right flex-shrink-0 mr-2">
+                          <p className="text-lg font-bold font-mono leading-none" style={{ color: low ? '#f87171' : 'white' }}>{fmt(i.stock)}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{i.unit}</p>
+                        </div>
+                        {/* Acciones */}
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button onClick={() => setModal({ type: 'compra', item: i })}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                            style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }}>
+                            <ShoppingCart size={13} /> Compré
+                          </button>
+                          <button onClick={() => setModal({ type: 'conteo', item: i })}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                            style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}>
+                            <ClipboardCheck size={13} /> Conté
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
