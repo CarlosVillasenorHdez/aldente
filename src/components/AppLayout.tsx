@@ -9,6 +9,7 @@ import { useDevice } from '@/hooks/useDevice';
 import Sidebar from './Sidebar';
 import { BranchProvider } from '@/contexts/BranchContext';
 import Topbar from './Topbar';
+import ImpersonationBanner from './ImpersonationBanner';
 import OfflineIndicator from './OfflineIndicator';
 import HelpDrawer from './HelpDrawer';
 import {
@@ -121,6 +122,7 @@ export default function AppLayout({ children, title, subtitle, headerExtra }: Ap
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <ImpersonationBanner />
         <Topbar
           title={title}
           subtitle={subtitle}

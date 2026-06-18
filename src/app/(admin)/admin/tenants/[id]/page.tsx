@@ -320,6 +320,47 @@ export default function TenantDetailPage() {
     setSaving(false);
   }
 
+  async function handleImpersonate() {
+    if (!tenant) return;
+    // Buscar al admin del tenant (o el primer usuario activo) para construir la sesión
+    const adminUser = users.find(u => u.app_role === 'admin' && u.is_active)
+      ?? users.find(u => u.is_active)
+      ?? users[0];
+    if (!adminUser) {
+      toast.error('Este restaurante no tiene usuarios para visualizar.');
+      return;
+    }
+    // Cargar la sucursal principal para una sesión completa
+    const { data: branch } = await supabase.from('branches')
+      .select('id, name').eq('tenant_id', tenant.id).eq('is_active', true)
+      .order('created_at').limit(1).maybeSingle();
+
+    // Construir una sesión de cliente, marcada como impersonación de admin
+    const impersonatedSession = {
+      id: adminUser.id,
+      fullName: adminUser.full_name,
+      appRole: adminUser.app_role,
+      employeeId: null,
+      isActive: true,
+      tenantId: tenant.id,
+      branchId: branch?.id ?? null,
+      branchName: branch?.name ?? null,
+      __impersonatedBy: 'superadmin',
+      __impersonatedTenantName: tenant.name,
+    };
+    try {
+      sessionStorage.setItem('aldente_session', JSON.stringify(impersonatedSession));
+      sessionStorage.setItem('aldente_impersonation', JSON.stringify({
+        tenantName: tenant.name, startedAt: new Date().toISOString(),
+      }));
+      toast.success(`Entrando como ${tenant.name}...`);
+      // Abrir el ERP en una pestaña nueva para no perder el panel admin
+      window.open('/dashboard', '_blank');
+    } catch (e: any) {
+      toast.error('No se pudo iniciar la vista: ' + e.message);
+    }
+  }
+
   async function handleExtendTrial(days: number) {
     if (!tenant) return;
     const base = tenant.trial_ends_at && new Date(tenant.trial_ends_at) > new Date()
@@ -409,6 +450,9 @@ export default function TenantDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleImpersonate} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.35)', color: '#60a5fa', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            👁 Ver como cliente
+          </button>
           <button onClick={toggleActive} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {tenant.is_active ? 'Suspender' : 'Activar'}
           </button>
