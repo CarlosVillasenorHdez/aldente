@@ -38,9 +38,37 @@ const S = { // shared styles
 };
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot[] }) {
+function LeafletMap({ dots, branches, mapMode }: { dots: TenantRow[], branches: BranchDot[], mapMode: 'pins' | 'heat' }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstRef = React.useRef<any>(null);
+  const heatRef = React.useRef<any>(null);
+
+  const draw = useCallback((L:any, map:any) => {
+    // Limpiar capas previas (markers y heat)
+    map.eachLayer((l:any) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
+    if (heatRef.current) { map.removeLayer(heatRef.current); heatRef.current = null; }
+
+    if (mapMode === 'heat' && (L as any).heatLayer) {
+      // Puntos para el heatmap: todas las ubicaciones físicas (sucursales +
+      // restaurantes sin sucursal). Intensidad = densidad de ventas en la zona.
+      const branchTenantIds = new Set(branches.map(b => b.tenantId));
+      const pts: [number, number, number][] = [];
+      branches.forEach(b => pts.push([b.lat, b.lng, 0.8]));
+      dots.filter(d => d.lat && d.lng && !branchTenantIds.has(d.id))
+        .forEach(d => pts.push([d.lat!, d.lng!, 0.6]));
+      if (pts.length > 0) {
+        heatRef.current = (L as any).heatLayer(pts, {
+          radius: 35, blur: 25, maxZoom: 13,
+          gradient: { 0.2: '#1e40af', 0.4: '#0891b2', 0.6: '#16a34a', 0.8: '#f59e0b', 1.0: '#dc2626' },
+        }).addTo(map);
+        const bounds = pts.map(p => [p[0], p[1]] as [number, number]);
+        if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+        else map.setView(bounds[0], 11);
+      }
+    } else {
+      addBranchMarkers(L, map, branches, dots);
+    }
+  }, [dots, branches, mapMode]);
 
   const initMap = useCallback(() => {
     const L = (window as any).L;
@@ -48,8 +76,8 @@ function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot
     const map = L.map(mapRef.current, { center:[23.6,-102.5], zoom:5, zoomControl:true, attributionControl:false });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
     mapInstRef.current = map;
-    addBranchMarkers(L, map, branches, dots);
-  }, [dots, branches]);
+    draw(L, map);
+  }, [draw]);
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstRef.current) return;
@@ -57,18 +85,24 @@ function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot
       const lnk = document.createElement('link'); lnk.id='leaflet-css'; lnk.rel='stylesheet';
       lnk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(lnk);
     }
-    if ((window as any).L) { initMap(); return; }
+    if ((window as any).L && (window as any).L.heatLayer) { initMap(); return; }
+    const loadHeat = () => {
+      if ((window as any).L.heatLayer) { initMap(); return; }
+      const h = document.createElement('script');
+      h.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js';
+      h.onload = initMap; document.head.appendChild(h);
+    };
+    if ((window as any).L) { loadHeat(); return; }
     const s = document.createElement('script'); s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    s.onload = initMap; document.head.appendChild(s);
+    s.onload = loadHeat; document.head.appendChild(s);
     return () => { if (mapInstRef.current) { mapInstRef.current.remove(); mapInstRef.current=null; } };
   }, [initMap]);
 
   React.useEffect(() => {
     if (!mapInstRef.current || !(window as any).L) return;
     const L=(window as any).L; const map=mapInstRef.current;
-    map.eachLayer((l:any) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
-    addBranchMarkers(L, map, branches, dots);
-  }, [dots, branches]);
+    draw(L, map);
+  }, [dots, branches, mapMode, draw]);
 
   return <div ref={mapRef} style={{ height:320, borderRadius:8, overflow:'hidden', background:'#0a1220' }} />;
 }
@@ -178,6 +212,7 @@ export default function AdminDashboardPage() {
   const [view, setView] = useState<'pipeline'|'map'|'list'>('pipeline');
   const [branchDots, setBranchDots] = useState<BranchDot[]>([]);
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  const [mapMode, setMapMode] = useState<'pins' | 'heat'>('pins');
 
   // Geocodificar los restaurantes que tienen dirección pero no coordenadas
   async function handleGeocodeMissing() {
@@ -477,9 +512,31 @@ export default function AdminDashboardPage() {
                 style={{ marginLeft:'auto', padding:'6px 12px', borderRadius:8, background: geocoding ? 'rgba(255,255,255,.06)' : 'rgba(96,165,250,.12)', border:'1px solid rgba(96,165,250,.3)', color:'#60a5fa', fontSize:11, fontWeight:600, cursor: geocoding ? 'default' : 'pointer' }}>
                 {geocoding ? `📍 Ubicando ${geocoding.done}/${geocoding.total}...` : '📍 Ubicar restaurantes en el mapa'}
               </button>
+              <div style={{ display:'flex', gap:3, background:'rgba(255,255,255,.06)', borderRadius:8, padding:3 }}>
+                <button onClick={()=>setMapMode('pins')}
+                  style={{ padding:'5px 11px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer',
+                    background: mapMode==='pins' ? '#f59e0b' : 'transparent', color: mapMode==='pins' ? '#1B3A6B' : 'rgba(255,255,255,.5)' }}>
+                  📍 Pines
+                </button>
+                <button onClick={()=>setMapMode('heat')}
+                  style={{ padding:'5px 11px', borderRadius:6, fontSize:11, fontWeight:600, border:'none', cursor:'pointer',
+                    background: mapMode==='heat' ? '#f59e0b' : 'transparent', color: mapMode==='heat' ? '#1B3A6B' : 'rgba(255,255,255,.5)' }}>
+                  🔥 Densidad
+                </button>
+              </div>
             </div>
           </div>
-          <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} branches={branchDots} />
+          {mapMode === 'heat' && (
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', marginBottom:10, background:'rgba(96,165,250,.06)', border:'1px solid rgba(96,165,250,.15)', borderRadius:8 }}>
+              <span style={{ fontSize:11, color:'rgba(255,255,255,.6)' }}>Densidad de tus clientes:</span>
+              <div style={{ display:'flex', alignItems:'center', gap:6, flex:1 }}>
+                <span style={{ fontSize:10, color:'rgba(255,255,255,.4)' }}>Pocos</span>
+                <div style={{ flex:1, height:8, borderRadius:4, background:'linear-gradient(to right, #1e40af, #0891b2, #16a34a, #f59e0b, #dc2626)' }} />
+                <span style={{ fontSize:10, color:'rgba(255,255,255,.4)' }}>Muchos</span>
+              </div>
+            </div>
+          )}
+          <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} branches={branchDots} mapMode={mapMode} />
         </div>
       )}
 
