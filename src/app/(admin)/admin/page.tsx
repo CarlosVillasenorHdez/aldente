@@ -49,7 +49,7 @@ function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
     mapInstRef.current = map;
     addBranchMarkers(L, map, branches, dots);
-  }, [dots]);
+  }, [dots, branches]);
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstRef.current) return;
@@ -68,42 +68,55 @@ function LeafletMap({ dots, branches }: { dots: TenantRow[], branches: BranchDot
     const L=(window as any).L; const map=mapInstRef.current;
     map.eachLayer((l:any) => { if (l instanceof L.CircleMarker) map.removeLayer(l); });
     addBranchMarkers(L, map, branches, dots);
-  }, [dots]);
+  }, [dots, branches]);
 
   return <div ref={mapRef} style={{ height:320, borderRadius:8, overflow:'hidden', background:'#0a1220' }} />;
 }
 
 function addBranchMarkers(L:any, map:any, branches:BranchDot[], tenants:TenantRow[]) {
-  // Si hay branches con coords, mostrar branches (heatmap real por sucursal)
-  if (branches.length > 0) {
-    branches.forEach(b => {
-      const color = PLAN_COLOR[b.plan] ?? '#6b7280';
-      const m = L.circleMarker([b.lat, b.lng], {
-        radius: 9, fillColor: color, color: '#0a1220', weight: 2, fillOpacity: 0.85
-      });
-      m.bindPopup(`<div style="font-family:system-ui;min-width:180px">
-        <b style="font-size:13px">${b.name}</b><br>
-        <span style="font-size:11px;color:rgba(255,255,255,0.5)">${b.tenantName}</span><br>
-        <span style="font-size:11px;color:${color};font-weight:600">${PLAN_LABEL[b.plan]??b.plan}</span>
-        ${b.address ? `<div style="font-size:10px;color:#6b7280;margin-top:4px">${b.address}</div>` : ''}
-        ${b.city ? `<div style="font-size:10px;color:#6b7280">📍 ${b.city}</div>` : ''}
-        <a href="/admin/tenants/${b.tenantId}" style="font-size:11px;color:#c9963a;margin-top:6px;display:block">Ver ficha CRM →</a>
-      </div>`, { maxWidth: 260 });
-      m.addTo(map);
+  const bounds: [number, number][] = [];
+
+  // 1) Sucursales (pin con anillo) — son ubicaciones físicas concretas
+  branches.forEach(b => {
+    const color = PLAN_COLOR[b.plan] ?? '#6b7280';
+    const m = L.circleMarker([b.lat, b.lng], {
+      radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
     });
-    return;
-  }
-  // Fallback: pines de tenants si no hay branches con coords
-  tenants.filter(d=>d.lat&&d.lng).forEach(d=>{
-    const color = PLAN_COLOR[d.plan]??'#6b7280';
-    const m = L.circleMarker([d.lat!,d.lng!],{ radius:8, fillColor:color, color:'#0a1220', weight:2, fillOpacity: d.is_active?0.9:0.3 });
+    m.bindPopup(`<div style="font-family:system-ui;min-width:180px">
+      <b style="font-size:13px">${b.name}</b><br>
+      <span style="font-size:11px;color:#374151">${b.tenantName}</span><br>
+      <span style="font-size:11px;color:${color};font-weight:600">🏢 Sucursal · ${PLAN_LABEL[b.plan]??b.plan}</span>
+      ${b.city ? `<div style="font-size:10px;color:#6b7280;margin-top:3px">📍 ${b.city}</div>` : ''}
+      <a href="/admin/tenants/${b.tenantId}" style="font-size:11px;color:#c9963a;margin-top:6px;display:block">Ver ficha CRM →</a>
+    </div>`, { maxWidth: 260 });
+    m.addTo(map);
+    bounds.push([b.lat, b.lng]);
+  });
+
+  // 2) Restaurantes (tenants) que tienen coordenadas pero NO tienen sucursal
+  //    pineada — para no duplicar. Marcador hueco para distinguirlos.
+  const branchTenantIds = new Set(branches.map(b => b.tenantId));
+  tenants.filter(d => d.lat && d.lng && !branchTenantIds.has(d.id)).forEach(d => {
+    const color = PLAN_COLOR[d.plan] ?? '#6b7280';
+    const m = L.circleMarker([d.lat!, d.lng!], {
+      radius: 7, fillColor: color, color: '#0a1220', weight: 2, fillOpacity: d.is_active ? 0.85 : 0.3
+    });
     m.bindPopup(`<div style="font-family:system-ui;min-width:180px">
       <b style="font-size:13px">${d.name}</b><br>
       <span style="font-size:11px;color:${color};font-weight:600">${PLAN_LABEL[d.plan]??d.plan}</span>
+      ${d.city ? `<div style="font-size:10px;color:#6b7280;margin-top:3px">📍 ${d.city}</div>` : ''}
       <a href="/admin/tenants/${d.id}" style="font-size:11px;color:#c9963a;margin-top:6px;display:block">Ver ficha CRM →</a>
-    </div>`,{ maxWidth:260 });
+    </div>`, { maxWidth: 260 });
     m.addTo(map);
+    bounds.push([d.lat!, d.lng!]);
   });
+
+  // 3) Ajustar la vista para que se vean TODOS los pines
+  if (bounds.length > 1) {
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+  } else if (bounds.length === 1) {
+    map.setView(bounds[0], 12);
+  }
 }
 
 // ── Pipeline column ───────────────────────────────────────────────────────────
@@ -164,6 +177,33 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'pipeline'|'map'|'list'>('pipeline');
   const [branchDots, setBranchDots] = useState<BranchDot[]>([]);
+  const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+
+  // Geocodificar los restaurantes que tienen dirección pero no coordenadas
+  async function handleGeocodeMissing() {
+    const { geocodeBatch } = await import('@/lib/geocode');
+    // Tenants sin lat/lng pero con dirección
+    const missing = tenants.filter(t => (!t.lat || !t.lng) && (t.address || t.city));
+    if (missing.length === 0) {
+      const { toast } = await import('sonner');
+      toast.success('Todos los restaurantes con dirección ya están en el mapa.');
+      return;
+    }
+    setGeocoding({ done: 0, total: missing.length });
+    const results = await geocodeBatch(
+      missing.map(t => ({ id: t.id, address: t.address, colonia: (t as any).colonia, city: t.city, state_region: (t as any).state_region, postal_code: (t as any).postal_code, country: 'México' })),
+      (done, total) => setGeocoding({ done, total })
+    );
+    // Guardar las coordenadas encontradas
+    for (const [id, geo] of results) {
+      await supabase.from('tenants').update({ lat: geo.lat, lng: geo.lng }).eq('id', id);
+    }
+    const { toast } = await import('sonner');
+    toast.success(`${results.size} de ${missing.length} restaurantes ubicados en el mapa.`);
+    setGeocoding(null);
+    // Recargar
+    window.location.reload();
+  }
 
   useEffect(() => {
     async function loadAll() {
@@ -433,6 +473,10 @@ export default function AdminDashboardPage() {
                 </span>
               ))}
               <span style={{ fontSize:11, color:'rgba(255,255,255,.3)' }}>{branchDots.length > 0 ? `${branchDots.length} sucursal${branchDots.length!==1?'es':''}` : `${dots.length} restaurante${dots.length!==1?'s':''}`}</span>
+              <button onClick={handleGeocodeMissing} disabled={!!geocoding}
+                style={{ marginLeft:'auto', padding:'6px 12px', borderRadius:8, background: geocoding ? 'rgba(255,255,255,.06)' : 'rgba(96,165,250,.12)', border:'1px solid rgba(96,165,250,.3)', color:'#60a5fa', fontSize:11, fontWeight:600, cursor: geocoding ? 'default' : 'pointer' }}>
+                {geocoding ? `📍 Ubicando ${geocoding.done}/${geocoding.total}...` : '📍 Ubicar restaurantes en el mapa'}
+              </button>
             </div>
           </div>
           <LeafletMap dots={search?filtered.filter(t=>t.lat&&t.lng):dots} branches={branchDots} />
