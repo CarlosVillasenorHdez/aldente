@@ -57,15 +57,33 @@ function LeafletMap({ dots, branches, mapMode }: { dots: TenantRow[], branches: 
       dots.filter(d => d.lat && d.lng && !branchTenantIds.has(d.id))
         .forEach(d => pts.push([d.lat!, d.lng!, 0.6]));
       if (pts.length > 0) {
-        heatRef.current = (L as any).heatLayer(pts, {
-          radius: 35, blur: 25, maxZoom: 13,
-          gradient: { 0.2: '#1e40af', 0.4: '#0891b2', 0.6: '#16a34a', 0.8: '#f59e0b', 1.0: '#dc2626' },
-        }).addTo(map);
+        // El radio debe ESCALAR con el zoom. Con radio fijo, al ver todo el
+        // país los puntos son invisibles. A menor zoom, mayor radio relativo.
+        const radiusForZoom = (z: number) => Math.max(18, Math.min(60, 90 - z * 5));
+        const buildHeat = () => {
+          const z = map.getZoom();
+          const r = radiusForZoom(z);
+          if (heatRef.current) { map.removeLayer(heatRef.current); heatRef.current = null; }
+          heatRef.current = (L as any).heatLayer(pts, {
+            radius: r, blur: r * 0.75, maxZoom: 17, minOpacity: 0.4,
+            gradient: { 0.2: '#1e40af', 0.4: '#0891b2', 0.6: '#16a34a', 0.8: '#f59e0b', 1.0: '#dc2626' },
+          }).addTo(map);
+        };
+        buildHeat();
+        // Recalcular el radio cada vez que cambia el zoom
+        map.off('zoomend', (map as any).__heatZoomHandler);
+        (map as any).__heatZoomHandler = buildHeat;
+        map.on('zoomend', buildHeat);
         const bounds = pts.map(p => [p[0], p[1]] as [number, number]);
-        if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
-        else map.setView(bounds[0], 11);
+        if (bounds.length > 1) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 11 });
+        else map.setView(bounds[0], 9);
       }
     } else {
+      // Quitar el handler de zoom del heat si volvemos a pines
+      if ((map as any).__heatZoomHandler) {
+        map.off('zoomend', (map as any).__heatZoomHandler);
+        (map as any).__heatZoomHandler = null;
+      }
       addBranchMarkers(L, map, branches, dots);
     }
   }, [dots, branches, mapMode]);
