@@ -22,7 +22,7 @@
 
 DO $$
 DECLARE
-  v_tenant uuid := '8ee22a3f-da31-495c-982b-01f1a1ee5d69';  -- RABLE
+  v_tenant uuid := '8ee22a3f-da31-495c-982b-01f1a1ea5d69';  -- RABLE
   v_branch uuid;
   v_jorge  uuid; v_rosa uuid; v_diana uuid; v_arleth uuid; v_mari uuid;
   v_dias   text[] := ARRAY['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
@@ -81,5 +81,5 @@ END $$;
 SELECT e.name, e.role, e.salary, e.salary_frequency, u.username, u.app_role
 FROM employees e
 JOIN app_users u ON u.employee_id = e.id
-WHERE e.tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ee5d69'
+WHERE e.tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
 ORDER BY e.name;

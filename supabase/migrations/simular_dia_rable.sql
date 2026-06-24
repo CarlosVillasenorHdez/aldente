@@ -17,7 +17,7 @@
 
 DO $$
 DECLARE
-  v_tenant   uuid := '8ee22a3f-da31-495c-982b-01f1a1ee5d69';  -- RABLE
+  v_tenant   uuid := '8ee22a3f-da31-495c-982b-01f1a1ea5d69';  -- RABLE
   v_branch   uuid;
   v_hoy      date := CURRENT_DATE;
   v_apertura timestamptz := v_hoy + TIME '11:00';
@@ -125,13 +125,13 @@ SELECT
     + SUM(total) FILTER (WHERE pay_method = 'efectivo')
     + SUM(tip_amount) FILTER (WHERE pay_method = 'efectivo') AS efectivo_esperado_en_caja
 FROM orders
-WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ee5d69'
+WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
   AND notes = 'SIMULACION'
   AND closed_at::date = CURRENT_DATE;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- LIMPIAR (descomenta las 3 líneas y corre para borrar la simulación):
 -- ═══════════════════════════════════════════════════════════════════════════
--- DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ee5d69' AND notes='SIMULACION');
--- DELETE FROM orders WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ee5d69' AND notes='SIMULACION';
--- DELETE FROM cortes_caja WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ee5d69' AND apertura_por = 'Jorge (simulacion)';
+-- DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ea5d69' AND notes='SIMULACION');
+-- DELETE FROM orders WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ea5d69' AND notes='SIMULACION';
+-- DELETE FROM cortes_caja WHERE tenant_id='8ee22a3f-da31-495c-982b-01f1a1ea5d69' AND apertura_por = 'Jorge (simulacion)';
