@@ -65,9 +65,10 @@ DECLARE
   v_dia    text;
 BEGIN
   -- Sucursal principal
-  SELECT id INTO v_branch FROM branches
-    WHERE tenant_id = v_tenant AND is_active = true
-    ORDER BY created_at LIMIT 1;
+  -- Empleados compartidos (branch_id NULL): visibles en cualquier sucursal.
+  -- RABLE tiene un solo local, así que esto es lo correcto y evita que el
+  -- filtro por sucursal los esconda.
+  v_branch := NULL;
 
   -- ── 1. EMPLEADOS (registro de RH) ──
   INSERT INTO employees (tenant_id, branch_id, name, role, status, hire_date, salary, salary_frequency)

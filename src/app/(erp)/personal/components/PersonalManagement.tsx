@@ -313,7 +313,9 @@ export default function PersonalManagement() {
     setLoading(true);
     const { data, error } = await (() => {
       const q = supabase.from('employees').select('*').eq('tenant_id', getTenantId());
-      return activeBranchId ? q.eq('branch_id', activeBranchId) : q;
+      // Mostrar los de la sucursal activa Y los compartidos (branch_id NULL).
+      // Un empleado compartido debe verse en todas las sucursales.
+      return activeBranchId ? q.or(`branch_id.eq.${activeBranchId},branch_id.is.null`) : q;
     })().order('name');
     if (error) {
       toast.error('Error al cargar personal. Verifica tu conexión.');
