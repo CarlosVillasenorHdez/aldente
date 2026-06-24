@@ -493,9 +493,20 @@ export default function PersonalManagement() {
 
   async function handleDelete() {
     if (!deleteId) return;
+    // Borrar PRIMERO el acceso al sistema (app_user) — si no, queda huérfano
+    // y el empleado conservaría su login aunque ya no esté en Personal.
+    const { error: accessErr } = await supabase.from('app_users')
+      .delete().eq('employee_id', deleteId).eq('tenant_id', getTenantId());
+    if (accessErr) {
+      toast.error('Error al eliminar el acceso del empleado.');
+      return;
+    }
     const { error } = await supabase.from('employees').delete().eq('id', deleteId);
     if (error) { toast.error('Error al eliminar empleado.'); return; }
+    // Borrar también sus turnos asignados
+    await supabase.from('employee_shifts').delete().eq('employee_id', deleteId);
     setDeleteId(null);
+    toast.success('Empleado y su acceso eliminados.');
     await fetchEmployees();
   }
 

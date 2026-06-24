@@ -6,12 +6,12 @@
 -- EQUIPO:
 --   Jorge  — Dueño/Administrador        — PIN 1111
 --   Rosa   — Cocinera, turno mañana     — PIN 2222 — $1,500/semana
---   Diana  — Mesera/Caja, turno mañana  — PIN 3333 — $1,200/semana
---   Arleth — Mesera/Caja, turno tarde   — PIN 4444 — $1,200/semana
+--   Diana  — Mesera (+caja), turno mañana  — PIN 3333 — $1,200/semana
+--   Arleth — Mesera (+caja), turno tarde   — PIN 4444 — $1,200/semana
 --   Mari   — Cocinera, turno tarde      — PIN 5555 — $1,500/semana
 --
 -- Turnos: mañana = matutino, tarde = vespertino (todos los días).
--- Las meseras son CAJERO (toman pedidos Y hacen corte de caja), como pediste.
+-- Las meseras (Diana, Arleth) son rol MESERO pero con permiso de Corte de Caja:
 --
 -- IMPORTANTE: cada turno abre y cierra su propia caja (Opción A: la tarde
 -- abre con fondo limpio; el efectivo de la mañana se retira al cerrar).
@@ -19,6 +19,16 @@
 -- CÓMO USAR: cambia v_tenant si el ID de RABLE es distinto, y corre el script.
 -- Los PINs ya están listos para entrar. Diles que los cambien en su primer login.
 -- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── 0. LIMPIEZA — borrar accesos huérfanos de intentos previos ──
+-- (Jorge duplicado, Mesero Demo, etc. que quedaron en app_users sin empleado)
+DELETE FROM app_users
+WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
+  AND (employee_id IS NULL OR employee_id NOT IN (SELECT id FROM employees));
+-- Borrar empleados sin nombre o de demo que hayan quedado
+DELETE FROM employees
+WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
+  AND (name ILIKE '%demo%' OR name = '');
 
 DO $$
 DECLARE
@@ -43,11 +53,11 @@ BEGIN
   RETURNING id INTO v_rosa;
 
   INSERT INTO employees (tenant_id, branch_id, name, role, status, hire_date, salary, salary_frequency)
-  VALUES (v_tenant, v_branch, 'Diana', 'Cajero', 'activo', CURRENT_DATE, 1200, 'semanal')
+  VALUES (v_tenant, v_branch, 'Diana', 'Mesero', 'activo', CURRENT_DATE, 1200, 'semanal')
   RETURNING id INTO v_diana;
 
   INSERT INTO employees (tenant_id, branch_id, name, role, status, hire_date, salary, salary_frequency)
-  VALUES (v_tenant, v_branch, 'Arleth', 'Cajero', 'activo', CURRENT_DATE, 1200, 'semanal')
+  VALUES (v_tenant, v_branch, 'Arleth', 'Mesero', 'activo', CURRENT_DATE, 1200, 'semanal')
   RETURNING id INTO v_arleth;
 
   INSERT INTO employees (tenant_id, branch_id, name, role, status, hire_date, salary, salary_frequency)
@@ -58,8 +68,8 @@ BEGIN
   INSERT INTO app_users (tenant_id, branch_id, employee_id, full_name, username, pin, app_role, is_active) VALUES
     (v_tenant, v_branch, v_jorge,  'Jorge',  'jorge',  '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', 'admin',   true),
     (v_tenant, v_branch, v_rosa,   'Rosa',   'rosa',   'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9', 'cocinero', true),
-    (v_tenant, v_branch, v_diana,  'Diana',  'diana',  '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', 'cajero',   true),
-    (v_tenant, v_branch, v_arleth, 'Arleth', 'arleth', '79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619', 'cajero',   true),
+    (v_tenant, v_branch, v_diana,  'Diana',  'diana',  '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', 'mesero',   true),
+    (v_tenant, v_branch, v_arleth, 'Arleth', 'arleth', '79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619', 'mesero',   true),
     (v_tenant, v_branch, v_mari,   'Mari',   'mari',   'c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525', 'cocinero', true);
 
   -- ── 3. TURNOS (todos los días que abre el restaurante) ──
@@ -76,6 +86,16 @@ BEGIN
 
   RAISE NOTICE 'Equipo de RABLE configurado: 5 empleados, accesos y turnos.';
 END $$;
+
+
+-- ── Permiso: el rol 'mesero' puede hacer Corte de Caja (en RABLE la mesera
+--    es también cajera, como en muchos restaurantes familiares) ──
+INSERT INTO role_permissions (tenant_id, role, page_key, can_access)
+VALUES
+  ('8ee22a3f-da31-495c-982b-01f1a1ea5d69', 'mesero', 'corte', true),
+  ('8ee22a3f-da31-495c-982b-01f1a1ea5d69', 'mesero', 'pos', true),
+  ('8ee22a3f-da31-495c-982b-01f1a1ea5d69', 'mesero', 'orders', true)
+ON CONFLICT (tenant_id, role, page_key) DO UPDATE SET can_access = EXCLUDED.can_access;
 
 -- VERIFICACIÓN — ver el equipo configurado
 SELECT e.name, e.role, e.salary, e.salary_frequency, u.username, u.app_role
