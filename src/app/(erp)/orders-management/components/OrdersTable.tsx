@@ -17,7 +17,7 @@ import { useAudit } from '@/hooks/useAudit';
 import { useBranch } from '@/hooks/useBranch';
 
 export type OrderStatus = 'abierta' | 'preparacion' | 'lista' | 'cerrada' | 'cancelada';
-export type PaymentMethod = 'efectivo' | 'tarjeta' | null;
+export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | null;
 
 export interface OrderRecord {
   id: string;
@@ -645,7 +645,7 @@ export default function OrdersTable() {
                           <div className="flex items-center gap-1">
                             {order.payMethod === 'efectivo' ? <Banknote size={12} className="text-green-600" /> : <CreditCard size={12} className="text-blue-600" />}
                             <span className="text-xs font-semibold capitalize" style={{ color: order.payMethod === 'tarjeta' ? '#1d4ed8' : '#166534' }}>
-                              {order.payMethod === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
+                              {order.payMethod === 'efectivo' ? 'Efectivo' : order.payMethod === 'transferencia' ? 'Transferencia' : 'Tarjeta'}
                             </span>
                           </div>
                         ) : <span className="text-white/30 text-sm">—</span>}

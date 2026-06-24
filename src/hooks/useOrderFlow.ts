@@ -69,7 +69,7 @@ export interface CloseOrderParams {
   discountAmount: number;
   iva: number;
   total: number;
-  payMethod: 'efectivo' | 'tarjeta';
+  payMethod: 'efectivo' | 'tarjeta' | 'transferencia';
   waiterName: string;
   branchName: string;
   branchId?: string | null;

@@ -215,7 +215,7 @@ export default function OrderDetailModal({ order, onClose, onCancel }: OrderDeta
                   <CreditCard size={14} className="text-blue-600" />
                 )}
                 <span className="text-sm text-white/60 capitalize">
-                  Pagado con {order.payMethod === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
+                  Pagado con {order.payMethod === 'efectivo' ? 'Efectivo' : order.payMethod === 'transferencia' ? 'Transferencia' : 'Tarjeta'}
                 </span>
               </div>
             )}

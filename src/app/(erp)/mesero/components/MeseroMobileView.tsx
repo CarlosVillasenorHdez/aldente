@@ -505,7 +505,7 @@ export default function MeseroMobileView() {
     toast.success('Nota enviada a cocina');
   };
 
-  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number) => {
+  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'transferencia' | 'transferencia' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number) => {
     if (!selectedTable || !currentOrderId) return;
 
     if (method === 'cortesia') {

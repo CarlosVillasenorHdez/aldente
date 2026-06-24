@@ -6,7 +6,7 @@ import { usePrinter } from '@/hooks/usePrinter';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useFeatures } from '@/hooks/useFeatures';
-import { X, CreditCard, Banknote, Check, Printer, Receipt, Split, Plus, Minus, Users, ChevronRight, ArrowLeft, Star, Search, UserCheck, XCircle } from 'lucide-react';
+import { X, CreditCard, Banknote, Check, Printer, Receipt, Split, Plus, Minus, Users, ChevronRight, ArrowLeft, Star, Search, UserCheck, XCircle, Smartphone } from 'lucide-react';
 
 interface OrderItemRef {
   id: string;           // menuItem.id
@@ -38,7 +38,7 @@ interface PaymentModalProps {
     showDiscount?: boolean; showUnitPrice?: boolean;
   };
   onClose: () => void;
-  onComplete: (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => void;
+  onComplete: (method: 'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => void;
   /** Cliente de lealtad ya seleccionado desde el POS — aparece pre-cargado */
   initialLoyaltyCustomer?: { id: string; name: string; phone: string; points: number };
   /** Notifica al padre cuando el cajero selecciona/deselecciona un cliente */
@@ -238,7 +238,7 @@ export default function PaymentModal({
   const [mode, setMode] = useState<'single' | 'split_amount' | 'split_items'>('single');
 
   // ── Single payment ──
-  const [method, setMethod] = useState<'efectivo' | 'tarjeta' | 'cortesia'>('efectivo');
+  const [method, setMethod] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'cortesia'>('efectivo');
   const [cashInput, setCashInput] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -786,28 +786,24 @@ export default function PaymentModal({
                 </div>
 
                 <p className="text-sm font-semibold text-white/70 mb-2">Método de pago</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['efectivo', 'tarjeta'] as const).map((m) => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(['efectivo', 'tarjeta', 'transferencia'] as const).map((m) => (
                     <button key={m} onClick={() => setMethod(m)}
-                      className="flex items-center gap-3 p-4 rounded-xl border-2 transition-all"
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
                       style={{ borderColor: method === m ? '#f59e0b' : '#e5e7eb', backgroundColor: method === m ? '#fffbeb' : 'white' }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{ backgroundColor: method === m ? '#f59e0b' : '#f3f4f6' }}>
                         {m === 'efectivo'
                           ? <Banknote size={20} style={{ color: method === m ? '#1B3A6B' : '#9ca3af' }} />
-                          : <CreditCard size={20} style={{ color: method === m ? '#1B3A6B' : '#9ca3af' }} />}
+                          : m === 'tarjeta'
+                          ? <CreditCard size={20} style={{ color: method === m ? '#1B3A6B' : '#9ca3af' }} />
+                          : <Smartphone size={20} style={{ color: method === m ? '#1B3A6B' : '#9ca3af' }} />}
                       </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold capitalize" style={{ color: method === m ? '#92400e' : '#374151' }}>
-                          {m === 'efectivo' ? 'Efectivo' : 'Tarjeta'}
+                      <div className="text-center">
+                        <p className="text-xs font-semibold capitalize" style={{ color: method === m ? '#92400e' : '#374151' }}>
+                          {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta' ? 'Tarjeta' : 'Transferencia'}
                         </p>
-                        <p className="text-xs text-white/40">{m === 'efectivo' ? 'Pago en mano' : 'Débito / Crédito'}</p>
                       </div>
-                      {method === m && (
-                        <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f59e0b' }}>
-                          <Check size={11} style={{ color: '#1B3A6B' }} />
-                        </div>
-                      )}
                     </button>
                   ))}
                 </div>

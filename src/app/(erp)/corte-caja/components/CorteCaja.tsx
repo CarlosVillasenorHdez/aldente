@@ -43,6 +43,7 @@ interface OrderSummary {
   propinas_total?: number;
   propinas_efectivo?: number;
   ventas_tarjeta: number;
+  ventas_transferencia: number;
   ventas_total: number;
   ordenes_count: number;
   descuentos_total: number;
@@ -207,7 +208,7 @@ export default function CorteCaja() {
     const [{ data: orders }, { data: mermaOrders }] = await Promise.all([_qOrders, _qMerma]);
 
     if (!orders || orders.length === 0) {
-      setSummary({ ventas_efectivo: 0, ventas_tarjeta: 0, ventas_total: 0, ordenes_count: 0, descuentos_total: 0, iva_total: 0, costo_total: 0, utilidad_bruta: 0, margen_pct: 0, merma_ingredientes: 0, por_mesero: [], por_hora: [], merma_total: 0, ordenes_canceladas: [] });
+      setSummary({ ventas_efectivo: 0, ventas_tarjeta: 0, ventas_transferencia: 0, ventas_total: 0, ordenes_count: 0, descuentos_total: 0, iva_total: 0, costo_total: 0, utilidad_bruta: 0, margen_pct: 0, merma_ingredientes: 0, por_mesero: [], por_hora: [], merma_total: 0, ordenes_canceladas: [] });
       setSummaryLoading(false);
       return;
     }
@@ -222,6 +223,7 @@ export default function CorteCaja() {
       .filter(o => o.pay_method === 'efectivo')
       .reduce((s, o) => s + Number((o as any).tip_amount ?? 0), 0);
     const ventas_tarjeta  = orders.filter(o => o.pay_method === 'tarjeta').reduce((s, o) => s + Number(o.total), 0);
+    const ventas_transferencia = orders.filter(o => o.pay_method === 'transferencia').reduce((s, o) => s + Number(o.total), 0);
     const ventas_total    = orders.reduce((s, o) => s + Number(o.total), 0);
     const descuentos_total = orders.reduce((s, o) => s + Number(o.discount), 0);
     const iva_total       = orders.reduce((s, o) => s + Number(o.iva), 0);
@@ -254,7 +256,7 @@ export default function CorteCaja() {
 
     setSummary({
       ventas_efectivo,
-      ventas_mesa, ventas_para_llevar, propinas_total, propinas_efectivo, ventas_tarjeta, ventas_total,
+      ventas_mesa, ventas_para_llevar, propinas_total, propinas_efectivo, ventas_tarjeta, ventas_transferencia, ventas_total,
       ordenes_count: orders.length,
       descuentos_total, iva_total,
       costo_total, utilidad_bruta, margen_pct,
@@ -411,6 +413,7 @@ export default function CorteCaja() {
       ['Total ventas', summary.ventas_total.toFixed(2)],
       ['Efectivo', summary.ventas_efectivo.toFixed(2)],
       ['Tarjeta', summary.ventas_tarjeta.toFixed(2)],
+      ...(summary.ventas_transferencia ? [['Transferencia', summary.ventas_transferencia.toFixed(2)]] : []),
       ['Órdenes', summary.ordenes_count],
       ['Descuentos', summary.descuentos_total.toFixed(2)],
       ['IVA cobrado', summary.iva_total.toFixed(2)],
@@ -602,6 +605,7 @@ export default function CorteCaja() {
             { label: 'Ventas Totales',  value: `$${fmt(summary.ventas_total)}`,   icon: TrendingUp,   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', sub: `${summary.ordenes_count} órdenes` },
             { label: 'En Efectivo',     value: `$${fmt(summary.ventas_efectivo)}`, icon: Banknote,     color: '#10b981', bg: 'rgba(52,211,153,0.12)', sub: null },
             { label: 'En Tarjeta',      value: `$${fmt(summary.ventas_tarjeta)}`,  icon: CreditCard,   color: '#3b82f6', bg: 'rgba(96,165,250,0.12)', sub: null },
+            ...(summary.ventas_transferencia ? [{ label: 'Transferencia', value: `$${fmt(summary.ventas_transferencia)}`, icon: CreditCard, color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', sub: 'va al banco' }] : []),
             ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total ?? 0)}`, icon: TrendingUp, color: '#34d399', bg: 'rgba(52,211,153,0.12)', sub: null }] : []),
             ...(summary.ventas_para_llevar ? [{ label: '🥡 Para Llevar', value: `$${fmt(summary.ventas_para_llevar)}`, icon: TrendingUp, color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', sub: null }] : []),
             ...(summary.propinas_total && summary.propinas_total > 0 ? [{ label: '🫶 Propinas', value: `$${fmt(summary.propinas_total)}`, icon: TrendingUp, color: '#34d399', bg: 'rgba(52,211,153,0.12)', sub: null }] : []),

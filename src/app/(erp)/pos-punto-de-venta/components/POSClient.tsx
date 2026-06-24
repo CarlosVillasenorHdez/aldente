@@ -1585,7 +1585,7 @@ export default function POSClient() {
     toast.success('Nota enviada a cocina');
   };
 
-  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => {
+  const handlePaymentComplete = async (method: 'efectivo' | 'tarjeta' | 'transferencia' | 'transferencia' | 'cortesia', amountPaid: number, loyaltyCustomerId?: string | null, tip?: number, rfcDatos?: { rfc: string; razonSocial: string; usoCfdi: string } | null) => {
     if (!selectedTable) return;
 
     const groupIds = selectedTable.mergeGroupId
@@ -1741,7 +1741,7 @@ export default function POSClient() {
       }
     }
 
-    toast.success(`Pago de $${total.toFixed(2)} procesado con ${method === 'efectivo' ? 'Efectivo' : 'Tarjeta'}. ¡Orden cerrada!`);
+    toast.success(`Pago de $${total.toFixed(2)} procesado con ${method === 'efectivo' ? 'Efectivo' : method === 'transferencia' ? 'Transferencia' : 'Tarjeta'}. ¡Orden cerrada!`);
   };
 
   const handleMarkTableOccupied = async (table: Table) => {
