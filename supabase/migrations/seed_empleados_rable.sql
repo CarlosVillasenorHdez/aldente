@@ -20,15 +20,41 @@
 -- Los PINs ya están listos para entrar. Diles que los cambien en su primer login.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── 0. LIMPIEZA — borrar accesos huérfanos de intentos previos ──
--- (Jorge duplicado, Mesero Demo, etc. que quedaron en app_users sin empleado)
-DELETE FROM app_users
-WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
-  AND (employee_id IS NULL OR employee_id NOT IN (SELECT id FROM employees));
--- Borrar empleados sin nombre o de demo que hayan quedado
-DELETE FROM employees
-WHERE tenant_id = '8ee22a3f-da31-495c-982b-01f1a1ea5d69'
-  AND (name ILIKE '%demo%' OR name = '');
+-- ── 0. LIMPIEZA IDEMPOTENTE ──
+-- Borra el equipo de RABLE (si existe de corridas previas) para poder
+-- recrearlo limpio. Se borra en orden de dependencias: primero turnos y
+-- accesos, luego empleados. Así este script se puede correr las veces que
+-- haga falta sin chocar con "ya existe".
+DO $$
+DECLARE
+  v_tenant uuid := '8ee22a3f-da31-495c-982b-01f1a1ea5d69';  -- RABLE
+  v_emp_ids uuid[];
+BEGIN
+  -- IDs de los empleados de RABLE que vamos a recrear (por nombre)
+  SELECT array_agg(id) INTO v_emp_ids FROM employees
+    WHERE tenant_id = v_tenant
+      AND name IN ('Jorge','Rosa','Diana','Arleth','Mari');
+
+  -- Borrar turnos de esos empleados
+  IF v_emp_ids IS NOT NULL THEN
+    DELETE FROM employee_shifts WHERE employee_id = ANY(v_emp_ids);
+  END IF;
+
+  -- Borrar accesos: tanto de esos empleados como cualquier huérfano o demo
+  DELETE FROM app_users
+    WHERE tenant_id = v_tenant
+      AND (
+        username IN ('jorge','rosa','diana','arleth','mari')
+        OR employee_id IS NULL
+        OR employee_id = ANY(COALESCE(v_emp_ids, ARRAY[]::uuid[]))
+        OR full_name ILIKE '%demo%'
+      );
+
+  -- Borrar los empleados de RABLE y cualquier demo que haya quedado
+  DELETE FROM employees
+    WHERE tenant_id = v_tenant
+      AND (name IN ('Jorge','Rosa','Diana','Arleth','Mari') OR name ILIKE '%demo%' OR name = '');
+END $$;
 
 DO $$
 DECLARE
