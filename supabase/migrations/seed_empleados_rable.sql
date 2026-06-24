@@ -92,11 +92,11 @@ BEGIN
 
   -- ── 2. ACCESOS (app_users con PIN — ya hasheados SHA-256) ──
   INSERT INTO app_users (tenant_id, branch_id, employee_id, full_name, username, pin, app_role, is_active) VALUES
-    (v_tenant, v_branch, v_jorge,  'Jorge',  'jorge',  '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', 'admin',   true),
-    (v_tenant, v_branch, v_rosa,   'Rosa',   'rosa',   'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9', 'cocinero', true),
-    (v_tenant, v_branch, v_diana,  'Diana',  'diana',  '318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69', 'mesero',   true),
-    (v_tenant, v_branch, v_arleth, 'Arleth', 'arleth', '79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619', 'mesero',   true),
-    (v_tenant, v_branch, v_mari,   'Mari',   'mari',   'c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525', 'cocinero', true);
+    (v_tenant, v_branch, v_jorge,  'Jorge',  'jorge',  '1ee7151bec2b80bc67c9126a5fafe9fcf75e3aeddda8c0ac9f05aa723b008ca2', 'admin',   true),
+    (v_tenant, v_branch, v_rosa,   'Rosa',   'rosa',   'a54a039a34caa4084f08badb87816f2f7b96c28c124cdeb9801aba27432024b0', 'cocinero', true),
+    (v_tenant, v_branch, v_diana,  'Diana',  'diana',  'bfc9404f1322930fefe0a753d9fdba2251ecd32bc8d406eed43210b498e00f0b', 'mesero',   true),
+    (v_tenant, v_branch, v_arleth, 'Arleth', 'arleth', '7e6a21bd034102eef35436933e539add417581cdd3590e1946bf9b4c8f948060', 'mesero',   true),
+    (v_tenant, v_branch, v_mari,   'Mari',   'mari',   '27ee3dbf5a49bdcceb95dbb4aa26404d41793a5f503c185274684ada067f44d6', 'cocinero', true);
 
   -- ── 3. TURNOS (todos los días que abre el restaurante) ──
   -- Mañana: Rosa (cocina) + Diana (caja) = matutino

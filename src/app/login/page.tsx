@@ -47,6 +47,7 @@ export default function LoginPage() {
   const [showPin, setShowPin]         = useState(false);
   const [searching, setSearching]     = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [multipleMatches, setMultipleMatches] = useState<Restaurant[]>([]);
   const [error, setError]             = useState('');
   const [submitting, setSubmitting]   = useState(false);
   const [recoverEmail, setRecoverEmail] = useState('');
@@ -79,15 +80,37 @@ export default function LoginPage() {
     const { data: bySlug } = await supabase.from('tenants').select('id,name,slug').eq('slug', slugify(q)).eq('is_active',true).single();
     let found: Restaurant | null = bySlug as Restaurant | null;
     if (!found) {
-      const { data: byName } = await supabase.from('tenants').select('id,name,slug').ilike('name',`%${q}%`).eq('is_active',true).limit(1).single();
-      found = byName as Restaurant | null;
+      // Buscar por nombre — pero traer VARIOS, no solo el primero. Si hay
+      // nombres iguales o parecidos (común en México), no podemos adivinar
+      // cuál es; hay que mostrarlos para que el usuario elija el correcto.
+      const { data: byName } = await supabase.from('tenants')
+        .select('id,name,slug').ilike('name',`%${q}%`).eq('is_active',true).limit(6);
+      const matches = (byName ?? []) as Restaurant[];
+      setSearching(false);
+      if (matches.length === 0) {
+        setSearchError('No encontramos ese restaurante. Verifica el nombre e intenta de nuevo.');
+        return;
+      }
+      if (matches.length === 1) {
+        found = matches[0];
+      } else {
+        // Varios coinciden — mostrar la lista para que elija sin ambigüedad
+        setMultipleMatches(matches);
+        return;
+      }
+    } else {
+      setSearching(false);
     }
-    setSearching(false);
     if (!found) { setSearchError('No encontramos ese restaurante. Verifica el nombre e intenta de nuevo.'); return; }
 
     localStorage.setItem(SLUG_KEY, found.slug);
     // Redirigir a /r/[slug] — diseño personalizado con logo y PIN numérico
     router.push('/r/' + found.slug);
+  }
+
+  function chooseMatch(r: Restaurant) {
+    localStorage.setItem(SLUG_KEY, r.slug);
+    router.push('/r/' + r.slug);
   }
 
   async function handleSelectBranch(branch: Branch) {
@@ -253,6 +276,18 @@ export default function LoginPage() {
                   onFocus={e=>{ if(!searchError) e.target.style.borderColor='rgba(201,150,58,.5)'; }}
                   onBlur={e=>{ if(!searchError) e.target.style.borderColor='rgba(255,255,255,.1)'; }} />
                 {searchError && <p style={{ fontSize:12, color:'#f87171' }}>⚠ {searchError}</p>}
+                {multipleMatches.length > 0 && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:4 }}>
+                    <p style={{ fontSize:12, color:'rgba(255,255,255,.6)' }}>Hay varios con ese nombre. Elige el tuyo:</p>
+                    {multipleMatches.map(r => (
+                      <button key={r.id} type="button" onClick={() => chooseMatch(r)}
+                        style={{ padding:'10px 12px', borderRadius:10, border:'1px solid rgba(255,255,255,.12)', background:'rgba(255,255,255,.04)', color:'white', fontSize:13, fontWeight:600, cursor:'pointer', textAlign:'left', fontFamily:'inherit' }}>
+                        {r.name}
+                        <span style={{ display:'block', fontSize:11, color:'rgba(255,255,255,.4)', fontWeight:400 }}>aldente-erp.com/r/{r.slug}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button type="submit" disabled={searching||!slugInput.trim()}
                   style={{ padding:13, borderRadius:12, border:'none', background:searching||!slugInput.trim()?'rgba(201,150,58,.25)':'#c9963a', color:'#07090f', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all .2s' }}>
                   {searching?'Buscando...':'Continuar →'}
