@@ -193,6 +193,7 @@ export default function PersonalManagement() {
   const [savingPerms, setSavingPerms] = useState(false);
   const [selectedPermRole, setSelectedPermRole] = useState<string>('mesero');
   const [shifts, setShifts] = useState<EmployeeShift[]>([]);
+  const [shiftSavedAt, setShiftSavedAt] = useState<number | null>(null);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -596,8 +597,10 @@ export default function PersonalManagement() {
         const filtered = prev.filter((s) => !(s.employeeId === employeeId && s.day === day));
         return [...filtered, { employeeId, day, shift }];
       });
+      // Confirmación visual: el cambio se guardó solo (no hace falta botón)
+      setShiftSavedAt(Date.now());
     } catch {
-      toast.error('Error al guardar turno. Verifica tu conexión.');
+      toast.error('Error al guardar turno. Si persiste, falta correr el fix de permisos en la base.');
     }
     setSavingShift(false);
   }
@@ -830,7 +833,11 @@ export default function PersonalManagement() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-white">Turnos Semanales</h2>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Asigna turno matutino, vespertino, nocturno o descanso por empleado y día</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                Los cambios se guardan solos al elegir el turno.
+                {savingShift && <span style={{ color: '#f59e0b', marginLeft: 6 }}>Guardando…</span>}
+                {!savingShift && shiftSavedAt && <span style={{ color: '#4ade80', marginLeft: 6 }}>✓ Guardado</span>}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               {/* Legend */}
