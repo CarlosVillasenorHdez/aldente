@@ -78,7 +78,7 @@ BEGIN
       v_order_id, v_tenant, v_branch,
       'Mesa ' || v_mesa, v_mesa, v_meseros[1 + FLOOR(random() * 3)::int],
       0, 0, 0, 0, 0,
-      'cerrada', false, v_pay, 0,
+      'cerrada', false, v_pay::public.payment_method, 0,
       v_t::text, (v_t + INTERVAL '40 minutes')::text, 'SIMULACION'
     );
 
