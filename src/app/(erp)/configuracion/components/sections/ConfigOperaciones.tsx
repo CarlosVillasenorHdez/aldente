@@ -57,6 +57,15 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
 
   const [hours, setHours] = useState<BusinessHours[]>(initialHours);
   const [hoursSaved, setHoursSaved] = useState(false);
+  // Horarios de cada turno (a qué hora entra/sale). Da significado a las
+  // etiquetas matutino/vespertino/nocturno y habilita el reporte de retardos.
+  const [shiftHours, setShiftHours] = useState({
+    matutino:   { inicio: '06:00', fin: '14:00' },
+    vespertino: { inicio: '14:00', fin: '22:00' },
+    nocturno:   { inicio: '22:00', fin: '06:00' },
+    tolerancia: 10, // minutos de tolerancia antes de marcar retardo
+  });
+  const [shiftHoursSaved, setShiftHoursSaved] = useState(false);
   const [kitchenRate, setKitchenRate] = useState<string>('');
 
   // Configuración de carga patronal
@@ -305,6 +314,15 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     setHours((prev) => prev.map((h) => (h.day === day ? { ...h, [field]: value } : h)));
   }
 
+  async function handleSaveShiftHours() {
+    await supabase.from('system_config').upsert(
+      { config_key: 'shift_hours', config_value: JSON.stringify(shiftHours), description: 'Horarios de cada turno (entrada/salida) y tolerancia de retardo' },
+      { onConflict: 'config_key' }
+    );
+    setShiftHoursSaved(true);
+    setTimeout(() => setShiftHoursSaved(false), 2500);
+  }
+
   // ── Save printer config ──────────────────────────────────────────────────────
 
 
@@ -411,6 +429,8 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
     loadPrinterConfig();
     supabase.from('system_config').select('config_key,config_value').eq('tenant_id', getTenantId()).eq('config_key', 'business_hours').single()
       .then(({ data }) => { if (data?.config_value) { try { setHours(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
+    supabase.from('system_config').select('config_value').eq('tenant_id', getTenantId()).eq('config_key', 'shift_hours').single()
+      .then(({ data }) => { if (data?.config_value) { try { setShiftHours(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
   }, [loadPrinterConfig, supabase]);
 
   return (
@@ -435,6 +455,39 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                 ))}
               </div>
               <SaveButton saved={hoursSaved} onClick={handleSaveHours} />
+
+              {/* ── Horarios de turnos ── */}
+              <div style={{ marginTop: 32 }}>
+                <SectionTitle icon={Clock} title="Horarios de turnos" />
+                <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                  Define a qué hora entra y sale cada turno. Esto le da significado a "matutino", "vespertino" y "nocturno",
+                  y permite que el sistema detecte retardos y salidas tempranas comparando con la hora real de entrada.
+                </p>
+                <div className="rounded-xl overflow-hidden mb-4" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
+                  <div className="grid grid-cols-3 gap-4 px-5 py-3 text-xs font-semibold" style={{ backgroundColor: '#0f1923', color: 'rgba(255,255,255,0.4)' }}>
+                    <span>TURNO</span><span>ENTRADA</span><span>SALIDA</span>
+                  </div>
+                  {([['matutino','Matutino (mañana)'],['vespertino','Vespertino (tarde)'],['nocturno','Nocturno (noche)']] as const).map(([key, label], idx) => (
+                    <div key={key} className="grid grid-cols-3 gap-4 items-center px-5 py-3" style={{ borderTop: idx > 0 ? '1px solid #1e2d3d' : 'none' }}>
+                      <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{label}</span>
+                      <input type="time" value={shiftHours[key].inicio}
+                        onChange={e => setShiftHours(p => ({ ...p, [key]: { ...p[key], inicio: e.target.value } }))}
+                        className="px-2 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white', width: 'fit-content' }} />
+                      <input type="time" value={shiftHours[key].fin}
+                        onChange={e => setShiftHours(p => ({ ...p, [key]: { ...p[key], fin: e.target.value } }))}
+                        className="px-2 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white', width: 'fit-content' }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>Tolerancia antes de marcar retardo:</span>
+                  <input type="number" min={0} max={60} value={shiftHours.tolerancia}
+                    onChange={e => setShiftHours(p => ({ ...p, tolerancia: Number(e.target.value) }))}
+                    className="px-2 py-1.5 rounded-lg text-sm w-20" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>minutos</span>
+                </div>
+                <SaveButton saved={shiftHoursSaved} onClick={handleSaveShiftHours} />
+              </div>
             </div>}
       {activeSection === 'costos' && (
         <div className="max-w-xl">

@@ -194,6 +194,8 @@ export default function PersonalManagement() {
   const [selectedPermRole, setSelectedPermRole] = useState<string>('mesero');
   const [shifts, setShifts] = useState<EmployeeShift[]>([]);
   const [shiftSavedAt, setShiftSavedAt] = useState<number | null>(null);
+  // Horarios de turno (de Configuración) para detectar retardos en asistencia
+  const [shiftHoursConfig, setShiftHoursConfig] = useState<Record<string, { inicio: string; fin: string }> & { tolerancia?: number } | null>(null);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -550,7 +552,15 @@ export default function PersonalManagement() {
   }, [supabase]);
 
   useEffect(() => {
-    if (activeTab === 'asistencia') fetchAttendance(selectedDate);
+    if (activeTab === 'asistencia') {
+      fetchAttendance(selectedDate);
+      // Cargar horarios de turno + turnos asignados para detectar retardos
+      supabase.from('system_config').select('config_value')
+        .eq('tenant_id', getTenantId()).eq('config_key', 'shift_hours').single()
+        .then(({ data }) => { if (data?.config_value) { try { setShiftHoursConfig(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
+      supabase.from('employee_shifts').select('employee_id, day, shift')
+        .then(({ data }) => { if (data) setShifts(data.map((s: any) => ({ employeeId: s.employee_id, day: s.day, shift: s.shift as ShiftType }))); });
+    }
   }, [activeTab, selectedDate, fetchAttendance]);
 
   const handleCheckIn = async (employeeId: string) => {
@@ -607,6 +617,32 @@ export default function PersonalManagement() {
 
   function getShift(employeeId: string, day: string): ShiftType {
     return shifts.find((s) => s.employeeId === employeeId && s.day === day)?.shift ?? 'descanso';
+  }
+
+  // Detecta retardo / salida temprana comparando la hora real vs el turno asignado.
+  // Devuelve null si no aplica (sin turno, sin config, o llegó/salió a tiempo).
+  function getPuntualidad(employeeId: string, checkIn: string | null, checkOut: string | null, dateStr: string): { tipo: 'retardo' | 'temprano' | 'ok'; mins: number } | null {
+    if (!shiftHoursConfig) return null;
+    // Día de la semana del registro
+    const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const dow = dias[new Date(dateStr + 'T12:00:00').getDay()];
+    const shift = getShift(employeeId, dow);
+    if (shift === 'descanso') return null;
+    const cfg = (shiftHoursConfig as any)[shift];
+    if (!cfg) return null;
+    const tol = (shiftHoursConfig as any).tolerancia ?? 10;
+    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    // Retardo: entró más tarde que la hora del turno + tolerancia
+    if (checkIn) {
+      const late = toMin(checkIn) - toMin(cfg.inicio);
+      if (late > tol) return { tipo: 'retardo', mins: late };
+    }
+    // Salida temprana: salió antes de la hora de fin (con tolerancia)
+    if (checkOut) {
+      const early = toMin(cfg.fin) - toMin(checkOut);
+      if (early > tol) return { tipo: 'temprano', mins: early };
+    }
+    return { tipo: 'ok', mins: 0 };
   }
 
   function openShiftSchedule() {
@@ -1007,6 +1043,16 @@ export default function PersonalManagement() {
                             {record.hoursWorked}h trabajadas
                           </p>
                         )}
+                        {(() => {
+                          const p = getPuntualidad(emp.id, record?.checkIn ?? null, record?.checkOut ?? null, selectedDate);
+                          if (!p || p.tipo === 'ok') return null;
+                          return (
+                            <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mt-1"
+                              style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+                              {p.tipo === 'retardo' ? `⏰ Retardo ${p.mins} min` : `🚪 Salió ${p.mins} min antes`}
+                            </span>
+                          );
+                        })()}
                         {!hasIn && (
                           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Sin registro</p>
                         )}
