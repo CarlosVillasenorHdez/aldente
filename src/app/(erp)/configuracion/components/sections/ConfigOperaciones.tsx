@@ -326,10 +326,11 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   }
 
   async function handleSaveHours() {
-    await supabase.from('system_config').upsert(
-      { config_key: 'business_hours', config_value: JSON.stringify(hours), description: 'Horarios de apertura del restaurante' },
-      { onConflict: 'config_key' }
+    const { error } = await supabase.from('system_config').upsert(
+      { tenant_id: getTenantId(), config_key: 'business_hours', config_value: JSON.stringify(hours), description: 'Horarios de apertura del restaurante' },
+      { onConflict: 'tenant_id,config_key' }
     );
+    if (error) { alert('No se pudo guardar: ' + error.message); return; }
     setHoursSaved(true);
     setTimeout(() => setHoursSaved(false), 2500);
   }
@@ -340,10 +341,11 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
   }
 
   async function handleSaveShiftHours() {
-    await supabase.from('system_config').upsert(
-      { config_key: 'shift_hours', config_value: JSON.stringify(shiftHours), description: 'Horarios de cada turno (entrada/salida) y tolerancia de retardo' },
-      { onConflict: 'config_key' }
+    const { error } = await supabase.from('system_config').upsert(
+      { tenant_id: getTenantId(), config_key: 'shift_hours', config_value: JSON.stringify(shiftHours), description: 'Horarios de cada turno (entrada/salida) y tolerancia de retardo' },
+      { onConflict: 'tenant_id,config_key' }
     );
+    if (error) { alert('No se pudo guardar: ' + error.message); return; }
     setShiftHoursSaved(true);
     setTimeout(() => setShiftHoursSaved(false), 2500);
   }

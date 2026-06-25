@@ -160,8 +160,8 @@ export default function ConfigLayout() {
 
     // 4. Sync real table count to system_config
     await supabase.from('system_config').upsert(
-      { config_key: 'table_count', config_value: String(realTables.length) },
-      { onConflict: 'config_key' }
+      { tenant_id: getTenantId(), config_key: 'table_count', config_value: String(realTables.length) },
+      { onConflict: 'tenant_id,config_key' }
     );
     setLayoutSaved(true);
     setTimeout(() => setLayoutSaved(false), 2500);
@@ -207,8 +207,8 @@ export default function ConfigLayout() {
     // Delete all restaurant_tables rows
     await supabase.from('restaurant_tables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('system_config').upsert(
-      { config_key: 'table_count', config_value: '0' },
-      { onConflict: 'config_key' }
+      { tenant_id: getTenantId(), config_key: 'table_count', config_value: '0' },
+      { onConflict: 'tenant_id,config_key' }
     );
   }
 

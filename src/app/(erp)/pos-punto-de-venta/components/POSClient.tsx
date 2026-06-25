@@ -1779,7 +1779,7 @@ export default function POSClient() {
       await supabase.from('restaurant_layout').update({ tables_layout: updated, updated_at: new Date().toISOString() }).eq('id', layoutId);
     }
     await supabase.from('system_config').upsert(
-      { config_key: 'table_count', config_value: String(updated.length) }, { onConflict: 'config_key' }
+      { tenant_id: getTenantId(), config_key: 'table_count', config_value: String(updated.length) }, { onConflict: 'tenant_id,config_key' }
     );
   }, [layoutTables, layoutId, tables, supabase]);
 
