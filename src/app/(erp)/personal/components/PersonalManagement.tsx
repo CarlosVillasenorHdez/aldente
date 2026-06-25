@@ -358,10 +358,16 @@ export default function PersonalManagement() {
   const fetchShifts = useCallback(async () => {
     setShiftsLoading(true);
     try {
+      // employee_shifts NO tiene tenant_id — se relaciona por employee_id.
+      // Filtramos por los empleados del tenant actual.
+      const { data: emps } = await supabase.from('employees')
+        .select('id').eq('tenant_id', getTenantId());
+      const empIds = (emps ?? []).map((e: any) => e.id);
+      if (empIds.length === 0) { setShifts([]); setShiftsLoading(false); return; }
       const { data, error } = await supabase
         .from('employee_shifts')
         .select('employee_id, day, shift')
-        .eq('tenant_id', getTenantId());
+        .in('employee_id', empIds);
       if (error) throw error;
       setShifts((data || []).map((s: any) => ({
         employeeId: s.employee_id,
