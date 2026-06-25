@@ -51,6 +51,31 @@ function SaveButton({ saved, onClick, label }: { saved: boolean; onClick: () => 
   );
 }
 
+// ── Selector de hora con dropdowns (sin reloj nativo que obliga a clic afuera) ──
+function TimeSelect({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  const [h, m] = (value || '00:00').split(':');
+  const sel: React.CSSProperties = {
+    backgroundColor: '#0f1923', border: '1px solid #2a3f5f', borderRadius: 8,
+    color: disabled ? 'rgba(255,255,255,0.3)' : '#f1f5f9', padding: '6px 8px',
+    fontSize: 14, outline: 'none', cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
+      <select value={h} disabled={disabled} onChange={e => onChange(`${e.target.value}:${m}`)} style={sel}>
+        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(hh => (
+          <option key={hh} value={hh}>{hh}</option>
+        ))}
+      </select>
+      <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>:</span>
+      <select value={m} disabled={disabled} onChange={e => onChange(`${h}:${e.target.value}`)} style={sel}>
+        {Array.from(new Set(['00', '15', '30', '45', m])).sort().map(mm => (
+          <option key={mm} value={mm}>{mm}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function ConfigOperaciones({ activeSection }: { activeSection: string }) {
   const supabase = createClient();
   const printer = usePrinter();
@@ -449,8 +474,8 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                         <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200" style={{ backgroundColor: '#162d55', left: h.open ? '22px' : '2px' }} />
                       </button>
                     </div>
-                    <input type="time" value={h.from} disabled={!h.open} onChange={(e) => updateHour(h.day, 'from', e.target.value)} className="px-3 py-1.5 rounded-lg text-sm outline-none" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: h.open ? '#f1f5f9' : 'rgba(255,255,255,0.3)', colorScheme: 'dark' }} />
-                    <input type="time" value={h.to} disabled={!h.open} onChange={(e) => updateHour(h.day, 'to', e.target.value)} className="px-3 py-1.5 rounded-lg text-sm outline-none" style={{ backgroundColor: '#0f1923', border: '1px solid #2a3f5f', color: h.open ? '#f1f5f9' : 'rgba(255,255,255,0.3)', colorScheme: 'dark' }} />
+                    <TimeSelect value={h.from} disabled={!h.open} onChange={(v) => updateHour(h.day, 'from', v)} />
+                    <TimeSelect value={h.to} disabled={!h.open} onChange={(v) => updateHour(h.day, 'to', v)} />
                   </div>
                 ))}
               </div>
@@ -470,12 +495,10 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                   {([['matutino','Matutino (mañana)'],['vespertino','Vespertino (tarde)'],['nocturno','Nocturno (noche)']] as const).map(([key, label], idx) => (
                     <div key={key} className="grid grid-cols-3 gap-4 items-center px-5 py-3" style={{ borderTop: idx > 0 ? '1px solid #1e2d3d' : 'none' }}>
                       <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{label}</span>
-                      <input type="time" value={shiftHours[key].inicio}
-                        onChange={e => setShiftHours(p => ({ ...p, [key]: { ...p[key], inicio: e.target.value } }))}
-                        className="px-2 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white', width: 'fit-content' }} />
-                      <input type="time" value={shiftHours[key].fin}
-                        onChange={e => setShiftHours(p => ({ ...p, [key]: { ...p[key], fin: e.target.value } }))}
-                        className="px-2 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white', width: 'fit-content' }} />
+                      <TimeSelect value={shiftHours[key].inicio}
+                        onChange={v => setShiftHours(p => ({ ...p, [key]: { ...p[key], inicio: v } }))} />
+                      <TimeSelect value={shiftHours[key].fin}
+                        onChange={v => setShiftHours(p => ({ ...p, [key]: { ...p[key], fin: v } }))} />
                     </div>
                   ))}
                 </div>
