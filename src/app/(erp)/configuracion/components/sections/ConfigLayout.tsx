@@ -74,8 +74,16 @@ export default function ConfigLayout() {
   async function handleSaveSection() {
     if (!sectionForm.name.trim()) { toast.error('Nombre requerido'); return; }
     const payload = { tenant_id: getTenantId(), branch_id: activeBranchId ?? null, name: sectionForm.name.trim(), color: sectionForm.color, icon: sectionForm.icon, sort_order: editingSection ? editingSection.sort_order : sections.length, updated_at: new Date().toISOString() };
-    if (editingSection) { await supabase.from('restaurant_sections').update(payload).eq('id', editingSection.id); toast.success('Sección actualizada'); }
-    else { await supabase.from('restaurant_sections').insert(payload); toast.success('Sección creada'); }
+    if (editingSection) {
+      const { error } = await supabase.from('restaurant_sections').update(payload).eq('id', editingSection.id);
+      if (error) { toast.error('No se pudo actualizar la sección: ' + error.message); return; }
+      toast.success('Sección actualizada');
+    }
+    else {
+      const { error } = await supabase.from('restaurant_sections').insert(payload);
+      if (error) { toast.error('No se pudo crear la sección: ' + error.message); return; }
+      toast.success('Sección creada');
+    }
     setShowSectionModal(false); setEditingSection(null); setSectionForm({name:'',color:'#1B3A6B',icon:'🏠'}); fetchSections();
   }
 

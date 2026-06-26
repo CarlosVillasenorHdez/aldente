@@ -332,11 +332,12 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
       upsertRows.push({ config_key: 'brand_logo_url', config_value: logoPreview, tenant_id: appUser?.tenantId });
     }
     // Guardar datos globales del tenant (nombre, logo, RFC)
-    await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
+    const { error: cfgErr } = await supabase.from('system_config').upsert(upsertRows, { onConflict: 'tenant_id,config_key' });
+    if (cfgErr) { toast.error('No se pudo guardar: ' + cfgErr.message); return; }
 
     // Guardar dirección en la BRANCH activa (cada sucursal tiene su propia dirección)
     if (activeBranchId) {
-      await supabase.from('branches').update({
+      const { error: brErr } = await supabase.from('branches').update({
         address: address ?? '',
         city: city ?? '',
         state_region: stateRegion ?? '',
@@ -344,6 +345,7 @@ export default function ConfigRestaurante({ activeSection }: { activeSection: st
         postal_code: postalCode ?? '',
         phone: phone ?? '',
       }).eq('id', activeBranchId);
+      if (brErr) { toast.error('No se pudo guardar la dirección: ' + brErr.message); return; }
     } else if (appUser?.tenantId) {
       // Fallback: si no hay sucursal activa, guardar en la branch principal
       const { data: mainBranch } = await supabase.from('branches')

@@ -383,7 +383,13 @@ export default function PersonalManagement() {
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
   useEffect(() => {
-    if (activeTab === 'turnos') fetchShifts();
+    if (activeTab === 'turnos') {
+      fetchShifts();
+      // Cargar horarios de turno para mostrar las horas reales en la leyenda
+      supabase.from('system_config').select('config_value')
+        .eq('tenant_id', getTenantId()).eq('config_key', 'shift_hours').single()
+        .then(({ data }) => { if (data?.config_value) { try { setShiftHoursConfig(JSON.parse(data.config_value)); } catch { /* ignore */ } } });
+    }
     if (activeTab === 'acceso') fetchAppUsers();
     if (activeTab === 'permisos') fetchAllPerms();
   }, [activeTab, fetchShifts, fetchAppUsers, fetchAllPerms]);
@@ -882,13 +888,17 @@ export default function PersonalManagement() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Legend */}
-              {Object.entries(SHIFT_CONFIG).map(([key, cfg]) => (
-                <div key={key} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{cfg.label}</span>
-                </div>
-              ))}
+              {/* Legend — con las horas reales de cada turno */}
+              {Object.entries(SHIFT_CONFIG).map(([key, cfg]) => {
+                const h = shiftHoursConfig && (shiftHoursConfig as any)[key];
+                const horario = h ? ` (${h.inicio}–${h.fin})` : '';
+                return (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{cfg.label}{horario}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

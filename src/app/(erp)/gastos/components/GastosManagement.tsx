@@ -703,11 +703,13 @@ export default function GastosManagement() {
 
     // Update gasto: next payment date + status
     const nextPago = calcProximoPago(gasto.frecuencia, new Date(pagoForm.fecha_pago));
-    await supabase.from('gastos_recurrentes').update({
+    const { error: updErr } = await supabase.from('gastos_recurrentes').update({
       estado: 'pagado',
       proximo_pago: nextPago,
       updated_at: new Date().toISOString(),
     }).eq('id', gasto.id);
+
+    if (updErr) { toast.error('El pago se registró, pero no se actualizó la fecha del próximo vencimiento: ' + updErr.message); setSavingPago(false); return; }
 
     toast.success(`Pago registrado. Próximo vencimiento: ${nextPago}`);
     setSavingPago(false);

@@ -490,6 +490,13 @@ export default function ConfigOperaciones({ activeSection }: { activeSection: st
                   Define a qué hora entra y sale cada turno. Esto le da significado a "matutino", "vespertino" y "nocturno",
                   y permite que el sistema detecte retardos y salidas tempranas comparando con la hora real de entrada.
                 </p>
+                <div className="rounded-lg px-3 py-2.5 mb-4" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                    <strong>Tip:</strong> usa solo los turnos que tu negocio realmente tiene. Si cierras a las 10 u 11 de la noche,
+                    probablemente solo necesitas <strong>Matutino</strong> y <strong>Vespertino</strong>; deja "Nocturno" sin asignar a nadie.
+                    No tienes que usar los tres.
+                  </p>
+                </div>
                 <div className="rounded-xl overflow-hidden mb-4" style={{ backgroundColor: '#1a2535', border: '1px solid #1e2d3d' }}>
                   <div className="grid grid-cols-3 gap-4 px-5 py-3 text-xs font-semibold" style={{ backgroundColor: '#0f1923', color: 'rgba(255,255,255,0.4)' }}>
                     <span>TURNO</span><span>ENTRADA</span><span>SALIDA</span>

@@ -376,6 +376,7 @@ export default function CorteCaja() {
       cierre_por: cierrePor.trim(),
       ventas_efectivo: summary?.ventas_efectivo ?? 0,
       ventas_tarjeta: summary?.ventas_tarjeta ?? 0,
+      ventas_transferencia: summary?.ventas_transferencia ?? 0,
       ventas_total: summary?.ventas_total ?? 0,
       merma_total: summary?.merma_total ?? 0,
       ordenes_canceladas_count: summary?.ordenes_canceladas.length ?? 0,
