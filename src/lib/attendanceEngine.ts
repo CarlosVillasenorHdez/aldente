@@ -175,6 +175,55 @@ export async function checkOut(employeeId: string, tenantId: string): Promise<'o
   return 'ok';
 }
 
+// ── Cierre automático de entradas olvidadas ───────────────────────────────────
+/**
+ * Cierra las entradas sin salida de un tenant (para llamar al hacer el corte
+ * de caja: el corte marca el fin del turno). Evita que una sesión que nadie
+ * cerró infle las horas para siempre.
+ *
+ * No asume la hora actual a ciegas: si se pasó un horario de fin de turno
+ * (shiftEndTime 'HH:MM'), usa el menor entre ahora y esa hora, para no contar
+ * horas que no se trabajaron cuando el corte se hace tarde.
+ */
+export async function autoCheckoutPending(
+  tenantId: string,
+  shiftEndTime?: string | null
+): Promise<number> {
+  const today = todayISO();
+  const now = new Date();
+
+  const { data: pendientes } = await supabase
+    .from('employee_attendance')
+    .select('id, employee_id, check_in')
+    .eq('tenant_id', tenantId)
+    .eq('date', today)
+    .is('check_out', null)
+    .not('check_in', 'is', null);
+
+  if (!pendientes || pendientes.length === 0) return 0;
+
+  let cerrados = 0;
+  for (const reg of pendientes) {
+    // Hora de salida: la hora de fin del turno si aplica, o ahora
+    let salida = now;
+    if (shiftEndTime) {
+      const endTs = new Date(`${today}T${shiftEndTime}:00`);
+      // Usar el fin de turno solo si ya pasó y es posterior a la entrada
+      if (endTs.getTime() <= now.getTime()) salida = endTs;
+    }
+    const timeStr = salida.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const checkInTs = new Date(`${today}T${reg.check_in}:00`);
+    let hoursWorked = Math.round(((salida.getTime() - checkInTs.getTime()) / 3600000) * 100) / 100;
+    if (hoursWorked < 0) hoursWorked = 0;
+
+    await supabase.from('employee_attendance')
+      .update({ check_out: timeStr, check_out_ts: salida.toISOString(), hours_worked: hoursWorked, updated_at: now.toISOString() })
+      .eq('id', reg.id);
+    cerrados++;
+  }
+  return cerrados;
+}
+
 // ── Estado de hoy de un empleado ──────────────────────────────────────────────
 
 export interface TodayStatus {

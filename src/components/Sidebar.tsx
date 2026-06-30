@@ -313,7 +313,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             )}
 
             <button
-              onClick={async () => { await signOut(); router.replace('/login'); }}
+              onClick={async () => {
+                // Si tiene entrada sin salida, registrarla al cerrar sesión.
+                // Así el acto natural de irse (cerrar sesión) marca la salida,
+                // sin depender de que recuerde el botón aparte.
+                if (appUser?.employeeId && hasCheckin && !hasCheckout) {
+                  try { await checkOut(appUser.employeeId, appUser.tenantId ?? ''); } catch { /* no bloquear el logout */ }
+                }
+                await signOut(); router.replace('/login');
+              }}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-150 hover:bg-red-500/10"
               style={{ color: 'rgba(239,68,68,0.7)', justifyContent: collapsed ? 'center' : 'flex-start' }}
               aria-label="Cerrar sesión"

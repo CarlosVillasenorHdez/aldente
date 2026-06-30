@@ -392,6 +392,15 @@ export default function CorteCaja() {
     }).eq('id', corteActivo.id);
 
     if (error) { toast.error('Error al cerrar caja: ' + error.message); setCerrando(false); return; }
+
+    // Cerrar las entradas de asistencia que quedaron abiertas (gente que se
+    // fue sin marcar salida). El corte de caja marca el fin del turno.
+    try {
+      const { autoCheckoutPending } = await import('@/lib/attendanceEngine');
+      const cerrados = await autoCheckoutPending(tenantId ?? getTenantId() ?? '');
+      if (cerrados > 0) toast.success(`Se registró la salida de ${cerrados} empleado${cerrados > 1 ? 's' : ''} del turno.`);
+    } catch { /* no bloquear el corte si falla */ }
+
     toast.success('✅ Corte de caja completado');
     setCerrando(false);
     setDenominaciones(Object.fromEntries(denominaciones_activas.map(d => [d.valor, 0])));
