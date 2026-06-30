@@ -285,7 +285,18 @@ export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
       // Auto check-in: si el empleado tiene employee_id y es su primer acceso del día
       if (user.employeeId && user.tenantId) {
         // Fire-and-forget — no bloquea el login
-        import('@/lib/attendanceEngine').then(({ autoCheckIn }) => {
+        import('@/lib/attendanceEngine').then(async ({ autoCheckIn, closeStaleAttendance }) => {
+          // 1. Limpiar entradas viejas que quedaron abiertas (no depende del
+          //    corte de caja — sirve aunque el restaurante no haga corte).
+          try {
+            const { createClient } = await import('@/lib/supabase/client');
+            const sb = createClient();
+            const { data } = await sb.from('system_config').select('config_value')
+              .eq('tenant_id', user.tenantId ?? '').eq('config_key', 'shift_hours').single();
+            const shiftHours = data?.config_value ? JSON.parse(data.config_value) : null;
+            await closeStaleAttendance(user.tenantId ?? '', shiftHours).catch(() => {});
+          } catch { /* ignore */ }
+          // 2. Registrar la entrada de hoy
           autoCheckIn(user.employeeId ?? '', user.tenantId ?? '', user.branchId ?? null).catch(() => {});
         });
       }
