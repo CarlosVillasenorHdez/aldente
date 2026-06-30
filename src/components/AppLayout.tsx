@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import TrialBanner from '@/components/TrialBanner';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { getRoleLanding, pageKeyForPath } from '@/lib/roleLanding';
 import { createClient } from '@/lib/supabase/client';
 import { useDevice } from '@/hooks/useDevice';
 import Sidebar from './Sidebar';
@@ -38,6 +40,25 @@ export default function AppLayout({ children, title, subtitle, headerExtra }: Ap
   const routeKey = Object.keys(ROUTE_HELP).find(k => pathname?.includes(k));
   const autoHelp = routeKey ? ROUTE_HELP[routeKey] : null;
   const { appUser, loading: authLoading } = useAuth();
+  const { canAccess, loading: permsLoading } = useRolePermissions();
+
+  // Guard de acceso: si el rol del usuario NO puede ver esta página, lo
+  // mandamos a su pantalla de inicio. Esto cierra el hueco de entrar por URL
+  // a una página que el Sidebar oculta (ej: una cocinera abriendo /dashboard).
+  useEffect(() => {
+    if (authLoading || permsLoading || !appUser) return;
+    if (typeof window === 'undefined') return;
+    const path = window.location.pathname;
+    // Admin y gerente pueden ver todo; no los bloqueamos.
+    if (appUser.appRole === 'admin' || appUser.appRole === 'gerente') return;
+    // Páginas neutras que cualquiera puede ver (perfil, onboarding, etc.)
+    if (path.includes('/onboarding') || path.includes('/perfil') || path.includes('/kiosko')) return;
+    const key = pageKeyForPath(path);
+    if (key && !canAccess(key)) {
+      router.replace(getRoleLanding(appUser.appRole));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appUser, authLoading, permsLoading, pathname]);
   const router = useRouter();
   const device = useDevice();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

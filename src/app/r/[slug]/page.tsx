@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getRoleLanding } from '@/lib/roleLanding';
 import { ChefHat, Delete, MapPin } from 'lucide-react';
 
 interface LoginUser {
@@ -76,7 +77,7 @@ export default function RestaurantLoginPage() {
   const [shake, setShake] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && appUser) router.replace('/dashboard');
+    if (!authLoading && appUser) router.replace(getRoleLanding(appUser.appRole));
   }, [appUser, authLoading, router]);
 
   useEffect(() => {
@@ -115,7 +116,11 @@ export default function RestaurantLoginPage() {
     if (result.error) {
       setError('PIN incorrecto'); setPin('');
       setShake(true); setTimeout(()=>setShake(false), 500);
-    } else { router.replace('/dashboard'); }
+    } else {
+      // Cada rol aterriza en SU pantalla: cocina→/cocina, mesero→POS, dueño→dashboard
+      const role = result.user?.appRole ?? selectedUser.appRole;
+      router.replace(getRoleLanding(role));
+    }
   }
 
   useEffect(() => {
