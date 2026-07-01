@@ -197,7 +197,7 @@ export default function PersonalManagement() {
   // Horarios de turno (de Configuración) para detectar retardos en asistencia
   const [shiftHoursConfig, setShiftHoursConfig] = useState<Record<string, { inicio: string; fin: string }> & { tolerancia?: number } | null>(null);
   const [shiftsLoading, setShiftsLoading] = useState(false);
-  const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null}[]>([]);
+  const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null;needsReview?:boolean}[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingShift, setSavingShift] = useState(false);
@@ -558,6 +558,7 @@ export default function PersonalManagement() {
         checkIn: r.check_in,
         checkOut: r.check_out,
         hoursWorked: r.hours_worked,
+        needsReview: r.needs_review ?? false,
       })));
     } catch { /* tabla puede no existir aún */ }
     finally { setAttendanceLoading(false); }
@@ -1058,6 +1059,13 @@ export default function PersonalManagement() {
                           <p className="text-xs font-semibold" style={{ color: '#f59e0b' }}>
                             {record.hoursWorked}h trabajadas
                           </p>
+                        )}
+                        {record?.needsReview && (
+                          <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mt-1"
+                            style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}
+                            title="No se registró la salida y el sistema no pudo determinarla (¿doble turno?). Revisa y ajusta la hora manualmente.">
+                            ⚠ Revisar salida
+                          </span>
                         )}
                         {(() => {
                           const p = getPuntualidad(emp.id, record?.checkIn ?? null, record?.checkOut ?? null, selectedDate);

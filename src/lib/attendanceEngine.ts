@@ -243,20 +243,20 @@ export async function closeStaleAttendance(
   tenantId: string,
   shiftHours?: Record<string, { inicio: string; fin: string }> | null,
   maxShiftHours = 12
-): Promise<number> {
-  if (!tenantId) return 0;
+): Promise<{ cerrados: number; porRevisar: number }> {
+  if (!tenantId) return { cerrados: 0, porRevisar: 0 };
   const today = todayISO();
 
   // Entradas sin salida de días anteriores a hoy
   const { data: stale } = await supabase
     .from('employee_attendance')
-    .select('id, employee_id, date, check_in')
+    .select('id, employee_id, date, check_in, check_in_ts')
     .eq('tenant_id', tenantId)
     .lt('date', today)
     .is('check_out', null)
     .not('check_in', 'is', null);
 
-  if (!stale || stale.length === 0) return 0;
+  if (!stale || stale.length === 0) return { cerrados: 0, porRevisar: 0 };
 
   // Turnos asignados (para saber la hora de fin de cada quien)
   const empIds = [...new Set(stale.map(r => r.employee_id))];
@@ -266,32 +266,53 @@ export async function closeStaleAttendance(
     .in('employee_id', empIds);
 
   const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const now = new Date();
 
   let cerrados = 0;
+  let porRevisar = 0;
   for (const reg of stale) {
-    const checkInTs = new Date(`${reg.date}T${reg.check_in}:00`);
-    // Hora de salida estimada: fin del turno de ese día, o entrada + maxShiftHours
-    let salida: Date;
+    const checkInTs = new Date(reg.check_in_ts ?? `${reg.date}T${reg.check_in}:00`);
     const dow = diasSemana[new Date(`${reg.date}T12:00:00`).getDay()];
     const asignado = shiftRows?.find(s => s.employee_id === reg.employee_id && s.day === dow);
     const finTurno = asignado && shiftHours && (shiftHours as any)[asignado.shift]?.fin;
-    if (finTurno) {
-      salida = new Date(`${reg.date}T${finTurno}:00`);
-      // Si el fin es menor que la entrada (turno nocturno cruza medianoche), +1 día
-      if (salida.getTime() <= checkInTs.getTime()) salida = new Date(salida.getTime() + 86400000);
-    } else {
-      salida = new Date(checkInTs.getTime() + maxShiftHours * 3600000);
-    }
-    const timeStr = salida.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-    let hoursWorked = Math.round(((salida.getTime() - checkInTs.getTime()) / 3600000) * 100) / 100;
-    if (hoursWorked < 0) hoursWorked = 0;
 
-    await supabase.from('employee_attendance')
-      .update({ check_out: timeStr, check_out_ts: salida.toISOString(), hours_worked: hoursWorked, updated_at: new Date().toISOString() })
-      .eq('id', reg.id);
-    cerrados++;
+    // Salida estimada al fin de turno de ese día
+    let salidaEstimada: Date | null = null;
+    if (finTurno) {
+      salidaEstimada = new Date(`${reg.date}T${finTurno}:00`);
+      if (salidaEstimada.getTime() <= checkInTs.getTime()) {
+        salidaEstimada = new Date(salidaEstimada.getTime() + 86400000); // turno nocturno
+      }
+    }
+
+    // Horas que implicaría cerrar al fin de turno
+    const horasHastaFin = salidaEstimada
+      ? (salidaEstimada.getTime() - checkInTs.getTime()) / 3600000
+      : (now.getTime() - checkInTs.getTime()) / 3600000;
+
+    // AMBIGUO: si lleva abierta mucho más que un turno normal, NO adivinamos.
+    // Pudo ser doble turno (trabajó de verdad) o un olvido de días. Solo Jorge
+    // lo sabe. Lo marcamos para revisión en vez de inventar una hora de salida.
+    const esAmbiguo = horasHastaFin > maxShiftHours;
+
+    if (esAmbiguo || !salidaEstimada) {
+      // Marcar como "por revisar" — no inventar horas trabajadas
+      await supabase.from('employee_attendance')
+        .update({ needs_review: true, updated_at: now.toISOString() })
+        .eq('id', reg.id);
+      porRevisar++;
+    } else {
+      // Caso claro: cerrar al fin de su turno (olvidó marcar salida ese día)
+      const timeStr = salidaEstimada.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+      let hoursWorked = Math.round(((salidaEstimada.getTime() - checkInTs.getTime()) / 3600000) * 100) / 100;
+      if (hoursWorked < 0) hoursWorked = 0;
+      await supabase.from('employee_attendance')
+        .update({ check_out: timeStr, check_out_ts: salidaEstimada.toISOString(), hours_worked: hoursWorked, updated_at: now.toISOString() })
+        .eq('id', reg.id);
+      cerrados++;
+    }
   }
-  return cerrados;
+  return { cerrados, porRevisar };
 }
 
 // ── Estado de hoy de un empleado ──────────────────────────────────────────────
