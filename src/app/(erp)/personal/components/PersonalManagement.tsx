@@ -199,6 +199,7 @@ export default function PersonalManagement() {
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null;needsReview?:boolean}[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<{ id: string; name: string; checkIn: string; checkOut: string } | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingShift, setSavingShift] = useState(false);
 
@@ -605,6 +606,33 @@ export default function PersonalManagement() {
     toast.success(`Salida registrada · ${hoursWorked}h trabajadas`);
     fetchAttendance(selectedDate);
   };
+
+  // Ajuste manual del dueño: corregir entrada/salida cuando alguien olvidó
+  // marcar, hizo doble turno, o hay que arreglar un registro. Recalcula horas.
+  async function handleEditAttendance(recordId: string, newCheckIn: string, newCheckOut: string | null) {
+    if (!newCheckIn) { toast.error('La hora de entrada es obligatoria.'); return; }
+    let hoursWorked: number | null = null;
+    if (newCheckOut) {
+      const [inH, inM] = newCheckIn.split(':').map(Number);
+      const [outH, outM] = newCheckOut.split(':').map(Number);
+      let mins = (outH * 60 + outM) - (inH * 60 + inM);
+      if (mins < 0) mins += 24 * 60; // cruzó medianoche
+      hoursWorked = Math.round(mins / 60 * 100) / 100;
+    }
+    const { error } = await supabase.from('employee_attendance')
+      .update({
+        check_in: newCheckIn,
+        check_out: newCheckOut || null,
+        hours_worked: hoursWorked,
+        needs_review: false, // ya lo revisó el dueño
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', recordId);
+    if (error) { toast.error('Error al ajustar: ' + error.message); return; }
+    toast.success(hoursWorked != null ? `Ajustado · ${hoursWorked}h trabajadas` : 'Entrada ajustada');
+    setEditingAttendance(null);
+    fetchAttendance(selectedDate);
+  }
 
   async function handleShiftChange(employeeId: string, day: string, shift: ShiftType) {
     setSavingShift(true);
@@ -1102,6 +1130,15 @@ export default function PersonalManagement() {
                           ✓ Completo
                         </span>
                       )}
+                      {hasIn && (
+                        <button
+                          onClick={() => setEditingAttendance({ id: record!.id, name: emp.name, checkIn: record!.checkIn ?? '', checkOut: record!.checkOut ?? '' })}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ml-2"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)' }}
+                          title="Ajustar horas manualmente (ej: olvidó marcar salida, hizo doble turno)">
+                          ✎ Ajustar
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -1113,6 +1150,37 @@ export default function PersonalManagement() {
               </div>
             )}
           </div>
+
+          {/* Modal de ajuste manual de asistencia */}
+          {editingAttendance && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditingAttendance(null)}>
+              <div className="rounded-2xl p-6 w-full max-w-sm" style={{ background: '#0f1923', border: '1px solid #243f72' }} onClick={e => e.stopPropagation()}>
+                <h3 className="text-base font-bold text-white mb-1">Ajustar asistencia</h3>
+                <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>{editingAttendance.name} · {selectedDate}</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Hora de entrada</label>
+                    <input type="time" value={editingAttendance.checkIn}
+                      onChange={e => setEditingAttendance({ ...editingAttendance, checkIn: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Hora de salida</label>
+                    <input type="time" value={editingAttendance.checkOut}
+                      onChange={e => setEditingAttendance({ ...editingAttendance, checkOut: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }} />
+                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Déjala vacía si aún no sale. Si hizo doble turno, pon la hora real de salida.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button onClick={() => setEditingAttendance(null)}
+                    className="flex-1 py-2 rounded-lg text-sm" style={{ border: '1px solid #243f72', color: 'rgba(255,255,255,0.5)' }}>Cancelar</button>
+                  <button onClick={() => handleEditAttendance(editingAttendance.id, editingAttendance.checkIn, editingAttendance.checkOut || null)}
+                    className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ background: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>Guardar</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
