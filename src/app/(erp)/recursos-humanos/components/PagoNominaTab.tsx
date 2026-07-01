@@ -100,6 +100,7 @@ export default function PagoNominaTab() {
 
   const [pagos, setPagos] = useState<PagoNomina[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [tiempoExtraPeriodo, setTiempoExtraPeriodo] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -120,6 +121,8 @@ export default function PagoNominaTab() {
     incluyePrestaciones: nominaConfig.incluyePrestaciones,
   };
   const resumen = calcResumenNominaConConfig(employees, flags);
+  // Total real a pagar = nómina base + tiempo extra aprobado del periodo
+  const totalConExtra = resumen.totalNomina + tiempoExtraPeriodo;
 
   // Form
   const [form, setForm] = useState({
@@ -140,13 +143,35 @@ export default function PagoNominaTab() {
     const tid = getTenantId();
 
     const [{ data: empData }, { data: pagosData }] = await Promise.all([
-      supabase.from('employees').select('salary, salary_frequency, status')
+      supabase.from('employees').select('id, salary, salary_frequency, status')
         .eq('tenant_id', tid).eq('status', 'activo'),
       supabase.from('pagos_nomina').select('*')
         .eq('tenant_id', tid)
         .order('periodo_inicio', { ascending: false })
         .limit(12),
     ]);
+
+    // Cargar tiempo extra aprobado dentro del periodo actual y calcular su monto
+    // (horas × tarifa por hora × factor de la LFT). Esto conecta RH con la nómina.
+    try {
+      const { data: teData } = await supabase.from('rh_tiempos_extras')
+        .select('horas, factor_pago, employee_id, fecha, estado')
+        .eq('tenant_id', tid)
+        .gte('fecha', periodo.inicio).lte('fecha', periodo.fin)
+        .neq('estado', 'rechazado');
+      const empMap = new Map((empData ?? []).map((e: any) => [e.id, e]));
+      let totalTE = 0;
+      for (const te of (teData ?? [])) {
+        const emp: any = empMap.get(te.employee_id);
+        if (!emp) continue;
+        const mensual = emp.salary_frequency === 'semanal' ? Number(emp.salary) * 4.33
+          : emp.salary_frequency === 'quincenal' ? Number(emp.salary) * 2
+          : Number(emp.salary);
+        const tarifaHora = mensual / (30 * 8);
+        totalTE += Number(te.horas) * tarifaHora * Number(te.factor_pago);
+      }
+      setTiempoExtraPeriodo(Math.round(totalTE));
+    } catch { setTiempoExtraPeriodo(0); }
 
     setEmployees((empData ?? []).map((e: any) => ({
       salary: Number(e.salary ?? 0),
@@ -178,9 +203,9 @@ export default function PagoNominaTab() {
   // Sincronizar form con cálculo
   useEffect(() => {
     if (resumen.totalNomina > 0 && !form.montoPagado) {
-      setForm(f => ({ ...f, montoPagado: Math.round(resumen.totalNomina).toString() }));
+      setForm(f => ({ ...f, montoPagado: Math.round(totalConExtra).toString() }));
     }
-  }, [resumen.totalNomina]);
+  }, [resumen.totalNomina, tiempoExtraPeriodo]);
 
   // Guardar pago
   const handleSave = async () => {
@@ -196,7 +221,7 @@ export default function PagoNominaTab() {
       periodo_inicio:   form.periodoInicio,
       periodo_fin:      form.periodoFin,
       frecuencia:       form.frecuencia,
-      monto_estimado:   resumen.totalNomina,
+      monto_estimado:   totalConExtra,
       monto_salarios:   resumen.salariosBrutos,
       monto_imss:       resumen.cuotasIMSS,
       monto_infonavit:  resumen.cuotasINFONAVIT,
@@ -266,7 +291,8 @@ export default function PagoNominaTab() {
               : `Próximo pago de nómina: ${diasParaProximoPago} día${diasParaProximoPago > 1 ? 's' : ''}`}
           </p>
           <p className={`text-xs mt-0.5 ${urgente ? 'text-red-600' : 'text-blue-600'}`}>
-            {periodo.label} · {resumen.empleados} empleados · Estimado: {fmt(resumen.totalNomina)}
+            {periodo.label} · {resumen.empleados} empleados · Estimado: {fmt(totalConExtra)}
+            {tiempoExtraPeriodo > 0 && <span style={{ color: '#f59e0b' }}> (incluye {fmt(tiempoExtraPeriodo)} de tiempo extra)</span>}
           </p>
           {ultimoPago && (
             <p className="text-xs text-white/45 mt-1">

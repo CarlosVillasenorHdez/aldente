@@ -332,7 +332,7 @@ export default function RHManagement() {
   const [vacForm, setVacForm] = useState({ employee_id: '', fecha_inicio: '', fecha_fin: '', notas: '' });
   const [permForm, setPermForm] = useState({ employee_id: '', tipo: 'personal' as PermTipo, fecha: '', horas: '1', con_goce: true, motivo: '' });
   const [incapForm, setIncapForm] = useState({ employee_id: '', tipo: 'enfermedad_general' as IncapTipo, fecha_inicio: '', fecha_fin: '', folio_imss: '', porcentaje_salario: 60, notas: '' });
-  const [teForm, setTeForm] = useState({ employee_id: '', fecha: '', horas: '1', factor_pago: '1.5', descripcion: '' });
+  const [teForm, setTeForm] = useState({ employee_id: '', fecha: '', horas: '1', factor_pago: '2.0', descripcion: '' });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -439,18 +439,55 @@ export default function RHManagement() {
   async function saveTiempoExtra() {
     if (!teForm.employee_id || !teForm.fecha) return;
     setSaving(true);
+    const horasNuevas = parseFloat(teForm.horas) || 1;
+
+    // ── Cálculo del factor según Ley Federal del Trabajo ──
+    // Semana del registro (lunes a domingo)
+    const fecha = new Date(teForm.fecha + 'T12:00:00');
+    const dow = (fecha.getDay() + 6) % 7; // 0 = lunes
+    const lunes = new Date(fecha); lunes.setDate(fecha.getDate() - dow);
+    const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+    // Horas extra ya registradas esa semana para el mismo empleado
+    const { data: previas } = await supabase.from('rh_tiempos_extras')
+      .select('horas')
+      .eq('tenant_id', getTenantId())
+      .eq('employee_id', teForm.employee_id)
+      .gte('fecha', iso(lunes)).lte('fecha', iso(domingo));
+    const horasPrevias = (previas ?? []).reduce((s: number, r: any) => s + Number(r.horas), 0);
+
+    // LFT: primeras 9 hrs/semana a 2x, el resto a 3x. Repartir las horas nuevas.
+    const restanteDobles = Math.max(0, 9 - horasPrevias);
+    const horasDobles = Math.min(horasNuevas, restanteDobles);
+    const horasTriples = horasNuevas - horasDobles;
+
+    // Advertencias legales
+    if (horasNuevas > 3) {
+      if (!confirm('La LFT permite máximo 3 horas extra por día (Art. 66). Estás registrando más. ¿Continuar de todos modos?')) { setSaving(false); return; }
+    }
+    if (horasPrevias + horasNuevas > 9) {
+      if (!confirm(`Con este registro, ${employees.find(e=>e.id===teForm.employee_id)?.name ?? 'el empleado'} superará las 9 horas extra en la semana. Las horas por encima de 9 se pagan al TRIPLE (Art. 68). ¿Continuar?`)) { setSaving(false); return; }
+    }
+
+    // Guardamos con el factor promedio ponderado (para que el monto salga bien).
+    // Si hay mezcla de dobles y triples, el factor efectivo lo refleja.
+    const factorEfectivo = horasNuevas > 0
+      ? (horasDobles * 2 + horasTriples * 3) / horasNuevas
+      : 2;
+
     const { error: e } = await supabase.from('rh_tiempos_extras').insert({ tenant_id: getTenantId(),
       employee_id: teForm.employee_id,
       fecha: teForm.fecha,
-      horas: parseFloat(teForm.horas) || 1,
-      factor_pago: parseFloat(teForm.factor_pago) || 1.5,
+      horas: horasNuevas,
+      factor_pago: Math.round(factorEfectivo * 100) / 100,
       descripcion: teForm.descripcion || null,
       estado: 'pendiente',
     });
     setSaving(false);
     if (e) { setError(e.message); return; }
     setShowModal(null);
-    setTeForm({ employee_id: '', fecha: '', horas: '1', factor_pago: '1.5', descripcion: '' });
+    setTeForm({ employee_id: '', fecha: '', horas: '1', factor_pago: '2.0', descripcion: '' });
     loadData();
   }
 
@@ -1043,13 +1080,14 @@ export default function RHManagement() {
               </div>
             </div>
             <div>
-              <label className={labelCls}>Factor de Pago</label>
-              <p className="text-xs" style={{ color: '#f59e0b' }}>⚖️ LFT: Las primeras 9 hrs/semana se pagan a 2x (Art.67). Más de 9 hrs/semana a 3x (Art.68). El sistema calcula automáticamente.</p>
-              <select value={teForm.factor_pago} onChange={(e) => setTeForm({ ...teForm, factor_pago: e.target.value })} className={inputCls} style={inputStyle}>
-                <option value="1.5">1.5x — Tiempo extra normal</option>
-                <option value="2.0">2.0x — Día festivo</option>
-                <option value="3.0">3.0x — Día festivo doble</option>
-              </select>
+              <label className={labelCls}>Pago (automático según la ley)</label>
+              <div className="rounded-lg px-3 py-2.5 mt-1" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                  ⚖️ <strong>Ley Federal del Trabajo:</strong> las primeras 9 horas extra de la semana se pagan al <strong>doble</strong> (Art. 67);
+                  a partir de la hora 10, al <strong>triple</strong> (Art. 68). El límite legal es 3 horas al día y 9 a la semana (Art. 66).
+                  El sistema aplica el factor correcto automáticamente según las horas que ya lleve el empleado esa semana.
+                </p>
+              </div>
             </div>
             <div>
               <label className={labelCls}>Descripción</label>
