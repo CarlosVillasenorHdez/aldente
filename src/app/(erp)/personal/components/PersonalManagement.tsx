@@ -200,6 +200,7 @@ export default function PersonalManagement() {
   const [attendance, setAttendance] = useState<{id:string;employeeId:string;employeeName:string;date:string;checkIn:string|null;checkOut:string|null;hoursWorked:number|null;needsReview?:boolean}[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<{ id: string; name: string; checkIn: string; checkOut: string } | null>(null);
+  const [addingAttendance, setAddingAttendance] = useState<{ employeeId: string; checkIn: string; checkOut: string } | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingShift, setSavingShift] = useState(false);
 
@@ -609,6 +610,38 @@ export default function PersonalManagement() {
 
   // Ajuste manual del dueño: corregir entrada/salida cuando alguien olvidó
   // marcar, hizo doble turno, o hay que arreglar un registro. Recalcula horas.
+  // Crear un registro de asistencia manual — para el caso en que alguien
+  // trabajó pero no quedó registrado (ej: usó la sesión de otra persona).
+  async function handleAddManualAttendance(employeeId: string, date: string, checkIn: string, checkOut: string | null) {
+    if (!employeeId || !checkIn) { toast.error('Falta el empleado o la hora de entrada.'); return; }
+    let hoursWorked: number | null = null;
+    if (checkOut) {
+      const [inH, inM] = checkIn.split(':').map(Number);
+      const [outH, outM] = checkOut.split(':').map(Number);
+      let mins = (outH * 60 + outM) - (inH * 60 + inM);
+      if (mins < 0) mins += 24 * 60;
+      hoursWorked = Math.round(mins / 60 * 100) / 100;
+    }
+    // Evitar duplicado: si ya hay registro de ese empleado ese día, no crear otro
+    const { data: existe } = await supabase.from('employee_attendance')
+      .select('id').eq('employee_id', employeeId).eq('date', date).maybeSingle();
+    if (existe) { toast.error('Ya existe un registro de esa persona ese día. Edítalo en vez de crear otro.'); return; }
+
+    const { error } = await supabase.from('employee_attendance').insert({
+      tenant_id: getTenantId(),
+      employee_id: employeeId,
+      date,
+      check_in: checkIn,
+      check_out: checkOut || null,
+      hours_worked: hoursWorked,
+      metodo: 'manual',
+    });
+    if (error) { toast.error('Error al crear el registro: ' + error.message); return; }
+    toast.success('Registro de asistencia creado.');
+    setAddingAttendance(null);
+    fetchAttendance(selectedDate);
+  }
+
   async function handleEditAttendance(recordId: string, newCheckIn: string, newCheckOut: string | null) {
     if (!newCheckIn) { toast.error('La hora de entrada es obligatoria.'); return; }
     let hoursWorked: number | null = null;
@@ -1016,6 +1049,11 @@ export default function PersonalManagement() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <button onClick={() => setAddingAttendance({ employeeId: '', checkIn: '', checkOut: '' })}
+                className="px-3 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}>
+                + Agregar registro
+              </button>
               <input
                 type="date"
                 value={selectedDate}
@@ -1177,6 +1215,47 @@ export default function PersonalManagement() {
                     className="flex-1 py-2 rounded-lg text-sm" style={{ border: '1px solid #243f72', color: 'rgba(255,255,255,0.5)' }}>Cancelar</button>
                   <button onClick={() => handleEditAttendance(editingAttendance.id, editingAttendance.checkIn, editingAttendance.checkOut || null)}
                     className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ background: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>Guardar</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {addingAttendance && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddingAttendance(null)}>
+              <div className="rounded-2xl p-6 w-full max-w-sm" style={{ background: '#0f1923', border: '1px solid #243f72' }} onClick={e => e.stopPropagation()}>
+                <h3 className="text-base font-bold text-white mb-1">Agregar registro de asistencia</h3>
+                <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Para cuando alguien trabajó pero no quedó registrado (ej: entró con la sesión de otra persona). Fecha: {selectedDate}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Empleado</label>
+                    <select value={addingAttendance.employeeId}
+                      onChange={e => setAddingAttendance({ ...addingAttendance, employeeId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }}>
+                      <option value="">Seleccionar…</option>
+                      {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Entrada</label>
+                      <input type="time" value={addingAttendance.checkIn}
+                        onChange={e => setAddingAttendance({ ...addingAttendance, checkIn: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Salida</label>
+                      <input type="time" value={addingAttendance.checkOut}
+                        onChange={e => setAddingAttendance({ ...addingAttendance, checkOut: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid #243f72', color: 'white' }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button onClick={() => setAddingAttendance(null)}
+                    className="flex-1 py-2 rounded-lg text-sm" style={{ border: '1px solid #243f72', color: 'rgba(255,255,255,0.5)' }}>Cancelar</button>
+                  <button onClick={() => handleAddManualAttendance(addingAttendance.employeeId, selectedDate, addingAttendance.checkIn, addingAttendance.checkOut || null)}
+                    className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ background: '#1B3A6B', color: '#f59e0b', border: '1px solid #243f72' }}>Crear</button>
                 </div>
               </div>
             </div>
