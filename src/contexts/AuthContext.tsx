@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { setCurrentTenantId } from '../lib/tenantStore';
+import { hashPin } from '../lib/pin';
 
 // AppRole is a string — supports both the 7 built-in roles and custom profiles
 export type AppRole = string;
@@ -108,13 +109,9 @@ function clearSession() {
 
 
 // ── Simple PIN hash using Web Crypto (no external deps) ─────────────────────
-async function hashPin(pin: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pin + 'aldente_salt_2024');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+// El hasheo vive en @/lib/pin — ÚNICA fuente de verdad. No duplicar aquí:
+// si el hash de guardado y el de verificación difieren, el usuario queda
+// bloqueado sin explicación (pasó con el SuperAdmin y con Personal).
 
 export const AuthProvider = ({ children }: { children?: React.ReactNode }) => {
   const [appUser, setAppUser] = useState<AppUser | null>(null);

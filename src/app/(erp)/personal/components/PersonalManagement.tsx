@@ -5,6 +5,7 @@ import { useBranch } from '@/hooks/useBranch';
 import { useRolePermissions, invalidatePermissionsCache } from '@/hooks/useRolePermissions';
 import { useAuth, AppRole, BUILTIN_ROLES } from '@/contexts/AuthContext';
 import { getCurrentTenantId as getTenantId } from '@/lib/tenantStore';
+import { hashPin } from '@/lib/pin';
 
 
 
@@ -233,8 +234,9 @@ export default function PersonalManagement() {
   async function handleSavePin(userId: string) {
     if (newPin.length < 4) { toast.error('El PIN debe tener al menos 4 dígitos'); return; }
     setSavingPin(true);
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPin));
-    const hashed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    // Usar la utilidad central — si se hashea sin la sal, el login nunca
+    // reconoce el PIN y el empleado queda bloqueado.
+    const hashed = await hashPin(newPin);
     const { error } = await supabase.from('app_users').update({ pin: hashed }).eq('id', userId);
     setSavingPin(false);
     if (error) { toast.error('Error al guardar PIN'); return; }

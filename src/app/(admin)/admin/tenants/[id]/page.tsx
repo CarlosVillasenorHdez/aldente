@@ -8,6 +8,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { hashPin } from '@/lib/pin';
 import { toast } from 'sonner';
 
 const PLANS = ['operacion', 'negocio', 'empresa'];
@@ -276,11 +277,6 @@ export default function TenantDetailPage() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
-
-  async function hashPin(pin: string): Promise<string> {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
 
   async function handlePinChange() {
     if (!pinModal || newPin.length < 4) return;
